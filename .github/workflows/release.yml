@@ -11,7 +11,7 @@ defaults:
 
 jobs:
   package:
-    name: package
+    name: build package
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -31,31 +31,29 @@ jobs:
         id: tag
       - name: package
         run: ./package/package.sh -b ${{ steps.tag.outputs.tag }}
-      - name: Get package name
-        id: pkg
+      - name: output some vars
+        id: vars
         run: |
+          tag=$(echo ${{ github.ref }} | rev | cut -d/ -f1 | rev)
           filename=$(find build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
           sha256sum $filename > $filename.$SHA_EXT
+          subdir = $(echo $tag |sed 's/^v//')
           echo "::set-output name=filepath::$filename"
           echo "::set-output name=shafilepath::$filename.$SHA_EXT"
+          echo "::set-output name=subdir::$subdir"
       - uses: ./.github/actions/upload-assets-action
         with:
-          file-path: ${{ steps.pkg.outputs.filepath }}
-          tag: ${{ steps.tag.outputs.tag  }}
+          file-path: ${{ steps.vars.outputs.filepath }}
+          tag: ${{ steps.tag.outputs.tag }}
       - name: upload package to oss
-        run: |
-          ./ci/scripts/upload-oss.sh \
-            OSS_ENDPOINT=${{ secrets.OSS_ENDPOINT }} \
-            OSS_ID=${{ secrets.OSS_ID }} \
-            OSS_SECRET=${{ secrets.OSS_SECRET }} \
-            tag=${{ steps.tag.outputs.tag }} \
-            filepath=${{ steps.pkg.outputs.filepath }}
-          ./ci/scripts/upload-oss.sh \
-            OSS_ENDPOINT=${{ secrets.OSS_ENDPOINT }} \
-            OSS_ID=${{ secrets.OSS_ID }} \
-            OSS_SECRET=${{ secrets.OSS_SECRET }} \
-            tag=${{ steps.tag.outputs.tag }} \
-            filepath=${{ steps.pkg.outputs.shafilepath }}
+        uses: tvrcgo/upload-to-oss@v0.1.1
+        with:
+          key-id: ${{ secrets.OSS_ID }}
+          key-secret: ${{ secrets.OSS_SECRET }}
+          endpoint: ${{ secrets.OSS_ENDPOINT }}
+          bucket: nebula-graph
+          asset-path: build/cpack_output
+          target-path: /package/{{ steps.vars.outputs.subdir }}
 
   docker_build_graph:
     name: docker-graph

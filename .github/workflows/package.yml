@@ -1,9 +1,6 @@
 name: package
 
 on:
-  push:
-    branches:
-      - 'v[0-9]+.*'
   schedule:
     - cron: '0 18 * * *'
 
@@ -27,19 +24,28 @@ jobs:
     container:
       image: vesoft/nebula-dev:${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Package
+      - uses: actions/checkout@v1
+      - name: package
         run: ./package/package.sh
-      - name: Upload oss
+      - name: output some vars
+        id: vars
         run: |
-          filepath=$(find build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
-          ./ci/scripts/upload-oss.sh \
-            OSS_ENDPOINT=${{ secrets.OSS_ENDPOINT }} \
-            OSS_ID=${{ secrets.OSS_ID }} \
-            OSS_SECRET=${{ secrets.OSS_SECRET }} \
-            filepath=$filepath \
-            nightly=true
+          filename=$(find build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
+          sha256sum $filename > $filename.$SHA_EXT
+          subdir = $(date -u +%Y.%m.%d)
+          echo "::set-output name=filepath::$filename"
+          echo "::set-output name=shafilepath::$filename.$SHA_EXT"
+          echo "::set-output name=subdir::$subdir"
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.os }}-nightly
+          name: ${{ matrix.os }}-v2-nightly
           path: build/cpack_output
+      - name: upload package to oss
+        uses: tvrcgo/upload-to-oss@v0.1.1
+        with:
+          key-id: ${{ secrets.OSS_ID }}
+          key-secret: ${{ secrets.OSS_SECRET }}
+          endpoint: ${{ secrets.OSS_ENDPOINT }}
+          bucket: nebula-graph
+          asset-path: build/cpack_output
+          target-path: /package/nightly/{{ steps.vars.outputs.subdir }}
