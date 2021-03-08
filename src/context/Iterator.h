@@ -371,48 +371,6 @@ private:
 
 class SequentialIter final : public Iterator {
 public:
-    class SeqLogicalRow final : public LogicalRow {
-    public:
-        explicit SeqLogicalRow(const Row* row) : LogicalRow({row}) {}
-
-        SeqLogicalRow(const SeqLogicalRow &r) = default;
-        SeqLogicalRow& operator=(const SeqLogicalRow &r) = default;
-
-        SeqLogicalRow(SeqLogicalRow &&r) noexcept {
-            *this = std::move(r);
-        }
-        SeqLogicalRow& operator=(SeqLogicalRow &&r) noexcept {
-            segments_ = std::move(r.segments_);
-            return *this;
-        }
-
-        const Value& operator[](size_t idx) const override {
-            DCHECK_EQ(segments_.size(), 1);
-            auto* row = segments_[0];
-            if (idx < row->size()) {
-                return row->values[idx];
-            }
-            return Value::kEmpty;
-        }
-
-        size_t size() const override {
-            DCHECK_EQ(segments_.size(), 1);
-            auto* row = segments_[0];
-            return row->size();
-        }
-
-        LogicalRow::Kind kind() const override {
-            return Kind::kSequential;
-        }
-
-        const std::vector<const Row*>& segments() const override {
-            return segments_;
-        }
-
-    private:
-        friend class SequentialIter;
-    };
-
     explicit SequentialIter(std::shared_ptr<Value> value);
 
     // Union multiple sequential iterators

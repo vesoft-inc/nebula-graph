@@ -514,7 +514,8 @@ void SequentialIter::erase() {
 }
 
 void SequentialIter::unstableErase() {
-    erase();
+    std::swap(rows_->back(), *iter_);
+    rows_->pop_back();
 }
 
 void SequentialIter::eraseRange(size_t first, size_t last) {
