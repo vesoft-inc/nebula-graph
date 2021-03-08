@@ -7,6 +7,7 @@
 #include "optimizer/rule/MergeGetVerticesAndProjectRule.h"
 
 #include "common/expression/PropertyExpression.h"
+#include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
@@ -16,7 +17,6 @@ using nebula::InputPropertyExpression;
 using nebula::graph::GetVertices;
 using nebula::graph::PlanNode;
 using nebula::graph::Project;
-using nebula::graph::QueryContext;
 
 namespace nebula {
 namespace opt {
@@ -34,8 +34,8 @@ const Pattern &MergeGetVerticesAndProjectRule::pattern() const {
     return pattern;
 }
 
-bool MergeGetVerticesAndProjectRule::match(const MatchedResult &matched) const {
-    if (!OptRule::match(matched)) {
+bool MergeGetVerticesAndProjectRule::match(OptContext *ctx, const MatchedResult &matched) const {
+    if (!OptRule::match(ctx, matched)) {
         return false;
     }
     const auto *optGV = matched.node;
@@ -54,7 +54,7 @@ bool MergeGetVerticesAndProjectRule::match(const MatchedResult &matched) const {
 }
 
 StatusOr<OptRule::TransformResult> MergeGetVerticesAndProjectRule::transform(
-    QueryContext *qctx,
+    OptContext *ctx,
     const MatchedResult &matched) const {
     const OptGroupNode *optGV = matched.node;
     const OptGroupNode *optProj = matched.dependencies.back().node;
@@ -64,10 +64,11 @@ StatusOr<OptRule::TransformResult> MergeGetVerticesAndProjectRule::transform(
     auto project = static_cast<const Project *>(optProj->node());
     auto newGV = gv->clone();
     auto column = project->columns()->back();
+    auto qctx = ctx->qctx();
     auto srcExpr = qctx->objPool()->add(column->expr()->clone().release());
     newGV->setSrc(srcExpr);
     newGV->setInputVar(project->inputVar());
-    auto newOptGV = OptGroupNode::create(qctx, newGV, optGV->group());
+    auto newOptGV = OptGroupNode::create(ctx, newGV, optGV->group());
     for (auto dep : optProj->dependencies()) {
         newOptGV->dependsOn(dep);
     }

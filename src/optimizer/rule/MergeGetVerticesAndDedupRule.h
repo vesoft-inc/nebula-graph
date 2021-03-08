@@ -16,7 +16,7 @@ class MergeGetVerticesAndDedupRule final : public OptRule {
 public:
     const Pattern &pattern() const override;
 
-    StatusOr<TransformResult> transform(graph::QueryContext *qctx,
+    StatusOr<TransformResult> transform(OptContext *ctx,
                                         const MatchedResult &matched) const override;
 
     std::string toString() const override;

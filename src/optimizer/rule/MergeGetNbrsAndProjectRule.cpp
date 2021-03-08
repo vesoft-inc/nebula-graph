@@ -7,6 +7,7 @@
 #include "optimizer/rule/MergeGetNbrsAndProjectRule.h"
 
 #include "common/expression/PropertyExpression.h"
+#include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
@@ -34,8 +35,8 @@ const Pattern &MergeGetNbrsAndProjectRule::pattern() const {
     return pattern;
 }
 
-bool MergeGetNbrsAndProjectRule::match(const MatchedResult &matched) const {
-    if (!OptRule::match(matched)) {
+bool MergeGetNbrsAndProjectRule::match(OptContext *ctx, const MatchedResult &matched) const {
+    if (!OptRule::match(ctx, matched)) {
         return false;
     }
     const auto *optGN = matched.node;
@@ -54,7 +55,7 @@ bool MergeGetNbrsAndProjectRule::match(const MatchedResult &matched) const {
 }
 
 StatusOr<OptRule::TransformResult> MergeGetNbrsAndProjectRule::transform(
-    QueryContext *qctx,
+    OptContext *ctx,
     const MatchedResult &matched) const {
     const OptGroupNode *optGN = matched.node;
     const OptGroupNode *optProj = matched.dependencies.back().node;
@@ -62,12 +63,13 @@ StatusOr<OptRule::TransformResult> MergeGetNbrsAndProjectRule::transform(
     DCHECK_EQ(optProj->node()->kind(), PlanNode::Kind::kProject);
     auto gn = static_cast<const GetNeighbors *>(optGN->node());
     auto project = static_cast<const Project *>(optProj->node());
+    auto qctx = ctx->qctx();
     auto newGN = gn->clone(qctx);
     auto column = project->columns()->back();
     auto srcExpr = qctx->objPool()->add(column->expr()->clone().release());
     newGN->setSrc(srcExpr);
     newGN->setInputVar(project->inputVar());
-    auto newOptGV = OptGroupNode::create(qctx, newGN, optGN->group());
+    auto newOptGV = OptGroupNode::create(ctx, newGN, optGN->group());
     for (auto dep : optProj->dependencies()) {
         newOptGV->dependsOn(dep);
     }

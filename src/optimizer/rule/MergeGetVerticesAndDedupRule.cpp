@@ -6,6 +6,7 @@
 
 #include "optimizer/rule/MergeGetVerticesAndDedupRule.h"
 
+#include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
@@ -13,7 +14,6 @@
 using nebula::graph::Dedup;
 using nebula::graph::GetVertices;
 using nebula::graph::PlanNode;
-using nebula::graph::QueryContext;
 
 namespace nebula {
 namespace opt {
@@ -32,7 +32,7 @@ const Pattern &MergeGetVerticesAndDedupRule::pattern() const {
 }
 
 StatusOr<OptRule::TransformResult> MergeGetVerticesAndDedupRule::transform(
-    QueryContext *qctx,
+    OptContext *ctx,
     const MatchedResult &matched) const {
     const OptGroupNode *optGV = matched.node;
     const OptGroupNode *optDedup = matched.dependencies.back().node;
@@ -45,7 +45,7 @@ StatusOr<OptRule::TransformResult> MergeGetVerticesAndDedupRule::transform(
         newGV->setDedup();
     }
     newGV->setInputVar(dedup->inputVar());
-    auto newOptGV = OptGroupNode::create(qctx, newGV, optGV->group());
+    auto newOptGV = OptGroupNode::create(ctx, newGV, optGV->group());
     for (auto dep : optDedup->dependencies()) {
         newOptGV->dependsOn(dep);
     }

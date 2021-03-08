@@ -6,6 +6,7 @@
 
 #include "optimizer/rule/MergeGetNbrsAndDedupRule.h"
 
+#include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
@@ -13,7 +14,6 @@
 using nebula::graph::Dedup;
 using nebula::graph::GetNeighbors;
 using nebula::graph::PlanNode;
-using nebula::graph::QueryContext;
 
 namespace nebula {
 namespace opt {
@@ -32,7 +32,7 @@ const Pattern &MergeGetNbrsAndDedupRule::pattern() const {
 }
 
 StatusOr<OptRule::TransformResult> MergeGetNbrsAndDedupRule::transform(
-    QueryContext *qctx,
+    OptContext *ctx,
     const MatchedResult &matched) const {
     const OptGroupNode *optGN = matched.node;
     const OptGroupNode *optDedup = matched.dependencies.back().node;
@@ -40,12 +40,13 @@ StatusOr<OptRule::TransformResult> MergeGetNbrsAndDedupRule::transform(
     DCHECK_EQ(optDedup->node()->kind(), PlanNode::Kind::kDedup);
     auto gn = static_cast<const GetNeighbors *>(optGN->node());
     auto dedup = static_cast<const Dedup *>(optDedup->node());
+    auto qctx = ctx->qctx();
     auto newGN = gn->clone(qctx);
     if (!newGN->dedup()) {
         newGN->setDedup();
     }
     newGN->setInputVar(dedup->inputVar());
-    auto newOptGV = OptGroupNode::create(qctx, newGN, optGN->group());
+    auto newOptGV = OptGroupNode::create(ctx, newGN, optGN->group());
     for (auto dep : optDedup->dependencies()) {
         newOptGV->dependsOn(dep);
     }
