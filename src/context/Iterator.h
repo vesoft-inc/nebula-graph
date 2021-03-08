@@ -416,9 +416,6 @@ protected:
         return &*iter_;
     }
 
-    std::vector<Row>::iterator                   iter_;
-    std::vector<Row>*                            rows_{nullptr};
-
     // Notice: We only use this interface when return results to client.
     friend class DataCollectExecutor;
     Row&& moveRow() {
@@ -426,6 +423,9 @@ protected:
     }
 
     void doReset(size_t pos) override;
+
+    std::vector<Row>::iterator                   iter_;
+    std::vector<Row>*                            rows_{nullptr};
 
 private:
     void init(std::vector<std::unique_ptr<Iterator>>&& iterators);
@@ -436,6 +436,12 @@ private:
 class PropIter final : public SequentialIter {
 public:
     explicit PropIter(std::shared_ptr<Value> value);
+
+    std::unique_ptr<Iterator> copy() const override {
+        auto copy = std::make_unique<PropIter>(*this);
+        copy->reset();
+        return copy;
+    }
 
     const std::unordered_map<std::string, size_t>& getColIndices() const {
         return dsIndex_.colIndices;
