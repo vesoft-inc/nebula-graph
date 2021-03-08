@@ -179,7 +179,7 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
             return;
         }
         std::stringstream out;
-        out << "Can not convert " << *expr->operand() << " 's type : " << type_ << " to "
+        out << "Can not convert " << expr->operand()->toString() << " 's type : " << type_ << " to "
             << expr->type();
         status_ = Status::SemanticError(out.str());
         return;
