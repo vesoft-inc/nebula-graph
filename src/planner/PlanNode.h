@@ -100,7 +100,8 @@ public:
         kCreateSnapshot,
         kDropSnapshot,
         kShowSnapshots,
-        kDataJoin,
+        kLeftJoin,
+        kInnerJoin,
         kDeleteVertices,
         kDeleteEdges,
         kUpdateVertex,
@@ -158,6 +159,10 @@ public:
 
     int64_t id() const {
         return id_;
+    }
+
+    QueryContext* qctx() const {
+        return qctx_;
     }
 
     virtual bool isSingleInput() const {
