@@ -18,7 +18,6 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetVerticesExecutor::execute() {
-    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     return getVertices();
 }
 
@@ -70,17 +69,12 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         .via(runner())
         .ensure([this, getPropsTime]() {
             SCOPED_TIMER(&execTime_);
-            auto time = getPropsTime.elapsedInUSec();
-            if (otherStats_ != nullptr) {
-                otherStats_->emplace("total_rpc", folly::stringPrintf("%lu(us)", time));
-            }
-            VLOG(1) << "Get props time: " << time << "us";
+            otherStats_.emplace("total_rpc",
+                                 folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
         })
         .then([this, gv](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
-            if (otherStats_ != nullptr) {
-                addStats(rpcResp, *otherStats_);
-            }
+            addStats(rpcResp, otherStats_);
             return handleResp(std::move(rpcResp), gv->colNamesRef());
         });
 }
