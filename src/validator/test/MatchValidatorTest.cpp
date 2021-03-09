@@ -82,7 +82,7 @@ TEST_F(MatchValidatorTest, SeekByEdgeIndex) {
         std::vector<PlanNode::Kind> expected = {PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
-                                                PlanNode::Kind::kDataJoin,
+                                                PlanNode::Kind::kInnerJoin,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
