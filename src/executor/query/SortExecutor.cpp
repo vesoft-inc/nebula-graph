@@ -19,19 +19,15 @@ folly::Future<Status> SortExecutor::execute() {
     if (UNLIKELY(result.iterRef() == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in sort executor");
     }
-    if (UNLIKELY(result.iterRef()->isDefaultIter())) {
-        std::string errMsg = "Internal error: Sort executor does not supported DefaultIter";
-        LOG(ERROR) << errMsg;
-        return Status::Error(errMsg);
-    }
-    if (UNLIKELY(result.iterRef()->isGetNeighborsIter())) {
-        std::string errMsg = "Internal error: Sort executor does not supported GetNeighborsIter";
-        LOG(ERROR) << errMsg;
-        return Status::Error(errMsg);
+    if (UNLIKELY(!result.iterRef()->isSequentialIter())) {
+        std::stringstream ss;
+        ss << "Internal error: Sort executor does not supported " << result.iterRef()->kind();
+        LOG(ERROR) << ss.str();
+        return Status::Error(ss.str());
     }
 
     auto &factors = sort->factors();
-    auto comparator = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
+    auto comparator = [&factors] (const Row &lhs, const Row &rhs) {
         for (auto &item : factors) {
             auto index = item.first;
             auto orderType = item.second;
@@ -48,16 +44,8 @@ folly::Future<Status> SortExecutor::execute() {
         return false;
     };
 
-    if (result.iterRef()->isSequentialIter()) {
-        auto seqIter = static_cast<SequentialIter*>(result.iterRef());
-        std::sort(seqIter->begin(), seqIter->end(), comparator);
-    } else if (result.iterRef()->isJoinIter()) {
-        auto joinIter = static_cast<JoinIter*>(result.iterRef());
-        std::sort(joinIter->begin(), joinIter->end(), comparator);
-    } else if (result.iterRef()->isPropIter()) {
-        auto propIter = static_cast<PropIter*>(result.iterRef());
-        std::sort(propIter->begin(), propIter->end(), comparator);
-    }
+    auto seqIter = static_cast<SequentialIter*>(result.iterRef());
+    std::sort(seqIter->begin(), seqIter->end(), comparator);
     return finish(ResultBuilder().values(result.values()).iter(std::move(result).iter()).finish());
 }
 

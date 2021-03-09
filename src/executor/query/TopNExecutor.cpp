@@ -18,19 +18,15 @@ folly::Future<Status> TopNExecutor::execute() {
     if (UNLIKELY(result.iterRef() == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in topn executor");
     }
-    if (UNLIKELY(result.iterRef()->isDefaultIter())) {
-        std::string errMsg = "Internal error: Sort executor does not supported DefaultIter";
-        LOG(ERROR) << errMsg;
-        return Status::Error(errMsg);
-    }
-    if (UNLIKELY(result.iterRef()->isGetNeighborsIter())) {
-        std::string errMsg = "Internal error: TopN executor does not supported GetNeighborsIter";
-        LOG(ERROR) << errMsg;
-        return Status::Error(errMsg);
+    if (UNLIKELY(!result.iter()->isSequentialIter())) {
+        std::stringstream ss;
+        ss << "Internal error: Sort executor does not supported " << result.iterRef()->kind();
+        LOG(ERROR) << ss.str();
+        return Status::Error(ss.str());
     }
 
     auto &factors = topn->factors();
-    comparator_ = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
+    comparator_ = [&factors] (const Row &lhs, const Row &rhs) {
         for (auto &item : factors) {
             auto index = item.first;
             auto orderType = item.second;
@@ -66,21 +62,15 @@ folly::Future<Status> TopNExecutor::execute() {
             .values(result.values()).iter(std::move(result).iter()).finish());
     }
 
-    if (result.iterRef()->isSequentialIter()) {
-        executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(result.iterRef());
-    } else if (result.iterRef()->isJoinIter()) {
-        executeTopN<JoinIter::JoinLogicalRow, JoinIter>(result.iterRef());
-    } else if (result.iterRef()->isPropIter()) {
-        executeTopN<PropIter::PropLogicalRow, PropIter>(result.iterRef());
-    }
+    executeTopN<SequentialIter>(result.iterRef());
     result.iterRef()->eraseRange(maxCount_, size);
     return finish(ResultBuilder().values(result.values()).iter(std::move(result).iter()).finish());
 }
 
-template<typename T, typename U>
+template<typename U>
 void TopNExecutor::executeTopN(Iterator *iter) {
     auto uIter = static_cast<U*>(iter);
-    std::vector<T> heap(uIter->begin(), uIter->begin()+heapSize_);
+    std::vector<Row> heap(uIter->begin(), uIter->begin()+heapSize_);
     std::make_heap(heap.begin(), heap.end(), comparator_);
     auto it = uIter->begin() + heapSize_;
     while (it != uIter->end()) {

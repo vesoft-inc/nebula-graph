@@ -27,7 +27,7 @@ folly::Future<Status> DedupExecutor::execute() {
         LOG(ERROR) << e;
         return e;
     }
-    std::unordered_set<const LogicalRow*> unique;
+    std::unordered_set<const Row*> unique;
     unique.reserve(result.iterRef()->size());
     while (result.iterRef()->valid()) {
         if (!unique.emplace(result.iterRef()->row()).second) {

@@ -92,6 +92,23 @@ std::unique_ptr<PlanNodeDescription> GetVertices::explain() const {
     return desc;
 }
 
+GetVertices* GetVertices::clone() const {
+    auto src = qctx_->objPool()->add(src_->clone().release());
+    std::vector<storage::cpp2::VertexProp> props;
+    props.reserve(props_.size());
+    for (const auto& prop : props_) {
+        props.emplace_back(prop);
+    }
+    std::vector<storage::cpp2::Expr> exprs;
+    exprs.reserve(exprs_.size());
+    for (const auto& expr : exprs) {
+        exprs.emplace_back(expr);
+    }
+    auto gv = make(qctx_, nullptr, space_, src, std::move(props), std::move(exprs));
+    gv->clone(*this);
+    return gv;
+}
+
 std::unique_ptr<PlanNodeDescription> GetEdges::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
@@ -254,7 +271,7 @@ std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
     return desc;
 }
 
-std::unique_ptr<PlanNodeDescription> DataJoin::explain() const {
+std::unique_ptr<PlanNodeDescription> LeftJoin::explain() const {
     auto desc = SingleDependencyNode::explain();
     folly::dynamic inputVar = folly::dynamic::object();
     inputVar.insert("leftVar", util::toJson(leftVar_));
@@ -262,6 +279,19 @@ std::unique_ptr<PlanNodeDescription> DataJoin::explain() const {
     addDescription("inputVar", folly::toJson(inputVar), desc.get());
     addDescription("hashKeys", folly::toJson(util::toJson(hashKeys_)), desc.get());
     addDescription("probeKeys", folly::toJson(util::toJson(probeKeys_)), desc.get());
+    addDescription("kind", "LeftJoin", desc.get());
+    return desc;
+}
+
+std::unique_ptr<PlanNodeDescription> InnerJoin::explain() const {
+    auto desc = SingleDependencyNode::explain();
+    folly::dynamic inputVar = folly::dynamic::object();
+    inputVar.insert("leftVar", util::toJson(leftVar_));
+    inputVar.insert("rightVar", util::toJson(rightVar_));
+    addDescription("inputVar", folly::toJson(inputVar), desc.get());
+    addDescription("hashKeys", folly::toJson(util::toJson(hashKeys_)), desc.get());
+    addDescription("probeKeys", folly::toJson(util::toJson(probeKeys_)), desc.get());
+    addDescription("kind", "InnerJoin", desc.get());
     return desc;
 }
 

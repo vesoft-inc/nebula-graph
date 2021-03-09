@@ -47,6 +47,7 @@ Status SetExecutor::checkInputDataSets() {
     auto& rds = rightData->getDataSet();
 
     if (LIKELY(lds.colNames == rds.colNames)) {
+        colNames_ = lds.colNames;
         return Status::OK();
     }
 
@@ -54,6 +55,16 @@ Status SetExecutor::checkInputDataSets() {
     auto rcols = folly::join(",", rds.colNames);
     return Status::Error(
         "Datasets have different columns: <%s> vs. <%s>", lcols.c_str(), rcols.c_str());
+}
+
+std::unique_ptr<Iterator> SetExecutor::getLeftInputDataIter() const {
+    auto left = asNode<SetOp>(node())->leftInputVar();
+    return ectx_->getResult(left).iter();
+}
+
+std::unique_ptr<Iterator> SetExecutor::getRightInputDataIter() const {
+    auto right = asNode<SetOp>(node())->rightInputVar();
+    return ectx_->getResult(right).iter();
 }
 
 Result SetExecutor::getLeftInputData() const {
