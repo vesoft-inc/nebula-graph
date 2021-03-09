@@ -239,7 +239,7 @@ std::string RemoveListenerSentence::toString() const {
             buf += "ELASTICSEARCH ";
             break;
         case meta::cpp2::ListenerType::UNKNOWN:
-            LOG(FATAL) << "Unknown listener type.";
+            DLOG(FATAL) << "Unknown listener type.";
             break;
     }
     return buf;

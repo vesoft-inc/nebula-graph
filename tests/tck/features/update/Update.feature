@@ -257,7 +257,7 @@ Feature: Update string vid of vertex and edge
       WHEN "xyz"
       YIELD $^.course.name AS Name, $^.course.credits AS Credits
       """
-    Then a SemanticError should be raised at runtime: `xyz', expected Boolean, but was `STRING'
+    Then a SemanticError should be raised at runtime: `"xyz"', expected Boolean, but was `STRING'
     When executing query:
       """
       UPDATE VERTEX ON course "101"
@@ -273,7 +273,7 @@ Feature: Update string vid of vertex and edge
       WHEN "xyz"
       YIELD $^.course.name AS Name, $^.course.credits AS Credits
       """
-    Then a SemanticError should be raised at runtime: `xyz', expected Boolean, but was `STRING'
+    Then a SemanticError should be raised at runtime: `"xyz"', expected Boolean, but was `STRING'
     # make sure TagName and PropertyName must exist in all clauses
     When executing query:
       """

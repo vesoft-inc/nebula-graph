@@ -49,8 +49,7 @@ std::string ColumnSpecification::toString() const {
     buf.reserve(128);
     buf += "`";
     buf += *name_;
-    buf += "`";
-    buf += " ";
+    buf += "` ";
     if (meta::cpp2::PropertyType::FIXED_STRING == type_) {
         buf += "FIXED_STRING(";
         buf += std::to_string(typeLen_);
@@ -90,8 +89,7 @@ std::string CreateTagSentence::toString() const {
     buf += "CREATE TAG ";
     buf += "`";
     buf += *name_;
-    buf += "`";
-    buf += " (";
+    buf += "` (";
     buf += columns_->toString();
     buf += ")";
     if (schemaProps_ != nullptr) {
@@ -107,8 +105,7 @@ std::string CreateEdgeSentence::toString() const {
     buf += "CREATE EDGE ";
     buf += "`";
     buf += *name_;
-    buf += "`";
-    buf += " (";
+    buf += "` (";
     buf += columns_->toString();
     buf += ")";
     if (schemaProps_ != nullptr) {
