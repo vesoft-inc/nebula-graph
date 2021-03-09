@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 
+#include <folly/String.h>
 #include <folly/json.h>
 
 #include "common/graph/Response.h"
@@ -178,8 +179,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowBalance";
         case Kind::kSubmitJob:
             return "SubmitJob";
-        case Kind::kDataJoin:
-            return "DataJoin";
+        case Kind::kLeftJoin:
+            return "LeftJoin";
+        case Kind::kInnerJoin:
+            return "InnerJoin";
         case Kind::kDeleteVertices:
             return "DeleteVertices";
         case Kind::kDeleteEdges:
@@ -263,6 +266,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
 
+std::string PlanNode::toString() const {
+    return folly::stringPrintf("%s_%ld", toString(kind_), id_);
+}
+
 // static
 void PlanNode::addDescription(std::string key, std::string value, PlanNodeDescription* desc) {
     if (desc->description == nullptr) {
@@ -273,6 +280,28 @@ void PlanNode::addDescription(std::string key, std::string value, PlanNodeDescri
 
 void PlanNode::calcCost() {
     VLOG(1) << "unimplemented cost calculation.";
+}
+
+void PlanNode::setOutputVar(const std::string& var) {
+    DCHECK_EQ(1, outputVars_.size());
+    auto* outputVarPtr = qctx_->symTable()->getVar(var);
+    DCHECK(outputVarPtr != nullptr);
+    auto oldVar = outputVars_[0]->name;
+    outputVars_[0] = outputVarPtr;
+    qctx_->symTable()->updateWrittenBy(oldVar, var, this);
+}
+
+void PlanNode::setInputVar(const std::string& varname, size_t idx) {
+    std::string oldVar = inputVar(idx);
+    auto symTable = qctx_->symTable();
+    auto varPtr = symTable->getVar(varname);
+    DCHECK(varPtr != nullptr);
+    inputVars_[idx] = varPtr;
+    if (!oldVar.empty()) {
+        symTable->updateReadBy(oldVar, varname, this);
+    } else {
+        symTable->readBy(varname, this);
+    }
 }
 
 std::unique_ptr<PlanNodeDescription> PlanNode::explain() const {
