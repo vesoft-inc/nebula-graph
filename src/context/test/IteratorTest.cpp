@@ -776,7 +776,7 @@ TEST(IteratorTest, EdgeProp) {
     }
 }
 
-TEST(IteratorTest, DISABLED_EraseBySwap) {
+TEST(IteratorTest, EraseBySwap) {
     DataSet ds;
     ds.colNames = {"col1", "col2"};
     for (auto i = 0; i < 3; ++i) {
