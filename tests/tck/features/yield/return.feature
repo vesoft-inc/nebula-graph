@@ -29,8 +29,8 @@ Feature: Return
       RETURN hash("Boris")
       """
     Then the result should be, in any order:
-      | hash("Boris")         |
-      | 9126854228122744212   |
+      | hash("Boris")       |
+      | 9126854228122744212 |
     When executing query:
       """
       RETURN hash(123)
