@@ -41,13 +41,10 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                 LOG(WARNING) << "Mismatched vid type: " << src.type();
                 continue;
             }
-            if (gv->dedup()) {
-                if (uniqueSet.emplace(src).second) {
-                    vertices.emplace_back(Row({std::move(src)}));
-                }
-            } else {
-                vertices.emplace_back(Row({std::move(src)}));
+            if (gv->dedup() && !uniqueSet.emplace(src).second) {
+                continue;
             }
+            vertices.emplace_back(Row({std::move(src)}));
         }
     }
 
