@@ -13,13 +13,67 @@
 namespace nebula {
 namespace graph {
 bool PropIndexSeek::matchEdge(EdgeContext* edgeCtx) {
-    UNUSED(edgeCtx);
-    return false;
+    auto& edge = *edgeCtx->info;
+    if (edge.types.size() != 1 || edge.range != nullptr) {
+        // TODO multiple edge index seek need the IndexScan support
+        return false;
+    }
+
+    auto* matchClauseCtx = edgeCtx->matchClauseCtx;
+    Expression* filter = nullptr;
+    if (matchClauseCtx->where != nullptr && matchClauseCtx->where->filter != nullptr) {
+        filter = MatchSolver::makeIndexFilter(*edge.types.back(),
+                                              *edge.alias,
+                                               matchClauseCtx->where->filter.get(),
+                                               matchClauseCtx->qctx,
+                                               true);
+    }
+    if (filter == nullptr) {
+        if (edge.props != nullptr && !edge.props->items().empty()) {
+            filter = MatchSolver::makeIndexFilter(*edge.types.back(),
+                                                   edge.props,
+                                                   matchClauseCtx->qctx,
+                                                   true);
+        }
+    }
+
+    if (filter == nullptr) {
+        return false;
+    }
+
+    edgeCtx->scanInfo.filter = filter;
+    edgeCtx->scanInfo.schemaIds = edge.edgeTypes;
+    edgeCtx->scanInfo.schemaNames = edge.types;
+
+    return true;
 }
 
 StatusOr<SubPlan> PropIndexSeek::transformEdge(EdgeContext* edgeCtx) {
-    UNUSED(edgeCtx);
-    return Status::Error("Unimplement for edge pattern.");
+    SubPlan plan;
+    auto* matchClauseCtx = edgeCtx->matchClauseCtx;
+    DCHECK_EQ(edgeCtx->scanInfo.schemaIds.size(), 1) <<
+        "Not supported multiple edge properties seek.";
+    using IQC = nebula::storage::cpp2::IndexQueryContext;
+    IQC iqctx;
+    iqctx.set_filter(Expression::encode(*edgeCtx->scanInfo.filter));
+    auto contexts = std::make_unique<std::vector<IQC>>();
+    contexts->emplace_back(std::move(iqctx));
+    auto columns = std::make_unique<std::vector<std::string>>();
+    columns->emplace_back(kSrc);
+    auto scan = IndexScan::make(matchClauseCtx->qctx,
+                                nullptr,
+                                matchClauseCtx->space.id,
+                                std::move(contexts),
+                                std::move(columns),
+                                true,
+                                edgeCtx->scanInfo.schemaIds.back());
+    scan->setColNames({kVid});
+    plan.tail = scan;
+    plan.root = scan;
+
+    // initialize start expression in project edge
+    edgeCtx->initialExpr = std::unique_ptr<Expression>(ExpressionUtils::newVarPropExpr(kVid));
+    return plan;
 }
 
 bool PropIndexSeek::matchNode(NodeContext* nodeCtx) {

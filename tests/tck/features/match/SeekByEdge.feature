@@ -400,6 +400,16 @@ Feature: Match seek by edge
       | "Shaquile O'Neal"    | "JaVale McGee"       | "Nuggets"       |
       | "Shaquile O'Neal"    | "JaVale McGee"       | "Mavericks"     |
 
+  Scenario: Seek by edge with properties
+    When executing query:
+      """
+      match (player)-[:serve {start_year : 2001}]->(team) return player.name AS player, team.name AS team
+      """
+    Then the result should be, in any order:
+      | player       | team         |
+      | "Paul Gasol" | "Grizzlies"  |
+      | "Jason Kidd" | "Nets"       |
+
   Scenario: seek by edge without index
     When executing query:
       """
