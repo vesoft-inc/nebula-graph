@@ -26,6 +26,7 @@
 #include "common/expression/PredicateExpression.h"
 #include "common/expression/ListComprehensionExpression.h"
 #include "common/expression/AggregateExpression.h"
+#include "common/function/FunctionManager.h"
 
 #include "common/expression/ReduceExpression.h"
 #include "util/ParserUtil.h"
@@ -876,6 +877,9 @@ edge_prop_expression
 
 function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
+        if (!FunctionManager::find(*$1, $3->numArgs()).ok()) {
+            throw nebula::GraphParser::syntax_error(@1, "Function not defined");
+        }
         $$ = new FunctionCallExpression($1, $3);
     }
     | KW_TIMESTAMP L_PAREN opt_argument_list R_PAREN {
