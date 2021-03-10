@@ -104,7 +104,8 @@ class TestConfigs(NebulaTestSuite):
                            ['GRAPH', 'minloglevel', 'int', 'MUTABLE'],
                            ['GRAPH', 'slow_op_threshhold_ms', 'int', 'MUTABLE'],
                            ['GRAPH', 'heartbeat_interval_secs', 'int', 'MUTABLE'],
-                           ['GRAPH', 'meta_client_retry_times', 'int', 'MUTABLE']]
+                           ['GRAPH', 'meta_client_retry_times', 'int', 'MUTABLE'],
+                           ['GRAPH', 'accept_partial_success', 'bool', 'MUTABLE']]
         self.check_out_of_order_result(resp, expected_result, [4])
 
         resp = self.client.execute('SHOW CONFIGS storage')
