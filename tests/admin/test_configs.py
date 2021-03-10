@@ -29,12 +29,12 @@ class TestConfigs(NebulaTestSuite):
         self.check_resp_failed(resp)
 
         # set and get config after declaration
-        v = 3
-        resp = self.client.execute('UPDATE CONFIGS meta:v={}'.format(3))
+        v = 1
+        resp = self.client.execute('UPDATE CONFIGS meta:v={}'.format(v))
         self.check_resp_failed(resp)
-        resp = self.client.execute('UPDATE CONFIGS graph:v={}'.format(3))
+        resp = self.client.execute('UPDATE CONFIGS graph:v={}'.format(v))
         self.check_resp_succeeded(resp)
-        resp = self.client.execute('UPDATE CONFIGS storage:v={}'.format(3))
+        resp = self.client.execute('UPDATE CONFIGS storage:v={}'.format(v))
         self.check_resp_succeeded(resp)
 
         # get
@@ -43,12 +43,12 @@ class TestConfigs(NebulaTestSuite):
 
         resp = self.client.execute('GET CONFIGS graph:v')
         self.check_resp_succeeded(resp)
-        expected_result = [['GRAPH', 'v', 'int', 'MUTABLE', 3]]
+        expected_result = [['GRAPH', 'v', 'int', 'MUTABLE', v]]
         self.check_result(resp, expected_result)
 
         resp = self.client.execute('GET CONFIGS storage:v')
         self.check_resp_succeeded(resp)
-        expected_result = [['STORAGE', 'v', 'int', 'MUTABLE', 3]]
+        expected_result = [['STORAGE', 'v', 'int', 'MUTABLE', v]]
         self.check_result(resp, expected_result)
 
         # show configs
@@ -67,7 +67,7 @@ class TestConfigs(NebulaTestSuite):
 
         resp = self.client.execute('SHOW CONFIGS storage')
         self.check_resp_succeeded(resp)
-        expected_result = [['STORAGE', 'v', 'int', 'MUTABLE', 3],
+        expected_result = [['STORAGE', 'v', 'int', 'MUTABLE', v],
                            ['STORAGE', 'wal_ttl', 'int', 'MUTABLE', 14400],
                            ['STORAGE', 'minloglevel', 'int', 'MUTABLE', 0],
                            ['STORAGE', 'custom_filter_interval_secs', 'int', 'MUTABLE', 86400],
