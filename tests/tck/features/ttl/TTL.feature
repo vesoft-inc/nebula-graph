@@ -426,14 +426,14 @@ Feature: TTLTest
   Scenario: TTLTest expire time
     Given having executed:
       """
-      CREATE TAG person(id timestamp, age int) ttl_col="id", ttl_duration=10;
+      CREATE TAG person(id timestamp, age int) ttl_col="id", ttl_duration=5;
       """
-    And wait 3 seconds
+    And wait 6 seconds
     When executing query:
       """
       INSERT VERTEX person(id, age) VALUES "1":(now(), 20);
       """
-    And wait 6 seconds
+    And wait 1 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -442,7 +442,7 @@ Feature: TTLTest
     Then the result should be, in any order, with relax comparison:
       | VertexID | age |
       | "1"      | 20  |
-    And wait 5 seconds
+    And wait 10 seconds
     When executing query:
       """
       FETCH PROP ON person "1" YIELD person.age as age;
