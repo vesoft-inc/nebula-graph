@@ -81,6 +81,7 @@
 #include "executor/query/UnionExecutor.h"
 #include "executor/query/UnionAllVersionVarExecutor.h"
 #include "executor/query/AssignExecutor.h"
+#include "executor/query/ColumnsMergeExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Logic.h"
 #include "planner/Maintain.h"
@@ -219,6 +220,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kAssign: {
             return pool->add(new AssignExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kColumnsMerge: {
+            return pool->add(new ColumnsMergeExecutor(node, qctx));
         }
         case PlanNode::Kind::kSwitchSpace: {
             return pool->add(new SwitchSpaceExecutor(node, qctx));

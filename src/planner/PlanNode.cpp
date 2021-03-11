@@ -76,6 +76,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "PassThrough";
         case Kind::kAssign:
             return "Assign";
+        case Kind::kColumnsMerge:
+            return "ColumnsMerge";
         case Kind::kSwitchSpace:
             return "RegisterSpaceToSession";
         case Kind::kCreateSpace:

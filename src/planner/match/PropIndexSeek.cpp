@@ -44,6 +44,7 @@ bool PropIndexSeek::matchEdge(EdgeContext* edgeCtx) {
     edgeCtx->scanInfo.filter = filter;
     edgeCtx->scanInfo.schemaIds = edge.edgeTypes;
     edgeCtx->scanInfo.schemaNames = edge.types;
+    edgeCtx->scanInfo.direction = edge.direction;
 
     return true;
 }
@@ -59,7 +60,23 @@ StatusOr<SubPlan> PropIndexSeek::transformEdge(EdgeContext* edgeCtx) {
     auto contexts = std::make_unique<std::vector<IQC>>();
     contexts->emplace_back(std::move(iqctx));
     auto columns = std::make_unique<std::vector<std::string>>();
-    columns->emplace_back(kSrc);
+    std::vector<std::string> columnsName;
+    switch (edgeCtx->scanInfo.direction) {
+        case MatchEdge::Direction::OUT_EDGE:
+            columns->emplace_back(kSrc);
+            columnsName.emplace_back(kVid);
+            break;
+        case MatchEdge::Direction::IN_EDGE:
+            columns->emplace_back(kDst);
+            columnsName.emplace_back(kVid);
+            break;
+        case MatchEdge::Direction::BOTH:
+            columns->emplace_back(kSrc);
+            columns->emplace_back(kDst);
+            columnsName.emplace_back(kSrc);
+            columnsName.emplace_back(kDst);
+            break;
+    }
     auto scan = IndexScan::make(matchClauseCtx->qctx,
                                 nullptr,
                                 matchClauseCtx->space.id,
@@ -67,9 +84,17 @@ StatusOr<SubPlan> PropIndexSeek::transformEdge(EdgeContext* edgeCtx) {
                                 std::move(columns),
                                 true,
                                 edgeCtx->scanInfo.schemaIds.back());
-    scan->setColNames({kVid});
+    scan->setColNames(columnsName);
     plan.tail = scan;
     plan.root = scan;
+
+    if (edgeCtx->scanInfo.direction == MatchEdge::Direction::BOTH) {
+        auto cm = ColumnsMerge::make(matchClauseCtx->qctx,
+                                     scan,
+                                     kVid,
+                                     std::move(columnsName));
+        plan.root = cm;
+    }
 
     // initialize start expression in project edge
     edgeCtx->initialExpr = std::unique_ptr<Expression>(ExpressionUtils::newVarPropExpr(kVid));

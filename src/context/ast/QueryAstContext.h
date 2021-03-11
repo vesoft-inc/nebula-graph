@@ -64,6 +64,8 @@ struct ScanInfo {
     std::vector<const std::string*>         schemaNames;
     // use for seek by index itself
     std::vector<IndexID>                    indexIds;
+    // use for seek by edge only
+    MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
 };
 
 struct CypherClauseContextBase : AstContext {

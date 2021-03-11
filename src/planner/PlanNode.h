@@ -46,6 +46,7 @@ public:
         kDedup,
         kPassThrough,
         kAssign,
+        kColumnsMerge,
         // schema related
         kCreateSpace,
         kCreateTag,
