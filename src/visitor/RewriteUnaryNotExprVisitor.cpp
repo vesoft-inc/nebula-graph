@@ -11,12 +11,12 @@
 namespace nebula {
 namespace graph {
 
+// TODO(Aiee) reduce the combination of relational expr and unary expr
+// i.e. !(a > b)  =>  (a <= b)
 void RewriteUnaryNotExprVisitor::visit(RelationalExpression* expr) {
     visitBinaryExpr(expr);
 }
 
-// TODO(Aiee) reduce the combination of logical expr and unary expr
-// i.e. !(a > b)  =>  (a <= b)
 void RewriteUnaryNotExprVisitor::visit(LogicalExpression* expr) {
     auto &operands = expr->operands();
     for (auto i = 0u; i < operands.size(); i++) {
