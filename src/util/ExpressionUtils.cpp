@@ -12,6 +12,7 @@
 #include "common/function/AggFunctionManager.h"
 #include "visitor/FoldConstantExprVisitor.h"
 #include "visitor/EvaluableExprVisitor.h"
+#include "visitor/RewriteUnaryNotExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -22,6 +23,16 @@ std::unique_ptr<Expression> ExpressionUtils::foldConstantExpr(const Expression *
     newExpr->accept(&visitor);
     if (visitor.canBeFolded()) {
         return std::unique_ptr<Expression>(visitor.fold(newExpr.get()));
+    }
+    return newExpr;
+}
+
+std::unique_ptr<Expression> ExpressionUtils::reduceUnaryNotExpr(const Expression *expr) {
+    auto newExpr = expr->clone();
+    RewriteUnaryNotExprVisitor visitor;
+    newExpr->accept(&visitor);
+    if (visitor.canBeReduced()) {
+        return visitor.getExpr();
     }
     return newExpr;
 }

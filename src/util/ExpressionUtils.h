@@ -148,6 +148,8 @@ public:
 
     // Clone and fold constant expression
     static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
+    // Clone and reduce constant expression
+    static std::unique_ptr<Expression> reduceUnaryNotExpr(const Expression* expr);
 
     static Expression* pullAnds(Expression* expr);
     static void pullAndsImpl(LogicalExpression* expr,
