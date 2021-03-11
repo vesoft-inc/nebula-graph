@@ -876,22 +876,25 @@ function_call_expression
         }
     }
     | LABEL L_PAREN STAR R_PAREN {
-        if (AggFunctionManager::find(*$1).ok()) {
+        auto func = *$1;
+        std::transform(func.begin(), func.end(), func.begin(), ::toupper);
+        if (!func.compare("COUNT")) {
             auto star = new ConstantExpression(std::string("*"));
             $$ = new AggregateExpression($1, star, false);
         } else {
             delete($1);
-            throw nebula::GraphParser::syntax_error(@1, "Unknown aggregate function ");
+            throw nebula::GraphParser::syntax_error(@1, "Could not apply aggregation function on `*`");
         }
     }
     | LABEL L_PAREN KW_DISTINCT STAR R_PAREN {
-        // TODO: check count(*),otherwise throw error
-        if (AggFunctionManager::find(*$1).ok()) {
+        auto func = *$1;
+        std::transform(func.begin(), func.end(), func.begin(), ::toupper);
+        if (!func.compare("COUNT")) {
             auto star = new ConstantExpression(std::string("*"));
             $$ = new AggregateExpression($1, star, true);
         } else {
             delete($1);
-            throw nebula::GraphParser::syntax_error(@1, "Unknown aggregate function ");
+            throw nebula::GraphParser::syntax_error(@1, "Could not apply aggregation function on `*`");
         }
     }
     | KW_TIMESTAMP L_PAREN opt_argument_list R_PAREN {
