@@ -282,10 +282,10 @@ Feature: Groupby & limit Sentence
       """
     Then the result should be, in any order, with relax comparison:
       | name              | sum_dst_age | avg_dst_age | max_src_age | min_src_age | bit_and | bit_or | bit_xor | COUNT($-.likeness) | COUNT(DINSTINCT $-.likeness) |
-      | "Carmelo Anthony" | 34          | 34.0        | 34          | 34          | 1       | 2      | 3       | 1                  | 1                           |
-      | "Dwyane Wade"     | 37          | 37.0        | 37          | 37          | 1       | 2      | 3       | 1                  | 1                           |
-      | "Chris Paul"      | 66          | 33.0        | 33          | 33          | 1       | 2      | 0       | 2                  | 1                           |
-      | "LeBron James"    | 68          | 34.0        | 34          | 34          | 1       | 2      | 0       | 2                  | 1                           |
+      | "Carmelo Anthony" | 34          | 34.0        | 34          | 34          | 1       | 2      | 3       | 1                  | 1                            |
+      | "Dwyane Wade"     | 37          | 37.0        | 37          | 37          | 1       | 2      | 3       | 1                  | 1                            |
+      | "Chris Paul"      | 66          | 33.0        | 33          | 33          | 1       | 2      | 0       | 2                  | 1                            |
+      | "LeBron James"    | 68          | 34.0        | 34          | 34          | 1       | 2      | 0       | 2                  | 1                            |
 
   Scenario: Groupby works with orderby or limit test
     When executing query:
