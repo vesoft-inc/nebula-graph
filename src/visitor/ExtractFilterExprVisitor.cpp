@@ -21,8 +21,12 @@ void ExtractFilterExprVisitor::visit(UUIDExpression *) {
     canBePushed_ = false;
 }
 
-void ExtractFilterExprVisitor::visit(VariableExpression *) {
-    canBePushed_ = false;
+void ExtractFilterExprVisitor::visit(VariableExpression *expr) {
+    if (static_cast<VariableExpression *>(expr)->isInner()) {
+        canBePushed_ = true;
+    } else {
+        canBePushed_ = false;
+    }
 }
 
 void ExtractFilterExprVisitor::visit(VersionedVariableExpression *) {

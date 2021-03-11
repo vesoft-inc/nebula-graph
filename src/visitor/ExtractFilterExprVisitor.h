@@ -50,6 +50,7 @@ private:
 
     bool canBePushed_{true};
     std::unique_ptr<Expression> remainedExpr_;
+    std::string *innerVar_;  // used by predicate, reduce and list comprehension
 };
 
 }   // namespace graph

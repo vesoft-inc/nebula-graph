@@ -28,7 +28,7 @@ void ParserUtil::rewriteLC(QueryContext *qctx,
         if (expr->kind() == Expression::Kind::kLabel) {
             auto *label = static_cast<const LabelExpression *>(expr);
             if (*label->name() == oldVarName) {
-                ret = new VariableExpression(new std::string(newVarName));
+                ret = new VariableExpression(new std::string(newVarName), true);
             } else {
                 ret = label->clone().release();
             }
@@ -37,7 +37,7 @@ void ParserUtil::rewriteLC(QueryContext *qctx,
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
             if (*la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName)),
+                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName), true),
                                               new ConstantExpression(value));
             } else {
                 ret = la->clone().release();
@@ -85,7 +85,7 @@ void ParserUtil::rewritePred(QueryContext *qctx,
         if (expr->kind() == Expression::Kind::kLabel) {
             auto *label = static_cast<const LabelExpression *>(expr);
             if (*label->name() == oldVarName) {
-                ret = new VariableExpression(new std::string(newVarName));
+                ret = new VariableExpression(new std::string(newVarName), true);
             } else {
                 ret = label->clone().release();
             }
@@ -94,7 +94,7 @@ void ParserUtil::rewritePred(QueryContext *qctx,
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
             if (*la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName)),
+                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName), true),
                                               new ConstantExpression(value));
             } else {
                 ret = la->clone().release();
@@ -132,9 +132,9 @@ void ParserUtil::rewriteReduce(QueryContext *qctx,
         if (expr->kind() == Expression::Kind::kLabel) {
             auto *label = static_cast<const LabelExpression *>(expr);
             if (*label->name() == oldAccName) {
-                ret = new VariableExpression(new std::string(newAccName));
+                ret = new VariableExpression(new std::string(newAccName), true);
             } else if (*label->name() == oldVarName) {
-                ret = new VariableExpression(new std::string(newVarName));
+                ret = new VariableExpression(new std::string(newVarName), true);
             } else {
                 ret = label->clone().release();
             }
@@ -143,11 +143,11 @@ void ParserUtil::rewriteReduce(QueryContext *qctx,
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
             if (*la->left()->name() == oldAccName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newAccName)),
+                ret = new AttributeExpression(new VariableExpression(new std::string(newAccName), true),
                                               new ConstantExpression(value));
             } else if (*la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName)),
+                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName), true),
                                               new ConstantExpression(value));
             } else {
                 ret = la->clone().release();
