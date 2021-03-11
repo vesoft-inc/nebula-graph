@@ -161,7 +161,6 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_ATOMIC_EDGE
 %token KW_DROP KW_REMOVE KW_SPACES KW_INGEST KW_INDEX KW_INDEXES
 %token KW_IF KW_NOT KW_EXISTS KW_WITH
-%token KW_COUNT KW_COUNT_DISTINCT KW_SUM KW_AVG KW_MAX KW_MIN KW_STD KW_BIT_AND KW_BIT_OR KW_BIT_XOR KW_COLLECT KW_COLLECT_SET
 %token KW_BY KW_DOWNLOAD KW_HDFS KW_UUID KW_CONFIGS KW_FORCE
 %token KW_GET KW_DECLARE KW_GRAPH KW_META KW_STORAGE
 %token KW_TTL KW_TTL_DURATION KW_TTL_COL KW_DATA KW_STOP
@@ -202,7 +201,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token <doubleval> DOUBLE
 %token <strval> STRING VARIABLE LABEL IPV4
 
-%type <strval> name_label unreserved_keyword agg_function predicate_name
+%type <strval> name_label unreserved_keyword predicate_name
 %type <expr> expression
 %type <expr> property_expression
 %type <expr> vertex_prop_expression
@@ -226,7 +225,6 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> list_comprehension_expression
 %type <expr> reduce_expression
 %type <expr> compound_expression
-%type <expr> aggregate_expression
 %type <expr> text_search_expression
 %type <expr> constant_expression
 %type <argument_list> argument_list opt_argument_list
@@ -426,17 +424,6 @@ unreserved_keyword
     | KW_DBA                { $$ = new std::string("dba"); }
     | KW_GUEST              { $$ = new std::string("guest"); }
     | KW_GROUP              { $$ = new std::string("group"); }
-    | KW_COUNT              { $$ = new std::string("count"); }
-    | KW_SUM                { $$ = new std::string("sum"); }
-    | KW_AVG                { $$ = new std::string("avg"); }
-    | KW_MAX                { $$ = new std::string("max"); }
-    | KW_MIN                { $$ = new std::string("min"); }
-    | KW_STD                { $$ = new std::string("std"); }
-    | KW_BIT_AND            { $$ = new std::string("bit_and"); }
-    | KW_BIT_OR             { $$ = new std::string("bit_or"); }
-    | KW_BIT_XOR            { $$ = new std::string("bit_xor"); }
-    | KW_COLLECT            { $$ = new std::string("collect"); }
-    | KW_COLLECT_SET        { $$ = new std::string("collect_set"); }
     | KW_PATH               { $$ = new std::string("path"); }
     | KW_DATA               { $$ = new std::string("data"); }
     | KW_LEADER             { $$ = new std::string("leader"); }
@@ -471,7 +458,6 @@ unreserved_keyword
     | KW_REDUCE             { $$ = new std::string("reduce"); }
     | KW_SHORTEST           { $$ = new std::string("shortest"); }
     | KW_NOLOOP             { $$ = new std::string("noloop"); }
-    | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
     | KW_CONTAINS           { $$ = new std::string("contains"); }
     | KW_STARTS             { $$ = new std::string("starts"); }
     | KW_ENDS               { $$ = new std::string("ends"); }
@@ -511,20 +497,6 @@ unreserved_keyword
     | KW_PLAN               { $$ = new std::string("plan"); }
     ;
 
-agg_function
-    : KW_COUNT              { $$ = new std::string("COUNT"); }
-    | KW_SUM                { $$ = new std::string("SUM"); }
-    | KW_AVG                { $$ = new std::string("AVG"); }
-    | KW_MAX                { $$ = new std::string("MAX"); }
-    | KW_MIN                { $$ = new std::string("MIN"); }
-    | KW_STD                { $$ = new std::string("STD"); }
-    | KW_BIT_AND            { $$ = new std::string("BIT_AND"); }
-    | KW_BIT_OR             { $$ = new std::string("BIT_OR"); }
-    | KW_BIT_XOR            { $$ = new std::string("BIT_XOR"); }
-    | KW_COLLECT            { $$ = new std::string("COLLECT"); }
-    | KW_COLLECT_SET        { $$ = new std::string("COLLECT_SET"); }
-    ;
-
 expression
     : constant_expression {
         $$ = $1;
@@ -536,9 +508,6 @@ expression
         $$ = new VariableExpression($1);
     }
     | compound_expression {
-        $$ = $1;
-    }
-    | aggregate_expression {
         $$ = $1;
     }
     | MINUS {
@@ -884,33 +853,44 @@ edge_prop_expression
 
 function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
-        if ($3->numArgs() == 1 && AggFunctionManager::find(*$1).ok()) {
-            $$ = new AggregateExpression($1, $3[0], false);
+        if (!$3) {
+            $$ = new FunctionCallExpression($1, $3);
+        } else if ($3->numArgs() == 1 && AggFunctionManager::find(*$1).ok()) {
+            $$ = new AggregateExpression($1, $3->args()[0].release(), false);
+            delete($3);
         } else if (FunctionManager::find(*$1, $3->numArgs()).ok()) {
             $$ = new FunctionCallExpression($1, $3);
         } else {
-            throw nebula::GraphParser::syntax_error(@1, "Unknown aggregate function ");
+            delete($1);
+            delete($3);
+            throw nebula::GraphParser::syntax_error(@1, "Unknown function ");
         }
     }
     | LABEL L_PAREN KW_DISTINCT expression R_PAREN {
         if (AggFunctionManager::find(*$1).ok()) {
             $$ = new AggregateExpression($1, $4, true);
         } else {
+            delete($1);
+            delete($4);
             throw nebula::GraphParser::syntax_error(@1, "Unknown aggregate function ");
         }
     }
     | LABEL L_PAREN STAR R_PAREN {
         if (AggFunctionManager::find(*$1).ok()) {
+            auto star = new ConstantExpression(std::string("*"));
             $$ = new AggregateExpression($1, star, false);
         } else {
+            delete($1);
             throw nebula::GraphParser::syntax_error(@1, "Unknown aggregate function ");
         }
     }
     | LABEL L_PAREN KW_DISTINCT STAR R_PAREN {
         // TODO: check count(*),otherwise throw error
         if (AggFunctionManager::find(*$1).ok()) {
+            auto star = new ConstantExpression(std::string("*"));
             $$ = new AggregateExpression($1, star, true);
         } else {
+            delete($1);
             throw nebula::GraphParser::syntax_error(@1, "Unknown aggregate function ");
         }
     }
@@ -933,23 +913,6 @@ function_call_expression
         $$ = new FunctionCallExpression(new std::string("sign"), $3);
     }
     ;
-
-// aggregate_expression
-//     : agg_function L_PAREN expression R_PAREN {
-//         $$ = new AggregateExpression($1, $3, false/*distinct*/);
-//     }
-//     | agg_function L_PAREN KW_DISTINCT expression R_PAREN {
-//         $$ = new AggregateExpression($1, $4, true/*distinct*/);
-//     }
-//     | agg_function L_PAREN STAR R_PAREN {
-//         auto star = new ConstantExpression(std::string("*"));
-//         $$ = new AggregateExpression($1, star, false/*distinct*/);
-//     }
-//     | agg_function L_PAREN KW_DISTINCT STAR R_PAREN {
-//         auto star = new ConstantExpression(std::string("*"));
-//         $$ = new AggregateExpression($1, star, true/*distinct*/);
-//     }
-//     ;
 
 uuid_expression
     : KW_UUID L_PAREN STRING R_PAREN {
