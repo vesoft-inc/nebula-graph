@@ -1,14 +1,14 @@
 /* Copyright (c) 2021 vesoft inc. All rights reserved.
-*
-* This source code is licensed under Apache 2.0 License,
-* attached with Common Clause Condition 1.0, found in the LICENSES directory.
-*/
+ *
+ * This source code is licensed under Apache 2.0 License,
+ * attached with Common Clause Condition 1.0, found in the LICENSES directory.
+ */
 
 #ifndef VISITOR_REWRITEUNARYNOTEXPRVISITOR_H_
 #define VISITOR_REWRITEUNARYNOTEXPRVISITOR_H_
 
-#include "visitor/ExprVisitorImpl.h"
 #include "common/expression/ExprVisitor.h"
+#include "visitor/ExprVisitorImpl.h"
 
 namespace nebula {
 namespace graph {
@@ -38,9 +38,10 @@ private:
 
     void visit(UnaryExpression* expr) override;
     // expressions return a bool value
-    void visitBinaryExpr(BinaryExpression* expr) override;
     void visit(ConstantExpression* expr) override;
-    void visit(RelationalExpression *expr) override;
+    void visit(RelationalExpression* expr) override;
+    void visit(LogicalExpression* expr) override;
+    void visitBinaryExpr(BinaryExpression* expr) override;
 
     void visit(ListExpression*) override {}
     void visit(SetExpression*) override {}
@@ -65,7 +66,7 @@ private:
     void visit(EdgeExpression*) override {}
     void visit(ColumnExpression*) override {}
 
-    bool isUnaryNotExpr(const Expression*expr);
+    bool isUnaryNotExpr(const Expression* expr);
 
 private:
     bool reducible_{false};

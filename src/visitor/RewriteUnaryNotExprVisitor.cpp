@@ -11,12 +11,24 @@
 namespace nebula {
 namespace graph {
 
-void RewriteUnaryNotExprVisitor::visit(RelationalExpression *expr) {
+void RewriteUnaryNotExprVisitor::visit(RelationalExpression* expr) {
     visitBinaryExpr(expr);
 }
 
+// TODO(Aiee) reduce the combination of logical expr and unary expr
+// i.e. !(a > b)  =>  (a <= b)
+void RewriteUnaryNotExprVisitor::visit(LogicalExpression* expr) {
+    auto &operands = expr->operands();
+    for (auto i = 0u; i < operands.size(); i++) {
+        operands[i]->accept(this);
+        if (expr_) {
+            expr->setOperand(i, expr_.release());
+        }
+    }
+}
+
 // Rewrite Unary expresssion to Binary expression
-void RewriteUnaryNotExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
+void RewriteUnaryNotExprVisitor::visitBinaryExpr(BinaryExpression* expr) {
     expr->left()->accept(this);
     if (expr_) {
         expr->setLeft(expr_.release());
@@ -26,8 +38,6 @@ void RewriteUnaryNotExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
         expr->setRight(expr_.release());
     }
     expr_.reset(expr->clone().release());
-    // UNUSED(expr);
-    // reducible_ = false;
 }
 
 void RewriteUnaryNotExprVisitor::visit(ConstantExpression* expr) {
@@ -36,8 +46,6 @@ void RewriteUnaryNotExprVisitor::visit(ConstantExpression* expr) {
     if (val.isBool()) {
         expr_.reset(expr->clone().release());
     }
-    // UNUSED(expr);
-    // reducible_ = false;
 }
 
 void RewriteUnaryNotExprVisitor::visit(UnaryExpression* expr) {
@@ -50,7 +58,7 @@ void RewriteUnaryNotExprVisitor::visit(UnaryExpression* expr) {
             return;
         }
     } else {
-        // reducible_ = false;
+        reducible_ = false;
     }
     expr_.reset(expr->clone().release());
 }
