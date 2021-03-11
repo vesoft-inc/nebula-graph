@@ -24,6 +24,7 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 folly::Future<Status> GetVerticesExecutor::getVertices() {
     SCOPED_TIMER(&execTime_);
 
+    time::Duration dur1;
     auto *gv = asNode<GetVertices>(node());
     GraphStorageClient *storageClient = qctx()->getStorageClient();
     nebula::DataSet vertices({kVid});
@@ -33,19 +34,23 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         VLOG(3) << "GV input var: " << gv->inputVar() << " iter kind: " << valueIter->kind();
         auto expCtx = QueryExpressionContext(qctx()->ectx());
         const auto &spaceInfo = qctx()->rctx()->session()->space();
-        std::unordered_set<Value> uniqueSet;
-        for (; valueIter->valid(); valueIter->next()) {
-            auto src = gv->src()->eval(expCtx(valueIter.get()));
-            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
-                LOG(WARNING) << "Mismatched vid type: " << src.type();
-                continue;
+        if (spaceInfo.spaceDesc.vid_type.type == meta::cpp2::PropertyType::INT64) {
+            std::unordered_set<int64_t> uniqueSet;
+            uniqueSet.reserve(valueIter->size());
+            for (; valueIter->valid(); valueIter->next()) {
+                auto src = gv->src()->eval(expCtx(valueIter.get()));
+                if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
+                    LOG(WARNING) << "Mismatched vid type: " << src.type();
+                    continue;
+                }
+                if (gv->dedup() && !uniqueSet.emplace(src.getInt()).second) {
+                    continue;
+                }
+                vertices.emplace_back(Row({std::move(src)}));
             }
-            if (gv->dedup() && !uniqueSet.emplace(src).second) {
-                continue;
-            }
-            vertices.emplace_back(Row({std::move(src)}));
         }
     }
+    otherStats_.emplace("init", folly::stringPrintf("%lu(us)", dur1.elapsedInUSec()));
 
     if (vertices.rows.empty()) {
         // TODO: add test for empty input.
