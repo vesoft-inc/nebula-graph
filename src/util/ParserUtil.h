@@ -34,7 +34,7 @@ public:
                               const std::string &oldAccName,
                               const std::string &oldVarName);
 
-    static Status rewriteExists(QueryContext *qctx, PredicateExpression *pred, Expression *expr);
+    static Status rewriteExists(PredicateExpression *pred, Expression *expr);
 };
 
 }   // namespace graph

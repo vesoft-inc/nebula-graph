@@ -173,25 +173,30 @@ void ParserUtil::rewriteReduce(QueryContext *qctx,
 }
 
 // static
-Status ParserUtil::rewriteExists(QueryContext *qctx, PredicateExpression *pred, Expression *expr) {
+Status ParserUtil::rewriteExists(PredicateExpression *pred, Expression *expr) {
     if (expr->kind() == Expression::Kind::kAttribute) {
         pred->setOriginString(new std::string(pred->makeString()));
         auto *attr = static_cast<AttributeExpression *>(expr);
         auto *left = attr->left();
         auto *right = attr->right();
-        if (left->kind() != Expression::Kind::kMap) {
-            return Status::SemanticError("$s's type Error, Must be Map", expr->toString().c_str());
-        }
         QueryExpressionContext ctx(nullptr);
-        auto &map = left->eval(ctx);
-        auto &key = right->eval(ctx);
-        pred->setResult(map.getMap().contains(key));
+        auto &leftVal = left->eval(ctx);
+        if (leftVal.isNull()) {
+            pred->setResult(Value(NullType::__NULL__));
+        } else {
+            if (!leftVal.isMap()) {
+                return Status::SemanticError("%s's type Error, Must be Map",
+                                             leftVal.toString().c_str());
+            }
+            auto &key = right->eval(ctx);
+            pred->setResult(leftVal.getMap().contains(key));
+        }
     } else if (expr->kind() == Expression::Kind::kLabelAttribute) {
         pred->setOriginString(new std::string(pred->makeString()));
-        auto *lableAttr = static_cast<LabelAttributeExpression *>(expr);
-        auto *label = new VariableExpression(new std::string(*lableAttr->left()->name()));
-        pred->setCollection(label);
+        auto *labelAttr = static_cast<LabelAttributeExpression *>(expr);
+        auto *label = new VariableExpression(new std::string(*labelAttr->left()->name()));
         auto *key = new ConstantExpression(labelAttr->right()->value());
+        pred->setCollection(label);
         pred->setFilter(key);
     } else {
         return Status::SemanticError("Exists ONLY accept Attribute OR LabelAttribute");
