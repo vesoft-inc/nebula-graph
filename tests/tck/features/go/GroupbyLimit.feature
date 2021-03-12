@@ -57,7 +57,7 @@ Feature: Groupby & limit Sentence
       """
       GO FROM "Marco Belinelli" OVER serve YIELD $$.team.name AS name, serve._dst AS id | GROUP BY $-.name YIELD SUM(*)
       """
-    Then a SemanticError should be raised at runtime:
+    Then a SyntaxError should be raised at runtime:
 
   Scenario: Syntax test9
     When executing query:

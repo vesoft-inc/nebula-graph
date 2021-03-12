@@ -13,10 +13,10 @@ Feature: Basic Aggregate and GroupBy
       | 1        | 2     |
     When executing query:
       """
-      YIELD count(*)+1 ,1+2 ,(INT)abs(count(2))
+      YIELD COUNT(*)+1 ,1+2 ,(INT)abs(count(2))
       """
     Then the result should be, in any order, with relax comparison:
-      | (COUNT(*)+1) | (1+2) | (INT)abs(COUNT(2)) |
+      | (COUNT(*)+1) | (1+2) | (INT)abs(count(2)) |
       | 2            | 3     | 1                  |
 
   Scenario: [1] Basic GroupBy
@@ -434,7 +434,7 @@ Feature: Basic Aggregate and GroupBy
            YIELD $-.name AS name
       """
     Then a SemanticError should be raised at runtime:
-
+@czp
   Scenario: order by and limit
     When executing query:
       """
@@ -473,7 +473,7 @@ Feature: Basic Aggregate and GroupBy
       """
       YIELD avg(*)+1 ,1+2 ,(INT)abs(min(2))
       """
-    Then a SemanticError should be raised at runtime: Could not apply aggregation function `AVG(*)' on `*`
+    Then a SyntaxError should be raised at runtime: Could not apply aggregation function on `*` near `avg'
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
@@ -503,13 +503,13 @@ Feature: Basic Aggregate and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,abs(avg(distinct count($-.age))) AS age
       """
-    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `abs(AVG(distinct COUNT($-.age)))'
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `abs(avg(distinct count($-.age)))'
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,avg(distinct count($-.age+1)) AS age
       """
-    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `AVG(distinct COUNT(($-.age+1)))'
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `avg(distinct count(($-.age+1)))'
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age

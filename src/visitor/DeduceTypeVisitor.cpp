@@ -401,7 +401,8 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(AggregateExpression *expr) {
-    UNUSED(expr);
+    expr->arg()->accept(this);
+    if (!ok()) return;
     type_ = Value::Type::__EMPTY__;
 }
 

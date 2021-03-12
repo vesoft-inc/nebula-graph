@@ -270,7 +270,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY count(*)+1 YIELD COUNT(1), 1+1";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(count(*)+1)' invalid");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(COUNT(*)+1)' invalid");
     }
     {
         // use groupby without input
@@ -352,7 +352,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "COUNT(like._dst)+1 AS id ";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `((count(*)+1)>3)', "
+                  "SemanticError: `((COUNT(*)+1)>3)', "
                   "not support aggregate function in where sentence.");
     }
     {
