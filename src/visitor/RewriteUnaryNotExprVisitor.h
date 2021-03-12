@@ -19,9 +19,9 @@ public:
         return true;
     }
 
-    bool canBeReduced() const {
-        return reducible_;
-    }
+    // bool canBeReduced() const {
+    //     return reducible_;
+    // }
 
     std::unique_ptr<Expression> getExpr() {
         return std::move(expr_);
@@ -69,7 +69,7 @@ private:
     bool isUnaryNotExpr(const Expression* expr);
 
 private:
-    bool reducible_{false};
+    bool reduced_{false};
     std::unique_ptr<Expression> expr_;
 };
 

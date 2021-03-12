@@ -12,7 +12,7 @@ namespace nebula {
 namespace graph {
 
 // TODO(Aiee) reduce the combination of relational expr and unary expr
-// i.e. !(a > b)  =>  (a <= b)
+// e.g. !(a > b)  =>  (a <= b)
 void RewriteUnaryNotExprVisitor::visit(RelationalExpression* expr) {
     visitBinaryExpr(expr);
 }
@@ -53,12 +53,22 @@ void RewriteUnaryNotExprVisitor::visit(UnaryExpression* expr) {
         auto operand = expr->operand();
         operand->accept(this);
         if (isUnaryNotExpr(expr_.get())) {   // reduce unary expr
+            if (!reduced_) {
+                auto curExpr_ = expr_->clone().release();
+                expr_ = static_cast<UnaryExpression*>(curExpr_)->operand()->clone();
+                reduced_ = true;
+                return;
+            }
             expr_ = reduce(expr);
-            reducible_ = true;
+            reduced_ = true;
             return;
         }
-    } else {
-        reducible_ = false;
+        if (reduced_) {   // odd # of unaryNot
+            auto exprCopy = expr_->clone().release();
+            expr_.reset(new UnaryExpression(Expression::Kind::kUnaryNot, exprCopy));
+            reduced_ = false;
+            return;
+        }
     }
     expr_.reset(expr->clone().release());
 }

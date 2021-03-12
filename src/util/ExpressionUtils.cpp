@@ -31,10 +31,7 @@ std::unique_ptr<Expression> ExpressionUtils::reduceUnaryNotExpr(const Expression
     auto newExpr = expr->clone();
     RewriteUnaryNotExprVisitor visitor;
     newExpr->accept(&visitor);
-    if (visitor.canBeReduced()) {
-        return visitor.getExpr();
-    }
-    return newExpr;
+     return visitor.getExpr();
 }
 
 Expression* ExpressionUtils::pullAnds(Expression *expr) {
