@@ -23,13 +23,11 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 folly::Future<Status> GetVerticesExecutor::getVertices() {
     SCOPED_TIMER(&execTime_);
 
-    time::Duration dur1;
     auto *gv = asNode<GetVertices>(node());
     GraphStorageClient *storageClient = qctx()->getStorageClient();
     DataSet vertices = buildRequestDataSet(gv);
 
-    otherStats_.emplace("init", folly::stringPrintf("%lu(us)", dur1.elapsedInUSec()));
-
+    VLOG(1) << "vertices: " << vertices;
     if (vertices.rows.empty()) {
         // TODO: add test for empty input.
         return finish(ResultBuilder()
@@ -72,6 +70,8 @@ DataSet GetVerticesExecutor::buildRequestDataSet(const GetVertices* gv) {
     VLOG(3) << "GV input var: " << gv->inputVar() << " iter kind: " << valueIter->kind();
     auto expCtx = QueryExpressionContext(qctx()->ectx());
     const auto &spaceInfo = qctx()->rctx()->session()->space();
+    vertices.rows.reserve(valueIter->size());
+    auto dedup = gv->dedup();
     if (spaceInfo.spaceDesc.vid_type.type == meta::cpp2::PropertyType::INT64) {
         std::unordered_set<int64_t> uniqueSet;
         uniqueSet.reserve(valueIter->size());
@@ -81,7 +81,7 @@ DataSet GetVerticesExecutor::buildRequestDataSet(const GetVertices* gv) {
                 LOG(WARNING) << "Mismatched vid type: " << src.type();
                 continue;
             }
-            if (gv->dedup() && !uniqueSet.emplace(src.getInt()).second) {
+            if (dedup && !uniqueSet.emplace(src.getInt()).second) {
                 continue;
             }
             vertices.emplace_back(Row({std::move(src)}));
@@ -95,7 +95,7 @@ DataSet GetVerticesExecutor::buildRequestDataSet(const GetVertices* gv) {
                 LOG(WARNING) << "Mismatched vid type: " << src.type();
                 continue;
             }
-            if (gv->dedup() && !uniqueSet.emplace(src.getStr()).second) {
+            if (dedup && !uniqueSet.emplace(src.getStr()).second) {
                 continue;
             }
             vertices.emplace_back(Row({std::move(src)}));

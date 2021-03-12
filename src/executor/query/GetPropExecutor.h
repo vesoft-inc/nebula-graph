@@ -21,7 +21,6 @@ protected:
 
     Status handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp,
                       const std::vector<std::string> &colNames) {
-        time::Duration dur1;
         auto result = handleCompleteness(rpcResp, FLAGS_accept_partial_success);
         NG_RETURN_IF_ERROR(result);
         auto state = std::move(result).value();
@@ -42,7 +41,6 @@ protected:
             DCHECK_EQ(colNames.size(), v.colSize());
             v.colNames = colNames;
         }
-        otherStats_.emplace("handle resp", folly::stringPrintf("%lu(us)", dur1.elapsedInUSec()));
         VLOG(2) << "Dataset in get props: \n" << v << "\n";
         return finish(ResultBuilder()
                       .value(std::move(v))
