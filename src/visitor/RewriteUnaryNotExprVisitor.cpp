@@ -18,7 +18,7 @@ void RewriteUnaryNotExprVisitor::visit(RelationalExpression* expr) {
 }
 
 void RewriteUnaryNotExprVisitor::visit(LogicalExpression* expr) {
-    auto &operands = expr->operands();
+    auto& operands = expr->operands();
     for (auto i = 0u; i < operands.size(); i++) {
         operands[i]->accept(this);
         if (expr_) {

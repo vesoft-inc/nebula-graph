@@ -96,8 +96,10 @@ protected:
         return new VariableExpression(new std::string(name));
     }
 
-    static CaseExpression *caseExpr(Expression *cond, Expression *defaltResult,
-                                    Expression *when, Expression *then) {
+    static CaseExpression *caseExpr(Expression *cond,
+                                    Expression *defaltResult,
+                                    Expression *when,
+                                    Expression *then) {
         auto caseList = new CaseList;
         caseList->add(when, then);
         auto expr = new CaseExpression(caseList);
@@ -106,7 +108,6 @@ protected:
         return expr;
     }
 };
-
 
 }   // namespace graph
 }   // namespace nebula
