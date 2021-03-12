@@ -16,7 +16,7 @@
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
-using JoinPosStrategy = nebula::graph::InnerJoinStrategy::JoinPos;
+using JoinStrategyPos = nebula::graph::InnerJoinStrategy::JoinPos;
 
 namespace nebula {
 namespace graph {
@@ -138,7 +138,7 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
     // Connect the left expand and right expand part.
     auto right = subplan.root;
     subplan.root = SegmentsConnector::innerJoinSegments(
-        matchClauseCtx->qctx, left, right, JoinPosStrategy::kStart, JoinPosStrategy::kStart);
+        matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart);
     return Status::OK();
 }
 
@@ -173,7 +173,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
         inputVar = subplan.root->outputVar();
     }
 
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(
         nodeInfos.front().filter,
@@ -191,7 +191,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
         subplan.root->setColNames(joinColNames);
     }
 
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     return Status::OK();
 }
 
@@ -222,7 +222,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
         }
     }
 
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(
         nodeInfos.back().filter,
@@ -239,7 +239,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
         subplan.root->setColNames(joinColNames);
     }
 
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     return Status::OK();
 }
 
@@ -315,7 +315,7 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     project->setColNames(std::move(colNames));
 
     plan.root = MatchSolver::filtPathHasSameEdge(project, alias, qctx);
-    VLOG(1) << "root: " << plan.root->outputVar() << " tail: " << plan.tail->outputVar();
+    VLOG(1) << plan;
     return Status::OK();
 }
 
@@ -401,7 +401,7 @@ Status MatchClausePlanner::appendFilterPlan(MatchClauseContext* matchClauseCtx, 
     auto plan = std::move(wherePlan).value();
     SegmentsConnector::addInput(plan.tail, subplan.root, true);
     subplan.root = plan.root;
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     return Status::OK();
 }
 }   // namespace graph
