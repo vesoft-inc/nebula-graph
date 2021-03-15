@@ -52,6 +52,9 @@ void GetNeighborsIter::goToFirstEdge() {
                     currentEdge_ = &currentEdge.getList();
                     valid_ = true;
                 }  // `edgeIdx_'
+                if (!valid_) {
+                    ++colIdx_;
+                }
             }  // `colIdx_'
             if (valid_) {
                 break;
