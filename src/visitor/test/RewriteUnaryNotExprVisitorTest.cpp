@@ -24,7 +24,7 @@ protected:
     ObjectPool pool;
 };
 
-TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExpr_Even) {
+TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExprEven) {
     // !!(5 == 10)  =>  (5 == 10)
     auto expr = pool.add(notExpr(notExpr(eqExpr(constantExpr(5), constantExpr(10)))));
     RewriteUnaryNotExprVisitor visitor;
@@ -45,7 +45,7 @@ TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExpr_Even_Nested) {
     ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
 }
 
-TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExpr_Odd) {
+TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExprOdd) {
     // !!!(5 == 10)  =>  !(5 == 10)
     auto expr = pool.add(notExpr(notExpr(notExpr(eqExpr(constantExpr(5), constantExpr(10))))));
     RewriteUnaryNotExprVisitor visitor;
@@ -55,7 +55,7 @@ TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExpr_Odd) {
     ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
 }
 
-TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExpr_Odd_Nested) {
+TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExprOddNested) {
     // !!!!!(5 == 10)  =>  !(5 == 10)
     auto expr = pool.add(
         notExpr(notExpr(notExpr(notExpr(notExpr(eqExpr(constantExpr(5), constantExpr(10))))))));
@@ -63,6 +63,18 @@ TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExpr_Odd_Nested) {
     expr->accept(&visitor);
     auto res = visitor.getExpr();
     auto expected = pool.add(notExpr(eqExpr(constantExpr(5), constantExpr(10))));
+    ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+}
+
+TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExprLogicalRelExpr) {
+    // !!(5 == 10) AND !!(30 > 20)  =>  (5 == 10) AND (30 > 20)
+    auto expr = pool.add(andExpr(notExpr(notExpr(eqExpr(constantExpr(5), constantExpr(10)))),
+                                 notExpr(notExpr(gtExpr(constantExpr(30), constantExpr(20))))));
+    RewriteUnaryNotExprVisitor visitor;
+    expr->accept(&visitor);
+    auto res = visitor.getExpr();
+    auto expected = pool.add(andExpr(eqExpr(constantExpr(5), constantExpr(10)),
+                                     gtExpr(constantExpr(30), constantExpr(20))));
     ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
 }
 

@@ -19,10 +19,6 @@ public:
         return true;
     }
 
-    // bool canBeReduced() const {
-    //     return reducible_;
-    // }
-
     std::unique_ptr<Expression> getExpr() {
         return std::move(expr_);
     }

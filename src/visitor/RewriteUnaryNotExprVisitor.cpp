@@ -21,8 +21,7 @@ void RewriteUnaryNotExprVisitor::visit(UnaryExpression *expr) {
         operand->accept(this);
         if (isUnaryNotExpr(expr_.get())) {   // reduce unary expr
             if (!reduced_) {
-                auto curExpr_ = expr_->clone().release();
-                expr_ = static_cast<UnaryExpression *>(curExpr_)->operand()->clone();
+                expr_ = static_cast<UnaryExpression *>(expr_.get())->operand()->clone();
                 reduced_ = true;
                 return;
             }
@@ -31,8 +30,8 @@ void RewriteUnaryNotExprVisitor::visit(UnaryExpression *expr) {
             return;
         }
         if (reduced_) {   // odd # of unaryNot
-            auto exprCopy = expr_->clone().release();
-            expr_.reset(new UnaryExpression(Expression::Kind::kUnaryNot, exprCopy));
+            auto exprCopy = expr_->clone();
+            expr_.reset(new UnaryExpression(Expression::Kind::kUnaryNot, exprCopy.release()));
             reduced_ = false;
             return;
         }
