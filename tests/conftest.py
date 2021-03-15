@@ -12,7 +12,6 @@ import time
 
 import pytest
 from filelock import FileLock
-from nebula2.Config import Config
 from nebula2.gclient.net import ConnectionPool
 
 from tests.common.configs import all_configs
@@ -74,17 +73,6 @@ def pytest_configure(config):
     pytest.cmdline.stop_nebula = config.getoption("stop_nebula")
     pytest.cmdline.rm_dir = config.getoption("rm_dir")
     pytest.cmdline.debug_log = config.getoption("debug_log")
-
-
-def get_conn_pool(host: str, port: int):
-    config = Config()
-    config.max_connection_pool_size = 20
-    config.timeout = 120000
-    # init connection pool
-    pool = ConnectionPool()
-    if not pool.init([(host, port)], config):
-        raise Exception("Fail to init connection pool.")
-    return pool
 
 
 @pytest.fixture(scope="session")
@@ -168,7 +156,7 @@ def load_csv_data_once(
             user = pytestconfig.getoption("user")
             password = pytestconfig.getoption("password")
             sess = conn_pool.get_session(user, password)
-            space_desc = load_csv_data(pytestconfig, sess, data_dir)
+            space_desc = load_csv_data(sess, data_dir)
             sess.release()
             fn.write_text(json.dumps(space_desc.__dict__))
             is_file = False

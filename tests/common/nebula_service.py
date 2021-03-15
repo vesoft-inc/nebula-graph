@@ -190,6 +190,7 @@ class NebulaService(object):
 
     def stop(self):
         print("try to stop nebula services...")
+        self._collect_pids()
         self.kill_all(signal.SIGTERM)
 
         max_retries = 20

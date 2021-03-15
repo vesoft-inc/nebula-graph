@@ -107,7 +107,6 @@ def new_space(request, options, session, graph_spaces):
 def import_csv_data(request, data, graph_spaces, session, pytestconfig):
     data_dir = os.path.join(DATA_DIR, normalize_outline_scenario(request, data))
     space_desc = load_csv_data(
-        pytestconfig,
         session,
         data_dir,
         "I" + space_generator(),
