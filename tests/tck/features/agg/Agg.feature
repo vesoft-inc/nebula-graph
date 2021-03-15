@@ -434,7 +434,7 @@ Feature: Basic Aggregate and GroupBy
            YIELD $-.name AS name
       """
     Then a SemanticError should be raised at runtime:
-@czp
+
   Scenario: order by and limit
     When executing query:
       """
@@ -515,7 +515,7 @@ Feature: Basic Aggregate and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY avg($-.age+1)+1 YIELD $-.age,avg(distinct $-.age) AS age
       """
-    Then a SemanticError should be raised at runtime:  Group `(AVG(($-.age+1))+1)' invalid
+    Then a SemanticError should be raised at runtime:  Group `(avg(($-.age+1))+1)' invalid
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age;
@@ -537,7 +537,7 @@ Feature: Basic Aggregate and GroupBy
     Then a SemanticError should be raised at runtime: `COUNT(*)', not support aggregate function in go sentence.
     When executing query:
       """
-      GO FROM "Tim Duncan" OVER like where count(*) > 2
+      GO FROM "Tim Duncan" OVER like where COUNT(*) > 2
       """
     Then a SemanticError should be raised at runtime: `(COUNT(*)>2)', not support aggregate function in where sentence.
     When executing query:
@@ -585,7 +585,7 @@ Feature: Basic Aggregate and GroupBy
          | GROUP BY $-.name
            YIELD SUM(*)
       """
-    Then a SemanticError should be raised at runtime:  Could not apply aggregation function `SUM(*)' on `*`
+    Then a SyntaxError should be raised at runtime: Could not apply aggregation function on `*` near `SUM'
     When executing query:
       """
       GO FROM "Marco Belinelli" OVER serve
@@ -594,7 +594,7 @@ Feature: Basic Aggregate and GroupBy
          | GROUP BY $-.name
            YIELD COUNT($-.name, $-.id)
       """
-    Then a SyntaxError should be raised at runtime: syntax error near `, $-.id)'
+    Then a SyntaxError should be raised at runtime: Unknown function  near `COUNT'
     When executing query:
       """
       GO FROM "Marco Belinelli" OVER serve
