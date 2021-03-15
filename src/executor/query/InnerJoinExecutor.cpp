@@ -98,7 +98,7 @@ DataSet InnerJoinExecutor::singleKeyProbe(
 }
 
 template <class T>
-void InnerJoinExecutor::buildNewRow(const std::unordered_map<T, std::vector<const Row*>> hashTable,
+void InnerJoinExecutor::buildNewRow(const std::unordered_map<T, std::vector<const Row*>>& hashTable,
                                     const T& val,
                                     Row& rRow,
                                     DataSet& ds) const {

@@ -87,7 +87,7 @@ DataSet LeftJoinExecutor::singleKeyProbe(
 }
 
 template <class T>
-void LeftJoinExecutor::buildNewRow(const std::unordered_map<T, std::vector<const Row*>> hashTable,
+void LeftJoinExecutor::buildNewRow(const std::unordered_map<T, std::vector<const Row*>>& hashTable,
                                    const T& val,
                                    Row& lRow,
                                    DataSet& ds) const {

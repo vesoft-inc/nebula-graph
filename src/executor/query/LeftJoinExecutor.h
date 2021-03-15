@@ -34,7 +34,7 @@ private:
         const std::unordered_map<Value, std::vector<const Row*>>& hashTable) const;
 
     template <class T>
-    void buildNewRow(const std::unordered_map<T, std::vector<const Row*>> hashTable,
+    void buildNewRow(const std::unordered_map<T, std::vector<const Row*>>& hashTable,
                      const T& val,
                      Row& lRow,
                      DataSet& ds) const;
