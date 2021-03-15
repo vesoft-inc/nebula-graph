@@ -801,12 +801,10 @@ predicate_expression
         delete $3;
     }
     | KW_EXISTS L_PAREN expression R_PAREN {
-        auto* expr = new PredicateExpression(new std::string("exists"), nullptr, $3, nullptr);
-        auto res = nebula::graph::ParserUtil::rewriteExists(expr, $3);
-        if (!res.ok()) {
-            throw nebula::GraphParser::syntax_error(@3, "type error");
+        if ($3->kind() != Expression::Kind::kLabelAttribute && $3->kind() != Expression::Kind::kAttribute) {
+            throw nebula::GraphParser::syntax_error(@3, "The exists only accept LabelAttribe OR Attribute");
         }
-        $$ = expr;
+        $$ = new PredicateExpression($1, nullptr, $3, nullptr);
     }
     ;
 

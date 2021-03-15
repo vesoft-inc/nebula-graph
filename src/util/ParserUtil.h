@@ -33,8 +33,6 @@ public:
                               ReduceExpression *reduce,
                               const std::string &oldAccName,
                               const std::string &oldVarName);
-
-    static Status rewriteExists(PredicateExpression *pred, Expression *expr);
 };
 
 }   // namespace graph
