@@ -78,6 +78,7 @@ private:
     void visit(ReduceExpression *expr) override;
 
     bool isUnaryNotExpr(const Expression *expr);
+
     void visitBinaryExpr(BinaryExpression *expr) override;
 
 private:

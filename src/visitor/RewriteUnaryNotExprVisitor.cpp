@@ -118,14 +118,41 @@ void RewriteUnaryNotExprVisitor::visit(VersionedVariableExpression *expr) {
 
 // container expression
 void RewriteUnaryNotExprVisitor::visit(ListExpression *expr) {
+    auto &items = expr->items();
+    for (auto i = 0u; i < items.size(); ++i) {
+        auto item = items[i].get();
+        item->accept(this);
+        if (expr_) {
+            expr->setItem(i, expr_->clone());
+        }
+    }
     expr_.reset(expr->clone().release());
 }
 
 void RewriteUnaryNotExprVisitor::visit(SetExpression *expr) {
+    auto &items = expr->items();
+    for (auto i = 0u; i < items.size(); ++i) {
+        auto item = items[i].get();
+        item->accept(this);
+        if (expr_) {
+            expr->setItem(i, expr_->clone());
+        }
+    }
     expr_.reset(expr->clone().release());
 }
 
 void RewriteUnaryNotExprVisitor::visit(MapExpression *expr) {
+    auto &items = expr->items();
+    for (auto i = 0u; i < items.size(); ++i) {
+        auto &pair = items[i];
+        auto item = const_cast<Expression *>(pair.second.get());
+        item->accept(this);
+        if (expr_) {
+            auto key = std::make_unique<std::string>(*pair.first);
+            auto val = expr_->clone();
+            expr->setItem(i, std::make_pair(std::move(key), std::move(val)));
+        }
+    }
     expr_.reset(expr->clone().release());
 }
 
