@@ -12,12 +12,11 @@ import time
 
 import pytest
 from filelock import FileLock
-from nebula2.gclient.net import ConnectionPool
 
 from tests.common.configs import all_configs
 from tests.common.nebula_service import NebulaService
 from tests.common.types import SpaceDesc
-from tests.common.utils import load_csv_data
+from tests.common.utils import get_conn_pool
 
 tests_collected = set()
 tests_executed = set()
@@ -75,60 +74,20 @@ def pytest_configure(config):
     pytest.cmdline.debug_log = config.getoption("debug_log")
 
 
+def get_port():
+    with open(os.path.join(CURR_PATH, "tmp", "nebula"), "r") as f:
+        data = json.loads(f.readline())
+        port = data.get("port", None)
+        if port is None:
+            raise ValueError(f"Invalid port: {port}")
+        return port
+
+
 @pytest.fixture(scope="session")
-def conn_pool(pytestconfig, worker_id, tmp_path_factory):
-    addr = pytestconfig.getoption("address")
-    if addr:
-        addrsplit = addr.split(":")
-        assert len(addrsplit) == 2
-        pool = get_conn_pool(addrsplit[0], addrsplit[1])
-        yield pool
-        pool.close()
-        return
-
-    build_dir = pytestconfig.getoption("build_dir")
-    rm_dir = pytestconfig.getoption("rm_dir")
-    project_dir = os.path.dirname(CURR_PATH)
-
-    root_tmp_dir = tmp_path_factory.getbasetemp().parent
-    fn = root_tmp_dir / "nebula-test"
-    nb = None
-    with FileLock(str(fn) + ".lock"):
-        if fn.is_file():
-            data = json.loads(fn.read_text())
-            port = data["port"]
-            logging.info(f"session-{worker_id} read the port: {port}")
-            pool = get_conn_pool("localhost", port)
-            data["num_workers"] += 1
-            fn.write_text(json.dumps(data))
-        else:
-            nb = NebulaService(build_dir, project_dir,
-                               rm_dir.lower() == "true")
-            nb.install()
-            port = nb.start()
-            pool = get_conn_pool("localhost", port)
-            data = dict(port=port, num_workers=1, finished=0)
-            fn.write_text(json.dumps(data))
-            logging.info(f"session-{worker_id} write the port: {port}")
-
+def conn_pool():
+    pool = get_conn_pool("localhost", get_port())
     yield pool
     pool.close()
-
-    if nb is None:
-        with FileLock(str(fn) + ".lock"):
-            data = json.loads(fn.read_text())
-            data["finished"] += 1
-            fn.write_text(json.dumps(data))
-    else:
-        # TODO(yee): improve this option format, only specify it by `--stop_nebula`
-        stop_nebula = pytestconfig.getoption("stop_nebula")
-        while stop_nebula.lower() == "true":
-            data = json.loads(fn.read_text())
-            if data["finished"] + 1 == data["num_workers"]:
-                nb.stop()
-                break
-            time.sleep(1)
-        os.remove(str(fn))
 
 
 @pytest.fixture(scope="class")
@@ -140,93 +99,38 @@ def session(conn_pool, pytestconfig):
     sess.release()
 
 
-def load_csv_data_once(
-    tmp_path_factory,
-    pytestconfig,
-    worker_id,
-    conn_pool: ConnectionPool,
-    space: str,
-):
-    root_tmp_dir = tmp_path_factory.getbasetemp().parent
-    fn = root_tmp_dir / f"csv-data-{space}"
-    is_file = True
-    with FileLock(str(fn) + ".lock"):
-        if not fn.is_file():
-            data_dir = os.path.join(CURR_PATH, "data", space)
-            user = pytestconfig.getoption("user")
-            password = pytestconfig.getoption("password")
-            sess = conn_pool.get_session(user, password)
-            space_desc = load_csv_data(sess, data_dir)
-            sess.release()
-            fn.write_text(json.dumps(space_desc.__dict__))
-            is_file = False
-        else:
-            space_desc = SpaceDesc.from_json(json.loads(fn.read_text()))
-    if is_file:
-        logging.info(f"session-{worker_id} need not to load {space} csv data")
-        yield space_desc
-    else:
-        logging.info(f"session-{worker_id} load {space} csv data")
-        yield space_desc
-        os.remove(str(fn))
+def load_csv_data_once(space: str):
+    with open(os.path.join(CURR_PATH, "tmp", "spaces"), "r") as f:
+        for sp in json.loads(f.readline()):
+            if sp.get("name", None) == space:
+                return SpaceDesc.from_json(sp)
+        raise ValueError(f"Invalid space name: {space}")
 
 
 @pytest.fixture(scope="session")
-def load_nba_data(conn_pool, pytestconfig, tmp_path_factory, worker_id):
-    yield from load_csv_data_once(
-        tmp_path_factory,
-        pytestconfig,
-        worker_id,
-        conn_pool,
-        "nba",
-    )
+def load_nba_data():
+    yield load_csv_data_once("nba")
 
 
 @pytest.fixture(scope="session")
-def load_nba_int_vid_data(
-    conn_pool,
-    pytestconfig,
-    tmp_path_factory,
-    worker_id,
-):
-    yield from load_csv_data_once(
-        tmp_path_factory,
-        pytestconfig,
-        worker_id,
-        conn_pool,
-        "nba_int_vid",
-    )
+def load_nba_int_vid_data():
+    yield load_csv_data_once("nba_int_vid")
 
 
 @pytest.fixture(scope="session")
-def load_student_data(conn_pool, pytestconfig, tmp_path_factory, worker_id):
-    yield from load_csv_data_once(
-        tmp_path_factory,
-        pytestconfig,
-        worker_id,
-        conn_pool,
-        "student",
-    )
+def load_student_data():
+    yield load_csv_data_once("student")
 
 
 # TODO(yee): Delete this when we migrate all test cases
 @pytest.fixture(scope="class")
-def workarround_for_class(request, pytestconfig, tmp_path_factory, conn_pool,
+def workarround_for_class(request, pytestconfig, conn_pool,
                           session, load_nba_data, load_student_data):
     if request.cls is None:
         return
 
-    addr = pytestconfig.getoption("address")
-    if addr:
-        ss = addr.split(':')
-        request.cls.host = ss[0]
-        request.cls.port = ss[1]
-    else:
-        root_tmp_dir = tmp_path_factory.getbasetemp().parent
-        fn = root_tmp_dir / "nebula-test"
-        data = json.loads(fn.read_text())
-        request.cls.host = "localhost"
-        request.cls.port = data["port"]
+    request.cls.host = "localhost"
+    request.cls.port = get_port()
 
     request.cls.data_dir = os.path.dirname(os.path.abspath(__file__))
 
