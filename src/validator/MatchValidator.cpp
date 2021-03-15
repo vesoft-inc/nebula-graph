@@ -292,10 +292,10 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
 
 Status MatchValidator::validateFilter(const Expression *filter,
                                       WhereClauseContext &whereClauseCtx) const {
-    // whereClauseCtx.filter = ExpressionUtils::foldConstantExpr(filter);
+    // Fold constant expr
     auto newFilter = ExpressionUtils::foldConstantExpr(filter);
+    // Reduce Unary expr
     whereClauseCtx.filter = ExpressionUtils::reduceUnaryNotExpr(newFilter.get());
-    // whereClauseCtx.filter = std::move(reducedFilter);
 
     auto typeStatus = deduceExprType(whereClauseCtx.filter.get());
     NG_RETURN_IF_ERROR(typeStatus);
