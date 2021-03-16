@@ -78,6 +78,7 @@ DataSet LeftJoinExecutor::singleKeyProbe(
     Iterator* probeIter,
     const std::unordered_map<Value, std::vector<const Row*>>& hashTable) const {
     DataSet ds;
+    ds.rows.reserve(probeIter->size());
     QueryExpressionContext ctx(ectx_);
     for (; probeIter->valid(); probeIter->next()) {
         auto& val = probeKey->eval(ctx(probeIter));
