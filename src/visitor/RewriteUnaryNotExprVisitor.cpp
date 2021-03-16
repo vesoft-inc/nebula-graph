@@ -19,7 +19,7 @@ void RewriteUnaryNotExprVisitor::visit(UnaryExpression *expr) {
     if (isUnaryNotExpr(expr)) {
         auto operand = expr->operand();
         operand->accept(this);
-        if (isUnaryNotExpr(expr_.get())) {   // reduce unary expr
+        if (isUnaryNotExpr(expr_.get())) {   // reduce nested unary expr
             if (!reduced_) {
                 expr_ = static_cast<UnaryExpression *>(expr_.get())->operand()->clone();
                 reduced_ = true;
@@ -28,7 +28,11 @@ void RewriteUnaryNotExprVisitor::visit(UnaryExpression *expr) {
             expr_ = reduce(expr);
             reduced_ = true;
             return;
+        } else if (isRelExpr(expr_.get())) {
+            expr_ = reverseRelExpr(expr_.get());
+            return;
         }
+
         if (reduced_) {   // odd # of unaryNot
             auto exprCopy = expr_->clone();
             expr_.reset(new UnaryExpression(Expression::Kind::kUnaryNot, exprCopy.release()));
@@ -239,6 +243,85 @@ void RewriteUnaryNotExprVisitor::visit(ReduceExpression *expr) {
 std::unique_ptr<Expression> RewriteUnaryNotExprVisitor::reduce(UnaryExpression *expr) {
     auto reducedExpr = static_cast<UnaryExpression *>(expr->operand())->operand();
     return reducedExpr->clone();
+}
+
+// Reverese the type of the given relational expr
+std::unique_ptr<Expression> RewriteUnaryNotExprVisitor::reverseRelExpr(Expression *expr) {
+    auto left = static_cast<BinaryExpression *>(expr)->left()->clone();
+    auto right = static_cast<BinaryExpression *>(expr)->right()->clone();
+    auto reversedKind = getNegatedKind(expr->kind());
+
+    return std::make_unique<RelationalExpression>(
+        reversedKind, left->clone().release(), right->clone().release());
+}
+
+// Return the negation of the given relational kind
+Expression::Kind RewriteUnaryNotExprVisitor::getNegatedKind(const Expression::Kind kind) {
+    switch (kind) {
+        case Expression::Kind::kRelEQ:
+            return Expression::Kind::kRelNE;
+            break;
+        case Expression::Kind::kRelNE:
+            return Expression::Kind::kRelEQ;
+            break;
+        case Expression::Kind::kRelLT:
+            return Expression::Kind::kRelGE;
+            break;
+        case Expression::Kind::kRelLE:
+            return Expression::Kind::kRelGT;
+            break;
+        case Expression::Kind::kRelGT:
+            return Expression::Kind::kRelLE;
+            break;
+        case Expression::Kind::kRelGE:
+            return Expression::Kind::kRelLT;
+            break;
+        case Expression::Kind::kRelIn:
+            return Expression::Kind::kRelNotIn;
+            break;
+        case Expression::Kind::kRelNotIn:
+            return Expression::Kind::kRelIn;
+            break;
+        case Expression::Kind::kContains:
+            return Expression::Kind::kNotContains;
+            break;
+        case Expression::Kind::kNotContains:
+            return Expression::Kind::kContains;
+            break;
+        case Expression::Kind::kStartsWith:
+            return Expression::Kind::kNotStartsWith;
+            break;
+        case Expression::Kind::kNotStartsWith:
+            return Expression::Kind::kStartsWith;
+            break;
+        case Expression::Kind::kEndsWith:
+            return Expression::Kind::kNotEndsWith;
+            break;
+        case Expression::Kind::kNotEndsWith:
+            return Expression::Kind::kEndsWith;
+            break;
+        default:
+            LOG(FATAL) << "Invalid relational expression kind: " << static_cast<uint8_t>(kind);
+            break;
+    }
+}
+
+bool RewriteUnaryNotExprVisitor::isRelExpr(const Expression *expr) {
+ //    expr->kind() == Expression::Kind::kRelREG is not supported
+    return expr->kind() == Expression::Kind::kRelEQ ||
+           expr->kind() == Expression::Kind::kRelNE ||
+           expr->kind() == Expression::Kind::kRelLT ||
+           expr->kind() == Expression::Kind::kRelLE ||
+           expr->kind() == Expression::Kind::kRelGT ||
+           expr->kind() == Expression::Kind::kRelGE ||
+           expr->kind() == Expression::Kind::kRelIn ||
+           expr->kind() == Expression::Kind::kRelNotIn ||
+           expr->kind() == Expression::Kind::kContains ||
+           expr->kind() == Expression::Kind::kNotContains ||
+           expr->kind() == Expression::Kind::kStartsWith ||
+           expr->kind() == Expression::Kind::kNotStartsWith ||
+           expr->kind() == Expression::Kind::kEndsWith ||
+           expr->kind() == Expression::Kind::kNotEndsWith;
 }
 
 bool RewriteUnaryNotExprVisitor::isUnaryNotExpr(const Expression *expr) {

@@ -30,12 +30,60 @@ protected:
         return new ArithmeticExpression(Expression::Kind::kMinus, lhs, rhs);
     }
 
+    static RelationalExpression *eqExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kRelEQ, lhs, rhs);
+    }
+
+    static RelationalExpression *neExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kRelNE, lhs, rhs);
+    }
+
+    static RelationalExpression *ltExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kRelLT, lhs, rhs);
+    }
+
+    static RelationalExpression *leExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kRelLE, lhs, rhs);
+    }
+
     static RelationalExpression *gtExpr(Expression *lhs, Expression *rhs) {
         return new RelationalExpression(Expression::Kind::kRelGT, lhs, rhs);
     }
 
-    static RelationalExpression *eqExpr(Expression *lhs, Expression *rhs) {
-        return new RelationalExpression(Expression::Kind::kRelEQ, lhs, rhs);
+    static RelationalExpression *geExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kRelGE, lhs, rhs);
+    }
+
+    static RelationalExpression *inExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kRelIn, lhs, rhs);
+    }
+
+    static RelationalExpression *notInExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kRelNotIn, lhs, rhs);
+    }
+
+    static RelationalExpression *containsExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kContains, lhs, rhs);
+    }
+
+    static RelationalExpression *notContainsExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kNotContains, lhs, rhs);
+    }
+
+    static RelationalExpression *startsWithExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kStartsWith, lhs, rhs);
+    }
+
+    static RelationalExpression *notStartsWithExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kNotStartsWith, lhs, rhs);
+    }
+
+    static RelationalExpression *endsWithExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kEndsWith, lhs, rhs);
+    }
+
+    static RelationalExpression *notEndsWithExpr(Expression *lhs, Expression *rhs) {
+        return new RelationalExpression(Expression::Kind::kNotEndsWith, lhs, rhs);
     }
 
     static TypeCastingExpression *castExpr(Type type, Expression *expr) {

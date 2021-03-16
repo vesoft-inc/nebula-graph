@@ -78,7 +78,9 @@ private:
     void visit(ReduceExpression *expr) override;
 
     bool isUnaryNotExpr(const Expression *expr);
-
+    bool isRelExpr(const Expression *expr);
+    std::unique_ptr<Expression> reverseRelExpr(Expression *expr);
+    Expression::Kind getNegatedKind(const Expression::Kind kind);
     void visitBinaryExpr(BinaryExpression *expr) override;
 
 private:
