@@ -355,6 +355,23 @@ Feature: Basic match
       | p                                                                      |
       | <("LeBron James")-[:like@0]->("Ray Allen")-[:like@0]->("Rajon Rondo")> |
 
+  Scenario: exists
+    When executing query:
+      """
+      MATCH (:player{name:"Tony Parker"})-[r]->() where exists(r.likeness) return r, exists({a:12}.a)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | r                                                            | exists({a:12}.a) |
+      | [:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}] | true             |
+      | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]     | true             |
+      | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]        | true             |
+    When executing query:
+      """
+      MATCH (:player{name:"Tony Parker"})-[r]->(m) where exists(m.likeness) return r, exists({a:12}.a)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | r | exists({a:12}.a) |
+
   Scenario: No return
     When executing query:
       """

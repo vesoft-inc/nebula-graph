@@ -804,7 +804,7 @@ predicate_expression
         if ($3->kind() != Expression::Kind::kLabelAttribute && $3->kind() != Expression::Kind::kAttribute) {
             throw nebula::GraphParser::syntax_error(@3, "The exists only accept LabelAttribe OR Attribute");
         }
-        $$ = new PredicateExpression($1, nullptr, $3, nullptr);
+        $$ = new PredicateExpression(new std::string("exists"), nullptr, $3, nullptr);
     }
     ;
 
