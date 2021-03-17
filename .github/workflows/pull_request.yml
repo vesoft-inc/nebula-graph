@@ -131,18 +131,20 @@ jobs:
         run: ctest -j $(($(nproc)/2+1)) --timeout 400 --output-on-failure
         working-directory: build/
         timeout-minutes: 15
+      - name: Start nebula services locally
+        run: make up
+        working-directory: tests/
       - name: Pytest
-        env:
-          NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
         run: make RM_DIR=false J=${{ steps.cmake.outputs.j }} test
         working-directory: tests/
         timeout-minutes: 15
       - name: TCK
-        env:
-          NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
         run: make RM_DIR=false J=${{ steps.cmake.outputs.j }} tck
         working-directory: tests/
         timeout-minutes: 15
+      - name: Stop nebula services
+        run: make down
+        working-directory: tests/
       - name: Sanitizer
         if: ${{ always() }}
         run: |
