@@ -12,6 +12,7 @@ import pytest
 from tests.common.configs import all_configs
 from tests.common.types import SpaceDesc
 from tests.common.utils import get_conn_pool
+from tests.common.constants import NB_TMP_PATH, SPACE_TMP_PATH
 
 tests_collected = set()
 tests_executed = set()
@@ -70,7 +71,7 @@ def pytest_configure(config):
 
 
 def get_port():
-    with open(os.path.join(CURR_PATH, ".pytest", "nebula"), "r") as f:
+    with open(NB_TMP_PATH, "r") as f:
         data = json.loads(f.readline())
         port = data.get("port", None)
         if port is None:
@@ -95,7 +96,7 @@ def session(conn_pool, pytestconfig):
 
 
 def load_csv_data_once(space: str):
-    with open(os.path.join(CURR_PATH, ".pytest", "spaces"), "r") as f:
+    with open(SPACE_TMP_PATH, "r") as f:
         for sp in json.loads(f.readline()):
             if sp.get("name", None) == space:
                 return SpaceDesc.from_json(sp)

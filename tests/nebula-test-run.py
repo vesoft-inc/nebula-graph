@@ -11,11 +11,10 @@ import os
 import shutil
 from tests.common.nebula_service import NebulaService
 from tests.common.utils import get_conn_pool, load_csv_data
+from tests.common.constants import NEBULA_HOME, TMP_DIR, NB_TMP_PATH, SPACE_TMP_PATH
 
 
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))
-NEBULA_HOME = os.getenv('NEBULA_SOURCE_DIR', os.path.join(CURR_PATH, '..'))
-TMP_DIR = os.path.join(CURR_PATH, '.pytest')
 
 
 def init_parser():
@@ -55,7 +54,7 @@ def start_nebula(nb):
     if not os.path.exists(TMP_DIR):
         os.mkdir(TMP_DIR)
 
-    with open(os.path.join(TMP_DIR, "spaces"), "w") as f:
+    with open(SPACE_TMP_PATH, "w") as f:
         spaces = []
         for space in ("nba", "nba_int_vid", "student"):
             data_dir = os.path.join(CURR_PATH, "data", space)
@@ -63,7 +62,7 @@ def start_nebula(nb):
             spaces.append(space_desc.__dict__)
         f.write(json.dumps(spaces))
 
-    with open(os.path.join(TMP_DIR, "nebula"), "w") as f:
+    with open(NB_TMP_PATH, "w") as f:
         data = {
             "ip": "localhost",
             "port": port,
@@ -73,7 +72,7 @@ def start_nebula(nb):
 
 
 def stop_nebula(nb):
-    with open(os.path.join(TMP_DIR, "nebula"), "r") as f:
+    with open(NB_TMP_PATH, "r") as f:
         data = json.loads(f.readline())
         nb.set_work_dir(data["work_dir"])
     nb.stop()
