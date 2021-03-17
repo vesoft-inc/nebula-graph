@@ -6,15 +6,10 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import json
-import logging
 import os
-import time
-
 import pytest
-from filelock import FileLock
 
 from tests.common.configs import all_configs
-from tests.common.nebula_service import NebulaService
 from tests.common.types import SpaceDesc
 from tests.common.utils import get_conn_pool
 
@@ -75,7 +70,7 @@ def pytest_configure(config):
 
 
 def get_port():
-    with open(os.path.join(CURR_PATH, "tmp", "nebula"), "r") as f:
+    with open(os.path.join(CURR_PATH, ".pytest", "nebula"), "r") as f:
         data = json.loads(f.readline())
         port = data.get("port", None)
         if port is None:
@@ -100,7 +95,7 @@ def session(conn_pool, pytestconfig):
 
 
 def load_csv_data_once(space: str):
-    with open(os.path.join(CURR_PATH, "tmp", "spaces"), "r") as f:
+    with open(os.path.join(CURR_PATH, ".pytest", "spaces"), "r") as f:
         for sp in json.loads(f.readline()):
             if sp.get("name", None) == space:
                 return SpaceDesc.from_json(sp)

@@ -28,6 +28,12 @@ $ make up
 
 The target `up` in Makefile will select some random ports used by nebula, install all built necessary files to temporary folder which name format is like `server_2021-03-15T17-52-52` and start `metad/storaged/graphd` servers.
 
+If your build directory is not `nebula-graph/build`, you should specify the `BUILD_DIR` parameter when up the nebula services:
+
+```shell
+$ make BUILD_DIR=/path/to/nebula/build/directory up
+```
+
 ### Run all test cases
 
 There are two classes of nebula graph test cases, one is built on pytest and another is built on TCK. We split them into different execution methods:
@@ -63,10 +69,16 @@ Following command will stop the nebula servers started in above steps:
 $ make down
 ```
 
-If you want to cleanup some unused nebula processes, you can kill them by:
+If you want to stop some unused nebula processes, you can kill them by:
 
 ```shell
 $ make kill
+```
+
+cleanup temporary files by:
+
+```shell
+$ make clean
 ```
 
 ## How to add test case

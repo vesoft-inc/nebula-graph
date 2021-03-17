@@ -11,6 +11,7 @@ gherkin_fmt = ~/.local/bin/reformat-gherkin
 
 RM_DIR ?= true
 TEST_DIR ?= $(CURR_DIR)
+BUILD_DIR ?= $(CURR_DIR)/../build
 J ?= 8
 
 install-deps:
@@ -41,7 +42,8 @@ check:
 	@find $(CURR_DIR)/tck/ -type f -iname "*.feature" -print | xargs $(gherkin_fmt) --check
 
 up:
-	PYTHONPATH=$$PYTHONPATH:$(CURR_DIR)/.. $(CURR_DIR)/nebula-test-run.py --cmd=start --rm_dir=$(RM_DIR)
+	@mkdir -p $(CURR_DIR)/.pytest
+	PYTHONPATH=$$PYTHONPATH:$(CURR_DIR)/.. $(CURR_DIR)/nebula-test-run.py --cmd=start --rm_dir=$(RM_DIR) --build_dir=$(BUILD_DIR)
 
 down:
 	PYTHONPATH=$$PYTHONPATH:$(CURR_DIR)/.. $(CURR_DIR)/nebula-test-run.py --cmd=stop --rm_dir=$(RM_DIR)
@@ -58,7 +60,7 @@ report:
 	@rm -rf $(CURR_DIR)/tck-report-bak.json
 
 clean:
-	@rm -rf $(CURR_DIR)/nebula-python $(CURR_DIR)/reformat-gherkin $(CURR_DIR)/.pytest/* $(CURR_DIR)/.pytest_cache $(CURR_DIR)/*.lock $(CURR_DIR)/tck-report.json $(CURR_DIR)/tmp
+	@rm -rf $(CURR_DIR)/nebula-python $(CURR_DIR)/reformat-gherkin $(CURR_DIR)/.pytest/* $(CURR_DIR)/.pytest_cache $(CURR_DIR)/tck-report.json
 
 kill:
 	ps -ef | grep -P '\sbin/nebula-' | grep "$$(whoami)" | sed 's/\s\s*/ /g' | cut -f2 -d' ' | xargs kill -9

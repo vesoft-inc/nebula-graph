@@ -15,7 +15,7 @@ from tests.common.utils import get_conn_pool, load_csv_data
 
 CURR_PATH = os.path.dirname(os.path.abspath(__file__))
 NEBULA_HOME = os.getenv('NEBULA_SOURCE_DIR', os.path.join(CURR_PATH, '..'))
-TMP_DIR = os.path.join(CURR_PATH, 'tmp')
+TMP_DIR = os.path.join(CURR_PATH, '.pytest')
 
 
 def init_parser():
