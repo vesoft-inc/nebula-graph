@@ -27,16 +27,17 @@ std::unique_ptr<Expression> ExpressionUtils::foldConstantExpr(const Expression *
     return newExpr;
 }
 
-std::unique_ptr<Expression> ExpressionUtils::reduceUnaryNotExpr(const Expression *expr) {
+std::unique_ptr<Expression> ExpressionUtils::reduceUnaryNotExpr(const Expression *expr,
+                                                                ObjectPool *objPool) {
     auto newExpr = expr->clone();
-    RewriteUnaryNotExprVisitor visitor;
+    RewriteUnaryNotExprVisitor visitor(objPool);
     newExpr->accept(&visitor);
     return visitor.getExpr()->clone();
 }
 
-Expression* ExpressionUtils::pullAnds(Expression *expr) {
+Expression *ExpressionUtils::pullAnds(Expression *expr) {
     DCHECK(expr->kind() == Expression::Kind::kLogicalAnd);
-    auto *logic = static_cast<LogicalExpression*>(expr);
+    auto *logic = static_cast<LogicalExpression *>(expr);
     std::vector<std::unique_ptr<Expression>> operands;
     pullAndsImpl(logic, operands);
     logic->setOperands(std::move(operands));

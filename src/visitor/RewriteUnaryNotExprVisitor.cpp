@@ -11,48 +11,25 @@
 namespace nebula {
 namespace graph {
 
+RewriteUnaryNotExprVisitor::RewriteUnaryNotExprVisitor(ObjectPool *objPool) : pool_(objPool) {}
+
 void RewriteUnaryNotExprVisitor::visit(ConstantExpression *expr) {
     expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(UnaryExpression *expr) {
-    // auto operand = expr->operand();
-    // if (isUnaryNotExpr(expr)) {
-    //     if (isUnaryNotExpr(operand)) {
-    //         static_cast<UnaryExpression *>(operand)->operand()->accept(this);
-    //         expr_ = static_cast<UnaryExpression *>(operand)->operand();
-    //         return;
-    //     }
-    // }
-    // operand->accept(this);
-    // expr->setOperand(expr_);
-    // expr_ = expr;
-
+    auto operand = expr->operand();
     if (isUnaryNotExpr(expr)) {
-        auto operand = expr->operand();
-        operand->accept(this);
-        if (isUnaryNotExpr(expr_)) {   // reduce nested unary expr
-            if (!reduced_) {
-                expr_ = static_cast<UnaryExpression *>(expr_)->operand();
-                reduced_ = true;
-                return;
-            }
-            expr_ = reduce(expr);
-            reduced_ = true;
+        if (isUnaryNotExpr(operand)) {
+            static_cast<UnaryExpression *>(operand)->operand()->accept(this);
             return;
-        } else if (isRelExpr(expr_)) {
-            expr_ = reverseRelExpr(expr_);
+        } else if (isRelExpr(operand)) {
+            expr_ = pool_->add(reverseRelExpr(operand).release());
             return;
         }
-
-        // if (reduced_) {   // odd # of unaryNot
-        //     // auto exprCopy = expr_->clone();
-        //     expr->setOperand(expr_->clone().release());
-        //     expr_ = expr;
-        //     reduced_ = false;
-        //     return;
-        // }
     }
+    operand->accept(this);
+    expr->setOperand(expr_->clone().release());
     expr_ = expr;
 }
 
@@ -253,18 +230,13 @@ void RewriteUnaryNotExprVisitor::visit(ReduceExpression *expr) {
     expr_ = expr;
 }
 
-Expression* RewriteUnaryNotExprVisitor::reduce(UnaryExpression *expr) {
-    auto reducedExpr = static_cast<UnaryExpression *>(expr->operand())->operand();
-    return reducedExpr;
-}
-
 // Reverese the type of the given relational expr
-Expression* RewriteUnaryNotExprVisitor::reverseRelExpr(Expression *expr) {
-    auto left = static_cast<BinaryExpression *>(expr)->left()->clone();
-    auto right = static_cast<BinaryExpression *>(expr)->right()->clone();
+std::unique_ptr<Expression> RewriteUnaryNotExprVisitor::reverseRelExpr(Expression *expr) {
+    auto left = static_cast<RelationalExpression *>(expr)->left();
+    auto right = static_cast<RelationalExpression *>(expr)->right();
     auto reversedKind = getNegatedKind(expr->kind());
 
-    return new RelationalExpression(
+    return std::make_unique<RelationalExpression>(
         reversedKind, left->clone().release(), right->clone().release());
 }
 

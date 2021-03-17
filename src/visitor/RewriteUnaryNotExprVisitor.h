@@ -7,6 +7,7 @@
 #ifndef VISITOR_REWRITEUNARYNOTEXPRVISITOR_H_
 #define VISITOR_REWRITEUNARYNOTEXPRVISITOR_H_
 
+#include "common/base/ObjectPool.h"
 #include "common/expression/ExprVisitor.h"
 #include "visitor/ExprVisitorImpl.h"
 
@@ -15,15 +16,15 @@ namespace graph {
 
 class RewriteUnaryNotExprVisitor final : public ExprVisitorImpl {
 public:
+    explicit RewriteUnaryNotExprVisitor(ObjectPool *objPool);
+
     bool ok() const override {
         return true;
     }
 
-    Expression* getExpr() {
+    Expression *getExpr() {
         return expr_;
     }
-
-    Expression* reduce(UnaryExpression *expr);
 
 private:
     using ExprVisitorImpl::visit;
@@ -77,15 +78,16 @@ private:
     // reduce expression
     void visit(ReduceExpression *expr) override;
 
-    bool isUnaryNotExpr(const Expression *expr);
-    bool isRelExpr(const Expression *expr);
-    Expression* reverseRelExpr(Expression *expr);
-    Expression::Kind getNegatedKind(const Expression::Kind kind);
     void visitBinaryExpr(BinaryExpression *expr) override;
 
 private:
-    bool reduced_{false};
     Expression *expr_;
+    ObjectPool *pool_;
+
+    bool isUnaryNotExpr(const Expression *expr);
+    bool isRelExpr(const Expression *expr);
+    std::unique_ptr<Expression> reverseRelExpr(Expression *expr);
+    Expression::Kind getNegatedKind(const Expression::Kind kind);
 };
 
 }   // namespace graph

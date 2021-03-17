@@ -9,6 +9,7 @@
 
 #include "common/base/Status.h"
 #include "common/expression/AggregateExpression.h"
+#include "common/base/ObjectPool.h"
 #include "common/expression/BinaryExpression.h"
 #include "common/expression/Expression.h"
 #include "common/expression/FunctionCallExpression.h"
@@ -149,7 +150,8 @@ public:
     // Clone and fold constant expression
     static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
     // Clone and reduce constant expression
-    static std::unique_ptr<Expression> reduceUnaryNotExpr(const Expression* expr);
+    static std::unique_ptr<Expression> reduceUnaryNotExpr(const Expression* expr,
+                                                          ObjectPool* objPool);
 
     static Expression* pullAnds(Expression* expr);
     static void pullAndsImpl(LogicalExpression* expr,
