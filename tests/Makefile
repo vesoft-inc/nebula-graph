@@ -46,10 +46,10 @@ up:
 down:
 	PYTHONPATH=$$PYTHONPATH:$(CURR_DIR)/.. $(CURR_DIR)/nebula-test-run.py --cmd=stop --rm_dir=$(RM_DIR)
 
-test: up
+test:
 	cd $(CURR_DIR) && python3 -m pytest -n$(J) --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" -k "not tck" $(TEST_DIR)
 
-tck: up
+tck:
 	cd $(CURR_DIR) && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/
 
 report:
