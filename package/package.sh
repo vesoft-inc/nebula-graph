@@ -87,17 +87,11 @@ function build {
     build_type=$4
     branch=$5
     modules_dir=${project_dir}/modules
-    # if [[ -d $build_dir ]]; then
-        # rm -rf ${build_dir}/*
-    # else
-        # mkdir ${build_dir}
-    # fi
-
-    # if [[ -d $modules_dir ]]; then
-        # rm -rf ${modules_dir}/*
-    # else
-        # mkdir ${modules_dir}
-    # fi
+    if [[ -d $build_dir ]]; then
+        rm -rf ${build_dir}/*
+    else
+        mkdir ${build_dir}
+    fi
 
     mkdir -p ${build_dir}
 
