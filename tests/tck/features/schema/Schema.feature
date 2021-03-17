@@ -399,7 +399,8 @@ Feature: Insert string vid of vertex and edge
       CREATE TAG animal(name string, kind string);
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    # TODO unify the wait time
+    Given wait 6 seconds
     # check result
     When executing query:
       """

@@ -101,6 +101,8 @@ def new_space(request, options, session, graph_spaces):
     create_space(space_desc, session)
     graph_spaces["space_desc"] = space_desc
     graph_spaces["drop_space"] = True
+    # TODO unify the wait time
+    time.sleep(6)
 
 
 @given(parse('load "{data}" csv data to a new space'))

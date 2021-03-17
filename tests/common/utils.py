@@ -389,7 +389,8 @@ def load_csv_data(
         stmts = ' '.join(map(lambda x: x.strip(), schemas.splitlines()))
         response(sess, stmts)
 
-        time.sleep(3)
+        # TODO unify the wait time
+        time.sleep(6)
 
         for fd in config["files"]:
             _load_data_from_file(sess, data_dir, fd)
