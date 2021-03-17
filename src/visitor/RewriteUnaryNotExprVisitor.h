@@ -19,11 +19,11 @@ public:
         return true;
     }
 
-    std::unique_ptr<Expression> getExpr() {
-        return std::move(expr_);
+    Expression* getExpr() {
+        return expr_;
     }
 
-    std::unique_ptr<Expression> reduce(UnaryExpression* expr);
+    Expression* reduce(UnaryExpression *expr);
 
 private:
     using ExprVisitorImpl::visit;
@@ -79,13 +79,13 @@ private:
 
     bool isUnaryNotExpr(const Expression *expr);
     bool isRelExpr(const Expression *expr);
-    std::unique_ptr<Expression> reverseRelExpr(Expression *expr);
+    Expression* reverseRelExpr(Expression *expr);
     Expression::Kind getNegatedKind(const Expression::Kind kind);
     void visitBinaryExpr(BinaryExpression *expr) override;
 
 private:
     bool reduced_{false};
-    std::unique_ptr<Expression> expr_;
+    Expression *expr_;
 };
 
 }   // namespace graph

@@ -12,47 +12,60 @@ namespace nebula {
 namespace graph {
 
 void RewriteUnaryNotExprVisitor::visit(ConstantExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(UnaryExpression *expr) {
+    // auto operand = expr->operand();
+    // if (isUnaryNotExpr(expr)) {
+    //     if (isUnaryNotExpr(operand)) {
+    //         static_cast<UnaryExpression *>(operand)->operand()->accept(this);
+    //         expr_ = static_cast<UnaryExpression *>(operand)->operand();
+    //         return;
+    //     }
+    // }
+    // operand->accept(this);
+    // expr->setOperand(expr_);
+    // expr_ = expr;
+
     if (isUnaryNotExpr(expr)) {
         auto operand = expr->operand();
         operand->accept(this);
-        if (isUnaryNotExpr(expr_.get())) {   // reduce nested unary expr
+        if (isUnaryNotExpr(expr_)) {   // reduce nested unary expr
             if (!reduced_) {
-                expr_ = static_cast<UnaryExpression *>(expr_.get())->operand()->clone();
+                expr_ = static_cast<UnaryExpression *>(expr_)->operand();
                 reduced_ = true;
                 return;
             }
             expr_ = reduce(expr);
             reduced_ = true;
             return;
-        } else if (isRelExpr(expr_.get())) {
-            expr_ = reverseRelExpr(expr_.get());
+        } else if (isRelExpr(expr_)) {
+            expr_ = reverseRelExpr(expr_);
             return;
         }
 
-        if (reduced_) {   // odd # of unaryNot
-            auto exprCopy = expr_->clone();
-            expr_.reset(new UnaryExpression(Expression::Kind::kUnaryNot, exprCopy.release()));
-            reduced_ = false;
-            return;
-        }
+        // if (reduced_) {   // odd # of unaryNot
+        //     // auto exprCopy = expr_->clone();
+        //     expr->setOperand(expr_->clone().release());
+        //     expr_ = expr;
+        //     reduced_ = false;
+        //     return;
+        // }
     }
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(TypeCastingExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(LabelExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(LabelAttributeExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // binary expression
@@ -79,45 +92,45 @@ void RewriteUnaryNotExprVisitor::visit(LogicalExpression *expr) {
     for (auto i = 0u; i < operands.size(); i++) {
         operands[i]->accept(this);
         if (expr_) {
-            expr->setOperand(i, expr_.release());
+            expr->setOperand(i, expr_->clone().release());
         }
     }
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // Rewrite Unary expresssion to Binary expression
 void RewriteUnaryNotExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
     expr->left()->accept(this);
     if (expr_) {
-        expr->setLeft(expr_.release());
+        expr->setLeft(expr_->clone().release());
     }
     expr->right()->accept(this);
     if (expr_) {
-        expr->setRight(expr_.release());
+        expr->setRight(expr_->clone().release());
     }
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // function call
 void RewriteUnaryNotExprVisitor::visit(FunctionCallExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(AggregateExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(UUIDExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // variable expression
 void RewriteUnaryNotExprVisitor::visit(VariableExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(VersionedVariableExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // container expression
@@ -130,7 +143,7 @@ void RewriteUnaryNotExprVisitor::visit(ListExpression *expr) {
             expr->setItem(i, expr_->clone());
         }
     }
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(SetExpression *expr) {
@@ -142,7 +155,7 @@ void RewriteUnaryNotExprVisitor::visit(SetExpression *expr) {
             expr->setItem(i, expr_->clone());
         }
     }
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(MapExpression *expr) {
@@ -157,101 +170,101 @@ void RewriteUnaryNotExprVisitor::visit(MapExpression *expr) {
             expr->setItem(i, std::make_pair(std::move(key), std::move(val)));
         }
     }
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // property Expression
 void RewriteUnaryNotExprVisitor::visit(TagPropertyExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(EdgePropertyExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(InputPropertyExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(VariablePropertyExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(DestPropertyExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(SourcePropertyExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(EdgeSrcIdExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(EdgeTypeExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(EdgeRankExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(EdgeDstIdExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // vertex/edge expression
 void RewriteUnaryNotExprVisitor::visit(VertexExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 void RewriteUnaryNotExprVisitor::visit(EdgeExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // case expression
 void RewriteUnaryNotExprVisitor::visit(CaseExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // path build expression
 void RewriteUnaryNotExprVisitor::visit(PathBuildExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // column expression
 void RewriteUnaryNotExprVisitor::visit(ColumnExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // predicate expression
 void RewriteUnaryNotExprVisitor::visit(PredicateExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // list comprehension expression
 void RewriteUnaryNotExprVisitor::visit(ListComprehensionExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
 // reduce expression
 void RewriteUnaryNotExprVisitor::visit(ReduceExpression *expr) {
-    expr_.reset(expr->clone().release());
+    expr_ = expr;
 }
 
-std::unique_ptr<Expression> RewriteUnaryNotExprVisitor::reduce(UnaryExpression *expr) {
+Expression* RewriteUnaryNotExprVisitor::reduce(UnaryExpression *expr) {
     auto reducedExpr = static_cast<UnaryExpression *>(expr->operand())->operand();
-    return reducedExpr->clone();
+    return reducedExpr;
 }
 
 // Reverese the type of the given relational expr
-std::unique_ptr<Expression> RewriteUnaryNotExprVisitor::reverseRelExpr(Expression *expr) {
+Expression* RewriteUnaryNotExprVisitor::reverseRelExpr(Expression *expr) {
     auto left = static_cast<BinaryExpression *>(expr)->left()->clone();
     auto right = static_cast<BinaryExpression *>(expr)->right()->clone();
     auto reversedKind = getNegatedKind(expr->kind());
 
-    return std::make_unique<RelationalExpression>(
+    return new RelationalExpression(
         reversedKind, left->clone().release(), right->clone().release());
 }
 
