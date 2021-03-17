@@ -43,9 +43,9 @@ def init_parser():
     return opt_parser
 
 
-def start_nebula(nb):
-    nebula_svc.install()
-    port = nebula_svc.start()
+def start_nebula(nb, configs):
+    nb.install()
+    port = nb.start()
 
     # Load csv data
     pool = get_conn_pool("localhost", port)
@@ -66,7 +66,7 @@ def start_nebula(nb):
         data = {
             "ip": "localhost",
             "port": port,
-            "work_dir": nebula_svc.work_dir
+            "work_dir": nb.work_dir
         }
         f.write(json.dumps(data))
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         nebula_svc = NebulaService(configs.build_dir, NEBULA_HOME, cleanup)
 
         if opt_is(configs.cmd, "start"):
-            start_nebula(nebula_svc)
+            start_nebula(nebula_svc, configs)
         elif opt_is(configs.cmd, "stop"):
             stop_nebula(nebula_svc)
         else:
