@@ -75,13 +75,16 @@ def get_port():
         data = json.loads(f.readline())
         port = data.get("port", None)
         if port is None:
-            raise ValueError(f"Invalid port: {port}")
+            raise Exception(f"Invalid port: {port}")
         return port
 
 
 @pytest.fixture(scope="session")
-def conn_pool():
-    pool = get_conn_pool("localhost", get_port())
+def conn_pool(pytestconfig):
+    addr = pytestconfig.getoption("address")
+    host_addr = addr.split(":") if addr else ["localhost", get_port()]
+    assert len(host_addr) == 2
+    pool = get_conn_pool(host_addr[0], host_addr[1])
     yield pool
     pool.close()
 
@@ -125,8 +128,14 @@ def workarround_for_class(request, pytestconfig, conn_pool,
     if request.cls is None:
         return
 
-    request.cls.host = "localhost"
-    request.cls.port = get_port()
+    addr = pytestconfig.getoption("address")
+    if addr:
+        ss = addr.split(':')
+        request.cls.host = ss[0]
+        request.cls.port = ss[1]
+    else:
+        request.cls.host = "localhost"
+        request.cls.port = get_port()
 
     request.cls.data_dir = os.path.dirname(os.path.abspath(__file__))
 
