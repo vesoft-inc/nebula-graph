@@ -13,6 +13,14 @@ from tests.common.nebula_test_suite import NebulaTestSuite
 class TestUsers(NebulaTestSuite):
     @classmethod
     def prepare(self):
+        query = '''
+                DROP SPACE IF EXISTS user_space;
+                DROP USER IF EXISTS user1;
+                DROP USER IF EXISTS user2;
+                DROP USER IF EXISTS user3;
+                '''
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
         query = 'CREATE SPACE user_space(partition_num=1, replica_factor=1)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
@@ -20,7 +28,7 @@ class TestUsers(NebulaTestSuite):
 
     @classmethod
     def cleanup(self):
-        query = 'DROP SPACE user_space'
+        query = 'DROP SPACE IF EXISTS user_space'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
