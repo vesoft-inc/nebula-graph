@@ -930,4 +930,4 @@ Feature: Match seek by edge
       MATCH (p1)-[:like]->(p2)
       RETURN p1.name, id(p2)
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (p1)-[:like]->(p2) RETURN p1.name,id(p2)
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (p1)-[:like]->(p2) RETURN p1.name,id(p2)

@@ -167,7 +167,7 @@ struct NodeContext final : PatternContext {
 
     // Output fields
     ScanInfo                    scanInfo;
-    const Expression*           ids{nullptr};
+    List                        ids;
     // initialize start expression in project node
     std::unique_ptr<Expression> initialExpr;
 };
