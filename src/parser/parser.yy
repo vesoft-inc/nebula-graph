@@ -31,7 +31,6 @@
 #include "util/ParserUtil.h"
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
-#include "context/QueryContext.h"
 
 namespace nebula {
 
