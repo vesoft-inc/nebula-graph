@@ -126,17 +126,17 @@ class TestSpace(NebulaTestSuite):
 
         # not supported charset
         resp = self.client.execute('CREATE SPACE space_charset_collate_nomatch (partition_num=9, '
-                                         'replica_factor=1, charset = gbk, collate=utf8_bin)')
+                                   'replica_factor=1, charset = gbk, collate=utf8_bin)')
         self.check_resp_failed(resp)
 
         # not supported charset
         resp = self.client.execute('CREATE SPACE space_illegal_charset (partition_num=9, '
-                                         'replica_factor=1, charset = gbk)')
+                                   'replica_factor=1, charset = gbk)')
         self.check_resp_failed(resp)
 
         # not supported collate
         resp = self.client.execute('CREATE SPACE space_illegal_collate (partition_num=9, '
-                                         'replica_factor=1, collate = gbk_bin)')
+                                   'replica_factor=1, collate = gbk_bin)')
         self.check_resp_failed(resp)
 
         resp = self.client.execute('CREATE SPACE space_illegal_collate (partition_num=9, '
