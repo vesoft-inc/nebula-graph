@@ -93,10 +93,6 @@ void ExecutionPlan::describe(PlanDescription* planDesc) {
     makePlanNodeDesc(root_, planDesc);
 }
 
-const std::string& ExecutionPlan::outputVar() const {
-    return root_->outputVar();
-}
-
 void ExecutionPlan::addProfileStats(int64_t planNodeId, ProfilingStats&& profilingStats) {
     // return directly if not enable profile
     if (!planDescription_) return;

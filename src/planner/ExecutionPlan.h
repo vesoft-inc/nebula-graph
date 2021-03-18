@@ -37,8 +37,6 @@ public:
         return root_;
     }
 
-    const std::string& outputVar() const;
-
     int32_t* optimizeTimeInUs() {
         return &optimizeTimeInUs_;
     }

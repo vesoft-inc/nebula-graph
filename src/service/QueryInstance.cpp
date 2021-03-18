@@ -161,7 +161,7 @@ void QueryInstance::addSlowQueryStats(uint64_t latency) const {
 void QueryInstance::fillRespData(ExecutionResponse *resp) {
     auto ectx = DCHECK_NOTNULL(qctx_->ectx());
     auto plan = DCHECK_NOTNULL(qctx_->plan());
-    const auto &name = plan->outputVar();
+    const auto &name = plan->root()->outputVar();
     if (!ectx->exist(name)) return;
 
     auto &&value = ectx->moveValue(name);
