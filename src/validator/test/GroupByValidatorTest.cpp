@@ -73,11 +73,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kProject,
-            PK::kInnerJoin,
+            PK::kLeftJoin,
             PK::kProject,
             PK::kGetVertices,
-            PK::kDedup,
-            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -103,11 +101,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             PK::kProject,
             PK::kAggregate,
             PK::kProject,
-            PK::kInnerJoin,
+            PK::kLeftJoin,
             PK::kProject,
             PK::kGetVertices,
-            PK::kDedup,
-            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -128,11 +124,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kProject,
-            PK::kInnerJoin,
+            PK::kLeftJoin,
             PK::kProject,
             PK::kGetVertices,
-            PK::kDedup,
-            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -154,11 +148,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kProject,
-            PK::kInnerJoin,
+            PK::kLeftJoin,
             PK::kProject,
             PK::kGetVertices,
-            PK::kDedup,
-            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -180,11 +172,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kProject,
-            PK::kInnerJoin,
+            PK::kLeftJoin,
             PK::kProject,
             PK::kGetVertices,
-            PK::kDedup,
-            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -217,11 +207,9 @@ TEST_F(GroupByValidatorTest, VariableTest) {
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kProject,
-            PK::kInnerJoin,
+            PK::kLeftJoin,
             PK::kProject,
             PK::kGetVertices,
-            PK::kDedup,
-            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -243,11 +231,9 @@ TEST_F(GroupByValidatorTest, VariableTest) {
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kProject,
-            PK::kInnerJoin,
+            PK::kLeftJoin,
             PK::kProject,
             PK::kGetVertices,
-            PK::kDedup,
-            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart

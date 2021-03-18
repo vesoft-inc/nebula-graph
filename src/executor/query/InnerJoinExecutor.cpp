@@ -21,39 +21,57 @@ folly::Future<Status> InnerJoinExecutor::execute() {
 
 Status InnerJoinExecutor::close() {
     exchange_ = false;
-    hashTable_.clear();
     return Executor::close();
 }
 
 folly::Future<Status> InnerJoinExecutor::join() {
     auto* join = asNode<Join>(node());
-    auto lhsIter = ectx_->getVersionedResult(join->leftVar().first, join->leftVar().second).iter();
-    auto rhsIter =
-        ectx_->getVersionedResult(join->rightVar().first, join->rightVar().second).iter();
+    auto bucketSize = lhsIter_->size() > rhsIter_->size() ? rhsIter_->size() : lhsIter_->size();
 
-    auto resultIter = std::make_unique<JoinIter>(join->colNames());
-    resultIter->joinIndex(lhsIter.get(), rhsIter.get());
-    auto bucketSize = lhsIter->size() > rhsIter->size() ? rhsIter->size() : lhsIter->size();
-    hashTable_.reserve(bucketSize);
-    resultIter->reserve(lhsIter->size() > rhsIter->size() ? lhsIter->size() : rhsIter->size());
+    auto& hashKeys = join->hashKeys();
+    auto& probeKeys = join->probeKeys();
+    DCHECK_EQ(hashKeys.size(), probeKeys.size());
+    DataSet result;
 
-    if (!(lhsIter->empty() || rhsIter->empty())) {
-        if (lhsIter->size() < rhsIter->size()) {
-            buildHashTable(join->hashKeys(), lhsIter.get());
-            probe(join->probeKeys(), rhsIter.get(), resultIter.get());
+    if (lhsIter_->empty() || rhsIter_->empty()) {
+        result.colNames = join->colNames();
+        return finish(ResultBuilder().value(Value(std::move(result))).finish());
+    }
+
+    if (hashKeys.size() == 1 && probeKeys.size() == 1) {
+        std::unordered_map<Value, std::vector<const Row*>> hashTable;
+        hashTable.reserve(bucketSize);
+        if (lhsIter_->size() < rhsIter_->size()) {
+            buildSingleKeyHashTable(hashKeys.front(), lhsIter_.get(), hashTable);
+            result = singleKeyProbe(probeKeys.front(), rhsIter_.get(), hashTable);
         } else {
             exchange_ = true;
-            buildHashTable(join->probeKeys(), rhsIter.get());
-            probe(join->hashKeys(), lhsIter.get(), resultIter.get());
+            buildSingleKeyHashTable(probeKeys.front(), rhsIter_.get(), hashTable);
+            result = singleKeyProbe(hashKeys.front(), lhsIter_.get(), hashTable);
+        }
+    } else {
+        std::unordered_map<List, std::vector<const Row*>> hashTable;
+        hashTable.reserve(bucketSize);
+        if (lhsIter_->size() < rhsIter_->size()) {
+            buildHashTable(join->hashKeys(), lhsIter_.get(), hashTable);
+            result = probe(join->probeKeys(), rhsIter_.get(), hashTable);
+        } else {
+            exchange_ = true;
+            buildHashTable(join->probeKeys(), rhsIter_.get(), hashTable);
+            result = probe(join->hashKeys(), lhsIter_.get(), hashTable);
         }
     }
-    return finish(ResultBuilder().iter(std::move(resultIter)).finish());
+    result.colNames = join->colNames();
+    return finish(ResultBuilder().value(Value(std::move(result))).finish());
 }
 
-void InnerJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
-                              Iterator* probeIter,
-                              JoinIter* resultIter) {
+DataSet InnerJoinExecutor::probe(
+    const std::vector<Expression*>& probeKeys,
+    Iterator* probeIter,
+    const std::unordered_map<List, std::vector<const Row*>>& hashTable) const {
+    DataSet ds;
     QueryExpressionContext ctx(ectx_);
+    ds.rows.reserve(probeIter->size());
     for (; probeIter->valid(); probeIter->next()) {
         List list;
         list.values.reserve(probeKeys.size());
@@ -61,29 +79,50 @@ void InnerJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
             Value val = col->eval(ctx(probeIter));
             list.values.emplace_back(std::move(val));
         }
+        buildNewRow<List>(hashTable, list, *probeIter->row(), ds);
+    }
+    return ds;
+}
 
-        auto range = hashTable_.find(list);
-        if (range == hashTable_.end()) {
-            continue;
+DataSet InnerJoinExecutor::singleKeyProbe(
+    Expression* probeKey,
+    Iterator* probeIter,
+    const std::unordered_map<Value, std::vector<const Row*>>& hashTable) const {
+    DataSet ds;
+    QueryExpressionContext ctx(ectx_);
+    for (; probeIter->valid(); probeIter->next()) {
+        auto& val = probeKey->eval(ctx(probeIter));
+        buildNewRow<Value>(hashTable, val, *probeIter->row(), ds);
+    }
+    return ds;
+}
+
+template <class T>
+void InnerJoinExecutor::buildNewRow(const std::unordered_map<T, std::vector<const Row*>>& hashTable,
+                                    const T& val,
+                                    const Row& rRow,
+                                    DataSet& ds) const {
+    const auto& range = hashTable.find(val);
+    if (range == hashTable.end()) {
+        return;
+    }
+    for (auto* row : range->second) {
+        auto& lRow = *row;
+        Row newRow;
+        newRow.reserve(lRow.size() + rRow.size());
+        auto& values = newRow.values;
+        if (exchange_) {
+            values.insert(values.end(),
+                    std::make_move_iterator(rRow.values.begin()),
+                    std::make_move_iterator(rRow.values.end()));
+            values.insert(values.end(), lRow.values.begin(), lRow.values.end());
+        } else {
+            values.insert(values.end(), lRow.values.begin(), lRow.values.end());
+            values.insert(values.end(),
+                    std::make_move_iterator(rRow.values.begin()),
+                    std::make_move_iterator(rRow.values.end()));
         }
-        for (auto* row : range->second) {
-            std::vector<const Row*> values;
-            auto& lSegs = row->segments();
-            auto& rSegs = probeIter->row()->segments();
-            values.reserve(lSegs.size() + rSegs.size());
-            if (exchange_) {
-                values.insert(values.end(), rSegs.begin(), rSegs.end());
-                values.insert(values.end(), lSegs.begin(), lSegs.end());
-            } else {
-                values.insert(values.end(), lSegs.begin(), lSegs.end());
-                values.insert(values.end(), rSegs.begin(), rSegs.end());
-            }
-            size_t size = row->size() + probeIter->row()->size();
-            JoinIter::JoinLogicalRow newRow(
-                std::move(values), size, &resultIter->getColIdxIndices());
-            VLOG(1) << node()->outputVar() << " : " << newRow;
-            resultIter->addRow(std::move(newRow));
-        }
+        ds.rows.emplace_back(std::move(newRow));
     }
 }
 }   // namespace graph

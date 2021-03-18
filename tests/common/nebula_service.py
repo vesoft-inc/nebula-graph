@@ -8,6 +8,7 @@
 import os
 import subprocess
 import time
+import random
 import shutil
 import socket
 import glob
@@ -60,7 +61,7 @@ class NebulaService(object):
         shutil.copy(self.build_dir + '/../resources/gflags.json', resources_dir)
 
     def _format_nebula_command(self, name, meta_port, ports, debug_log=True):
-        param_format = "--meta_server_addrs={} --port={} --ws_http_port={} --ws_h2_port={} --heartbeat_interval_secs=1"
+        param_format = "--meta_server_addrs={} --port={} --ws_http_port={} --ws_h2_port={} --heartbeat_interval_secs=1 --expired_time_factor=60"
         param = param_format.format("127.0.0.1:" + str(meta_port), ports[0],
                                     ports[1], ports[2])
         if name == 'graphd':
@@ -81,7 +82,7 @@ class NebulaService(object):
     @staticmethod
     def get_free_port():
         with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-            s.bind(('', 0))
+            s.bind(('', random.randint(1024, 10000)))
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             return s.getsockname()[1]
 

@@ -15,27 +15,31 @@ namespace graph {
 
 Status JoinExecutor::checkInputDataSets() {
     auto* join = asNode<Join>(node());
-    auto lhsIter = ectx_->getVersionedResult(join->leftVar().first, join->leftVar().second).iter();
-    DCHECK(!!lhsIter);
-    VLOG(1) << "lhs: " << join->leftVar().first << " " << lhsIter->size();
-    if (lhsIter->isGetNeighborsIter() || lhsIter->isDefaultIter()) {
+    lhsIter_ = ectx_->getVersionedResult(join->leftVar().first, join->leftVar().second).iter();
+    DCHECK(!!lhsIter_);
+    VLOG(1) << "lhs: " << join->leftVar().first << " " << lhsIter_->size();
+    if (lhsIter_->isGetNeighborsIter() || lhsIter_->isDefaultIter()) {
         std::stringstream ss;
-        ss << "Join executor does not support " << lhsIter->kind();
+        ss << "Join executor does not support " << lhsIter_->kind();
         return Status::Error(ss.str());
     }
-    auto rhsIter =
+    rhsIter_ =
         ectx_->getVersionedResult(join->rightVar().first, join->rightVar().second).iter();
-    DCHECK(!!rhsIter);
-    VLOG(1) << "rhs: " << join->rightVar().first << " " << rhsIter->size();
-    if (rhsIter->isGetNeighborsIter() || rhsIter->isDefaultIter()) {
+    DCHECK(!!rhsIter_);
+    VLOG(1) << "rhs: " << join->rightVar().first << " " << rhsIter_->size();
+    if (rhsIter_->isGetNeighborsIter() || rhsIter_->isDefaultIter()) {
         std::stringstream ss;
-        ss << "Join executor does not support " << rhsIter->kind();
+        ss << "Join executor does not support " << rhsIter_->kind();
         return Status::Error(ss.str());
     }
+    colSize_ = join->colNames().size();
     return Status::OK();
 }
 
-void JoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys, Iterator* iter) {
+void JoinExecutor::buildHashTable(
+    const std::vector<Expression*>& hashKeys,
+    Iterator* iter,
+    std::unordered_map<List, std::vector<const Row*>>& hashTable) const {
     QueryExpressionContext ctx(ectx_);
     for (; iter->valid(); iter->next()) {
         List list;
@@ -45,7 +49,20 @@ void JoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys, Iter
             list.values.emplace_back(std::move(val));
         }
 
-        auto& vals = hashTable_[list];
+        auto& vals = hashTable[list];
+        vals.emplace_back(iter->row());
+    }
+}
+
+void JoinExecutor::buildSingleKeyHashTable(
+    Expression* hashKey,
+    Iterator* iter,
+    std::unordered_map<Value, std::vector<const Row*>>& hashTable) const {
+    QueryExpressionContext ctx(ectx_);
+    for (; iter->valid(); iter->next()) {
+        auto& val = hashKey->eval(ctx(iter));
+
+        auto& vals = hashTable[val];
         vals.emplace_back(iter->row());
     }
 }

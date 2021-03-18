@@ -227,6 +227,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> compound_expression
 %type <expr> aggregate_expression
 %type <expr> text_search_expression
+%type <expr> constant_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -355,7 +356,6 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 %type <sentence> grant_sentence revoke_sentence
 %type <sentence> set_config_sentence get_config_sentence balance_sentence
-%type <sentence> process_control_sentence return_sentence
 %type <sentence> sentence
 %type <seq_sentences> seq_sentences
 %type <explain_sentence> explain_sentence
@@ -370,7 +370,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %left KW_OR KW_XOR
 %left KW_AND
 %right KW_NOT
-%left EQ NE LT LE GT GE REG KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH
+%left EQ NE LT LE GT GE REG KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH KW_IS_NULL KW_IS_NOT_NULL
 %left PLUS MINUS
 %left STAR DIV MOD
 %right NOT
@@ -524,27 +524,14 @@ agg_function
     ;
 
 expression
-    : DOUBLE {
-        $$ = new ConstantExpression($1);
-    }
-    | STRING {
-        $$ = new ConstantExpression(*$1);
-        delete $1;
-    }
-    | BOOL {
-        $$ = new ConstantExpression($1);
-    }
-    | KW_NULL {
-        $$ = new ConstantExpression(NullType::__NULL__);
+    : constant_expression {
+        $$ = $1;
     }
     | name_label {
         $$ = new LabelExpression($1);
     }
     | VARIABLE {
         $$ = new VariableExpression($1);
-    }
-    | INTEGER {
-        $$ = new ConstantExpression($1);
     }
     | compound_expression {
         $$ = $1;
@@ -625,6 +612,12 @@ expression
     | expression KW_NOT_ENDS_WITH expression {
         $$ = new RelationalExpression(Expression::Kind::kNotEndsWith, $1, $3);
     }
+    | expression KW_IS_NULL {
+        $$ = new UnaryExpression(Expression::Kind::kIsNull, $1);
+    }
+    | expression KW_IS_NOT_NULL {
+        $$ = new UnaryExpression(Expression::Kind::kIsNotNull, $1);
+    }
     | expression EQ expression {
         $$ = new RelationalExpression(Expression::Kind::kRelEQ, $1, $3);
     }
@@ -651,6 +644,25 @@ expression
     }
     | reduce_expression {
         $$ = $1;
+    }
+    ;
+
+constant_expression
+    : DOUBLE {
+        $$ = new ConstantExpression($1);
+    }
+    | STRING {
+        $$ = new ConstantExpression(*$1);
+        delete $1;
+    }
+    | BOOL {
+        $$ = new ConstantExpression($1);
+    }
+    | KW_NULL {
+        $$ = new ConstantExpression(NullType::__NULL__);
+    }
+    | INTEGER {
+        $$ = new ConstantExpression($1);
     }
     ;
 
@@ -1769,20 +1781,23 @@ edge_keys
     }
     ;
 
-edge_key_ref:
-    input_prop_expression R_ARROW input_prop_expression AT input_prop_expression {
+edge_key_ref
+    : input_prop_expression R_ARROW input_prop_expression AT input_prop_expression {
         $$ = new EdgeKeyRef($1, $3, $5);
     }
-    |
-    var_prop_expression R_ARROW var_prop_expression AT var_prop_expression {
+    | input_prop_expression R_ARROW input_prop_expression AT constant_expression {
+        $$ = new EdgeKeyRef($1, $3, $5);
+    }
+    | var_prop_expression R_ARROW var_prop_expression AT var_prop_expression {
         $$ = new EdgeKeyRef($1, $3, $5, false);
     }
-    |
-    input_prop_expression R_ARROW input_prop_expression {
+    | var_prop_expression R_ARROW var_prop_expression AT constant_expression {
+        $$ = new EdgeKeyRef($1, $3, $5, false);
+    }
+    | input_prop_expression R_ARROW input_prop_expression {
         $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0));
     }
-    |
-    var_prop_expression R_ARROW var_prop_expression {
+    | var_prop_expression R_ARROW var_prop_expression {
         $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0), false);
     }
     ;
@@ -2829,10 +2844,8 @@ create_space_sentence
     }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label KW_ON name_label {
         auto sentence = new CreateSpaceSentence($4, $3);
-        sentence->setOpts(new SpaceOptList());
-        sentence->setGroupName(*$6);
+        sentence->setGroupName($6);
         $$ = sentence;
-        delete $6;
     }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN {
         auto sentence = new CreateSpaceSentence($4, $3);
@@ -2841,10 +2854,9 @@ create_space_sentence
     }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN KW_ON name_label {
         auto sentence = new CreateSpaceSentence($4, $3);
+        sentence->setGroupName($9);
         sentence->setOpts($6);
-        sentence->setGroupName(*$9);
         $$ = sentence;
-        delete $9;
     }
     ;
 
@@ -3145,22 +3157,12 @@ maintain_sentence
     | sign_out_text_search_service_sentence { $$ = $1; }
     ;
 
-return_sentence
-    : KW_RETURN VARIABLE KW_IF VARIABLE KW_IS KW_NOT KW_NULL {
-        $$ = new ReturnSentence($2, $4);
-    }
-
-process_control_sentence
-    : return_sentence { $$ = $1; }
-    ;
-
 sentence
     : maintain_sentence { $$ = $1; }
     | use_sentence { $$ = $1; }
     | set_sentence { $$ = $1; }
     | assignment_sentence { $$ = $1; }
     | mutate_sentence { $$ = $1; }
-    | process_control_sentence { $$ = $1; }
     ;
 
 seq_sentences
