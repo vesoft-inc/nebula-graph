@@ -9,12 +9,9 @@
 
 #include <memory>
 #include <set>
-#include <string>
 #include <unordered_map>
 
-#include <folly/SpinLock.h>
 #include <folly/futures/Future.h>
-#include <folly/futures/SharedPromise.h>
 
 #include "common/base/Status.h"
 #include "common/cpp/helpers.h"
@@ -35,7 +32,7 @@ public:
     };
 
     explicit Scheduler(QueryContext *qctx);
-    ~Scheduler() = default;
+    ~Scheduler();
 
     folly::Future<Status> schedule();
 
@@ -43,24 +40,10 @@ private:
     // Enable thread pool check the query plan id of each callback registered in future. The functor
     // is only the proxy of the invocable function `fn'.
     template <typename F>
-    struct ExecTask : Task {
-        using Extract = folly::futures::detail::Extract<F>;
-        using Return = typename Extract::Return;
-        using FirstArg = typename Extract::FirstArg;
-
-        F fn;
-
-        ExecTask(const Executor *e, F f) : Task(e), fn(std::move(f)) {}
-
-        Return operator()(FirstArg &&arg) {
-            return fn(std::forward<FirstArg>(arg));
-        }
-    };
+    struct ExecTask;
 
     template <typename Fn>
-    ExecTask<Fn> task(Executor *e, Fn &&f) const {
-        return ExecTask<Fn>(e, std::forward<Fn>(f));
-    }
+    ExecTask<Fn> task(Executor *e, Fn &&f) const;
 
     void analyze(Executor *executor);
     folly::Future<Status> doSchedule(Executor *executor);
@@ -68,16 +51,10 @@ private:
     folly::Future<Status> iterate(LoopExecutor *loop);
     folly::Future<Status> execute(Executor *executor);
 
-    struct PassThroughData {
-        folly::SpinLock lock;
-        std::unique_ptr<folly::SharedPromise<Status>> promise;
-        int32_t numOutputs;
-
-        explicit PassThroughData(int32_t outputs);
-    };
+    struct PassThroughData;
 
     QueryContext *qctx_{nullptr};
-    std::unordered_map<int64_t, PassThroughData> passThroughPromiseMap_;
+    std::unordered_map<int64_t, std::unique_ptr<PassThroughData>> passThroughPromiseMap_;
 };
 
 }   // namespace graph

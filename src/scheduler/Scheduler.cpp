@@ -6,12 +6,16 @@
 
 #include "scheduler/Scheduler.h"
 
+#include <folly/SpinLock.h>
+#include <folly/futures/SharedPromise.h>
+
 #include "context/QueryContext.h"
 #include "executor/ExecutionError.h"
 #include "executor/Executor.h"
 #include "executor/logic/LoopExecutor.h"
 #include "executor/logic/PassThroughExecutor.h"
 #include "executor/logic/SelectExecutor.h"
+#include "planner/Logic.h"
 #include "planner/PlanNode.h"
 
 namespace nebula {
@@ -19,10 +23,48 @@ namespace graph {
 
 Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id()) {}
 
-Scheduler::PassThroughData::PassThroughData(int32_t outputs)
+template <typename F>
+struct Scheduler::ExecTask : Scheduler::Task {
+    using Extract = folly::futures::detail::Extract<F>;
+    using Return = typename Extract::Return;
+    using FirstArg = typename Extract::FirstArg;
+
+    F fn;
+
+    ExecTask(const Executor *e, F f) : Task(e), fn(std::move(f)) {}
+
+    Return operator()(FirstArg &&arg) {
+        return fn(std::forward<FirstArg>(arg));
+    }
+};
+
+struct Scheduler::PassThroughData {
+    folly::SpinLock lock;
+    std::unique_ptr<folly::SharedPromise<Status>> promise;
+    int32_t numOutputs;
+
+    explicit PassThroughData(int32_t outputs) noexcept;
+    void checkOrReset(int32_t outputs);
+};
+
+Scheduler::PassThroughData::PassThroughData(int32_t outputs) noexcept
     : promise(std::make_unique<folly::SharedPromise<Status>>()), numOutputs(outputs) {}
 
+void Scheduler::PassThroughData::checkOrReset(int32_t outputs) {
+    if (numOutputs > 0) return;
+    // Reset promise of output executors when it's in loop
+    numOutputs = outputs;
+    promise = std::make_unique<folly::SharedPromise<Status>>();
+}
+
+template <typename Fn>
+Scheduler::ExecTask<Fn> Scheduler::task(Executor *e, Fn &&f) const {
+    return ExecTask<Fn>(e, std::forward<Fn>(f));
+}
+
 Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
+
+Scheduler::~Scheduler() {}
 
 folly::Future<Status> Scheduler::schedule() {
     auto executor = Executor::create(qctx_->plan()->root(), qctx_);
@@ -37,7 +79,8 @@ void Scheduler::analyze(Executor *executor) {
             auto id = executor->node()->id();
             auto it = passThroughPromiseMap_.find(id);
             if (it == passThroughPromiseMap_.end()) {
-                PassThroughData data(executor->successors().size());
+                auto numSuccessors = executor->successors().size();
+                auto data = std::make_unique<PassThroughData>(numSuccessors);
                 passThroughPromiseMap_.emplace(id, std::move(data));
             }
             break;
@@ -88,32 +131,30 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
             }));
         }
         case PlanNode::Kind::kPassThrough: {
-            auto mout = static_cast<PassThroughExecutor *>(executor);
-            auto it = passThroughPromiseMap_.find(mout->node()->id());
+            auto pt = static_cast<PassThroughExecutor *>(executor);
+            auto it = passThroughPromiseMap_.find(pt->node()->id());
             CHECK(it != passThroughPromiseMap_.end());
 
-            auto &data = it->second;
+            auto data = it->second.get();
 
-            folly::SpinLockGuard g(data.lock);
-            if (data.numOutputs == 0) {
-                // Reset promise of output executors when it's in loop
-                data.numOutputs = static_cast<int32_t>(mout->successors().size());
-                data.promise = std::make_unique<folly::SharedPromise<Status>>();
+            folly::SpinLockGuard g(data->lock);
+            data->checkOrReset(pt->successors().size());
+
+            data->numOutputs--;
+            if (data->numOutputs > 0) {
+                return data->promise->getFuture();
             }
 
-            data.numOutputs--;
-            if (data.numOutputs > 0) {
-                return data.promise->getFuture();
-            }
+            CHECK(data->promise) << "Invalid passthrough promise, node id: " << pt->node()->id()
+                                 << ", numOuputs: " << data->numOutputs;
 
-            return doScheduleParallel(mout->depends())
-                .then(task(mout, [&data, mout, this](Status status) {
-                    // Notify and wake up all waited tasks
-                    data.promise->setValue(status);
+            return doScheduleParallel(pt->depends()).then(task(pt, [data, pt, this](Status status) {
+                // Notify and wake up all waited tasks
+                data->promise->setValue(status);
 
-                    if (!status.ok()) return mout->error(std::move(status));
-                    return execute(mout);
-                }));
+                if (!status.ok()) return pt->error(std::move(status));
+                return execute(pt);
+            }));
         }
         default: {
             auto deps = executor->depends();
