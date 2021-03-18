@@ -441,22 +441,12 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
 
     auto objPool = qctx_->objPool();
 
-    auto* yieldDsts = objPool->makeAndAdd<YieldColumns>();
-    yieldDsts->addColumn(new YieldColumn(
-        new InputPropertyExpression(new std::string(joinDstVidColName_)),
-        new std::string(joinDstVidColName_)));
-    auto* projectDsts = Project::make(qctx_, projectSrcDstProps, yieldDsts);
-    projectDsts->setInputVar(projectSrcDstProps->outputVar());
-    projectDsts->setColNames(std::vector<std::string>{joinDstVidColName_});
-
-    auto* dedupVids = Dedup::make(qctx_, projectDsts);
-    dedupVids->setInputVar(projectDsts->outputVar());
-
     auto* vids = objPool->makeAndAdd<VariablePropertyExpression>(
-        new std::string(dedupVids->outputVar()), new std::string(joinDstVidColName_));
+        new std::string(projectSrcDstProps->outputVar()), new std::string(joinDstVidColName_));
     auto* getDstVertices =
-        GetVertices::make(qctx_, dedupVids, space_.id, vids, buildDstVertexProps(), {});
-    getDstVertices->setInputVar(dedupVids->outputVar());
+        GetVertices::make(qctx_, projectSrcDstProps, space_.id, vids, buildDstVertexProps(), {});
+    getDstVertices->setInputVar(projectSrcDstProps->outputVar());
+    getDstVertices->setDedup();
 
     auto vidColName = vctx_->anonColGen()->getCol();
     auto* vidCol = new YieldColumn(
@@ -663,8 +653,6 @@ std::vector<storage::cpp2::VertexProp> GoValidator::buildDstVertexProps() {
 
 GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
     GetNeighbors::EdgeProps edgeProps;
-    VLOG(1) << exprProps_.srcTagProps().empty() << exprProps_.dstTagProps().empty() <<
-                exprProps_.edgeProps().empty();
     bool onlyInputPropsOrConstant = exprProps_.srcTagProps().empty() &&
                                     exprProps_.dstTagProps().empty() &&
                                     exprProps_.edgeProps().empty();
@@ -726,8 +714,8 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
             std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps->begin(),
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
-                            ep.type = -type;
-                            ep.props = {kDst};
+                            ep.set_type(-type);
+                            ep.set_props({kDst});
                             return ep;
                         });
         } else if (over_.direction == storage::cpp2::EdgeDirection::BOTH) {
@@ -736,16 +724,16 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
             std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps->begin(),
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
-                            ep.type = type;
-                            ep.props = {kDst};
+                            ep.set_type(type);
+                            ep.set_props({kDst});
                             return ep;
                         });
             std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(),
                            edgeProps->begin() + over_.edgeTypes.size(),
                            [](auto& type) {
                                storage::cpp2::EdgeProp ep;
-                               ep.type = -type;
-                               ep.props = {kDst};
+                               ep.set_type(-type);
+                               ep.set_props({kDst});
                                return ep;
                            });
         } else {
@@ -754,8 +742,8 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
             std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps->begin(),
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
-                            ep.type = type;
-                            ep.props = {kDst};
+                            ep.set_type(type);
+                            ep.set_props({kDst});
                             return ep;
                         });
         }

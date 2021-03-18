@@ -79,7 +79,9 @@ void RewriteInputPropVisitor::visit(UnaryExpression* expr) {
     switch (expr->kind()) {
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kIsNull:
+        case Expression::Kind::kIsNotNull: {
             visitUnaryExpr(expr);
             break;
         }
@@ -277,9 +279,11 @@ void RewriteInputPropVisitor::visit(PredicateExpression* expr) {
     if (ok()) {
         expr->setCollection(result_.release());
     }
-    expr->filter()->accept(this);
-    if (ok()) {
-        expr->setFilter(result_.release());
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (ok()) {
+            expr->setFilter(result_.release());
+        }
     }
 }
 
