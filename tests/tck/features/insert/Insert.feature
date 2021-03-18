@@ -26,7 +26,8 @@ Feature: Insert string vid of vertex and edge
       CREATE EDGE IF NOT EXISTS schoolmateWithDefault(likeness int DEFAULT 80);
       CREATE EDGE IF NOT EXISTS study(start_time timestamp, end_time timestamp);
       """
-    And wait 3 seconds
+    # TODO unify the wait time
+    And wait 6 seconds
     # insert vertex wrong type value
     When executing query:
       """
