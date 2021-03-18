@@ -390,7 +390,7 @@ def load_csv_data(
         response(sess, stmts)
 
         # TODO unify the wait time
-        time.sleep(6)
+        time.sleep(8)
 
         for fd in config["files"]:
             _load_data_from_file(sess, data_dir, fd)
