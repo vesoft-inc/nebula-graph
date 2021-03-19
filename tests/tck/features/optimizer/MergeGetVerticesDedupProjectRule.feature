@@ -18,12 +18,12 @@ Feature: merge get vertices, dedup and project rule
       | Name         |
       | "Tim Duncan" |
     And the execution plan should be:
-      | name        | dependencies | operator info      |
-      | Project     | 1            |                    |
-      | Filter      | 2            |                    |
-      | Filter      | 3            |                    |
-      | Project     | 4            |                    |
-      | Project     | 5            |                    |
-      | GetVertices | 6            | {"dedup" : "true"} |
-      | PassThrough | 7            |                    |
-      | Start       |              |                    |
+      | name        | dependencies | operator info     |
+      | Project     | 1            |                   |
+      | Filter      | 2            |                   |
+      | Filter      | 3            |                   |
+      | Project     | 4            |                   |
+      | Project     | 5            |                   |
+      | GetVertices | 6            | {"dedup": "true"} |
+      | PassThrough | 7            |                   |
+      | Start       |              |                   |

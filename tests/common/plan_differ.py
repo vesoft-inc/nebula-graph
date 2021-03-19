@@ -5,14 +5,13 @@
 
 import re
 import json
-import pdb
 
 class PlanDiffer:
     OP_INFO = "operator info"
     DEPENDS = "dependencies"
     NAME = "name"
     # PATTERN = re.compile(r"loopBody: (\d+)")
-    PATTERN = re.compile(r"\{\"loopBody\" : \"(\d+)\"\}")
+    PATTERN = re.compile(r"\{\"loopBody\": \"(\d+)\"\}")
 
     def __init__(self, resp, expect):
         self._resp_plan = resp
@@ -45,7 +44,6 @@ class PlanDiffer:
             return False
 
         if self._is_same_node(name, "Loop"):
-            pdb.set_trace()
             op = expect_node[column_names.index(self.OP_INFO)]
             res = self.PATTERN.match(op)
             if not res:
@@ -63,9 +61,7 @@ class PlanDiffer:
             # TODO(yee): check select node
             pass
         elif self.OP_INFO in column_names:
-            # TODO(yee): Parse the op info as a list
             op = expect_node[column_names.index(self.OP_INFO)]
-            # pdb.set_trace()
             # Parse expected operator info json to dict
             expect_op_dict = {}
             if op:
@@ -101,7 +97,6 @@ class PlanDiffer:
                 # f"{bytes.decode(pair.key)}: {bytes.decode(pair.value)}"
                 for pair in resp
             }
-            # pdb.set_trace()
             if exp and not exp.items() <= descs.items():
                 return "Invalid descriptions, expect: {} vs. resp: {}".format(
                     json.dumps(exp), json.dumps(descs))

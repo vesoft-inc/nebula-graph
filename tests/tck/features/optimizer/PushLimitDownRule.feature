@@ -18,12 +18,12 @@ Feature: Push Limit down rule
       | "Dejounte Murray" |
       | "Luka Doncic"     |
     And the execution plan should be:
-      | name         | dependencies | operator info   |
-      | DataCollect  | 1            |                 |
-      | Limit        | 2            |                 |
-      | Project      | 3            |                 |
-      | GetNeighbors | 4            | {"limit" : "2"} |
-      | Start        |              |                 |
+      | name         | dependencies | operator info  |
+      | DataCollect  | 1            |                |
+      | Limit        | 2            |                |
+      | Project      | 3            |                |
+      | GetNeighbors | 4            | {"limit": "2"} |
+      | Start        |              |                |
 
   Scenario: push limit down to GetNeighbors with offset
     When profiling query:
@@ -39,9 +39,9 @@ Feature: Push Limit down rule
       | 2011       |
       | 1998       |
     And the execution plan should be:
-      | name         | dependencies | operator info   |
-      | DataCollect  | 1            |                 |
-      | Limit        | 2            |                 |
-      | Project      | 3            |                 |
-      | GetNeighbors | 4            | {"limit" : "7"} |
-      | Start        |              |                 |
+      | name         | dependencies | operator info  |
+      | DataCollect  | 1            |                |
+      | Limit        | 2            |                |
+      | Project      | 3            |                |
+      | GetNeighbors | 4            | {"limit": "7"} |
+      | Start        |              |                |
