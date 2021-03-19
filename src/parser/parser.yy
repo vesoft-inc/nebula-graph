@@ -643,6 +643,7 @@ constant_expression
 
 compound_expression
     : L_PAREN expression R_PAREN {
+        $2->setParentheses(true);
         $$ = $2;
     }
     | property_expression {
