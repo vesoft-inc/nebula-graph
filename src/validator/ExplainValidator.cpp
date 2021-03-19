@@ -24,7 +24,12 @@ static const std::vector<std::string> kAllowedFmtType = {"row", "dot", "dot:stru
 ExplainValidator::ExplainValidator(Sentence* sentence, QueryContext* context)
     : Validator(sentence, context) {
     DCHECK_EQ(sentence->kind(), Sentence::Kind::kExplain);
-    setNoSpaceRequired();
+    auto explain = static_cast<ExplainSentence*>(sentence_);
+    auto sentences = explain->seqSentences();
+    validator_ = std::make_unique<SequentialValidator>(sentences, qctx_);
+    if (validator_->noSpaceRequired()) {
+        setNoSpaceRequired();
+    }
 }
 
 static StatusOr<std::string> toExplainFormatType(const std::string& formatType) {
@@ -53,12 +58,8 @@ Status ExplainValidator::validateImpl() {
 
     auto status = toExplainFormatType(explain->formatType());
     NG_RETURN_IF_ERROR(status);
-    auto planDesc = std::make_unique<PlanDescription>();
-    planDesc->format = std::move(status).value();
-    qctx_->setPlanDescription(std::move(planDesc));
+    qctx_->plan()->setExplainFormat(std::move(status).value());
 
-    auto sentences = explain->seqSentences();
-    validator_ = std::make_unique<SequentialValidator>(sentences, qctx_);
     NG_RETURN_IF_ERROR(validator_->validate());
 
     outputs_ = validator_->outputCols();
