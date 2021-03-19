@@ -1,16 +1,18 @@
-# Copyright (c) 2020 vesoft inc. All rights reserved.
+# Copyright (c) 2021 vesoft inc. All rights reserved.
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import re
-
+import json
+import pdb
 
 class PlanDiffer:
     OP_INFO = "operator info"
     DEPENDS = "dependencies"
     NAME = "name"
-    PATTERN = re.compile(r"loopBody: (\d+)")
+    # PATTERN = re.compile(r"loopBody: (\d+)")
+    PATTERN = re.compile(r"\{\"loopBody\" : \"(\d+)\"\}")
 
     def __init__(self, resp, expect):
         self._resp_plan = resp
@@ -43,18 +45,19 @@ class PlanDiffer:
             return False
 
         if self._is_same_node(name, "Loop"):
+            pdb.set_trace()
             op = expect_node[column_names.index(self.OP_INFO)]
             res = self.PATTERN.match(op)
             if not res:
                 return False
-            bodyId = int(res.group(1))
-            loopBodyIdx = self._loop_body(plan_desc,
-                                          plan_node_desc.description)
-            if loopBodyIdx is None:
+            body_id = int(res.group(1))
+            loop_body_idx = self._loop_body(plan_desc,
+                                            plan_node_desc.description)
+            if loop_body_idx is None:
                 self._err_msg = "Could not find loop body"
                 return False
-            if not self._diff_plan_node(plan_desc, loopBodyIdx, expect,
-                                        bodyId):
+            if not self._diff_plan_node(plan_desc, loop_body_idx, expect,
+                                        body_id):
                 return False
         elif self._is_same_node(name, "Select"):
             # TODO(yee): check select node
@@ -62,7 +65,12 @@ class PlanDiffer:
         elif self.OP_INFO in column_names:
             # TODO(yee): Parse the op info as a list
             op = expect_node[column_names.index(self.OP_INFO)]
-            self._err_msg = self._check_op_info(plan_node_desc.description, op)
+            # pdb.set_trace()
+            # Parse expected operator info json to dict
+            expect_op_dict = {}
+            if op:
+                expect_op_dict = json.loads(op)
+            self._err_msg = self._check_op_info(plan_node_desc.description, expect_op_dict)
             if self._err_msg:
                 return False
 
@@ -89,12 +97,14 @@ class PlanDiffer:
                 return f"expect: {exp} but resp plan node is None"
         else:
             descs = {
-                f"{bytes.decode(pair.key)}: {bytes.decode(pair.value)}"
+                f"{bytes.decode(pair.key)}": f"{bytes.decode(pair.value)}"
+                # f"{bytes.decode(pair.key)}: {bytes.decode(pair.value)}"
                 for pair in resp
             }
-            if exp and not set([exp]).issubset(descs):
+            # pdb.set_trace()
+            if exp and not exp.items() <= descs.items():
                 return "Invalid descriptions, expect: {} vs. resp: {}".format(
-                    '; '.join(map(str, [exp])), '; '.join(map(str, descs)))
+                    json.dumps(exp), json.dumps(descs))
         return None
 
     def _is_same_node(self, lhs: str, rhs: str) -> bool:
