@@ -17,8 +17,8 @@ Feature: Fetch Int Vid Vertices
       FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.age, player.age > 30
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID     | player.name  | player.age | (player.age>30) |
-      | "Boris Diaw" | "Boris Diaw" | 36         | True            |
+      | VertexID     | player.name  | player.age | player.age>30 |
+      | "Boris Diaw" | "Boris Diaw" | 36         | True          |
     # without YIELD
     When executing query:
       """

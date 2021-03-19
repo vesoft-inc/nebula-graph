@@ -16,8 +16,8 @@ Feature: Yield Sentence
       YIELD 1+1, (int)3.14, (string)(1+1), (string)true,"1+1"
       """
     Then the result should be, in any order:
-      | (1+1) | (INT)3.14 | (STRING)(1+1) | (STRING)true | "1+1" |
-      | 2     | 3         | "2"           | "true"       | "1+1" |
+      | 1+1 | (INT)3.14 | (STRING)(1+1) | (STRING)true | "1+1" |
+      | 2   | 3         | "2"           | "true"       | "1+1" |
     When executing query:
       """
       YIELD "Hello", hash("Hello")
@@ -46,8 +46,8 @@ Feature: Yield Sentence
       YIELD hash(123+456)
       """
     Then the result should be, in any order:
-      | hash((123+456)) |
-      | 579             |
+      | hash(123+456) |
+      | 579           |
     When executing query:
       """
       YIELD hash(123.0)
@@ -60,8 +60,8 @@ Feature: Yield Sentence
       YIELD hash(!false)
       """
     Then the result should be, in any order:
-      | hash(!(false)) |
-      | 1              |
+      | hash(!false) |
+      | 1            |
 
   Scenario: Logic
     When executing query:
@@ -69,21 +69,21 @@ Feature: Yield Sentence
       YIELD NOT false OR false AND false XOR false
       """
     Then the result should be, in any order:
-      | ((!(false) OR (false AND false)) XOR false) |
-      | true                                        |
+      | !false OR false AND false XOR false |
+      | true                                |
     When executing query:
       """
       YIELD (NOT false OR false) AND false XOR true
       """
     Then the result should be, in any order:
-      | (((!(false) OR false) AND false) XOR true) |
-      | true                                       |
+      | (!false OR false) AND false XOR true |
+      | true                                 |
     When executing query:
       """
       YIELD 2.5 % 1.2
       """
     Then the result should be, in any order:
-      | (2.5%1.2)           |
+      | 2.5%1.2             |
       | 0.10000000000000009 |
 
   @skip
@@ -372,8 +372,8 @@ Feature: Yield Sentence
       YIELD -9223372036854775808*1
       """
     Then the result should be, in any order:
-      | (-(-9223372036854775808)*1) |
-      | -9223372036854775808        |
+      | -9223372036854775808*1 |
+      | -9223372036854775808   |
     When executing query:
       """
       YIELD -9223372036854775809
@@ -391,8 +391,8 @@ Feature: Yield Sentence
       YIELD -2*4611686018427387904
       """
     Then the result should be, in any order:
-      | (-(2)*4611686018427387904) |
-      | -9223372036854775808       |
+      | -2*4611686018427387904 |
+      | -9223372036854775808   |
 
   Scenario: AggCall
     When executing query:
@@ -405,15 +405,15 @@ Feature: Yield Sentence
       YIELD COUNT(*), 1+1
       """
     Then the result should be, in any order:
-      | COUNT(*) | (1+1) |
-      | 1        | 2     |
+      | COUNT(*) | 1+1 |
+      | 1        | 2   |
     When executing query:
       """
       GO FROM hash("Carmelo Anthony") OVER like YIELD $$.player.age as age, like.likeness AS like | YIELD AVG($-.age),SUM($-.like),COUNT(*),1+1
       """
     Then the result should be, in any order:
-      | AVG($-.age)        | SUM($-.like) | COUNT(*) | (1+1) |
-      | 34.666666666666664 | 270          | 3        | 2     |
+      | AVG($-.age)        | SUM($-.like) | COUNT(*) | 1+1 |
+      | 34.666666666666664 | 270          | 3        | 2   |
     When executing query:
       """
       GO FROM hash("Carmelo Anthony") OVER like | YIELD COUNT(*)
@@ -506,8 +506,8 @@ Feature: Yield Sentence
       YIELD 1--1
       """
     Then the result should be, in any order:
-      | (1--(1)) |
-      | 2        |
+      | 1--1 |
+      | 2    |
 
   Scenario: deduce typecase
     When executing query:

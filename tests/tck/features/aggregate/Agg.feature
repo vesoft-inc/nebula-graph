@@ -9,15 +9,15 @@ Feature: Basic Aggregate and GroupBy
       YIELD COUNT(*), 1+1
       """
     Then the result should be, in any order, with relax comparison:
-      | COUNT(*) | (1+1) |
-      | 1        | 2     |
+      | COUNT(*) | 1+1 |
+      | 1        | 2   |
     When executing query:
       """
       YIELD COUNT(*)+1 ,1+2 ,(INT)abs(count(2))
       """
     Then the result should be, in any order, with relax comparison:
-      | (COUNT(*)+1) | (1+2) | (INT)abs(count(2)) |
-      | 2            | 3     | 1                  |
+      | COUNT(*)+1 | 1+2 | (INT)abs(count(2)) |
+      | 2          | 3   | 1                  |
     When executing query:
       """
       YIELD count(null) AS v1,
@@ -583,13 +583,13 @@ Feature: Basic Aggregate and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,avg(distinct count($-.age+1)) AS age
       """
-    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `avg(distinct count(($-.age+1)))'
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `avg(distinct count($-.age+1))'
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY avg($-.age+1)+1 YIELD $-.age,avg(distinct $-.age) AS age
       """
-    Then a SemanticError should be raised at runtime:  Group `(avg(($-.age+1))+1)' invalid
+    Then a SemanticError should be raised at runtime:  Group `avg($-.age+1)+1' invalid
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age;
@@ -613,7 +613,7 @@ Feature: Basic Aggregate and GroupBy
       """
       GO FROM "Tim Duncan" OVER like where COUNT(*) > 2
       """
-    Then a SemanticError should be raised at runtime: `(COUNT(*)>2)', not support aggregate function in where sentence.
+    Then a SemanticError should be raised at runtime: `COUNT(*)>2', not support aggregate function in where sentence.
     When executing query:
       """
       GO FROM "Marco Belinelli" OVER serve

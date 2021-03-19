@@ -17,8 +17,8 @@ Feature: Fetch Int Vid Edges
       FETCH PROP ON serve hash('Boris Diaw')->hash('Hawks') YIELD serve.start_year > 2001, serve.end_year
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
-      | serve._src   | serve._dst | serve._rank | (serve.start_year>2001) | serve.end_year |
-      | "Boris Diaw" | "Hawks"    | 0           | True                    | 2005           |
+      | serve._src   | serve._dst | serve._rank | serve.start_year>2001 | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | True                  | 2005           |
     # Fetch prop on an edge without yield
     When executing query:
       """
