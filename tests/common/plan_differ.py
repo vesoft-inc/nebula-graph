@@ -10,7 +10,6 @@ class PlanDiffer:
     OP_INFO = "operator info"
     DEPENDS = "dependencies"
     NAME = "name"
-    # PATTERN = re.compile(r"loopBody: (\d+)")
     PATTERN = re.compile(r"\{\"loopBody\": \"(\d+)\"\}")
 
     def __init__(self, resp, expect):
@@ -94,7 +93,6 @@ class PlanDiffer:
         else:
             descs = {
                 f"{bytes.decode(pair.key)}": f"{bytes.decode(pair.value)}"
-                # f"{bytes.decode(pair.key)}: {bytes.decode(pair.value)}"
                 for pair in resp
             }
             if exp and not exp.items() <= descs.items():
