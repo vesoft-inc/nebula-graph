@@ -30,13 +30,14 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
 void GetNeighborsIter::goToFirstEdge() {
     // Go to first edge
     for (currentDs_ = dsIndices_.begin(); currentDs_ < dsIndices_.end(); ++currentDs_) {
+        if (noEdge_) {
+            currentRow_ = currentDs_->ds->rows.begin();
+            valid_ = true;
+            break;
+        }
         for (currentRow_ = currentDs_->ds->rows.begin();
             currentRow_ < currentDs_->ds->rows.end(); ++currentRow_) {
             colIdx_ = currentDs_->colLowerBound + 1;
-            if (colIdx_ == -1) {
-                valid_ = true;
-                break;
-            }
             while (colIdx_ < currentDs_->colUpperBound && !valid_) {
                 const auto& currentCol = currentRow_->operator[](colIdx_);
                 if (!currentCol.isList() || currentCol.getList().empty()) {
@@ -130,7 +131,9 @@ StatusOr<int64_t> GetNeighborsIter::buildIndex(DataSetIndex* dsIndex) {
             // It is "_vid", "_stats", "_expr" in this situation.
         }
     }
-
+    if (edgeStartIndex == -1) {
+        noEdge_ = true;
+    }
     dsIndex->colLowerBound = edgeStartIndex - 1;
     dsIndex->colUpperBound = colNames.size() - 1;
     return edgeStartIndex;
@@ -185,7 +188,7 @@ void GetNeighborsIter::next() {
         return;
     }
 
-    if (colIdx_ == -1) {
+    if (noEdge_) {
         currentRow_++;
         return;
     }
