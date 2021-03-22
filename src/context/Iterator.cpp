@@ -33,6 +33,10 @@ void GetNeighborsIter::goToFirstEdge() {
         for (currentRow_ = currentDs_->ds->rows.begin();
             currentRow_ < currentDs_->ds->rows.end(); ++currentRow_) {
             colIdx_ = currentDs_->colLowerBound + 1;
+            if (colIdx_ == -1) {
+                valid_ = true;
+                break;
+            }
             while (colIdx_ < currentDs_->colUpperBound && !valid_) {
                 const auto& currentCol = currentRow_->operator[](colIdx_);
                 if (!currentCol.isList() || currentCol.getList().empty()) {
@@ -178,6 +182,11 @@ bool GetNeighborsIter::valid() const {
 
 void GetNeighborsIter::next() {
     if (!valid()) {
+        return;
+    }
+
+    if (colIdx_ == -1) {
+        currentRow_++;
         return;
     }
 
