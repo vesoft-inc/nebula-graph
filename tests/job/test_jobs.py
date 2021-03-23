@@ -65,7 +65,7 @@ class TestJobs(NebulaTestSuite):
         expect_col_names = ['Job Id(TaskId)', 'Command(Dest)', 'Status', 'Start Time', 'Stop Time']
         self.check_column_names(resp, expect_col_names)
         expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT|FLUSH|STATS'), re.compile(r'\S+'), re.compile(r'\d+'), re.compile(r'\d+')]]
-        self.search_result(resp, expect_values, is_regex=True)
+        self.check_result(resp, expect_values, is_regex=True)
 
         job_id = resp.row_values(0)[0].as_int()
         resp = self.client.execute('STOP JOB {};'.format(job_id))
