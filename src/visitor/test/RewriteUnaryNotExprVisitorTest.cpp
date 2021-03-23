@@ -89,33 +89,6 @@ TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotExprLogicalRelExpr) {
                                          leExpr(constantExpr(30), constantExpr(20))));
         ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
     }
-    // TODO(Aiee) To support rewrite for the following cases
-    // !( 1 != 1 && 2 >= 3 && 10 <= 15)  =>  (1 == 1 || 2 < 3 || 10 > 15)
-    {
-        auto expr = pool.add(notExpr(andExpr(andExpr(neExpr(constantExpr(1), constantExpr(1)),
-                                                     geExpr(constantExpr(2), constantExpr(3))),
-                                             leExpr(constantExpr(30), constantExpr(20)))));
-        RewriteUnaryNotExprVisitor visitor(&pool);
-        expr->accept(&visitor);
-        auto res = visitor.getExpr();
-        auto expected = pool.add(notExpr(andExpr(andExpr(neExpr(constantExpr(1), constantExpr(1)),
-                                                         geExpr(constantExpr(2), constantExpr(3))),
-                                                 leExpr(constantExpr(30), constantExpr(20)))));
-        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
-    }
-    // !( 1 != 1 || 2 >= 3 || 10 <= 15)  =>  (1 == 1 || 2 < 3 || 10 > 15)
-    {
-        auto expr = pool.add(notExpr(orExpr(orExpr(neExpr(constantExpr(1), constantExpr(1)),
-                                                   geExpr(constantExpr(2), constantExpr(3))),
-                                            leExpr(constantExpr(30), constantExpr(20)))));
-        RewriteUnaryNotExprVisitor visitor(&pool);
-        expr->accept(&visitor);
-        auto res = visitor.getExpr();
-        auto expected = pool.add(notExpr(orExpr(orExpr(neExpr(constantExpr(1), constantExpr(1)),
-                                                       geExpr(constantExpr(2), constantExpr(3))),
-                                                leExpr(constantExpr(30), constantExpr(20)))));
-        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
-    }
 }
 
 TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotContainerExpr) {
@@ -226,6 +199,56 @@ TEST_F(RewriteUnaryNotExprVisitorTest, TestRelExpr) {
         expr->accept(&visitor);
         auto res = visitor.getExpr();
         auto expected = pool.add(notEndsWithExpr(constantExpr("bcd"), constantExpr("abcde")));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+}
+
+TEST_F(RewriteUnaryNotExprVisitorTest, TestLogicalExpr) {
+    // !( 1 != 1 && 2 >= 3 && 30 <= 20)  =>  (1 == 1 || 2 < 3 || 30 > 20)
+    {
+        auto expr = pool.add(notExpr(andExpr(andExpr(neExpr(constantExpr(1), constantExpr(1)),
+                                                     geExpr(constantExpr(2), constantExpr(3))),
+                                             leExpr(constantExpr(30), constantExpr(20)))));
+        RewriteUnaryNotExprVisitor visitor(&pool);
+        expr->accept(&visitor);
+        auto res = visitor.getExpr();
+
+        LogicalExpression expected(Expression::Kind::kLogicalOr);
+        expected.addOperand(eqExpr(constantExpr(1), constantExpr(1)));
+        expected.addOperand(ltExpr(constantExpr(2), constantExpr(3)));
+        expected.addOperand(gtExpr(constantExpr(30), constantExpr(20)));
+
+        ASSERT_EQ(*res, expected) << res->toString() << " vs. " << expected.toString();
+    }
+    // !( 1 != 1 || 2 >= 3 || 30 <= 20)  =>  (1 == 1 && 2 < 3 && 30 > 20)
+    {
+        auto expr = pool.add(notExpr(orExpr(orExpr(neExpr(constantExpr(1), constantExpr(1)),
+                                                   geExpr(constantExpr(2), constantExpr(3))),
+                                            leExpr(constantExpr(30), constantExpr(20)))));
+        RewriteUnaryNotExprVisitor visitor(&pool);
+        expr->accept(&visitor);
+        auto res = visitor.getExpr();
+
+        LogicalExpression expected(Expression::Kind::kLogicalAnd);
+        expected.addOperand(eqExpr(constantExpr(1), constantExpr(1)));
+        expected.addOperand(ltExpr(constantExpr(2), constantExpr(3)));
+        expected.addOperand(gtExpr(constantExpr(30), constantExpr(20)));
+
+        ASSERT_EQ(*res, expected) << res->toString() << " vs. " << expected.toString();
+    }
+    // !( 1 != 1 && 2 >= 3 || 30 <= 20)  =>  ((1 == 1 || 2 < 3) && 30 > 20)
+    {
+        auto expr = pool.add(notExpr(orExpr(andExpr(neExpr(constantExpr(1), constantExpr(1)),
+                                                   geExpr(constantExpr(2), constantExpr(3))),
+                                            leExpr(constantExpr(30), constantExpr(20)))));
+        RewriteUnaryNotExprVisitor visitor(&pool);
+        expr->accept(&visitor);
+        auto res = visitor.getExpr();
+
+        auto expected = pool.add(andExpr(orExpr(eqExpr(constantExpr(1), constantExpr(1)),
+                                        ltExpr(constantExpr(2), constantExpr(3))),
+                                                gtExpr(constantExpr(30), constantExpr(20))));
+
         ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
     }
 }

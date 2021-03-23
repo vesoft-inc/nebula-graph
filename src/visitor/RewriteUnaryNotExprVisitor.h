@@ -86,8 +86,11 @@ private:
 
     bool isUnaryNotExpr(const Expression *expr);
     bool isRelExpr(const Expression *expr);
+    bool isLogicalExpr(const Expression *expr);
     std::unique_ptr<Expression> reverseRelExpr(Expression *expr);
-    Expression::Kind getNegatedKind(const Expression::Kind kind);
+    std::unique_ptr<Expression> reverseLogicalExpr(Expression *expr);
+    Expression::Kind getNegatedRelExprKind(const Expression::Kind kind);
+    Expression::Kind getNegatedLogicalExprKind(const Expression::Kind kind);
 };
 
 }   // namespace graph
