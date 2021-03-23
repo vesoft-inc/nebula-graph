@@ -406,6 +406,24 @@ Feature: Basic match
       | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]                             |
       | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]                                |
 
+  Scenario: Partial index match
+    When executing query:
+      """
+      MATCH (v:player)
+      WHERE v.age>40 AND v.name == "Grant Hill"
+      RETURN v.name, v.age
+      """
+    Then the result should be, in any order:
+      | v.name       | v.age |
+      | "Grant Hill" | 46    |
+    When executing query:
+      """
+      MATCH (v:player)
+      WHERE  v.speciality == "psychology" AND v.name == "Tim Duncan"
+      RETURN v.name, v.age
+      """
+    Then a ExecutionError should be raised at runtime: IndexNotFound: No valid index found
+
   Scenario: No return
     When executing query:
       """

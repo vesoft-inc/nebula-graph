@@ -495,8 +495,12 @@ IndexScanRule::findValidIndex(graph::QueryContext *qctx,
     if (indexes.empty()) {
         return indexes;
     }
-    std::vector<IndexItem> validIndexes;
-    // Find indexes for match all fields by where condition.
+    // Indexes that match all fields in where condition
+    std::vector<IndexItem> fullyValidIndexes;
+    // Indexes that match one of the fields in where condition
+    std::vector<IndexItem> partialValidIndexes;
+
+    // Find indexes that match all fields
     for (const auto& index : indexes) {
         bool allColsHint = true;
         const auto& fields = index->get_fields();
@@ -509,29 +513,31 @@ IndexScanRule::findValidIndex(graph::QueryContext *qctx,
                 allColsHint = false;
                 break;
             }
+            // If an index matches any part of the fields, it is a partial valid index
+            partialValidIndexes.emplace_back(index);
         }
         if (allColsHint) {
-            validIndexes.emplace_back(index);
+            fullyValidIndexes.emplace_back(index);
         }
     }
     // If the first field of the index does not match any condition, the index is invalid.
     // remove it from validIndexes.
-    if (!validIndexes.empty()) {
-        auto index = validIndexes.begin();
-        while (index != validIndexes.end()) {
+    if (!fullyValidIndexes.empty()) {
+        auto index = fullyValidIndexes.begin();
+        while (index != fullyValidIndexes.end()) {
             const auto& fields = index->get()->get_fields();
             auto it = std::find_if(items.items.begin(), items.items.end(),
                                    [fields](const auto &item) {
                                        return item.col_ == fields[0].get_name();
                                    });
             if (it == items.items.end()) {
-                validIndexes.erase(index);
+                fullyValidIndexes.erase(index);
             } else {
                 index++;
             }
         }
     }
-    return validIndexes;
+    return partialValidIndexes;
 }
 
 std::vector<IndexItem>
