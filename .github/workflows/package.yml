@@ -1,9 +1,6 @@
 name: package
 
 on:
-  push:
-    branches:
-      - master
   schedule:
     - cron: '0 18 * * *'
 
@@ -36,7 +33,6 @@ jobs:
           SHA_EXT: sha256sum.txt
         run: |
           filename=$(find build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
-          echo $filename
           sha256sum $filename > $filename.$SHA_EXT
           subdir=$(date -u +%Y.%m.%d)
           echo "::set-output name=filepath::$filename"

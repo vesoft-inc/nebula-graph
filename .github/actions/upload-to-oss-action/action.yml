@@ -29,21 +29,18 @@ runs:
   using: "composite"
   steps:
     - run: |
-        echo "upload to oss action..."
         j=0
         if [ -d ${{ inputs.asset-path }} ]; then
           for filename in `ls ${{ inputs.asset-path }}`; do
-              echo $filename
               folder_list[j]=${{ inputs.asset-path }}/$filename
               j=`expr $j + 1`
           done
         else
           folder_list[0]=${{ inputs.asset-path }}
         fi
-        echo "start oss..."
+        echo "Uploading to oss... "
         for filepath in ${folder_list[@]};
         do
-            echo $filepath
             ossutil64 -e ${{ inputs.endpoint}} \
                 -i ${{ inputs.key-id }} \
                 -k ${{ inputs.key-secret }} \
