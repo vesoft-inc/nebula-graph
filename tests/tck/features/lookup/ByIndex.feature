@@ -77,6 +77,7 @@ Feature: Lookup by index itself
       | '76ers'         | '76ers'         |
       | 'Trail Blazers' | 'Trail Blazers' |
       | 'Bulls'         | 'Bulls'         |
+    And drop the used space
 
   Scenario: [1] Tag TODO
     When executing query:
@@ -99,6 +100,7 @@ Feature: Lookup by index itself
       LOOKUP ON team WHERE team.name CONTAINS 'Jazz' YIELD team.name AS Name
       """
     Then a SemanticError should be raised at runtime:
+    And drop the used space
 
   Scenario: [2] edge index
     When executing query:
@@ -417,6 +419,7 @@ Feature: Lookup by index itself
       | 'Dwight Howard'         | 'Hawks'         | 0       | 2016      |
       | 'Dwight Howard'         | 'Hornets'       | 0       | 2017      |
       | 'Dwight Howard'         | 'Wizards'       | 0       | 2018      |
+    And drop the used space
 
   Scenario: [2] Edge TODO
     When executing query:
@@ -439,6 +442,7 @@ Feature: Lookup by index itself
       LOOKUP ON serve WHERE serve.start_year == serve.end_year YIELD serve.start_year AS startYear
       """
     Then a SemanticError should be raised at runtime:
+    And drop the used space
 
   Scenario: [1] Compare INT and FLOAT during IndexScan
     When executing query:
@@ -541,6 +545,7 @@ Feature: Lookup by index itself
       | "Amar'e Stoudemire" | 36  | "Amar'e Stoudemire" |
       | "Boris Diaw"        | 36  | "Boris Diaw"        |
       | "Tony Parker"       | 36  | "Tony Parker"       |
+    And drop the used space
 
   Scenario: [2] Compare INT and FLOAT during IndexScan
     Given having executed:

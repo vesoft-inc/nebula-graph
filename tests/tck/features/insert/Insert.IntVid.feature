@@ -80,6 +80,7 @@ Feature: Insert int vid of vertex and edge
       hash("Laura")->hash("sun_school"):(timestamp("2300-01-01T10:00:00"), now()+3600*24*365*3);
       """
     Then a ExecutionError should be raised at runtime:
+    And drop the used space
 
   Scenario: insert vertex unordered order prop vertex succeeded
     # insert vertex succeeded

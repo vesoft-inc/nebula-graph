@@ -329,6 +329,7 @@ Feature: TTLTest
     Then the result should be, in any order:
       | Edge    | Create Edge                                                                                                                  |
       | "work2" | 'CREATE EDGE `work2` (\n `email` string NULL,\n `age` string NULL,\n `gender` string NULL\n) ttl_duration = 0, ttl_col = ""' |
+    And drop the used space
 
   Scenario: TTLTest Datatest
     Given having executed:
@@ -418,6 +419,7 @@ Feature: TTLTest
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | id |
+    And drop the used space
 
   Scenario: TTLTest expire time
     Given having executed:
@@ -445,3 +447,4 @@ Feature: TTLTest
       """
     Then the result should be, in any order:
       | VertexID | age |
+    And drop the used space

@@ -1,6 +1,6 @@
 Feature: Insert with time-dependent types
 
-  Background: Prepare space
+  Scenario: insert wrong format timestamp
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9                |
@@ -14,8 +14,6 @@ Feature: Insert with time-dependent types
       CREATE TAG IF NOT EXISTS TAG_DATETIME(a datetime);
       """
     And wait 3 seconds
-
-  Scenario: insert wrong format timestamp
     When executing query:
       """
       INSERT VERTEX TAG_TIMESTAMP(a) VALUES "TEST_VERTEX":("2000.0.0 10:0:0")
@@ -56,3 +54,4 @@ Feature: Insert with time-dependent types
       INSERT VERTEX TAG_DATETIME(a) VALUES "TEST_VERTEX":(NULL)
       """
     Then the execution should be successful
+    And drop the used space

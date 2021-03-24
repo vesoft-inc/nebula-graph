@@ -32,6 +32,7 @@ Feature: Fetch prop on empty tag/edge
     Then the result should be, in any order, with relax comparison:
       | vertices_                                    |
       | ("1":zero_prop_tag_0:zero_prop_tag_1:person) |
+    And drop the used space
 
   Scenario: fetch prop on a empty tag
     When executing query:
@@ -50,6 +51,7 @@ Feature: Fetch prop on empty tag/edge
     Then the result should be, in any order, with relax comparison:
       | vertices_             |
       | ("2":zero_prop_tag_0) |
+    And drop the used space
 
   Scenario: fetch prop on empty edge
     When executing query:
@@ -80,3 +82,4 @@ Feature: Fetch prop on empty tag/edge
     Then the result should be, in any order:
       | edges_                          |
       | [:zero_prop_edge "1"->"2" @0{}] |
+    And drop the used space
