@@ -12,7 +12,6 @@
 #include "common/expression/VariableExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "visitor/ExtractPropExprVisitor.h"
-#include "visitor/RewriteInputPropVisitor.h"
 #include "parser/TraverseSentences.h"
 #include "planner/Logic.h"
 
@@ -56,14 +55,9 @@ Status GoValidator::validateWhere(WhereClause* where) {
             "`%s', not support aggregate function in where sentence.",
             filter_->toString().c_str());
     }
-    if (filter_->kind() == Expression::Kind::kLabelAttribute) {
-        auto laExpr = static_cast<LabelAttributeExpression*>(filter_);
-        filter_ = ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr);
-        where->setFilter(filter_);
-    } else {
-        ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(filter_);
-    }
+    where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(filter_));
 
+    filter_ = where->filter();
     auto typeStatus = deduceExprType(filter_);
     NG_RETURN_IF_ERROR(typeStatus);
     auto type = typeStatus.value();
@@ -104,15 +98,10 @@ Status GoValidator::validateYield(YieldClause* yield) {
     } else {
         for (auto col : cols) {
             NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+            col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
 
-            if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-                auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());
-                col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(
-                    laExpr));
-            } else {
-                ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());
-            }
-            if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate})) {
+            auto* colExpr = col->expr();
+            if (graph::ExpressionUtils::findAny(colExpr, {Expression::Kind::kAggregate})) {
                 return Status::SemanticError(
                     "`%s', not support aggregate function in go sentence.",
                     col->toString().c_str());
@@ -120,12 +109,12 @@ Status GoValidator::validateYield(YieldClause* yield) {
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
             // check input var expression
-            auto typeStatus = deduceExprType(col->expr());
+            auto typeStatus = deduceExprType(colExpr);
             NG_RETURN_IF_ERROR(typeStatus);
             auto type = typeStatus.value();
             outputs_.emplace_back(colName, type);
 
-            NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
+            NG_RETURN_IF_ERROR(deduceProps(colExpr, exprProps_));
         }
         for (auto& e : exprProps_.edgeProps()) {
             auto found = std::find(over_.edgeTypes.begin(), over_.edgeTypes.end(), e.first);
@@ -757,10 +746,15 @@ void GoValidator::extractPropExprs(const Expression* expr) {
     const_cast<Expression*>(expr)->accept(&visitor);
 }
 
-std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
-    RewriteInputPropVisitor visitor(propExprColMap_);
-    const_cast<Expression*>(expr)->accept(&visitor);
-    return std::move(visitor).result();
+Expression* GoValidator::rewriteToInputProp(const Expression* expr) {
+    auto matcher = [this](const Expression* e) -> bool {
+        return propExprColMap_.find(e->toString()) != propExprColMap_.end();};
+    auto rewriter = [this](const Expression* e) -> Expression* {
+        auto iter = propExprColMap_.find(e->toString());
+        DCHECK(iter != propExprColMap_.end());
+        return new InputPropertyExpression(new std::string(*(iter->second->alias())));};
+
+    return RewriteVisitor::transform(expr, matcher, rewriter);
 }
 
 Status GoValidator::buildColumns() {
@@ -785,28 +779,18 @@ Status GoValidator::buildColumns() {
     if (filter_ != nullptr) {
         extractPropExprs(filter_);
         auto newFilter = filter_->clone();
-        auto rewriteFilter = rewriteToInputProp(newFilter.get());
-        if (rewriteFilter != nullptr) {
-            newFilter_ = rewriteFilter.release();
-        } else {
-            newFilter_ = newFilter.release();
-        }
+        DCHECK(!newFilter_);
+        newFilter_ = rewriteToInputProp(newFilter.get());
         pool->add(newFilter_);
     }
 
     newYieldCols_ = pool->add(new YieldColumns());
     for (auto* yield : yields_->columns()) {
         extractPropExprs(yield->expr());
-        auto newCol = yield->expr()->clone();
-        auto rewriteCol = rewriteToInputProp(newCol.get());
-        auto alias = yield->alias() == nullptr
+        auto* alias = yield->alias() == nullptr
                          ? nullptr
                          : new std::string(*(yield->alias()));
-        if (rewriteCol != nullptr) {
-            newYieldCols_->addColumn(new YieldColumn(rewriteCol.release(), alias));
-        } else {
-            newYieldCols_->addColumn(new YieldColumn(newCol.release(), alias));
-        }
+        newYieldCols_->addColumn(new YieldColumn(rewriteToInputProp(yield->expr()), alias));
     }
 
     return Status::OK();

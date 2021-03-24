@@ -29,7 +29,7 @@ private:
 
     void extractPropExprs(const Expression* expr);
 
-    std::unique_ptr<Expression> rewriteToInputProp(Expression* expr);
+    Expression* rewriteToInputProp(const Expression* expr);
 
     Status buildColumns();
 

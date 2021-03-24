@@ -375,15 +375,15 @@ Status LookupValidator::rewriteRelExpr(RelationalExpression* expr) {
     // rewrite PropertyExpression
     if (leftIsAE) {
         if (isEdge_) {
-            expr->setLeft(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(la));
+            expr->setLeft(ExpressionUtils::rewriteLabelAttr2EdgeProp(la));
         } else {
-            expr->setLeft(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(la));
+            expr->setLeft(ExpressionUtils::rewriteLabelAttr2TagProp(la));
         }
     } else {
         if (isEdge_) {
-            expr->setRight(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(la));
+            expr->setRight(ExpressionUtils::rewriteLabelAttr2EdgeProp(la));
         } else {
-            expr->setRight(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(la));
+            expr->setRight(ExpressionUtils::rewriteLabelAttr2TagProp(la));
         }
     }
     return Status::OK();

@@ -7,9 +7,8 @@
 #include "validator/MatchValidator.h"
 
 #include "util/ExpressionUtils.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
+#include "visitor/RewriteVisitor.h"
 #include "planner/match/MatchSolver.h"
-#include "visitor/RewriteAggExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -692,8 +691,7 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
         auto rewrited = false;
         auto colOldName = deduceColName(col);
         if (col->expr()->kind() != Expression::Kind::kAggregate) {
-            auto rewritedExpr = col->expr()->clone();
-            auto collectAggCol = rewritedExpr->clone();
+            auto collectAggCol = col->expr()->clone();
             auto aggs = ExpressionUtils::collectAll(collectAggCol.get(),
                                                     {Expression::Kind::kAggregate});
             auto size = aggs.size();
@@ -702,19 +700,14 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
                                              collectAggCol->toString().c_str());
             }
             if (size == 1) {
-                auto aggExpr = aggs[0]->clone();
-                DCHECK(aggExpr->kind() == Expression::Kind::kAggregate);
-                auto aggColName = aggExpr->toString();
-                col->setExpr(aggExpr.release());
-
                 // rewrite inner aggExpr to variablePropertyExpr
-                RewriteAggExprVisitor rewriteAggVisitor(new std::string(),
-                                                        new std::string(aggColName));
-                rewritedExpr->accept(&rewriteAggVisitor);
+                auto* rewritedExpr = ExpressionUtils::rewriteAgg2VarProp(col->expr());
                 rewrited = true;
                 yieldCtx.needGenProject_ = true;
-                yieldCtx.projCols_->addColumn(new YieldColumn(rewritedExpr.release(),
+                yieldCtx.projCols_->addColumn(new YieldColumn(rewritedExpr,
                                               new std::string(colOldName)));
+
+                col->setExpr(aggs[0]->clone().release());
             }
         }
 

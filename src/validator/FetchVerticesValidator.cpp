@@ -160,13 +160,7 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     DeducePropsVisitor deducePropsVisitor(qctx_, space_.id, &exprProps, &userDefinedVarNameList_);
     for (auto col : yield->columns()) {
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
-
-        if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
-            col->setExpr(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(laExpr));
-        } else {
-            ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(col->expr());
-        }
+        col->setExpr(ExpressionUtils::rewriteLabelAttr2TagProp(col->expr()));
         col->expr()->accept(&deducePropsVisitor);
         if (!deducePropsVisitor.ok()) {
             return std::move(deducePropsVisitor).status();

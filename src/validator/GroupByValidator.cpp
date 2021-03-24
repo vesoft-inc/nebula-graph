@@ -9,7 +9,6 @@
 #include "util/ExpressionUtils.h"
 #include "util/AnonColGenerator.h"
 #include "util/AnonVarGenerator.h"
-#include "visitor/RewriteAggExprVisitor.h"
 #include "visitor/FindAnySubExprVisitor.h"
 
 
@@ -179,18 +178,14 @@ Status GroupByValidator::rewriteInnerAggExpr(YieldColumn* col, bool& rewrited) {
                                      collectAggCol->toString().c_str());
     }
     if (aggs.size() == 1) {
-        auto colRewrited = colExpr->clone();
-        // set aggExpr
-        col->setExpr(aggs[0]->clone().release());
-        auto aggColName = col->expr()->toString();
-        // rewrite to VariablePropertyExpression
-        RewriteAggExprVisitor rewriteAggVisitor(new std::string(),
-                                                new std::string(aggColName));
-        colRewrited->accept(&rewriteAggVisitor);
+        auto* colRewrited = ExpressionUtils::rewriteAgg2VarProp(colExpr);
         rewrited = true;
         needGenProject_ = true;
-        projCols_->addColumn(new YieldColumn(colRewrited.release(),
+        projCols_->addColumn(new YieldColumn(colRewrited,
                              new std::string(colOldName)));
+
+        // set aggExpr
+        col->setExpr(aggs[0]->clone().release());
     }
 
     return Status::OK();

@@ -12,7 +12,7 @@
 #include "planner/match/SegmentsConnector.h"
 #include "util/AnonColGenerator.h"
 #include "util/ExpressionUtils.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
+#include "visitor/RewriteVisitor.h"
 
 using nebula::storage::cpp2::EdgeProp;
 using nebula::storage::cpp2::VertexProp;
@@ -184,37 +184,18 @@ Status Expand::expandStep(const EdgeInfo& edge,
     gn->setEdgeDirection(edge.direction);
 
     PlanNode* root = gn;
-    // [Filter]
     if (nodeFilter != nullptr) {
-        auto filter = qctx->objPool()->add(nodeFilter->clone().release());
-        RewriteMatchLabelVisitor visitor(
-            [](const Expression* expr) -> Expression *{
-            DCHECK(expr->kind() == Expression::Kind::kLabelAttribute ||
-                expr->kind() == Expression::Kind::kLabel);
-            // filter prop
-            if (expr->kind() == Expression::Kind::kLabelAttribute) {
-                auto la = static_cast<const LabelAttributeExpression*>(expr);
-                return new AttributeExpression(
-                    new VertexExpression(), la->right()->clone().release());
-            }
-            // filter tag
-            return new VertexExpression();
-        });
-        filter->accept(&visitor);
-        auto filterNode = Filter::make(matchCtx_->qctx, root, filter);
+        auto * newFilter = MatchSolver::rewriteLabel2Vertex(nodeFilter);
+        qctx->objPool()->add(newFilter);
+        auto filterNode = Filter::make(matchCtx_->qctx, root, newFilter);
         filterNode->setColNames(root->colNames());
         root = filterNode;
     }
 
     if (edge.filter != nullptr) {
-        RewriteMatchLabelVisitor visitor([](const Expression* expr) {
-            DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
-            auto la = static_cast<const LabelAttributeExpression*>(expr);
-            return new AttributeExpression(new EdgeExpression(), la->right()->clone().release());
-        });
-        auto filter = saveObject(edge.filter->clone().release());
-        filter->accept(&visitor);
-        auto filterNode = Filter::make(qctx, root, filter);
+        auto* newFilter = MatchSolver::rewriteLabel2Edge(edge.filter);
+        qctx->objPool()->add(newFilter);
+        auto filterNode = Filter::make(qctx, root, newFilter);
         filterNode->setColNames(root->colNames());
         root = filterNode;
     }

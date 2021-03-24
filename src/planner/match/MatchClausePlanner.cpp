@@ -14,7 +14,7 @@
 #include "planner/match/StartVidFinder.h"
 #include "planner/match/WhereClausePlanner.h"
 #include "util/ExpressionUtils.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
+#include "visitor/RewriteVisitor.h"
 
 using JoinStrategyPos = nebula::graph::InnerJoinStrategy::JoinPos;
 
