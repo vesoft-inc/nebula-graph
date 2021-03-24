@@ -479,7 +479,7 @@ Feature: Insert string vid of vertex and edge
       """
       SHOW SPACES;
       """
-    Then the result should not contains:
+    Then the result should not contain:
       | Name         |
       | "my_space"   |
       | "test_multi" |

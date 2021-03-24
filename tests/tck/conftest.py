@@ -359,7 +359,7 @@ def result_should_be_relax_cmp_and_hash(request, result, graph_spaces, hashed_co
 
 
 @then(parse("the result should contain:\n{result}"))
-def result_should_contains(request, result, graph_spaces):
+def result_should_contain(request, result, graph_spaces):
     cmp_dataset(request,
                 graph_spaces,
                 result,
@@ -368,8 +368,8 @@ def result_should_contains(request, result, graph_spaces):
                 contains=ContainsType.CONTAINS)
 
 
-@then(parse("the result should not contains:\n{result}"))
-def result_should_not_contains(request, result, graph_spaces):
+@then(parse("the result should not contain:\n{result}"))
+def result_should_not_contain(request, result, graph_spaces):
     cmp_dataset(request,
                 graph_spaces,
                 result,
@@ -378,8 +378,8 @@ def result_should_not_contains(request, result, graph_spaces):
                 contains=ContainsType.NOT_CONTAINS)
 
 
-@then(parse("the result should contains, and the columns {hashed_columns} should be hashed:\n{result}"))
-def result_should_contains_and_hash(request, result, graph_spaces, hashed_columns):
+@then(parse("the result should contain, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_contain_and_hash(request, result, graph_spaces, hashed_columns):
     cmp_dataset(request,
                 graph_spaces,
                 result,
