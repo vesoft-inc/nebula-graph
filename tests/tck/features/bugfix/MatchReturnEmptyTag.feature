@@ -15,7 +15,6 @@ Feature: Fix match losing undefined vertex tag info
       """
       CREATE TAG IF NOT EXISTS empty_tag();
       """
-    And wait 3 seconds
     And having executed:
       """
       INSERT VERTEX empty_tag() values <vid>:()

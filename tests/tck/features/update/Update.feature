@@ -25,7 +25,6 @@ Feature: Update string vid of vertex and edge
       CREATE EDGE IF NOT EXISTS select(grade int, year int);
       CREATE EDGE IF NOT EXISTS select_default(grade int NOT NULL,year TIMESTAMP DEFAULT 1546308000);
       """
-    And wait 3 seconds
     And having executed:
       """
       INSERT VERTEX
@@ -613,7 +612,7 @@ Feature: Update string vid of vertex and edge
       ALTER TAG building ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # upsert after alter schema
     When executing query:
       """
@@ -660,7 +659,7 @@ Feature: Update string vid of vertex and edge
       ALTER EDGE like ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     When executing query:
       """
       UPSERT EDGE "1"->"100" OF like SET likeness = 2.0;
@@ -1115,7 +1114,7 @@ Feature: Update string vid of vertex and edge
       ALTER TAG building ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # upsert after alter schema
     When executing query:
       """
@@ -1162,7 +1161,7 @@ Feature: Update string vid of vertex and edge
       ALTER EDGE like ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     When executing query:
       """
       UPSERT EDGE ON like "1"->"100" SET likeness = 2.0;

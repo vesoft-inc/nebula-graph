@@ -10,7 +10,6 @@ Feature: Insert string vid of vertex and edge
       | partition_num  | 9                |
       | replica_factor | 1                |
       | vid_type       | FIXED_STRING(20) |
-    And wait 3 seconds
     # empty prop
     When executing query:
       """
@@ -402,9 +401,8 @@ Feature: Insert string vid of vertex and edge
       CREATE TAG animal(name string, kind string);
       """
     Then the execution should be successful
-    Given wait 3 seconds
     # check result
-    When executing query:
+    When try to execute query:
       """
       DESCRIBE TAG animal
       """
@@ -437,9 +435,8 @@ Feature: Insert string vid of vertex and edge
     Then the result should be, in any order:
       | Name       |
       | "test_tag" |
-    Given wait 3 seconds
     # test same tag in different space
-    When executing query:
+    When try to execute query:
       """
       USE test_multi;
       CREATE TAG test_tag1();
@@ -498,7 +495,7 @@ Feature: Insert string vid of vertex and edge
       ALTER TAG t ADD (description string DEFAULT "none")
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # insert
     When executing query:
       """
@@ -519,7 +516,7 @@ Feature: Insert string vid of vertex and edge
       ALTER TAG t CHANGE (description string NOT NULL)
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # insert
     When executing query:
       """
@@ -551,7 +548,7 @@ Feature: Insert string vid of vertex and edge
       ALTER EDGE e ADD (description string DEFAULT "none")
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     When executing query:
       """
       INSERT VERTEX t(description) VALUES "1":("some one")
@@ -571,7 +568,7 @@ Feature: Insert string vid of vertex and edge
       ALTER EDGE e CHANGE (description string NOT NULL)
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # insert without default prop, failed
     When executing query:
       """
@@ -595,8 +592,7 @@ Feature: Insert string vid of vertex and edge
       )
       """
     Then the execution should be successful
-    Given wait 3 seconds
-    When executing query:
+    When try to execute query:
       """
       INSERT EDGE relation (intimacy) VALUES "person.Tom" -> "person.Marry"@0:(3)
       """

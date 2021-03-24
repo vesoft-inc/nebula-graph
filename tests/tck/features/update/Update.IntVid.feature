@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: Update int vid of vertex and edge
 
-  Background: Prepare space
+  Scenario: update and upsert test
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9   |
@@ -25,10 +25,7 @@ Feature: Update int vid of vertex and edge
       CREATE EDGE IF NOT EXISTS select(grade int, year int);
       CREATE EDGE IF NOT EXISTS select_default(grade int NOT NULL,year TIMESTAMP DEFAULT 1546308000);
       """
-    And wait 6 seconds
-
-  Scenario: update and upsert test
-    Given having executed:
+    And having executed:
       """
       INSERT VERTEX
         student(name, age, gender)
@@ -568,7 +565,7 @@ Feature: Update int vid of vertex and edge
       ALTER TAG building ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # upsert after alter schema
     When executing query:
       """
@@ -615,7 +612,7 @@ Feature: Update int vid of vertex and edge
       ALTER EDGE like ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     When executing query:
       """
       UPSERT EDGE 1->100 OF like SET likeness = 2.0;

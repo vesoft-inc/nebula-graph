@@ -260,7 +260,6 @@ Feature: Insert int vid of vertex and edge
     # test same prop name diff type
     When executing query:
       """
-      INSERT VERTEX person(name, age), employee(name) VALUES
       INSERT VERTEX
         person(name, age),
         employee(name)

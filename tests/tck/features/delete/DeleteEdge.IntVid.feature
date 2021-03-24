@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: Delete int vid of edge
 
-  Background: Prepare space
+  Scenario: delete edges
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9   |
@@ -17,10 +17,7 @@ Feature: Delete int vid of edge
       CREATE EDGE IF NOT EXISTS schoolmate(likeness int);
       CREATE EDGE IF NOT EXISTS transfer(money int);
       """
-    And wait 3 seconds
-
-  Scenario: delete edges
-    Given having executed:
+    And having executed:
       """
       INSERT VERTEX
         person(name, age)

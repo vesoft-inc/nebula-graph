@@ -12,8 +12,7 @@ Feature: TTLTest
       """
       CREATE TAG person(name string, email string, age int, gender string, row_timestamp timestamp);
       """
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       DESCRIBE TAG person;
       """
@@ -98,8 +97,8 @@ Feature: TTLTest
       """
       ALTER TAG woman Drop (name) ttl_duration = 200;
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       SHOW CREATE TAG woman;
@@ -121,8 +120,8 @@ Feature: TTLTest
       """
       ALTER TAG woman Drop (row_timestamp);
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       SHOW CREATE TAG woman;
@@ -134,8 +133,8 @@ Feature: TTLTest
       """
       ALTER TAG woman ttl_duration = 100, ttl_col = "age";
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       SHOW CREATE TAG woman;
@@ -196,9 +195,8 @@ Feature: TTLTest
       """
       CREATE EDGE work1(name string, email string, age int, gender string, row_timestamp timestamp) ttl_duration = 100, ttl_col = "row_timestamp";
       """
-    And wait 6 seconds
     Then the execution should be successful
-    When executing query:
+    When try to execute query:
       """
       SHOW CREATE EDGE work1;
       """
@@ -340,15 +338,13 @@ Feature: TTLTest
       CREATE Edge like(id int) ttl_col="id", ttl_duration=100;
       CREATE Edge friend(id int);
       """
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       INSERT VERTEX person(id) VALUES "1":(100), "2":(200);
       INSERT VERTEX career(id) VALUES "2":(200);
       INSERT EDGE like(id) VALUES "100"->"1":(100), "100"->"2":(200);
       INSERT EDGE friend(id) VALUES "100"->"1":(100), "100"->"2":(200);
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """

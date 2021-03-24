@@ -12,7 +12,6 @@ Feature: IndexTest_Vid_String
       """
       CREATE TAG tag_1(col1 string, col2 int, col3 double, col4 timestamp);
       """
-    And wait 6 seconds
     When executing query:
       """
       CREATE TAG INDEX single_tag_index ON tag_1(col2);
@@ -58,6 +57,7 @@ Feature: IndexTest_Vid_String
       CREATE TAG INDEX disorder_tag_index ON tag_1(col3, col2);
       """
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       INSERT VERTEX
@@ -68,7 +68,6 @@ Feature: IndexTest_Vid_String
         "May":  ("May",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
         "Tom":  ("Tom",  18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -158,7 +157,6 @@ Feature: IndexTest_Vid_String
       """
       CREATE EDGE edge_1(col1 string, col2 int, col3 double, col4 timestamp)
       """
-    And wait 6 seconds
     When executing query:
       """
       CREATE EDGE INDEX single_edge_index ON edge_1(col2);
@@ -204,6 +202,7 @@ Feature: IndexTest_Vid_String
       CREATE EDGE INDEX disorder_edge_1_index ON edge_1(col3, col2)
       """
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       INSERT EDGE
@@ -214,7 +213,6 @@ Feature: IndexTest_Vid_String
         "Tony" -> "May":  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
         "May"  -> "Tim":  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -299,7 +297,6 @@ Feature: IndexTest_Vid_String
       """
       CREATE TAG person_ttl(number int, age int, gender int, email string);
       """
-    And wait 6 seconds
     When executing query:
       """
       CREATE TAG INDEX single_person_ttl_index ON person_ttl(age)
@@ -400,7 +397,6 @@ Feature: IndexTest_Vid_String
       """
       CREATE EDGE edge_1_ttl(degree int, start_time int)
       """
-    And wait 6 seconds
     When executing query:
       """
       CREATE EDGE INDEX single_edge_1_ttl_index ON edge_1_ttl(start_time)
@@ -505,36 +501,35 @@ Feature: IndexTest_Vid_String
       """
       CREATE TAG tag_1(col1 bool, col2 int, col3 double, col4 timestamp)
       """
-    And wait 6 seconds
     When executing query:
       """
       CREATE TAG INDEX single_person_index ON tag_1(col1)
       """
     Then the execution should be successful
-    When executing query:
+    And wait 3 seconds
+    When try to execute query:
       """
-      INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES
-                     "100":  (true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"))
+      INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES "100":  (true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"))
       """
     Then the execution should be successful
     When executing query:
       """
       ALTER TAG tag_1 ADD (col5 int)
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
       CREATE TAG INDEX single_person_index2 ON tag_1(col5)
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 3 seconds
     When executing query:
       """
-      INSERT VERTEX tag_1(col1, col2, col3, col4, col5) VALUES
-                     "100":(true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"), 5)
+      INSERT VERTEX
+        tag_1(col1, col2, col3, col4, col5)
+      VALUES
+        "100":(true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"), 5)
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -564,12 +559,10 @@ Feature: IndexTest_Vid_String
       """
       CREATE TAG tag_status(col1 int)
       """
-    And wait 6 seconds
     When executing query:
       """
       CREATE TAG INDEX tag_index_status ON tag_status(col1);
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -577,23 +570,21 @@ Feature: IndexTest_Vid_String
       """
     Then the result should be, in any order:
       | Name | Index Status |
-    When executing query:
+    And wait 3 seconds
+    When submit a job:
       """
       REBUILD TAG INDEX tag_index_status
       """
-    And wait 6 seconds
-    Then the execution should be successful
+    Then wait the job to finish
     When executing query:
       """
       DROP TAG INDEX tag_index_status
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
       DESCRIBE TAG INDEX tag_index_status
       """
-    And wait 6 seconds
     Then a ExecutionError should be raised at runtime:
     When executing query:
       """
@@ -616,12 +607,10 @@ Feature: IndexTest_Vid_String
       """
       CREATE EDGE edge_status(col1 int)
       """
-    And wait 6 seconds
     When executing query:
       """
       CREATE EDGE INDEX edge_index_status ON edge_status(col1);
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -629,12 +618,12 @@ Feature: IndexTest_Vid_String
       """
     Then the result should be, in any order:
       | Name | Index Status |
-    When executing query:
+    And wait 3 seconds
+    When submit a job:
       """
       REBUILD EDGE INDEX edge_index_status
       """
-    And wait 6 seconds
-    Then the execution should be successful
+    Then wait the job to finish
     When executing query:
       """
       DROP EDGE INDEX edge_index_status
@@ -666,25 +655,23 @@ Feature: IndexTest_Vid_String
       """
       CREATE TAG alter_tag(id int);
       """
-    And wait 6 seconds
     When executing query:
       """
       CREATE TAG INDEX alter_index ON alter_tag(id);
       """
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
-      INSERT VERTEX alter_tag(id) VALUES
-                     "100":(1), "200":(2)
+      INSERT VERTEX alter_tag(id) VALUES "100":(1), "200":(2)
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
       ALTER TAG alter_tag ADD (type int)
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD alter_tag.type
@@ -702,8 +689,7 @@ Feature: IndexTest_Vid_String
       CREATE TAG id_tag(id int);
       CREATE TAG name_tag(name string);
       """
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       INSERT VERTEX id_tag(id) VALUES "100":(100), "200":(100);
       INSERT VERTEX name_tag(name) VALUES "300":("100"), "400":("100");
@@ -716,12 +702,11 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
     And wait 6 seconds
-    When executing query:
+    When submit a job:
       """
       REBUILD TAG INDEX;
       """
-    Then the execution should be successful
-    And wait 6 seconds
+    Then wait the job to finish
     When executing query:
       """
       SHOW TAG INDEX STATUS;
@@ -757,8 +742,7 @@ Feature: IndexTest_Vid_String
       CREATE TAG name_tag(name string);
       CREATE TAG age_tag(age int);
       """
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       INSERT VERTEX id_tag(id) VALUES "100":(100), "200":(100);
       INSERT VERTEX name_tag(name) VALUES "300":("100"), "400":("100");
@@ -773,12 +757,11 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
     And wait 6 seconds
-    When executing query:
+    When submit a job:
       """
       REBUILD TAG INDEX id_tag_index, name_tag_index;
       """
-    Then the execution should be successful
-    And wait 6 seconds
+    Then wait the job to finish
     When executing query:
       """
       SHOW TAG INDEX STATUS;
@@ -820,8 +803,7 @@ Feature: IndexTest_Vid_String
       CREATE EDGE id_edge(id int);
       CREATE EDGE name_edge(name string);
       """
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       INSERT EDGE id_edge(id) VALUES "100"->"200":(100);
       INSERT EDGE name_edge(name) VALUES "300"->"400":("100");
@@ -834,12 +816,11 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
     And wait 6 seconds
-    When executing query:
+    When submit a job:
       """
       REBUILD EDGE INDEX;
       """
-    Then the execution should be successful
-    And wait 6 seconds
+    Then wait the job to finish
     When executing query:
       """
       SHOW EDGE INDEX STATUS;
@@ -873,8 +854,7 @@ Feature: IndexTest_Vid_String
       CREATE EDGE name_edge(name string);
       CREATE EDGE age_edge(age int);
       """
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       INSERT EDGE id_edge(id) VALUES "100"->"200":(100);
       INSERT EDGE name_edge(name) VALUES "300"->"400":("100");
@@ -889,12 +869,11 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
     And wait 6 seconds
-    When executing query:
+    When submit a job:
       """
       REBUILD EDGE INDEX id_edge_index,name_edge_index;
       """
-    Then the execution should be successful
-    And wait 6 seconds
+    Then wait the job to finish
     When executing query:
       """
       SHOW EDGE INDEX STATUS;

@@ -47,108 +47,6 @@ def combine_query(query: str) -> str:
     return " ".join(line.strip() for line in query.splitlines())
 
 
-@pytest.fixture
-def graph_spaces():
-    return dict(result_set=None)
-
-
-@given(parse('a graph with space named "{space}"'))
-def preload_space(
-    request,
-    space,
-    load_nba_data,
-    load_nba_int_vid_data,
-    load_student_data,
-    session,
-    graph_spaces,
-):
-    space = normalize_outline_scenario(request, space)
-    if space == "nba":
-        graph_spaces["space_desc"] = load_nba_data
-    elif space == "nba_int_vid":
-        graph_spaces["space_desc"] = load_nba_int_vid_data
-    elif space == "student":
-        graph_spaces["space_desc"] = load_student_data
-    else:
-        raise ValueError(f"Invalid space name given: {space}")
-    resp_ok(session, f'USE {space};', True)
-
-
-@given("an empty graph")
-def empty_graph(session, graph_spaces):
-    pass
-
-
-@given(parse("having executed:\n{query}"))
-def having_executed(query, session, request):
-    ngql = combine_query(query)
-    ngql = normalize_outline_scenario(request, ngql)
-    for stmt in ngql.split(';'):
-        stmt and resp_ok(session, stmt, True)
-
-
-@given(parse("create a space with following options:\n{options}"))
-def new_space(request, options, session, graph_spaces):
-    lines = csv.reader(io.StringIO(options), delimiter="|")
-    opts = {
-        line[1].strip(): normalize_outline_scenario(request, line[2].strip())
-        for line in lines
-    }
-    name = "EmptyGraph_" + space_generator()
-    space_desc = SpaceDesc(
-        name=opts.get("name", name),
-        partition_num=int(opts.get("partition_num", 7)),
-        replica_factor=int(opts.get("replica_factor", 1)),
-        vid_type=opts.get("vid_type", "FIXED_STRING(30)"),
-        charset=opts.get("charset", "utf8"),
-        collate=opts.get("collate", "utf8_bin"),
-    )
-    create_space(space_desc, session)
-    graph_spaces["space_desc"] = space_desc
-    graph_spaces["drop_space"] = True
-
-
-@given(parse('load "{data}" csv data to a new space'))
-def import_csv_data(request, data, graph_spaces, session, pytestconfig):
-    data_dir = os.path.join(DATA_DIR, normalize_outline_scenario(request, data))
-    space_desc = load_csv_data(
-        pytestconfig,
-        session,
-        data_dir,
-        "I" + space_generator(),
-    )
-    assert space_desc is not None
-    graph_spaces["space_desc"] = space_desc
-    graph_spaces["drop_space"] = True
-
-
-def exec_query(request, ngql, session, graph_spaces, need_try: bool = False):
-    if not ngql:
-        return
-    ngql = normalize_outline_scenario(request, ngql)
-    graph_spaces['result_set'] = response(session, ngql, need_try)
-    graph_spaces['ngql'] = ngql
-
-
-@when(parse("executing query:\n{query}"))
-def executing_query(query, graph_spaces, session, request):
-    ngql = combine_query(query)
-    exec_query(request, ngql, session, graph_spaces)
-
-
-@when(parse("profiling query:\n{query}"))
-def profiling_query(query, graph_spaces, session, request):
-    ngql = "PROFILE {" + combine_query(query) + "}"
-    exec_query(request, ngql, session, graph_spaces)
-
-
-@when(parse("try to execute query:\n{query}"))
-def try_to_execute_query(query, graph_spaces, session, request):
-    ngql = normalize_outline_scenario(request, combine_query(query))
-    for stmt in ngql.split(';'):
-        exec_query(request, stmt, session, graph_spaces, True)
-
-
 def is_job_finished(sess, job):
     rsp = resp_ok(sess, f"SHOW JOB {job}")
     assert rsp.row_size() > 0
@@ -195,6 +93,112 @@ def wait_edge_indexes_ready(sess):
             resp = resp_ok(sess, f"REBUILD EDGE INDEX {job}", True)
             jobs.append(job_id(resp))
     wait_all_jobs_finished(sess, jobs)
+
+
+@pytest.fixture
+def graph_spaces():
+    return dict(result_set=None)
+
+
+@given(parse('a graph with space named "{space}"'))
+def preload_space(
+    request,
+    space,
+    load_nba_data,
+    load_nba_int_vid_data,
+    load_student_data,
+    session,
+    graph_spaces,
+):
+    space = normalize_outline_scenario(request, space)
+    if space == "nba":
+        graph_spaces["space_desc"] = load_nba_data
+    elif space == "nba_int_vid":
+        graph_spaces["space_desc"] = load_nba_int_vid_data
+    elif space == "student":
+        graph_spaces["space_desc"] = load_student_data
+    else:
+        raise ValueError(f"Invalid space name given: {space}")
+    resp_ok(session, f'USE {space};', True)
+    wait_tag_indexes_ready(session)
+    wait_edge_indexes_ready(session)
+
+
+@given("an empty graph")
+def empty_graph(session, graph_spaces):
+    pass
+
+
+@given(parse("having executed:\n{query}"))
+def having_executed(query, session, request):
+    ngql = combine_query(query)
+    ngql = normalize_outline_scenario(request, ngql)
+    for stmt in ngql.split(';'):
+        stmt and resp_ok(session, stmt, True)
+
+
+@given(parse("create a space with following options:\n{options}"))
+def new_space(request, options, session, graph_spaces):
+    lines = csv.reader(io.StringIO(options), delimiter="|")
+    opts = {
+        line[1].strip(): normalize_outline_scenario(request, line[2].strip())
+        for line in lines
+    }
+    name = "EmptyGraph_" + space_generator()
+    space_desc = SpaceDesc(
+        name=opts.get("name", name),
+        partition_num=int(opts.get("partition_num", 7)),
+        replica_factor=int(opts.get("replica_factor", 1)),
+        vid_type=opts.get("vid_type", "FIXED_STRING(30)"),
+        charset=opts.get("charset", "utf8"),
+        collate=opts.get("collate", "utf8_bin"),
+    )
+    create_space(space_desc, session)
+    graph_spaces["space_desc"] = space_desc
+    graph_spaces["drop_space"] = True
+
+
+@given(parse('load "{data}" csv data to a new space'))
+def import_csv_data(request, data, graph_spaces, session, pytestconfig):
+    data_dir = os.path.join(DATA_DIR, normalize_outline_scenario(request, data))
+    space_desc = load_csv_data(
+        pytestconfig,
+        session,
+        data_dir,
+        "I" + space_generator(),
+    )
+    wait_tag_indexes_ready(session)
+    wait_edge_indexes_ready(session)
+    assert space_desc is not None
+    graph_spaces["space_desc"] = space_desc
+    graph_spaces["drop_space"] = True
+
+
+def exec_query(request, ngql, session, graph_spaces, need_try: bool = False):
+    if not ngql:
+        return
+    ngql = normalize_outline_scenario(request, ngql)
+    graph_spaces['result_set'] = response(session, ngql, need_try)
+    graph_spaces['ngql'] = ngql
+
+
+@when(parse("executing query:\n{query}"))
+def executing_query(query, graph_spaces, session, request):
+    ngql = combine_query(query)
+    exec_query(request, ngql, session, graph_spaces)
+
+
+@when(parse("profiling query:\n{query}"))
+def profiling_query(query, graph_spaces, session, request):
+    ngql = "PROFILE {" + combine_query(query) + "}"
+    exec_query(request, ngql, session, graph_spaces)
+
+
+@when(parse("try to execute query:\n{query}"))
+def try_to_execute_query(query, graph_spaces, session, request):
+    ngql = normalize_outline_scenario(request, combine_query(query))
+    for stmt in ngql.split(';'):
+        exec_query(request, stmt, session, graph_spaces, True)
 
 
 @given("wait all indexes ready")

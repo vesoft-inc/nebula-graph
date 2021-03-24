@@ -16,7 +16,6 @@ Feature: Fetch prop on empty tag/edge
       CREATE TAG person(money int);
       CREATE EDGE zero_prop_edge();
       """
-    And wait 3 seconds
     And having executed:
       """
       INSERT VERTEX zero_prop_tag_0() values "1":(), "2":();
@@ -24,7 +23,6 @@ Feature: Fetch prop on empty tag/edge
       INSERT VERTEX person(money) values "1":(78), "3":(88);
       INSERT EDGE zero_prop_edge() values "1"->"2":();
       """
-    And wait 3 seconds
 
   Scenario: fetch prop on all tags
     When executing query:
