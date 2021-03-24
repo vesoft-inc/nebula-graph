@@ -200,6 +200,11 @@ Feature: User & privilege Test
       | Account     | Role Type |
       | "usertmp"   | "DBA"     |
       | "usertmp_2" | "GUEST"   |
+    When executing query:
+      """
+      DROP SPACE user_tmp_space;
+      """
+    Then the execution should be successful
 
   Scenario: Grant privilege on not existing space
     When executing query:
@@ -270,3 +275,8 @@ Feature: User & privilege Test
       REVOKE ROLE DBA ON user_tmp_space_3 FROM user_revoke_tmp
       """
     Then a ExecutionError should be raised at runtime: Not existed!
+    When executing query:
+      """
+      DROP SPACE user_tmp_space_3;
+      """
+    Then the execution should be successful

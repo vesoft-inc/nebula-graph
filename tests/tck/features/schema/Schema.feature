@@ -393,6 +393,7 @@ Feature: Insert string vid of vertex and edge
       DROP EDGE IF EXISTS exist_edge;
       """
     Then the execution should be successful
+    And drop the used space
     # test same tag in different space
     When executing query:
       """
@@ -578,6 +579,7 @@ Feature: Insert string vid of vertex and edge
     # test alter edge with timestamp default
     When executing query:
       """
+      DROP SPACE tag_space;
       CREATE SPACE issue2009(vid_type = FIXED_STRING(20));
       USE issue2009;
       """
@@ -766,4 +768,8 @@ Feature: Insert string vid of vertex and edge
       ALTER EDGE edge_not_null_default1 CHANGE (name FIXED_STRING(10) DEFAULT 10)
       """
     Then a ExecutionError should be raised at runtime: Invalid parm!
-    Then drop the used space
+    When executing query:
+      """
+      DROP SPACE issue2009;
+      """
+    Then the execution should be successful
