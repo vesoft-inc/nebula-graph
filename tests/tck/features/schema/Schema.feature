@@ -479,9 +479,10 @@ Feature: Insert string vid of vertex and edge
       """
       SHOW SPACES;
       """
-    Then the result should include:
-      | Name            |
-      | /EmptyGraph_.*/ |
+    Then the result should not contains:
+      | Name         |
+      | "my_space"   |
+      | "test_multi" |
     # test alter tag with default
     When executing query:
       """

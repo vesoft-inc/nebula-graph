@@ -16,7 +16,7 @@ from nebula2.graph.ttypes import ErrorCode
 from pytest_bdd import given, parsers, then, when
 
 from tests.common.dataset_printer import DataSetPrinter
-from tests.common.comparator import DataSetComparator
+from tests.common.comparator import DataSetComparator, ContainsType
 from tests.common.plan_differ import PlanDiffer
 from tests.common.configs import DATA_DIR
 from tests.common.types import SpaceDesc
@@ -232,24 +232,23 @@ def line_number(steps, result):
             return step.line_number
     return -1
 
+
 # IN literal `1, 2, 3...'
 def parse_list(s: str):
-    numbers = s.split(',')
-    numbers_list = []
-    for num in numbers:
-        numbers_list.append(int(num))
-    return numbers_list
+    return [int(num) for num in s.split(',')]
+
 
 def hash_columns(ds, hashed_columns):
     if len(hashed_columns) == 0:
         return ds
-    for col in hashed_columns:
-        assert col < len(ds.column_names), "The hashed column should in range."
+    assert all(col < len(ds.column_names) for col in hashed_columns)
     for row in ds.rows:
         for col in hashed_columns:
-            if row.values[col].getType() != Value.NVAL and row.values[col].getType() != Value.__EMPTY__:
-                row.values[col] = Value(iVal = murmurhash2(row.values[col]))
+            val = row.values[col]
+            if val.getType() not in [Value.NVAL, Value.__EMPTY__]:
+                row.values[col] = Value(iVal=murmurhash2(val))
     return ds
+
 
 def cmp_dataset(
         request,
@@ -257,16 +256,14 @@ def cmp_dataset(
         result,
         order: bool,
         strict: bool,
-        included=False,
-        hashed_columns = [],
+        included=ContainsType.EQUAL,
+        hashed_columns=[],
 ) -> None:
     rs = graph_spaces['result_set']
     ngql = graph_spaces['ngql']
     check_resp(rs, ngql)
     space_desc = graph_spaces.get('space_desc', None)
-    vid_fn = None
-    if space_desc is not None:
-        vid_fn = murmurhash2 if space_desc.vid_type == 'int' else None
+    vid_fn = murmurhash2 if space_desc and space_desc.is_int_vid() else None
     ds = dataset(
         table(result, lambda x: normalize_outline_scenario(request, x)),
         graph_spaces.get("variables", {}),
@@ -325,33 +322,41 @@ def define_list_var_alias(text, graph_spaces):
 def result_should_be_in_order(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=True, strict=True)
 
+
 @then(parse("the result should be, in order, and the columns {hashed_columns} should be hashed:\n{result}"))
 def result_should_be_in_order_and_hash(request, result, graph_spaces, hashed_columns):
     cmp_dataset(request, graph_spaces, result, order=True, strict=True, hashed_columns=parse_list(hashed_columns))
+
 
 @then(parse("the result should be, in order, with relax comparison:\n{result}"))
 def result_should_be_in_order_relax_cmp(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=True, strict=False)
 
+
 @then(parse("the result should be, in order, with relax comparison, and the columns {hashed_columns} should be hashed:\n{result}"))
 def result_should_be_in_order_relax_cmp_and_hash(request, result, graph_spaces, hashed_columns):
     cmp_dataset(request, graph_spaces, result, order=True, strict=False, hashed_columns=parse_list(hashed_columns))
+
 
 @then(parse("the result should be, in any order:\n{result}"))
 def result_should_be(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=False, strict=True)
 
+
 @then(parse("the result should be, in any order, and the columns {hashed_columns} should be hashed:\n{result}"))
 def result_should_be_and_hash(request, result, graph_spaces, hashed_columns):
     cmp_dataset(request, graph_spaces, result, order=False, strict=True, hashed_columns=parse_list(hashed_columns))
+
 
 @then(parse("the result should be, in any order, with relax comparison:\n{result}"))
 def result_should_be_relax_cmp(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=False, strict=False)
 
+
 @then(parse("the result should be, in any order, with relax comparison, and the columns {hashed_columns} should be hashed:\n{result}"))
 def result_should_be_relax_cmp_and_hash(request, result, graph_spaces, hashed_columns):
     cmp_dataset(request, graph_spaces, result, order=False, strict=False, hashed_columns=parse_list(hashed_columns))
+
 
 @then(parse("the result should include:\n{result}"))
 def result_should_include(request, result, graph_spaces):
@@ -360,7 +365,18 @@ def result_should_include(request, result, graph_spaces):
                 result,
                 order=False,
                 strict=True,
-                included=True)
+                included=ContainsType.CONTAINS)
+
+
+@then(parse("the result should not contains:\n{result}"))
+def result_should_not_contains(request, result, graph_spaces):
+    cmp_dataset(request,
+                graph_spaces,
+                result,
+                order=False,
+                strict=True,
+                included=ContainsType.NOT_CONTAINS)
+
 
 @then(parse("the result should include, and the columns {hashed_columns} should be hashed:\n{result}"))
 def result_should_include_and_hash(request, result, graph_spaces, hashed_columns):
