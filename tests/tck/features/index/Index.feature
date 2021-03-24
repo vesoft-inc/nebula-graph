@@ -507,9 +507,12 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
     And wait 3 seconds
-    When try to execute query:
+    When executing query:
       """
-      INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES "100":  (true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"))
+      INSERT VERTEX
+        tag_1(col1, col2, col3, col4)
+      VALUES
+        "100":  (true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"))
       """
     Then the execution should be successful
     When executing query:

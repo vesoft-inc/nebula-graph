@@ -552,13 +552,16 @@ Feature: Lookup by index itself in integer vid
       """
       CREATE TAG weight (WEIGHT double);
       CREATE TAG INDEX weight_index ON weight(WEIGHT);
+      """
+    And wait 6 seconds
+    When executing query:
+      """
       INSERT VERTEX weight(WEIGHT) VALUES hash("Tim Duncan") : (70.5);
       INSERT VERTEX weight(WEIGHT) VALUES hash("Tony Parker") : (80.0);
       """
     When executing query:
       """
-      LOOKUP ON weight
-      WHERE weight.WEIGHT > 70;
+      LOOKUP ON weight WHERE weight.WEIGHT > 70;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
       | VertexID      |
@@ -566,8 +569,7 @@ Feature: Lookup by index itself in integer vid
       | "Tony Parker" |
     When executing query:
       """
-      LOOKUP ON weight
-      WHERE weight.WEIGHT > 70.4;
+      LOOKUP ON weight WHERE weight.WEIGHT > 70.4;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
       | VertexID      |
@@ -575,8 +577,7 @@ Feature: Lookup by index itself in integer vid
       | "Tony Parker" |
     When executing query:
       """
-      LOOKUP ON weight
-      WHERE weight.WEIGHT >= 70.5;
+      LOOKUP ON weight WHERE weight.WEIGHT >= 70.5;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
       | VertexID      |
