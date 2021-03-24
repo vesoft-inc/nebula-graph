@@ -465,7 +465,7 @@ Feature: Insert string vid of vertex and edge
       """
       SHOW SPACES;
       """
-    Then the result should include:
+    Then the result should contain:
       | Name       |
       | "my_space" |
     # test drop space

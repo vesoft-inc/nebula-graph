@@ -28,12 +28,12 @@ class DataSetComparator:
     def __init__(self,
                  strict=True,
                  order=False,
-                 included=ContainsType.EQUAL,
+                 contains=ContainsType.EQUAL,
                  decode_type='utf-8',
                  vid_fn=None):
         self._strict = strict
         self._order = order
-        self._included = included
+        self._contains = contains
         self._decode_type = decode_type
         self._vid_fn = vid_fn
 
@@ -47,17 +47,17 @@ class DataSetComparator:
         return b.decode(self._decode_type)
 
     def _whether_return(self, cmp: bool) -> bool:
-        return ((self._included == ContainsType.EQUAL and not cmp)
-                or (self._included == ContainsType.NOT_CONTAINS and cmp))
+        return ((self._contains == ContainsType.EQUAL and not cmp)
+                or (self._contains == ContainsType.NOT_CONTAINS and cmp))
 
     def compare(self, resp: DataSet, expect: DataSet):
-        if self._included == ContainsType.NOT_CONTAINS and len(resp.rows) == 0:
+        if self._contains == ContainsType.NOT_CONTAINS and len(resp.rows) == 0:
             return True, None
         if all(x is None for x in [expect, resp]):
             return True, None
         if None in [expect, resp]:
             return False, -1
-        if len(resp.rows) < len(expect.rows) and self._included == ContainsType.EQUAL:
+        if len(resp.rows) < len(expect.rows) and self._contains == ContainsType.EQUAL:
             return False, -1
         if len(resp.column_names) != len(expect.column_names):
             return False, -1
@@ -69,11 +69,11 @@ class DataSetComparator:
                 cmp = self.compare_row(resp.rows[i], expect.rows[i])
                 if self._whether_return(cmp):
                     return False, i
-            if self._included == ContainsType.CONTAINS:
+            if self._contains == ContainsType.CONTAINS:
                 return True, None
             return len(resp.rows) == len(expect.rows), -1
         return self._compare_list(resp.rows, expect.rows, self.compare_row,
-                                  self._included)
+                                  self._contains)
 
     def compare_value(self, lhs: Value, rhs: Union[Value, Pattern]) -> bool:
         """
@@ -337,7 +337,7 @@ class DataSetComparator:
         return all(
             self.compare_value(l, r) for (l, r) in zip(lhs.values, rhs.values))
 
-    def _compare_list(self, lhs, rhs, cmp_fn, included=False):
+    def _compare_list(self, lhs, rhs, cmp_fn, contains=False):
         visited = []
         for j, rr in enumerate(rhs):
             found = False
@@ -349,8 +349,8 @@ class DataSetComparator:
             if self._whether_return(found):
                 return False, j
         size = len(lhs)
-        if included == ContainsType.CONTAINS:
+        if contains == ContainsType.CONTAINS:
             return len(visited) <= size, -1
-        if included == ContainsType.NOT_CONTAINS:
+        if contains == ContainsType.NOT_CONTAINS:
             return True, -1
         return len(visited) == size, -1

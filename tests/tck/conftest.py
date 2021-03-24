@@ -256,7 +256,7 @@ def cmp_dataset(
         result,
         order: bool,
         strict: bool,
-        included=ContainsType.EQUAL,
+        contains=ContainsType.EQUAL,
         hashed_columns=[],
 ) -> None:
     rs = graph_spaces['result_set']
@@ -271,7 +271,7 @@ def cmp_dataset(
     ds = hash_columns(ds, hashed_columns)
     dscmp = DataSetComparator(strict=strict,
                               order=order,
-                              included=included,
+                              contains=contains,
                               decode_type=rs._decode_type,
                               vid_fn=vid_fn)
 
@@ -358,14 +358,14 @@ def result_should_be_relax_cmp_and_hash(request, result, graph_spaces, hashed_co
     cmp_dataset(request, graph_spaces, result, order=False, strict=False, hashed_columns=parse_list(hashed_columns))
 
 
-@then(parse("the result should include:\n{result}"))
-def result_should_include(request, result, graph_spaces):
+@then(parse("the result should contain:\n{result}"))
+def result_should_contains(request, result, graph_spaces):
     cmp_dataset(request,
                 graph_spaces,
                 result,
                 order=False,
                 strict=True,
-                included=ContainsType.CONTAINS)
+                contains=ContainsType.CONTAINS)
 
 
 @then(parse("the result should not contains:\n{result}"))
@@ -375,17 +375,17 @@ def result_should_not_contains(request, result, graph_spaces):
                 result,
                 order=False,
                 strict=True,
-                included=ContainsType.NOT_CONTAINS)
+                contains=ContainsType.NOT_CONTAINS)
 
 
-@then(parse("the result should include, and the columns {hashed_columns} should be hashed:\n{result}"))
-def result_should_include_and_hash(request, result, graph_spaces, hashed_columns):
+@then(parse("the result should contains, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_contains_and_hash(request, result, graph_spaces, hashed_columns):
     cmp_dataset(request,
                 graph_spaces,
                 result,
                 order=False,
                 strict=True,
-                included=True,
+                contains=True,
                 hashed_columns=parse_list(hashed_columns))
 
 

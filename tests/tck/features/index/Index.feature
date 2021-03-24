@@ -641,7 +641,7 @@ Feature: IndexTest_Vid_String
       """
       SHOW EDGE INDEX STATUS;
       """
-    Then the result should include:
+    Then the result should contain:
       | Name                | Index Status |
       | "edge_index_status" | "FINISHED"   |
     Then drop the used space
@@ -714,7 +714,7 @@ Feature: IndexTest_Vid_String
       """
       SHOW TAG INDEX STATUS;
       """
-    Then the result should include:
+    Then the result should contain:
       | Name                                | Index Status |
       | "rebuild_tag_space_all_tag_indexes" | "FINISHED"   |
     When executing query:
@@ -769,7 +769,7 @@ Feature: IndexTest_Vid_String
       """
       SHOW TAG INDEX STATUS;
       """
-    Then the result should include:
+    Then the result should contain:
       | Name                          | Index Status |
       | "id_tag_index,name_tag_index" | "FINISHED"   |
     When executing query:
@@ -828,7 +828,7 @@ Feature: IndexTest_Vid_String
       """
       SHOW EDGE INDEX STATUS;
       """
-    Then the result should include:
+    Then the result should contain:
       | Name                                  | Index Status |
       | "rebuild_edge_space_all_edge_indexes" | "FINISHED"   |
     When executing query:
@@ -881,7 +881,7 @@ Feature: IndexTest_Vid_String
       """
       SHOW EDGE INDEX STATUS;
       """
-    Then the result should include:
+    Then the result should contain:
       | Name                            | Index Status |
       | "id_edge_index,name_edge_index" | "FINISHED"   |
     When executing query:
