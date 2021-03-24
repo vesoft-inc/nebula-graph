@@ -57,7 +57,7 @@ class DataSetComparator:
             return True, None
         if None in [expect, resp]:
             return False, -1
-        if len(resp.rows) < len(expect.rows):
+        if len(resp.rows) < len(expect.rows) and self._included == ContainsType.EQUAL:
             return False, -1
         if len(resp.column_names) != len(expect.column_names):
             return False, -1
@@ -351,4 +351,6 @@ class DataSetComparator:
         size = len(lhs)
         if included == ContainsType.CONTAINS:
             return len(visited) <= size, -1
+        if included == ContainsType.NOT_CONTAINS:
+            return True, -1
         return len(visited) == size, -1
