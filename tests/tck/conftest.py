@@ -73,26 +73,20 @@ def job_id(resp):
             return job.as_int()
 
 
-def wait_tag_indexes_ready(sess):
-    resp = resp_ok(sess, "SHOW TAG INDEXES")
+def wait_tag_or_edge_indexes_ready(sess, schema: str = "TAG"):
+    resp = resp_ok(sess, f"SHOW {schema} INDEXES")
     jobs = []
     for key in resp.keys():
         for val in resp.column_values(key):
             job = val.as_string()
-            resp = resp_ok(sess, f"REBUILD TAG INDEX {job}", True)
+            resp = resp_ok(sess, f"REBUILD {schema} INDEX {job}", True)
             jobs.append(job_id(resp))
     wait_all_jobs_finished(sess, jobs)
 
 
-def wait_edge_indexes_ready(sess):
-    resp = resp_ok(sess, "SHOW EDGE INDEXES")
-    jobs = []
-    for key in resp.keys():
-        for val in resp.column_values(key):
-            job = val.as_string()
-            resp = resp_ok(sess, f"REBUILD EDGE INDEX {job}", True)
-            jobs.append(job_id(resp))
-    wait_all_jobs_finished(sess, jobs)
+def wait_indexes_ready(sess):
+    wait_tag_or_edge_indexes_ready(sess, "TAG")
+    wait_tag_or_edge_indexes_ready(sess, "EDGE")
 
 
 @pytest.fixture
@@ -120,8 +114,7 @@ def preload_space(
     else:
         raise ValueError(f"Invalid space name given: {space}")
     resp_ok(session, f'USE {space};', True)
-    wait_tag_indexes_ready(session)
-    wait_edge_indexes_ready(session)
+    wait_indexes_ready(session)
 
 
 @given("an empty graph")
@@ -167,8 +160,7 @@ def import_csv_data(request, data, graph_spaces, session, pytestconfig):
         data_dir,
         "I" + space_generator(),
     )
-    wait_tag_indexes_ready(session)
-    wait_edge_indexes_ready(session)
+    wait_indexes_ready(session)
     assert space_desc is not None
     graph_spaces["space_desc"] = space_desc
     graph_spaces["drop_space"] = True
@@ -209,8 +201,7 @@ def wait_index_ready(graph_spaces, session):
     assert space_desc is not None
     space = space_desc.name
     resp_ok(session, f"USE {space}", True)
-    wait_tag_indexes_ready(session)
-    wait_edge_indexes_ready(session)
+    wait_indexes_ready(session)
 
 
 @when(parse("submit a job:\n{query}"))
