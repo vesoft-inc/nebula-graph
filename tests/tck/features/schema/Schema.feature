@@ -176,10 +176,12 @@ Feature: Insert string vid of vertex and edge
     # Tag with expression DEFAULT value
     When executing query:
       """
-      CREATE TAG default_tag_expr(id int64 DEFAULT 3/2*4-5,
-      male bool DEFAULT 3 > 2,
-      height double DEFAULT abs(-176.0),
-      adult bool DEFAULT true AND false)
+      CREATE TAG default_tag_expr(
+        id int64 DEFAULT 3/2*4-5,
+        male bool DEFAULT 3 > 2,
+        height double DEFAULT abs(-176.0),
+        adult bool DEFAULT true AND false
+      );
       """
     Then the execution should be successful
     # drop tag succeeded
@@ -360,10 +362,11 @@ Feature: Insert string vid of vertex and edge
     When executing query:
       """
       CREATE EDGE default_edge_expr(
-      id int DEFAULT 3/2*4-5,
-      male bool DEFAULT 3 > 2,
-      height double DEFAULT abs(-176.0),
-      adult bool DEFAULT true AND false)
+        id int DEFAULT 3/2*4-5,
+        male bool DEFAULT 3 > 2,
+        height double DEFAULT abs(-176.0),
+        adult bool DEFAULT true AND false
+      );
       """
     Then the execution should be successful
     # test drop edge
@@ -455,7 +458,8 @@ Feature: Insert string vid of vertex and edge
     # reserved keyword
     When executing query:
       """
-      USE my_space; CREATE TAG `tag` (`edge` string);
+      USE my_space;
+      CREATE TAG `tag` (`edge` string);
       """
     Then the execution should be successful
     # test drop space
@@ -485,7 +489,7 @@ Feature: Insert string vid of vertex and edge
       """
       CREATE SPACE tag_space(partition_num=9);
       USE tag_space;
-      CREATE TAG t(name string DEFAULT "N/A", age int DEFAULT -1)
+      CREATE TAG t(name string DEFAULT "N/A", age int DEFAULT -1);
       """
     Then the execution should be successful
     # test alter add
@@ -578,16 +582,17 @@ Feature: Insert string vid of vertex and edge
     When executing query:
       """
       CREATE SPACE issue2009(vid_type = FIXED_STRING(20));
-      USE issue2009
+      USE issue2009;
       """
     Then the execution should be successful
     When executing query:
       """
       CREATE EDGE IF NOT EXISTS relation (
-      intimacy int DEFAULT 0,
-      isReversible bool DEFAULT false,
-      name string DEFAULT "N/A",
-      startTime timestamp DEFAULT 0)
+        intimacy int DEFAULT 0,
+        isReversible bool DEFAULT false,
+        name string DEFAULT "N/A",
+        startTime timestamp DEFAULT 0
+      )
       """
     Then the execution should be successful
     Given wait 3 seconds

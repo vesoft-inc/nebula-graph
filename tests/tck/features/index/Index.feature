@@ -60,11 +60,13 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     When executing query:
       """
-      INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES
-                         "Tim":  ("Tim",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                         "Tony": ("Tony", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                         "May":  ("May",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                         "Tom":  ("Tom",  18, 11.11, `timestamp`("2000-10-10T10:00:00"))
+      INSERT VERTEX
+        tag_1(col1, col2, col3, col4)
+      VALUES
+        "Tim":  ("Tim",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        "Tony": ("Tony", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        "May":  ("May",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        "Tom":  ("Tom",  18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
     And wait 6 seconds
     Then the execution should be successful
@@ -204,11 +206,13 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     When executing query:
       """
-      INSERT EDGE edge_1(col1, col2, col3, col4) VALUES
-                     "Tim"  -> "May":  ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     "Tim"  -> "Tony": ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     "Tony" -> "May": ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     "May"  -> "Tim":  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00"))
+      INSERT EDGE
+        edge_1(col1, col2, col3, col4)
+      VALUES
+        "Tim"  -> "May":  ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        "Tim"  -> "Tony": ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        "Tony" -> "May":  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        "May"  -> "Tim":  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
     And wait 6 seconds
     Then the execution should be successful

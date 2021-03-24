@@ -60,11 +60,13 @@ Feature: IndexTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES
-                       hash("Tim"):  ("Tim",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                       hash("Tony"): ("Tony", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                       hash("May"):  ("May",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                       hash("Tom"):  ("Tom",  18, 11.11, `timestamp`("2000-10-10T10:00:00"))
+      INSERT VERTEX
+        tag_1(col1, col2, col3, col4)
+      VALUES
+        hash("Tim"):  ("Tim",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        hash("Tony"): ("Tony", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        hash("May"):  ("May",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        hash("Tom"):  ("Tom",  18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
     And wait 6 seconds
     Then the execution should be successful
@@ -204,11 +206,13 @@ Feature: IndexTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      INSERT EDGE edge_1(col1, col2, col3, col4) VALUES
-                     hash("Tim")  ->  hash("May"):  ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     hash("Tim")  ->  hash("Tony"): ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     hash("Tony") ->  hash("May"): ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     hash("May")  ->  hash("Tim"):  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00"))
+      INSERT EDGE
+        edge_1(col1, col2, col3, col4)
+      VALUES
+        hash("Tim")  ->  hash("May"):  ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        hash("Tim")  ->  hash("Tony"): ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        hash("Tony") ->  hash("May"):  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        hash("May")  ->  hash("Tim"):  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
     And wait 6 seconds
     Then the execution should be successful

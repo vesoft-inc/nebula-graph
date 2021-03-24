@@ -13,10 +13,12 @@ Feature: Insert string vid of vertex and edge
     And having executed:
       """
       CREATE TAG IF NOT EXISTS person(name string, age int);
-      CREATE TAG IF NOT EXISTS personWithDefault(name string DEFAULT "",
-      age int DEFAULT 18, isMarried bool DEFAULT false,
-      BMI double DEFAULT 18.5, department string DEFAULT "engineering",
-      birthday timestamp DEFAULT timestamp("2020-01-10T10:00:00"));
+      CREATE TAG IF NOT EXISTS personWithDefault(
+        name string DEFAULT "",
+        age int DEFAULT 18, isMarried bool DEFAULT false,
+        BMI double DEFAULT 18.5, department string DEFAULT "engineering",
+        birthday timestamp DEFAULT timestamp("2020-01-10T10:00:00")
+      );
       CREATE TAG IF NOT EXISTS student(grade string, number int);
       CREATE TAG IF NOT EXISTS studentWithDefault(grade string DEFAULT "one", number int);
       CREATE TAG IF NOT EXISTS employee(name int);
@@ -54,8 +56,7 @@ Feature: Insert string vid of vertex and edge
     # insert edge wrong number of value
     When executing query:
       """
-      INSERT EDGE schoolmate(likeness, nickname) VALUES
-      "Laura"->"Amber":("hello", "87", "");
+      INSERT EDGE schoolmate(likeness, nickname) VALUES "Laura"->"Amber":("hello", "87", "");
       """
     Then a SemanticError should be raised at runtime:
     # insert edge wrong num of prop
@@ -73,8 +74,10 @@ Feature: Insert string vid of vertex and edge
     # insert edge invalid timestamp
     When executing query:
       """
-      INSERT EDGE study(start_time, end_time) VALUES
-      "Laura"->"sun_school":(timestamp("2300-01-01T10:00:00"), now()+3600*24*365*3);
+      INSERT EDGE
+        study(start_time, end_time)
+      VALUES
+        "Laura"->"sun_school":(timestamp("2300-01-01T10:00:00"), now()+3600*24*365*3);
       """
     Then a ExecutionError should be raised at runtime:
     # insert vertex succeeded
@@ -100,8 +103,7 @@ Feature: Insert string vid of vertex and edge
     # insert vertex with string timestamp succeeded
     When executing query:
       """
-      INSERT VERTEX school(name, create_time) VALUES
-      "sun_school":("sun_school", timestamp("2010-01-01T10:00:00"))
+      INSERT VERTEX school(name, create_time) VALUES "sun_school":("sun_school", timestamp("2010-01-01T10:00:00"))
       """
     Then the execution should be successful
     # insert edge succeeded
@@ -127,8 +129,7 @@ Feature: Insert string vid of vertex and edge
     # insert edge with timestamp succeed
     When executing query:
       """
-      INSERT EDGE study(start_time, end_time) VALUES
-      "Laura"->"sun_school":(timestamp("2019-01-01T10:00:00"), now()+3600*24*365*3)
+      INSERT EDGE study(start_time, end_time) VALUES "Laura"->"sun_school":(timestamp("2019-01-01T10:00:00"), now()+3600*24*365*3)
       """
     Then the execution should be successful
     # check edge result with go
@@ -323,10 +324,12 @@ Feature: Insert string vid of vertex and edge
     # insert vertices multi tags with default value
     When executing query:
       """
-      INSERT VERTEX personWithDefault(name, BMI),
-      studentWithDefault(number) VALUES
-      "Laura":("Laura", 21.5, 20190901008),
-      "Amber":("Amber", 22.5, 20180901003)
+      INSERT VERTEX
+        personWithDefault(name, BMI),
+        studentWithDefault(number)
+      VALUES
+        "Laura":("Laura", 21.5, 20190901008),
+        "Amber":("Amber", 22.5, 20180901003)
       """
     Then the execution should be successful
     # multi vertices one tag with default value

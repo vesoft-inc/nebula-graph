@@ -958,11 +958,13 @@ Feature: LookUpTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      lookup on identity where
-                     identity.NATION == "汉族" and
-                     identity.BIRTHDAY > 19620101 and
-                     identity.BIRTHDAY < 20021231 and
-                     identity.BIRTHPLACE_CITY == "bbb";
+      LOOKUP ON
+        identity
+      WHERE
+        identity.NATION == "汉族" AND
+        identity.BIRTHDAY > 19620101 AND
+        identity.BIRTHDAY < 20021231 AND
+        identity.BIRTHPLACE_CITY == "bbb";
       """
     Then the result should be, in any order:
       | VertexID |
