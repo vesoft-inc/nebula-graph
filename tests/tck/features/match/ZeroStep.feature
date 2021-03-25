@@ -455,3 +455,246 @@ Feature: Variable length Pattern match (0 step)
       | []                                                             | ("Trail Blazers" :team{name: "Trail Blazers"})                                                              |
       | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Trail Blazers" :team{name: "Trail Blazers"})                                                              |
       | []                                                             | ("Trail Blazers" :team{name: "Trail Blazers"})                                                              |
+
+  Scenario: Test some boundary usage
+    When executing query:
+      """
+      MATCH (v:player{name: 'Tim Duncan'})-[e:like*0]-()
+      RETURN e
+      """
+    Then The result should be:
+      | e  |
+      | [] |
+    When executing query:
+      """
+      MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()
+      RETURN e
+      """
+    Then The result should be:
+      | e  |
+      | [] |
+    When executing query:
+      """
+      MATCH (v:player{name: 'Tim Duncan'})-[e:like*]-()
+      RETURN e
+      """
+    Then a SemanticError should be raised at runtime: SemanticError: Cannot set maximum hop for variable length relationships
+    When executing query:
+      """
+      MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()-[e2:like*0..0]-()
+      RETURN e, e2
+      """
+    Then The result should be:
+      | e  | e2 |
+      | [] | [] |
+
+  Scenario: Test mix query of fixed and variable hops
+    When executing query:
+      """
+      MATCH (:player{name: "Tim Duncan"})-[e1:like]->()-[e2:serve*0..3]->()<-[e3:serve]-(v)
+      RETURN count(v)
+      """
+    Then The result should be:
+      | count(v) |
+      |       40 |
+
+  Scenario: Test return all variables
+    When executing query:
+      """
+      MATCH (v:player:{name: "abc"}) -[r*1..3]-> ()
+      RETURN *
+      """
+    Then The result should be:
+      | e              |
+      | ["Tim Duncan"] |
+    When executing query:
+      """
+      MATCH (v:player:{name: "abc"}) -[r*..3]-> ()
+      RETURN *
+      """
+    Then The result should be:
+      | e              |
+      | ["Tim Duncan"] |
+    When executing query:
+      """
+      MATCH (v:player:{name: "abc"}) -[r*1..]-> ()
+      RETURN *
+      """
+    Then The result should be:
+      | e              |
+      | ["Tim Duncan"] |
+
+  Scenario: Single edge with properties in both directions
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:serve*0..1{start_year: 2000}]-(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                   | v                 |
+      | []                                  | ('Tracy McGrady') |
+      | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1{likeness: 90}]-(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                         | v                 |
+      | []                                        | ('Tracy McGrady') |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')      |
+      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter')  |
+      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')      |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:like*1{likeness: 90}]-(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                        | v               |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant') |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')      |
+      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter')  |
+      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')      |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]-(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e  | v                 |
+      | [] | ('Tracy McGrady') |
+
+  Scenario: Single edge with properties in single directions
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1{likeness: 90}]->(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                        | v                 |
+      | []                                       | ('Tracy McGrady') |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]  | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]    | ('Rudy Gay')      |
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]->(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                        | v                 |
+      | []                                       | ('Tracy McGrady') |
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]->(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                        | v                 |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]  | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]    | ('Rudy Gay')      |
+
+  Scenario: Single edge without properties in both directions
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:serve*0..1]-(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                     | v                 |
+      | []                                    | ('Tracy McGrady') |
+      | [[:serve 'Tracy McGrady'->'Raptors']] | ('Raptors')       |
+      | [[:serve 'Tracy McGrady'->'Magic']]   | ('Magic')         |
+      | [[:serve 'Tracy McGrady'->'Spurs']]   | ('Spurs')         |
+      | [[:serve 'Tracy McGrady'->'Rockets']] | ('Rockets')       |
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1]-(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                         | v                 |
+      | []                                        | ('Tracy McGrady') |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')      |
+      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter')  |
+      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')      |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+
+  Scenario: Multiple edges with properties in both directions
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{start_year: 2000}]-(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                   | v                 |
+      | []                                  | ('Tracy McGrady') |
+      | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
+
+  Scenario: Multiple edges with properties in single direction
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{start_year: 2000}]->(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                   | v                 |
+      | []                                  | ('Tracy McGrady') |
+      | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{likeness: 90}]->(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                        | v                 |
+      | []                                       | ('Tracy McGrady') |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]  | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]    | ('Rudy Gay')      |
+
+  Scenario: Multiple edges without properties in both directions
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1]-(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                         | v                 |
+      | []                                        | ('Tracy McGrady') |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')      |
+      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter')  |
+      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')      |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | [[:serve 'Tracy McGrady'->'Raptors']]     | ('Raptors')       |
+      | [[:serve 'Tracy McGrady'->'Magic']]       | ('Magic')         |
+      | [[:serve 'Tracy McGrady'->'Spurs']]       | ('Spurs')         |
+      | [[:serve 'Tracy McGrady'->'Rockets']]     | ('Rockets')       |
+
+  Scenario: Multiple edges without properties in single direction
+    When executing query:
+      """
+      MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1]->(v)
+      RETURN e, v
+      """
+    Then The result should be:
+      | e                                        | v                 |
+      | []                                       | ('Tracy McGrady') |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]  | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]    | ('Rudy Gay')      |
+      | [[:serve 'Tracy McGrady'->'Raptors']]    | ('Raptors')       |
+      | [[:serve 'Tracy McGrady'->'Magic']]      | ('Magic')         |
+      | [[:serve 'Tracy McGrady'->'Spurs']]      | ('Spurs')         |
+      | [[:serve 'Tracy McGrady'->'Rockets']]    | ('Rockets')       |
