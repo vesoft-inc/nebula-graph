@@ -13,17 +13,16 @@ Feature: Insert with time-dependent types
       CREATE TAG IF NOT EXISTS TAG_DATE(a date);
       CREATE TAG IF NOT EXISTS TAG_DATETIME(a datetime);
       """
-    And wait 3 seconds
+    When try to execute query:
+      """
+      INSERT VERTEX TAG_TIMESTAMP(a) VALUES "TEST_VERTEX":(NULL)
+      """
+    Then the execution should be successful
     When executing query:
       """
       INSERT VERTEX TAG_TIMESTAMP(a) VALUES "TEST_VERTEX":("2000.0.0 10:0:0")
       """
     Then a ExecutionError should be raised at runtime:Storage Error: The data type does not meet the requirements. Use the correct type of data.
-    When executing query:
-      """
-      INSERT VERTEX TAG_TIMESTAMP(a) VALUES "TEST_VERTEX":(NULL)
-      """
-    Then the execution should be successful
     When executing query:
       """
       INSERT VERTEX TAG_TIME(a) VALUES "TEST_VERTEX":("10:0:0")

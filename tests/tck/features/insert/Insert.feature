@@ -28,7 +28,12 @@ Feature: Insert string vid of vertex and edge
       CREATE EDGE IF NOT EXISTS schoolmateWithDefault(likeness int DEFAULT 80);
       CREATE EDGE IF NOT EXISTS study(start_time timestamp, end_time timestamp);
       """
-    And wait 3 seconds
+    # insert vertex succeeded
+    When try to execute query:
+      """
+      INSERT VERTEX person(name, age) VALUES "Tom":("Tom", 22)
+      """
+    Then the execution should be successful
     # insert vertex wrong type value
     When executing query:
       """
@@ -80,12 +85,6 @@ Feature: Insert string vid of vertex and edge
         "Laura"->"sun_school":(timestamp("2300-01-01T10:00:00"), now()+3600*24*365*3);
       """
     Then a ExecutionError should be raised at runtime:
-    # insert vertex succeeded
-    When executing query:
-      """
-      INSERT VERTEX person(name, age) VALUES "Tom":("Tom", 22)
-      """
-    Then the execution should be successful
     # insert vertex unordered order prop vertex succeeded
     When executing query:
       """
@@ -433,7 +432,12 @@ Feature: Insert string vid of vertex and edge
       CREATE TAG student(name string NOT NULL, age int);
       CREATE TAG course(name fixed_string(5) NOT NULL, introduce string DEFAULT NULL);
       """
-    And wait 3 seconds
+    # test insert with fixed_string
+    When try to execute query:
+      """
+      INSERT VERTEX course(name) VALUES "Math":("Math")
+      """
+    Then the execution should be successful
     # test insert out of range id size
     When executing query:
       """
@@ -451,12 +455,6 @@ Feature: Insert string vid of vertex and edge
       INSERT VERTEX student(name, age) VALUES "Tom":(NULL, 12)
       """
     Then a ExecutionError should be raised at runtime: Storage Error: The not null field cannot be null.
-    # test insert with fixed_string
-    When executing query:
-      """
-      INSERT VERTEX course(name) VALUES "Math":("Math")
-      """
-    Then the execution should be successful
     # out of fixed_string's size
     When executing query:
       """

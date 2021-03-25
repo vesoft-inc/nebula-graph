@@ -28,9 +28,9 @@ Feature: Insert int vid of vertex and edge
       CREATE EDGE IF NOT EXISTS schoolmateWithDefault(likeness int DEFAULT 80);
       CREATE EDGE IF NOT EXISTS study(start_time timestamp, end_time timestamp);
       """
-    And wait 3 seconds
 
   Scenario: insert vertex and edge test
+    Given wait 3 seconds
     # insert vertex wrong type value
     When executing query:
       """
@@ -84,7 +84,7 @@ Feature: Insert int vid of vertex and edge
 
   Scenario: insert vertex unordered order prop vertex succeeded
     # insert vertex succeeded
-    When executing query:
+    When try to execute query:
       """
       INSERT VERTEX person(name, age) VALUES hash("Tom"):("Tom", 22)
       """
