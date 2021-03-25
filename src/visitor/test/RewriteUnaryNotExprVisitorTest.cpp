@@ -135,6 +135,15 @@ TEST_F(RewriteUnaryNotExprVisitorTest, TestMultipleUnaryNotContainerExpr) {
 }
 
 TEST_F(RewriteUnaryNotExprVisitorTest, TestRelExpr) {
+    // (5 == 10)  =>  (5 == 10)
+    // no change should be made to the orginal expression
+    {
+        auto original = pool.add(eqExpr(constantExpr(5), constantExpr(10)));
+        RewriteUnaryNotExprVisitor visitor(&pool);
+        original->accept(&visitor);
+        auto res = visitor.getExpr();
+        ASSERT_EQ(original, res) << original->toString() << " vs. " << res->toString();
+    }
     // !(5 == 10)  =>  (5 != 10)
     {
         auto expr = pool.add(notExpr(eqExpr(constantExpr(5), constantExpr(10))));

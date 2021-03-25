@@ -81,9 +81,6 @@ private:
     void visitBinaryExpr(BinaryExpression *expr) override;
 
 private:
-    Expression *expr_;
-    ObjectPool *pool_;
-
     bool isUnaryNotExpr(const Expression *expr);
     bool isRelExpr(const Expression *expr);
     bool isLogicalExpr(const Expression *expr);
@@ -91,6 +88,9 @@ private:
     std::unique_ptr<Expression> reverseLogicalExpr(Expression *expr);
     Expression::Kind getNegatedRelExprKind(const Expression::Kind kind);
     Expression::Kind getNegatedLogicalExprKind(const Expression::Kind kind);
+
+    Expression *expr_;
+    ObjectPool *pool_;
 };
 
 }   // namespace graph

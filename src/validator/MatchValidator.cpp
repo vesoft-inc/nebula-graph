@@ -298,7 +298,7 @@ Status MatchValidator::validateFilter(const Expression *filter,
     auto pool = whereClauseCtx.qctx->objPool();
     whereClauseCtx.filter = ExpressionUtils::reduceUnaryNotExpr(newFilter.get(), pool);
 
-    auto typeStatus = deduceExprType(whereClauseCtx.filter.get());
+    auto typeStatus = deduceExprType(whereClauseCtx.filter);
     NG_RETURN_IF_ERROR(typeStatus);
     auto type = typeStatus.value();
     if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE &&
@@ -309,7 +309,7 @@ Status MatchValidator::validateFilter(const Expression *filter,
         return Status::SemanticError(ss.str());
     }
 
-    NG_RETURN_IF_ERROR(validateAliases({whereClauseCtx.filter.get()}, whereClauseCtx.aliasesUsed));
+    NG_RETURN_IF_ERROR(validateAliases({whereClauseCtx.filter}, whereClauseCtx.aliasesUsed));
 
     return Status::OK();
 }
