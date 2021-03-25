@@ -35,8 +35,6 @@ jobs:
           filename=$(find build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
           sha256sum $filename > $filename.$SHA_EXT
           subdir=$(date -u +%Y.%m.%d)
-          echo "::set-output name=filepath::$filename"
-          echo "::set-output name=shafilepath::$filename.$SHA_EXT"
           echo "::set-output name=subdir::$subdir"
       - uses: actions/upload-artifact@v1
         with:
