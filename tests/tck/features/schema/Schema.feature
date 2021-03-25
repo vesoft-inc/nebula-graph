@@ -403,7 +403,7 @@ Feature: Insert string vid of vertex and edge
       """
     Then the execution should be successful
     # check result
-    When try to execute query:
+    When executing query:
       """
       DESCRIBE TAG animal
       """

@@ -12,7 +12,7 @@ Feature: TTLTest
       """
       CREATE TAG person(name string, email string, age int, gender string, row_timestamp timestamp);
       """
-    When try to execute query:
+    When executing query:
       """
       DESCRIBE TAG person;
       """
@@ -98,7 +98,6 @@ Feature: TTLTest
       ALTER TAG woman Drop (name) ttl_duration = 200;
       """
     Then the execution should be successful
-    And wait 6 seconds
     When executing query:
       """
       SHOW CREATE TAG woman;
@@ -121,7 +120,6 @@ Feature: TTLTest
       ALTER TAG woman Drop (row_timestamp);
       """
     Then the execution should be successful
-    And wait 6 seconds
     When executing query:
       """
       SHOW CREATE TAG woman;
@@ -134,7 +132,6 @@ Feature: TTLTest
       ALTER TAG woman ttl_duration = 100, ttl_col = "age";
       """
     Then the execution should be successful
-    And wait 6 seconds
     When executing query:
       """
       SHOW CREATE TAG woman;
@@ -196,7 +193,7 @@ Feature: TTLTest
       CREATE EDGE work1(name string, email string, age int, gender string, row_timestamp timestamp) ttl_duration = 100, ttl_col = "row_timestamp";
       """
     Then the execution should be successful
-    When try to execute query:
+    When executing query:
       """
       SHOW CREATE EDGE work1;
       """
