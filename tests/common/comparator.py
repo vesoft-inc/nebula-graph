@@ -21,14 +21,14 @@ from tests.common.dataset_printer import DataSetPrinter
 KV = Dict[Union[str, bytes], Value]
 Pattern = type(re.compile(r'/'))
 
-ContainsType = Enum('ContainsType', ('EQUAL', 'CONTAINS', 'NOT_CONTAINS'))
+CmpType = Enum('CmpType', ('EQUAL', 'CONTAINS', 'NOT_CONTAINS'))
 
 
 class DataSetComparator:
     def __init__(self,
                  strict=True,
                  order=False,
-                 contains=ContainsType.EQUAL,
+                 contains=CmpType.EQUAL,
                  decode_type='utf-8',
                  vid_fn=None):
         self._strict = strict
@@ -47,17 +47,17 @@ class DataSetComparator:
         return b.decode(self._decode_type)
 
     def _whether_return(self, cmp: bool) -> bool:
-        return ((self._contains == ContainsType.EQUAL and not cmp)
-                or (self._contains == ContainsType.NOT_CONTAINS and cmp))
+        return ((self._contains == CmpType.EQUAL and not cmp)
+                or (self._contains == CmpType.NOT_CONTAINS and cmp))
 
     def compare(self, resp: DataSet, expect: DataSet):
-        if self._contains == ContainsType.NOT_CONTAINS and len(resp.rows) == 0:
+        if self._contains == CmpType.NOT_CONTAINS and len(resp.rows) == 0:
             return True, None
         if all(x is None for x in [expect, resp]):
             return True, None
         if None in [expect, resp]:
             return False, -1
-        if len(resp.rows) < len(expect.rows) and self._contains == ContainsType.EQUAL:
+        if len(resp.rows) < len(expect.rows) and self._contains == CmpType.EQUAL:
             return False, -1
         if len(resp.column_names) != len(expect.column_names):
             return False, -1
@@ -69,7 +69,7 @@ class DataSetComparator:
                 cmp = self.compare_row(resp.rows[i], expect.rows[i])
                 if self._whether_return(cmp):
                     return False, i
-            if self._contains == ContainsType.CONTAINS:
+            if self._contains == CmpType.CONTAINS:
                 return True, None
             return len(resp.rows) == len(expect.rows), -1
         return self._compare_list(resp.rows, expect.rows, self.compare_row,
@@ -349,8 +349,8 @@ class DataSetComparator:
             if self._whether_return(found):
                 return False, j
         size = len(lhs)
-        if contains == ContainsType.CONTAINS:
+        if contains == CmpType.CONTAINS:
             return len(visited) <= size, -1
-        if contains == ContainsType.NOT_CONTAINS:
+        if contains == CmpType.NOT_CONTAINS:
             return True, -1
         return len(visited) == size, -1

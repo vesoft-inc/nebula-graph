@@ -16,7 +16,7 @@ from nebula2.graph.ttypes import ErrorCode
 from pytest_bdd import given, parsers, then, when
 
 from tests.common.dataset_printer import DataSetPrinter
-from tests.common.comparator import DataSetComparator, ContainsType
+from tests.common.comparator import DataSetComparator, CmpType
 from tests.common.plan_differ import PlanDiffer
 from tests.common.configs import DATA_DIR
 from tests.common.types import SpaceDesc
@@ -256,7 +256,7 @@ def cmp_dataset(
         result,
         order: bool,
         strict: bool,
-        contains=ContainsType.EQUAL,
+        contains=CmpType.EQUAL,
         hashed_columns=[],
 ) -> None:
     rs = graph_spaces['result_set']
@@ -365,7 +365,7 @@ def result_should_contain(request, result, graph_spaces):
                 result,
                 order=False,
                 strict=True,
-                contains=ContainsType.CONTAINS)
+                contains=CmpType.CONTAINS)
 
 
 @then(parse("the result should not contain:\n{result}"))
@@ -375,7 +375,7 @@ def result_should_not_contain(request, result, graph_spaces):
                 result,
                 order=False,
                 strict=True,
-                contains=ContainsType.NOT_CONTAINS)
+                contains=CmpType.NOT_CONTAINS)
 
 
 @then(parse("the result should contain, and the columns {hashed_columns} should be hashed:\n{result}"))
