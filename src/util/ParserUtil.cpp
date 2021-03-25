@@ -37,8 +37,9 @@ void ParserUtil::rewriteLC(QueryContext *qctx,
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
             if (*la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName), true),
-                                              new ConstantExpression(value));
+                ret = new AttributeExpression(
+                    new VariableExpression(new std::string(newVarName), true),
+                    new ConstantExpression(value));
             } else {
                 ret = la->clone().release();
             }
@@ -94,8 +95,9 @@ void ParserUtil::rewritePred(QueryContext *qctx,
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
             if (*la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName), true),
-                                              new ConstantExpression(value));
+                ret = new AttributeExpression(
+                    new VariableExpression(new std::string(newVarName), true),
+                    new ConstantExpression(value));
             } else {
                 ret = la->clone().release();
             }
@@ -143,12 +145,14 @@ void ParserUtil::rewriteReduce(QueryContext *qctx,
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
             if (*la->left()->name() == oldAccName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newAccName), true),
-                                              new ConstantExpression(value));
+                ret = new AttributeExpression(
+                    new VariableExpression(new std::string(newAccName), true),
+                    new ConstantExpression(value));
             } else if (*la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName), true),
-                                              new ConstantExpression(value));
+                ret = new AttributeExpression(
+                    new VariableExpression(new std::string(newVarName), true),
+                    new ConstantExpression(value));
             } else {
                 ret = la->clone().release();
             }
