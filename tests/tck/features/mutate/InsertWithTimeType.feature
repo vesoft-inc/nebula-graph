@@ -74,7 +74,7 @@ Feature: Insert with time-dependent types
       """
       SHOW CREATE EDGE edge_date;
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | Edge Index Name | Create Edge Index                                                                                                                      |
       | 'edge_date'     | 'CREATE EDGE `edge_date` (\n `f_date` date NULL,\n `f_time` time NULL,\n `f_datetime` datetime NULL\n) ttl_duration = 0, ttl_col = ""' |
     When try to execute query:
@@ -97,14 +97,14 @@ Feature: Insert with time-dependent types
       """
       FETCH PROP ON tag_date "test" YIELD tag_date.f_date, tag_date.f_time, tag_date.f_datetime;
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | VertexID | tag_date.f_date | tag_date.f_time | tag_date.f_datetime       |
       | 'test'   | '2017-03-04'    | '23:01:00 000'  | '2017-03-04T22:30:40 000' |
     When executing query:
       """
       FETCH PROP ON edge_date "test_src"->"test_dst" YIELD edge_date.f_date, edge_date.f_time, edge_date.f_datetime;
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | edge_date._src | edge_date._dst | edge_date._rank | edge_date.f_date | edge_date.f_time | edge_date.f_datetime      |
       | 'test_src'     | 'test_dst'     | 0               | '2017-03-04'     | '23:01:00 000'   | '2017-03-04T22:30:40 000' |
     When executing query:
@@ -116,14 +116,9 @@ Feature: Insert with time-dependent types
         tag_date.f_datetime = DateTime("2018-03-04T22:30:40")
       YIELD f_date, f_time, f_datetime;
       """
-    Then the execution should be successful
-    When executing query:
-      """
-      FETCH PROP ON tag_date "test" YIELD tag_date.f_date, tag_date.f_time, tag_date.f_datetime;
-      """
-    Then The result should be:
-      | VertexID | tag_date.f_date | tag_date.f_time | tag_date.f_datetime       |
-      | 'test'   | '2018-03-04'    | '22:01:00 000'  | '2018-03-04T22:30:40 000' |
+    Then the result should be, in any order:
+      | f_date       | f_time         | f_datetime                |
+      | '2018-03-04' | '22:01:00 000' | '2018-03-04T22:30:40 000' |
     When executing query:
       """
       UPDATE EDGE "test_src"->"test_dst" OF edge_date
@@ -133,14 +128,9 @@ Feature: Insert with time-dependent types
         edge_date.f_datetime = DateTime("2018-03-04T22:30:40")
       YIELD f_date, f_time, f_datetime
       """
-    Then the execution should be successful
-    When executing query:
-      """
-      FETCH PROP ON edge_date "test_src"->"test_dst" YIELD edge_date.f_date, edge_date.f_time, edge_date.f_datetime;
-      """
-    Then The result should be:
-      | edge_date._src | edge_date._dst | edge_date._rank | edge_date.f_date | edge_date.f_time | edge_date.f_datetime      |
-      | 'test_src'     | 'test_dst'     | 0               | '2018-03-04'     | '22:01:00 000'   | '2018-03-04T22:30:40 000' |
+    Then the result should be, in any order:
+      | f_date       | f_time         | f_datetime                |
+      | '2018-03-04' | '22:01:00 000' | '2018-03-04T22:30:40 000' |
     When executing query:
       """
       DELETE VERTEX "test";
@@ -151,14 +141,14 @@ Feature: Insert with time-dependent types
       """
       FETCH PROP ON tag_date "test";
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | vertices_ |
       | ('test')  |
     When executing query:
       """
       FETCH PROP ON edge_date "test_src"->"test_dst";
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | edges_                               |
       | [:edge_date 'test_src'->'test_dst' ] |
     And drop the used space

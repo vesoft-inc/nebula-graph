@@ -462,7 +462,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*0]-()
       RETURN e
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e  |
       | [] |
     When executing query:
@@ -470,7 +470,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()
       RETURN e
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e  |
       | [] |
     When executing query:
@@ -484,7 +484,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()-[e2:like*0..0]-()
       RETURN e, e2
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e  | e2 |
       | [] | [] |
 
@@ -494,7 +494,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name: "Tim Duncan"})-[e1:like]->()-[e2:serve*0..3]->()<-[e3:serve]-(v)
       RETURN count(v)
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | count(v) |
       | 40       |
 
@@ -504,14 +504,14 @@ Feature: Variable length Pattern match (0 step)
       MATCH (v:player{name: "abc"}) -[:serve*1..3]-> ()
       RETURN *
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | v |
     When executing query:
       """
       MATCH (v:player{name: "abc"}) -[:serve*..3]-> ()
       RETURN *
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | v |
     When executing query:
       """
@@ -526,7 +526,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve*0..1{start_year: 2000}]-(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                   | v                 |
       | []                                  | ('Tracy McGrady') |
       | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
@@ -535,7 +535,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1{likeness: 90}]-(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                         | v                 |
       | []                                        | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
@@ -549,7 +549,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*1{likeness: 90}]-(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                         | v                |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')  |
       | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')   |
@@ -562,7 +562,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]-(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e  | v                 |
       | [] | ('Tracy McGrady') |
 
@@ -572,7 +572,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1{likeness: 90}]->(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                        | v                 |
       | []                                       | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
@@ -583,7 +583,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]->(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e  | v                 |
       | [] | ('Tracy McGrady') |
     When executing query:
@@ -591,7 +591,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]->(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                        | v               |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant') |
       | [[:like 'Tracy McGrady'->'Grant Hill']]  | ('Grant Hill')  |
@@ -603,7 +603,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve*0..1]-(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                     | v                 |
       | []                                    | ('Tracy McGrady') |
       | [[:serve 'Tracy McGrady'->'Raptors']] | ('Raptors')       |
@@ -615,7 +615,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1]-(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                         | v                 |
       | []                                        | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
@@ -631,7 +631,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{start_year: 2000}]-(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                   | v                 |
       | []                                  | ('Tracy McGrady') |
       | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
@@ -642,7 +642,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{start_year: 2000}]->(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                   | v                 |
       | []                                  | ('Tracy McGrady') |
       | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
@@ -651,7 +651,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{likeness: 90}]->(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                        | v                 |
       | []                                       | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
@@ -664,7 +664,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1]-(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                         | v                 |
       | []                                        | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
@@ -684,7 +684,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1]->(v)
       RETURN e, v
       """
-    Then The result should be:
+    Then the result should be, in any order:
       | e                                        | v                 |
       | []                                       | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
