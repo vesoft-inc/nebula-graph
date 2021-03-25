@@ -501,28 +501,24 @@ Feature: Variable length Pattern match (0 step)
   Scenario: Test return all variables
     When executing query:
       """
-      MATCH (v:player:{name: "abc"}) -[r*1..3]-> ()
+      MATCH (v:player{name: "abc"}) -[:serve*1..3]-> ()
       RETURN *
       """
     Then The result should be:
-      | e              |
-      | ["Tim Duncan"] |
+      | v |
     When executing query:
       """
-      MATCH (v:player:{name: "abc"}) -[r*..3]-> ()
+      MATCH (v:player{name: "abc"}) -[:serve*..3]-> ()
       RETURN *
       """
     Then The result should be:
-      | e              |
-      | ["Tim Duncan"] |
+      | v |
     When executing query:
       """
-      MATCH (v:player:{name: "abc"}) -[r*1..]-> ()
+      MATCH (v:player{name: "abc"}) -[:serve*1..]-> ()
       RETURN *
       """
-    Then The result should be:
-      | e              |
-      | ["Tim Duncan"] |
+    Then a SemanticError should be raised at runtime: SemanticError: Cannot set maximum hop for variable length relationships
 
   Scenario: Single edge with properties in both directions
     When executing query:
