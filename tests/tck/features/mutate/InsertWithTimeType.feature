@@ -105,8 +105,8 @@ Feature: Insert with time-dependent types
       FETCH PROP ON edge_date "test_src"->"test_dst" YIELD edge_date.f_date, edge_date.f_time, edge_date.f_datetime;
       """
     Then The result should be:
-      | _src       | _dst       | _rank | edge_date.f_date | edge_date.f_time | edge_date.f_datetime      |
-      | 'test_src' | 'test_dst' | 0     | '2017-03-04'     | '23:01:00 000'   | '2017-03-04T22:30:40 000' |
+      | edge_date._src | edge_date._dst | edge_date._rank | edge_date.f_date | edge_date.f_time | edge_date.f_datetime      |
+      | 'test_src'     | 'test_dst'     | 0               | '2017-03-04'     | '23:01:00 000'   | '2017-03-04T22:30:40 000' |
     When executing query:
       """
       UPDATE VERTEX "test"

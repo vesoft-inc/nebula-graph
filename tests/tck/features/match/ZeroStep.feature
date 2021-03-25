@@ -456,7 +456,7 @@ Feature: Variable length Pattern match (0 step)
       | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Trail Blazers" :team{name: "Trail Blazers"})                                                              |
       | []                                                             | ("Trail Blazers" :team{name: "Trail Blazers"})                                                              |
 
-  Scenario: Test some boundary usage
+  Scenario: Test some boundary usages
     When executing query:
       """
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*0]-()
