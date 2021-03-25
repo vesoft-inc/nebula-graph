@@ -496,7 +496,7 @@ Feature: Variable length Pattern match (0 step)
       """
     Then The result should be:
       | count(v) |
-      |       40 |
+      | 40       |
 
   Scenario: Test return all variables
     When executing query:
@@ -554,13 +554,13 @@ Feature: Variable length Pattern match (0 step)
       RETURN e, v
       """
     Then The result should be:
-      | e                                        | v               |
-      | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant') |
-      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
-      | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')      |
-      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter')  |
-      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')      |
-      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | e                                         | v                |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')  |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')   |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')     |
+      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter') |
+      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')     |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')   |
     When executing query:
       """
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]-(v)
@@ -588,18 +588,18 @@ Feature: Variable length Pattern match (0 step)
       RETURN e, v
       """
     Then The result should be:
-      | e                                        | v                 |
-      | []                                       | ('Tracy McGrady') |
+      | e  | v                 |
+      | [] | ('Tracy McGrady') |
     When executing query:
       """
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]->(v)
       RETURN e, v
       """
     Then The result should be:
-      | e                                        | v                 |
-      | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
-      | [[:like 'Tracy McGrady'->'Grant Hill']]  | ('Grant Hill')    |
-      | [[:like 'Tracy McGrady'->'Rudy Gay']]    | ('Rudy Gay')      |
+      | e                                        | v               |
+      | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant') |
+      | [[:like 'Tracy McGrady'->'Grant Hill']]  | ('Grant Hill')  |
+      | [[:like 'Tracy McGrady'->'Rudy Gay']]    | ('Rudy Gay')    |
 
   Scenario: Single edge without properties in both directions
     When executing query:
