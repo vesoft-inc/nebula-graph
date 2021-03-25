@@ -335,17 +335,17 @@ Feature: Variable length Pattern match (m to n)
       WHERE e[0].likeness>90
       RETURN p
       """
-    Then a SemanticError should be raised at runtime: SemanticError: Alias used but not defined: `e'
+    Then a SemanticError should be raised at runtime: Alias used but not defined: `e'
     When executing query:
       """
       MATCH p=(v:player{name: 'Tim Duncan'})-[:like|:serve*1..3]->(v1)
       RETURN e
       """
-    Then a SemanticError should be raised at runtime: SemanticError: Alias used but not defined: `e'
+    Then a SemanticError should be raised at runtime: Alias used but not defined: `e'
     When executing query:
       """
       MATCH p=(v:player{name: 'Tim Duncan'})-[:like|:serve*1..3]->(v1)
       WHERE e[0].likeness+e[1].likeness>90
       RETURN p
       """
-    Then a SemanticError should be raised at runtime: SemanticError: Alias used but not defined: `e'
+    Then a SemanticError should be raised at runtime: Alias used but not defined: `e'

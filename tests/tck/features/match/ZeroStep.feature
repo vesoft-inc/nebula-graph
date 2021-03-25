@@ -462,7 +462,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*0]-()
       RETURN e
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e  |
       | [] |
     When executing query:
@@ -470,7 +470,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()
       RETURN e
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e  |
       | [] |
     When executing query:
@@ -478,13 +478,13 @@ Feature: Variable length Pattern match (0 step)
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*]-()
       RETURN e
       """
-    Then a SemanticError should be raised at runtime: SemanticError: Cannot set maximum hop for variable length relationships
+    Then a SemanticError should be raised at runtime: Cannot set maximum hop for variable length relationships
     When executing query:
       """
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()-[e2:like*0..0]-()
       RETURN e, e2
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e  | e2 |
       | [] | [] |
 
@@ -494,7 +494,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name: "Tim Duncan"})-[e1:like]->()-[e2:serve*0..3]->()<-[e3:serve]-(v)
       RETURN count(v)
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | count(v) |
       | 40       |
 
@@ -504,21 +504,21 @@ Feature: Variable length Pattern match (0 step)
       MATCH (v:player{name: "abc"}) -[:serve*1..3]-> ()
       RETURN *
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | v |
     When executing query:
       """
       MATCH (v:player{name: "abc"}) -[:serve*..3]-> ()
       RETURN *
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | v |
     When executing query:
       """
       MATCH (v:player{name: "abc"}) -[:serve*1..]-> ()
       RETURN *
       """
-    Then a SemanticError should be raised at runtime: SemanticError: Cannot set maximum hop for variable length relationships
+    Then a SemanticError should be raised at runtime: Cannot set maximum hop for variable length relationships
 
   Scenario: Single edge with properties in both directions
     When executing query:
@@ -526,7 +526,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve*0..1{start_year: 2000}]-(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                   | v                 |
       | []                                  | ('Tracy McGrady') |
       | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
@@ -535,34 +535,34 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1{likeness: 90}]-(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                         | v                 |
       | []                                        | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
       | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
       | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')      |
-      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter')  |
-      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')      |
-      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'<-'Vince Carter']] | ('Vince Carter')  |
+      | [[:like 'Tracy McGrady'<-'Yao Ming']]     | ('Yao Ming')      |
+      | [[:like 'Tracy McGrady'<-'Grant Hill']]   | ('Grant Hill')    |
     When executing query:
       """
       MATCH (:player{name:"Tracy McGrady"})-[e:like*1{likeness: 90}]-(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                         | v                |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')  |
       | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')   |
       | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')     |
-      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter') |
-      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')     |
-      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')   |
+      | [[:like 'Tracy McGrady'<-'Vince Carter']] | ('Vince Carter') |
+      | [[:like 'Tracy McGrady'<-'Yao Ming']]     | ('Yao Ming')     |
+      | [[:like 'Tracy McGrady'<-'Grant Hill']]   | ('Grant Hill')   |
     When executing query:
       """
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]-(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e  | v                 |
       | [] | ('Tracy McGrady') |
 
@@ -572,7 +572,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1{likeness: 90}]->(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                        | v                 |
       | []                                       | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
@@ -583,15 +583,15 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]->(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e  | v                 |
       | [] | ('Tracy McGrady') |
     When executing query:
       """
-      MATCH (:player{name:"Tracy McGrady"})-[e:like*0{likeness: 90}]->(v)
+      MATCH (:player{name:"Tracy McGrady"})-[e:like*1{likeness: 90}]->(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                        | v               |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant') |
       | [[:like 'Tracy McGrady'->'Grant Hill']]  | ('Grant Hill')  |
@@ -603,7 +603,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve*0..1]-(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                     | v                 |
       | []                                    | ('Tracy McGrady') |
       | [[:serve 'Tracy McGrady'->'Raptors']] | ('Raptors')       |
@@ -615,15 +615,15 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:like*0..1]-(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                         | v                 |
       | []                                        | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
       | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
       | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')      |
-      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter')  |
-      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')      |
-      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'<-'Vince Carter']] | ('Vince Carter')  |
+      | [[:like 'Tracy McGrady'<-'Yao Ming']]     | ('Yao Ming')      |
+      | [[:like 'Tracy McGrady'<-'Grant Hill']]   | ('Grant Hill')    |
 
   Scenario: Multiple edges with properties in both directions
     When executing query:
@@ -631,7 +631,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{start_year: 2000}]-(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                   | v                 |
       | []                                  | ('Tracy McGrady') |
       | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
@@ -642,7 +642,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{start_year: 2000}]->(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                   | v                 |
       | []                                  | ('Tracy McGrady') |
       | [[:serve 'Tracy McGrady'->'Magic']] | ('Magic')         |
@@ -651,7 +651,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1{likeness: 90}]->(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                        | v                 |
       | []                                       | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
@@ -664,15 +664,15 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1]-(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                         | v                 |
       | []                                        | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']]  | ('Kobe Bryant')   |
       | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
       | [[:like 'Tracy McGrady'->'Rudy Gay']]     | ('Rudy Gay')      |
-      | [[:like 'Tracy McGrady'->'Vince Carter']] | ('Vince Carter')  |
-      | [[:like 'Tracy McGrady'->'Yao Ming']]     | ('Yao Ming')      |
-      | [[:like 'Tracy McGrady'->'Grant Hill']]   | ('Grant Hill')    |
+      | [[:like 'Tracy McGrady'<-'Vince Carter']] | ('Vince Carter')  |
+      | [[:like 'Tracy McGrady'<-'Yao Ming']]     | ('Yao Ming')      |
+      | [[:like 'Tracy McGrady'<-'Grant Hill']]   | ('Grant Hill')    |
       | [[:serve 'Tracy McGrady'->'Raptors']]     | ('Raptors')       |
       | [[:serve 'Tracy McGrady'->'Magic']]       | ('Magic')         |
       | [[:serve 'Tracy McGrady'->'Spurs']]       | ('Spurs')         |
@@ -684,7 +684,7 @@ Feature: Variable length Pattern match (0 step)
       MATCH (:player{name:"Tracy McGrady"})-[e:serve|like*0..1]->(v)
       RETURN e, v
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, with relax comparison:
       | e                                        | v                 |
       | []                                       | ('Tracy McGrady') |
       | [[:like 'Tracy McGrady'->'Kobe Bryant']] | ('Kobe Bryant')   |
