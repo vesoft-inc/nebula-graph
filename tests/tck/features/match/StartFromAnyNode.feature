@@ -513,7 +513,7 @@ Feature: Start From Any Node
     When executing query:
       """
       MATCH (n)-[]-(m)-[]-(l)
-      WHERE id(m)=="Kyle Anderson"
+      WHERE id(m)=='Kyle Anderson'
       RETURN n,m,l
       """
     Then the result should be, in any order, with relax comparison:

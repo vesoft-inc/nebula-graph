@@ -600,7 +600,7 @@ Feature: Go Sentence
   Scenario: udf call
     When executing query:
       """
-      GO FROM 'Boris Diaw' OVER serve WHERE udf_is_in($$.team.name, 'Hawks', 'Suns')
+      GO FROM 'Boris Diaw' OVER serve WHERE $$.team.name IN ['Hawks', 'Suns']
       YIELD $^.player.name, serve.start_year, serve.end_year, $$.team.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -609,8 +609,8 @@ Feature: Go Sentence
       | "Boris Diaw"   | 2005             | 2008           | "Suns"       |
     When executing query:
       """
-      GO FROM 'Tim Duncan' OVER like YIELD like._dst AS id
-      | GO FROM  $-.id OVER serve WHERE udf_is_in($-.id, 'Tony Parker', 123)
+      GO FROM 'Tim Duncan' OVER like YIELD like._dst AS id |
+      GO FROM  $-.id OVER serve WHERE $-.id IN ['Tony Parker', 123]
       """
     Then the result should be, in any order, with relax comparison:
       | serve._dst |
@@ -618,8 +618,8 @@ Feature: Go Sentence
       | "Hornets"  |
     When executing query:
       """
-      GO FROM 'Tim Duncan' OVER like YIELD like._dst AS id
-      | GO FROM  $-.id OVER serve WHERE udf_is_in($-.id, 'Tony Parker', 123) AND 1 == 1
+      GO FROM 'Tim Duncan' OVER like YIELD like._dst AS id |
+      GO FROM  $-.id OVER serve WHERE $-.id IN ['Tony Parker', 123] AND 1 == 1
       """
     Then the result should be, in any order, with relax comparison:
       | serve._dst |
