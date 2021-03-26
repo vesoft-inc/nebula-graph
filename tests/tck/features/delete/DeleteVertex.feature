@@ -301,4 +301,23 @@ Feature: Delete string vid of vertex
       """
     Then the result should be, in any order:
       | like._dst |
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.name == 'Kyle Anderson'
+      """
+    Then the result should be, in any order:
+      | VertexID        |
+      | "Kyle Anderson" |
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.name == 'Kyle Anderson' | DELETE VERTEX $-.VertexID
+      """
+    Then the execution should be successful
+    # verify if the player is deleted
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.name == 'Kyle Anderson'
+      """
+    Then the result should be, in any order:
+      | VertexID |
     Then drop the used space
