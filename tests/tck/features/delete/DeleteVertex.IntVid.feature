@@ -196,4 +196,23 @@ Feature: Delete int vid of vertex
       """
     Then the result should be, in any order:
       | VertexID | player.name | player.age |
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.name == 'Kyle Anderson'
+      """
+    Then the result should be, in any order:
+      | VertexID             |
+      | -8310021930715358072 |
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.name == 'Kyle Anderson' | DELETE VERTEX $-.VertexID
+      """
+    Then the execution should be successful
+    # verify if the player is deleted
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.name == 'Kyle Anderson'
+      """
+    Then the result should be, in any order:
+      | VertexID |
     Then drop the used space
