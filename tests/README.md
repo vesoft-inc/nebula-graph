@@ -1,3 +1,5 @@
+Nebula Graph Test Manual
+========================
 
 ## Usage
 
@@ -132,33 +134,3 @@ In order to check your changed files for reviewers conveniently, please format y
 ```shell
 $ make fmt
 ```
-=======
-# nebula-test manual
-
-## Version requirement
-
-```shell
-$ python3  --version
-```
-It should be new than `3.7.0`.
-
-```shell
-$ cd nebula-graph/tests/
-$ make init-all
-```
-
-You may encounter some errors because of mis-matched version. Please upgrade the module like following.
-
-```shell
-$ pip3 install --upgrade keyrings.alt`
-```
-
-## Run Cases
-
-```shell
-$ make fmt
-
-$ make test # or, make tck
-```
-
-## How to add a case (TODO)
