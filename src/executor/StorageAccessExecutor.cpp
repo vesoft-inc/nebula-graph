@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 vesoft inc. All rights reserved.
+/* Copyright (c) 2021 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -16,7 +16,7 @@ namespace graph {
 
 namespace internal {
 
-template <typename ValueType>
+template <typename VidType>
 struct Vid;
 
 template <>
@@ -33,26 +33,20 @@ struct Vid<std::string> {
     }
 };
 
-}   // namespace internal
-
-bool StorageAccessExecutor::isIntVidType() const {
-    const auto &space = qctx()->rctx()->session()->space();
-    return space.spaceDesc.vid_type.type == meta::cpp2::PropertyType::INT64;
-}
-
-template <typename ValueType>
-DataSet StorageAccessExecutor::buildRequestDataSet(Iterator *iter, Expression *expr, bool dedup) {
+template <typename VidType>
+DataSet buildRequestDataSet(const SpaceInfo &space,
+                            QueryExpressionContext &exprCtx,
+                            Iterator *iter,
+                            Expression *expr,
+                            bool dedup) {
     DCHECK(iter && expr) << "iter=" << iter << ", expr=" << expr;
     nebula::DataSet vertices({kVid});
     vertices.rows.reserve(iter->size());
 
-    std::unordered_set<ValueType> uniqueSet;
+    std::unordered_set<VidType> uniqueSet;
     uniqueSet.reserve(iter->size());
 
-    const auto &spaceInfo = qctx()->rctx()->session()->space();
-    auto vidType = spaceInfo.spaceDesc.vid_type;
-
-    QueryExpressionContext exprCtx(qctx()->ectx());
+    const auto &vidType = space.spaceDesc.vid_type;
 
     for (; iter->valid(); iter->next()) {
         auto vid = expr->eval(exprCtx(iter));
@@ -61,7 +55,7 @@ DataSet StorageAccessExecutor::buildRequestDataSet(Iterator *iter, Expression *e
                          << ", space vid type: " << SchemaUtil::typeToString(vidType);
             continue;
         }
-        if (dedup && !uniqueSet.emplace(internal::Vid<ValueType>::value(vid)).second) {
+        if (dedup && !uniqueSet.emplace(Vid<VidType>::value(vid)).second) {
             continue;
         }
         vertices.emplace_back(Row({std::move(vid)}));
@@ -69,13 +63,22 @@ DataSet StorageAccessExecutor::buildRequestDataSet(Iterator *iter, Expression *e
     return vertices;
 }
 
+}   // namespace internal
+
+bool StorageAccessExecutor::isIntVidType(const SpaceInfo &space) const {
+    return space.spaceDesc.vid_type.type == meta::cpp2::PropertyType::INT64;
+}
+
 DataSet StorageAccessExecutor::buildRequestDataSetByVidType(Iterator *iter,
                                                             Expression *expr,
                                                             bool dedup) {
-    if (isIntVidType()) {
-        return buildRequestDataSet<int64_t>(iter, expr, dedup);
+    const auto &space = qctx()->rctx()->session()->space();
+    QueryExpressionContext exprCtx(qctx()->ectx());
+
+    if (isIntVidType(space)) {
+        return internal::buildRequestDataSet<int64_t>(space, exprCtx, iter, expr, dedup);
     }
-    return buildRequestDataSet<std::string>(iter, expr, dedup);
+    return internal::buildRequestDataSet<std::string>(space, exprCtx, iter, expr, dedup);
 }
 
 }   // namespace graph

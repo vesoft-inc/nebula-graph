@@ -19,6 +19,7 @@ class Expression;
 namespace graph {
 
 class Iterator;
+struct SpaceInfo;
 
 // It's used for data write/update/query
 class StorageAccessExecutor : public Executor {
@@ -132,10 +133,7 @@ protected:
         }
     }
 
-    bool isIntVidType() const;
-
-    template <typename ValueType>
-    DataSet buildRequestDataSet(Iterator *iter, Expression *expr, bool dedup);
+    bool isIntVidType(const SpaceInfo &space) const;
 
     DataSet buildRequestDataSetByVidType(Iterator *iter, Expression *expr, bool dedup);
 };
