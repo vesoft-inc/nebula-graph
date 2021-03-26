@@ -4,12 +4,12 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: test zero steps pattern
   Examples:
-    | space       |
+    | space_name  |
     | nba         |
     | nba_int_vid |
 
   Background:
-    Given a graph with space named "<space>"
+    Given a graph with space named "<space_name>"
 
   Scenario Outline: Test some boundary usages
     When executing query:
