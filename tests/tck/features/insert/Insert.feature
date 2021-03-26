@@ -151,15 +151,13 @@ Feature: Insert string vid of vertex and edge
     # insert one vertex multi tags
     When executing query:
       """
-      INSERT VERTEX person(name, age), student(grade, number) VALUES
-      "Lucy":("Lucy", 8, "three", 20190901001)
+      INSERT VERTEX person(name, age), student(grade, number) VALUES "Lucy":("Lucy", 8, "three", 20190901001)
       """
     Then the execution should be successful
     # insert one vertex multi tags with unordered order prop
     When executing query:
       """
-      INSERT VERTEX person(age, name),student(number, grade) VALUES
-      "Bob":(9, "Bob", 20191106001, "four")
+      INSERT VERTEX person(age, name),student(number, grade) VALUES "Bob":(9, "Bob", 20191106001, "four")
       """
     Then the execution should be successful
     # check person tag result with fetch
@@ -181,8 +179,12 @@ Feature: Insert string vid of vertex and edge
     # insert multi vertex multi tags
     When executing query:
       """
-      INSERT VERTEX person(name, age),student(grade, number) VALUES
-      "Laura":("Laura", 8, "three", 20190901008),"Amber":("Amber", 9, "four", 20180901003)
+      INSERT VERTEX
+        person(name, age),
+        student(grade, number)
+      VALUES
+        "Laura":("Laura", 8, "three", 20190901008),
+        "Amber":("Amber", 9, "four", 20180901003);
       """
     Then the execution should be successful
     # insert multi vertex one tag
@@ -195,8 +197,11 @@ Feature: Insert string vid of vertex and edge
     # insert multi edges
     When executing query:
       """
-      INSERT EDGE schoolmate(likeness, nickname) VALUES
-      "Tom"->"Kitty":(81, "Kitty"), "Tom"->"Peter":(83, "Kitty")
+      INSERT EDGE
+        schoolmate(likeness, nickname)
+      VALUES
+        "Tom"->"Kitty":(81, "Kitty"),
+        "Tom"->"Peter":(83, "Kitty");
       """
     Then the execution should be successful
     # check edge result with go
@@ -238,11 +243,9 @@ Feature: Insert string vid of vertex and edge
     # test multi sentences multi tags succeeded
     When executing query:
       """
-      INSERT VERTEX person(name, age) VALUES
-      "Aero":("Aero", 8);INSERT VERTEX student(grade, number)
-      VALUES "Aero":("four", 20190901003);
-      INSERT EDGE schoolmate(likeness, nickname)
-      VALUES "Laura"->"Aero":(90, "Aero")
+      INSERT VERTEX person(name, age) VALUES "Aero":("Aero", 8);
+      INSERT VERTEX student(grade, number) VALUES "Aero":("four", 20190901003);
+      INSERT EDGE schoolmate(likeness, nickname) VALUES "Laura"->"Aero":(90, "Aero");
       """
     Then the execution should be successful
     # get result through go
@@ -256,8 +259,7 @@ Feature: Insert string vid of vertex and edge
     # test same prop name diff type
     When executing query:
       """
-      INSERT VERTEX person(name, age), employee(name) VALUES
-      "Joy":("Joy", 18, 123), "Petter":("Petter", 19, 456);
+      INSERT VERTEX person(name, age), employee(name) VALUES "Joy":("Joy", 18, 123), "Petter":("Petter", 19, 456);
       INSERT EDGE schoolmate(likeness, nickname) VALUES "Joy"->"Petter":(90, "Petter");
       """
     Then the execution should be successful

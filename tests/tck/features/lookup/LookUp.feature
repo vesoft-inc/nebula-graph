@@ -555,17 +555,17 @@ Feature: LookUpTest_Vid_String
       | "225"    |
     # FIXME(aiee): should support later by folding constants
     # When executing query:
-    #   """
-    #   LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "HelLo")
-    #   """
+    # """
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "HelLo")
+    # """
     # Then the result should be, in any order:
-    #   | VertexID |
+    # | VertexID |
     # When executing query:
-    #   """
-    #   LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "hello")
-    #   """
+    # """
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "hello")
+    # """
     # Then the result should be, in any order:
-    #   | VertexID |
+    # | VertexID |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != lookup_tag_2.col3
@@ -573,11 +573,11 @@ Feature: LookUpTest_Vid_String
     Then a SemanticError should be raised at runtime:
     # FIXME(aiee): should support later
     # When executing query:
-    #   """
-    #   LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (lookup_tag_2.col3 - 100)
-    #   """
+    # """
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (lookup_tag_2.col3 - 100)
+    # """
     # Then the result should be, in any order:
-    #   | VertexID |
+    # | VertexID |
     Then drop the used space
 
   Scenario: LookupTest YieldClauseTest
