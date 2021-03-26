@@ -302,7 +302,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | VertexID |
-    # FIXME(aiee): should contain vid 220
+    # FIXME(aiee): should not contain vid 220
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 > 100.5
