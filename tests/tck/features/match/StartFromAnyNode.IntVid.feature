@@ -509,7 +509,6 @@ Feature: Start From Any Node
       | count |
       | 1693  |
 
-  @skip
   Scenario: start from middle node, with vertex id, with totally 2 steps
     When executing query:
       """

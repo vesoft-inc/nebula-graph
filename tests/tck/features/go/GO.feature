@@ -343,17 +343,12 @@ Feature: Go Sentence
       | "Hornets"       |
       | "Trail Blazers" |
 
-  @skip
   Scenario: edge type
     When executing query:
       """
       YIELD serve.start_year, like.likeness, serve._type, like._type
       """
-    Then the result should be, in any order, with relax comparison:
-      | serve.start_year | like.likeness | serve._type | like._type |
-      | 2008             | EMPTY         | 6           | EMPTY      |
-      | EMPTY            | 90            | EMPTY       | 5          |
-      | EMPTY            | 90            | EMPTY       | 5          |
+    Then a SemanticError should be raised at runtime: Not supported expression `serve.start_year' for props deduction.
     When executing query:
       """
       GO FROM "Russell Westbrook" OVER serve, like REVERSELY
@@ -602,8 +597,7 @@ Feature: Go Sentence
       """
     Then a SemanticError should be raised at runtime: `serve.test', not found the property `test'.
 
-  @skip
-  Scenario: udf call (reason = "not support udf_is_in now")
+  Scenario: udf call
     When executing query:
       """
       GO FROM 'Boris Diaw' OVER serve WHERE udf_is_in($$.team.name, 'Hawks', 'Suns')

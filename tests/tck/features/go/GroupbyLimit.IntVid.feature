@@ -126,7 +126,6 @@ Feature: Groupby & limit Sentence
     Then the result should be, in any order, with relax comparison:
       | name |
 
-  @skip
   Scenario: OFFSET 0
     When executing query:
       """
@@ -255,7 +254,6 @@ Feature: Groupby & limit Sentence
       | "Manu Ginobili" | 1         |
       | "Tony Parker"   | 0         |
 
-  @skip
   Scenario: Groupby with COUNT_DISTINCT
     When executing query:
       """
