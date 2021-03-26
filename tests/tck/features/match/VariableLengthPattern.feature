@@ -328,7 +328,7 @@ Feature: Variable length Pattern match (m to n)
       | [[:like "Tim Duncan"->"Tony Parker"]]                                                   | [:serve "Tony Parker"->"Spurs"] |
       | [[:like "Tim Duncan"<-"Tony Parker"]]                                                   | [:serve "Tony Parker"->"Spurs"] |
 
-  Scenario: Test semantic error statements
+  Scenario: Test semantic error for invalid variables
     When executing query:
       """
       MATCH p=(v:player{name: 'Tim Duncan'})-[:like|:serve*1..3]->(v1)
