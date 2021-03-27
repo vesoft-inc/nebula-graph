@@ -92,7 +92,7 @@ jobs:
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
                   -B build
-              echo "::set-output name=j::8"
+              echo "::set-output name=j::10"
               ;;
             ubuntu1804)
               # build with Debug type
@@ -103,7 +103,7 @@ jobs:
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
                   -B build
-              echo "::set-output name=j::8"
+              echo "::set-output name=j::10"
               ;;
             esac
             ;;
@@ -117,7 +117,7 @@ jobs:
                 -DENABLE_TESTING=on \
                 -DENABLE_BUILD_STORAGE=on \
                 -B build
-            echo "::set-output name=j::4"
+            echo "::set-output name=j::6"
             ;;
           esac
       - name: Make graph
@@ -130,19 +130,21 @@ jobs:
           ASAN_OPTIONS: fast_unwind_on_malloc=1
         run: ctest -j $(($(nproc)/2+1)) --timeout 400 --output-on-failure
         working-directory: build/
-        timeout-minutes: 15
+        timeout-minutes: 20
       - name: Pytest
-        env:
-          NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: make RM_DIR=false J=${{ steps.cmake.outputs.j }} test
+        run: |
+          make up
+          make RM_DIR=false J=${{ steps.cmake.outputs.j }} test
+          make down
         working-directory: tests/
         timeout-minutes: 15
       - name: TCK
-        env:
-          NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: make RM_DIR=false J=${{ steps.cmake.outputs.j }} tck
+        run: |
+          make up
+          make RM_DIR=false J=${{ steps.cmake.outputs.j }} tck
+          make down
         working-directory: tests/
-        timeout-minutes: 15
+        timeout-minutes: 20
       - name: Sanitizer
         if: ${{ always() }}
         run: |
