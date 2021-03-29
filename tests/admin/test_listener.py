@@ -10,10 +10,6 @@ import time
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 class TestListener(NebulaTestSuite):
-    @classmethod
-    def prepare(self):
-        pass
-
     def test_listener(self):
         resp = self.client.execute('SHOW HOSTS')
         self.check_resp_succeeded(resp)
@@ -44,7 +40,3 @@ class TestListener(NebulaTestSuite):
         resp = self.client.execute('SHOW LISTENER;')
         self.check_resp_succeeded(resp)
         self.check_result(resp, [])
-
-    @classmethod
-    def cleanup(self):
-        pass
