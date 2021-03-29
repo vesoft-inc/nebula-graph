@@ -16,6 +16,8 @@
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
+using JoinStrategyPos = nebula::graph::InnerJoinStrategy::JoinPos;
+
 namespace nebula {
 namespace graph {
 
@@ -61,9 +63,9 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
                 startIndex = i;
                 foundStart = true;
                 initialExpr_ = nodeCtx.initialExpr->clone();
-                VLOG(1) << "Find starts: " << startIndex
-                    << " node: " << matchClausePlan.root->outputVar()
-                    << " colNames: " << folly::join(",", matchClausePlan.root->colNames());
+                VLOG(1) << "Find starts: " << startIndex << ", Pattern has " << edgeInfos.size()
+                        << " edges, root: " << matchClausePlan.root->outputVar()
+                        << ", colNames: " << folly::join(",", matchClausePlan.root->colNames());
                 break;
             }
 
@@ -88,8 +90,8 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
         }
     }
     if (!foundStart) {
-        return Status::Error("Can't solve the start vids from the sentence: %s",
-                             matchClauseCtx->sentence->toString().c_str());
+        return Status::SemanticError("Can't solve the start vids from the sentence: %s",
+                                     matchClauseCtx->sentence->toString().c_str());
     }
 
     return Status::OK();
@@ -113,32 +115,29 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
                                           MatchClauseContext* matchClauseCtx,
                                           size_t startIndex,
                                           SubPlan& subplan) {
-    SubPlan rightExpandPlan = subplan;
-    NG_RETURN_IF_ERROR(
-        rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, rightExpandPlan));
-    if (startIndex > 0) {
-        auto left = rightExpandPlan.root;
-        SubPlan leftExpandPlan = rightExpandPlan;
-        NG_RETURN_IF_ERROR(leftExpandFromNode(nodeInfos,
-                                              edgeInfos,
-                                              matchClauseCtx,
-                                              startIndex,
-                                              subplan.root->outputVar(),
-                                              leftExpandPlan));
-
-        rightExpandPlan.root = leftExpandPlan.root;
-        if (startIndex < nodeInfos.size() - 1) {
-            // Connect the left expand and right expand part.
-            auto right = leftExpandPlan.root;
-            rightExpandPlan.root =
-                SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx,
-                                                     left,
-                                                     right,
-                                                     InnerJoinStrategy::JoinPos::kStart,
-                                                     InnerJoinStrategy::JoinPos::kStart);
-        }
+    DCHECK(!nodeInfos.empty() && startIndex < nodeInfos.size());
+    if (startIndex == 0) {
+        // Pattern: (start)-[]-...-()
+        return rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, subplan);
     }
-    subplan = rightExpandPlan;
+
+    const auto& var = subplan.root->outputVar();
+    if (startIndex == nodeInfos.size() - 1) {
+        // Pattern: ()-[]-...-(start)
+        return leftExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, var, subplan);
+    }
+
+    // Pattern: ()-[]-...-(start)-...-[]-()
+    NG_RETURN_IF_ERROR(
+        rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, subplan));
+    auto left = subplan.root;
+    NG_RETURN_IF_ERROR(
+        leftExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, var, subplan));
+
+    // Connect the left expand and right expand part.
+    auto right = subplan.root;
+    subplan.root = SegmentsConnector::innerJoinSegments(
+        matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart);
     return Status::OK();
 }
 
@@ -173,7 +172,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
         inputVar = subplan.root->outputVar();
     }
 
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(
         nodeInfos.front().filter,
@@ -191,7 +190,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
         subplan.root->setColNames(joinColNames);
     }
 
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     return Status::OK();
 }
 
@@ -222,7 +221,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
         }
     }
 
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(
         nodeInfos.back().filter,
@@ -239,7 +238,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
         subplan.root->setColNames(joinColNames);
     }
 
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     return Status::OK();
 }
 
@@ -320,7 +319,7 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     project->setColNames(std::move(colNames));
 
     plan.root = MatchSolver::filtPathHasSameEdge(project, alias, qctx);
-    VLOG(1) << "root: " << plan.root->outputVar() << " tail: " << plan.tail->outputVar();
+    VLOG(1) << plan;
     return Status::OK();
 }
 
@@ -406,7 +405,7 @@ Status MatchClausePlanner::appendFilterPlan(MatchClauseContext* matchClauseCtx, 
     auto plan = std::move(wherePlan).value();
     SegmentsConnector::addInput(plan.tail, subplan.root, true);
     subplan.root = plan.root;
-    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
+    VLOG(1) << subplan;
     return Status::OK();
 }
 }   // namespace graph

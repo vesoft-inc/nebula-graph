@@ -7,6 +7,7 @@
 #include "common/base/Base.h"
 #include "common/base/SignalHandler.h"
 #include "common/network/NetworkUtils.h"
+#include "common/version/Version.h"
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
@@ -18,13 +19,13 @@
 #include "service/GraphFlags.h"
 #include "common/webservice/WebService.h"
 #include "common/time/TimeUtils.h"
-#include "version/Version.h"
 #include "stats/StatsDef.h"
 
 using nebula::Status;
 using nebula::ProcessUtils;
 using nebula::graph::GraphService;
 using nebula::network::NetworkUtils;
+using nebula::fs::FileUtils;
 
 static std::unique_ptr<apache::thrift::ThriftServer> gServer;
 
@@ -36,7 +37,7 @@ static void printHelp(const char *prog);
 DECLARE_string(flagfile);
 
 int main(int argc, char *argv[]) {
-    google::SetVersionString(nebula::graph::versionString());
+    google::SetVersionString(nebula::versionString());
     if (argc == 1) {
         printHelp(argv[0]);
         return EXIT_FAILURE;
@@ -197,6 +198,14 @@ void signalHandler(int sig) {
 
 
 Status setupLogging() {
+    // If the log directory does not exist, try to create
+    if (!FileUtils::exist(FLAGS_log_dir)) {
+        if (!FileUtils::makeDir(FLAGS_log_dir)) {
+            return Status::Error("Failed to create log directory `%s'",
+                                 FLAGS_log_dir.c_str());
+        }
+    }
+
     if (!FLAGS_redirect_stdout) {
         return Status::OK();
     }

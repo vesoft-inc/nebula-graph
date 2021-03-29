@@ -38,10 +38,10 @@ std::string VertexIDList::toString() const {
     return buf;
 }
 
-std::string FromClause::toString() const {
+
+std::string VerticesClause::toString() const {
     std::string buf;
     buf.reserve(256);
-    buf += "FROM ";
     if (isRef()) {
         buf += ref_->toString();
     } else {
@@ -50,15 +50,19 @@ std::string FromClause::toString() const {
     return buf;
 }
 
+std::string FromClause::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    buf += "FROM ";
+    buf += VerticesClause::toString();
+    return buf;
+}
+
 std::string ToClause::toString() const {
     std::string buf;
     buf.reserve(256);
     buf += "TO ";
-    if (isRef()) {
-        buf += ref_->toString();
-    } else {
-        buf += vidList_->toString();
-    }
+    buf += VerticesClause::toString();
     return buf;
 }
 
@@ -93,7 +97,11 @@ std::string OverClause::toString() const {
     std::string buf;
     buf.reserve(256);
     buf += "OVER ";
-    buf += overEdges_->toString();
+    if (isOverAll_) {
+        buf += "*";
+    } else {
+        buf += overEdges_->toString();
+    }
 
     if (direction_ == storage::cpp2::EdgeDirection::IN_EDGE) {
         buf += " REVERSELY";
@@ -109,6 +117,14 @@ std::string WhereClause::toString() const {
     buf.reserve(256);
     buf += "WHERE ";
     buf += filter_->toString();
+    return buf;
+}
+
+std::string WhenClause::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    buf += "WHEN ";
+    buf += filter()->toString();
     return buf;
 }
 
@@ -160,6 +176,9 @@ bool operator==(const YieldColumn &l, const YieldColumn &r) {
 
 std::string YieldClause::toString() const {
     std::string buf;
+    if (yieldColumns_->empty()) {
+        return buf;
+    }
     buf.reserve(256);
     buf += "YIELD ";
     if (distinct_) {

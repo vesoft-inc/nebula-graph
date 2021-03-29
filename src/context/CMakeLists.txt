@@ -10,6 +10,8 @@ nebula_add_library(
     ExecutionContext.cpp
     Iterator.cpp
     Result.cpp
+    Symbols.cpp
 )
+
 
 nebula_add_subdirectory(test)

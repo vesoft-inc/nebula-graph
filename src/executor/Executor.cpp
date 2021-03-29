@@ -63,7 +63,8 @@
 #include "executor/mutate/UpdateExecutor.h"
 #include "executor/query/AggregateExecutor.h"
 #include "executor/query/DataCollectExecutor.h"
-#include "executor/query/DataJoinExecutor.h"
+#include "executor/query/LeftJoinExecutor.h"
+#include "executor/query/InnerJoinExecutor.h"
 #include "executor/query/DedupExecutor.h"
 #include "executor/query/FilterExecutor.h"
 #include "executor/query/GetEdgesExecutor.h"
@@ -78,6 +79,7 @@
 #include "executor/query/SortExecutor.h"
 #include "executor/query/TopNExecutor.h"
 #include "executor/query/UnionExecutor.h"
+#include "executor/query/UnionAllVersionVarExecutor.h"
 #include "executor/query/AssignExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Logic.h"
@@ -196,6 +198,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kUnion: {
             return pool->add(new UnionExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kUnionAllVersionVar: {
+            return pool->add(new UnionAllVersionVarExecutor(node, qctx));
         }
         case PlanNode::Kind::kIntersect: {
             return pool->add(new IntersectExecutor(node, qctx));
@@ -323,8 +328,11 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kShowSnapshots: {
             return pool->add(new ShowSnapshotsExecutor(node, qctx));
         }
-        case PlanNode::Kind::kDataJoin: {
-            return pool->add(new DataJoinExecutor(node, qctx));
+        case PlanNode::Kind::kLeftJoin: {
+            return pool->add(new LeftJoinExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kInnerJoin: {
+            return pool->add(new InnerJoinExecutor(node, qctx));
         }
         case PlanNode::Kind::kDeleteVertices: {
             return pool->add(new DeleteVerticesExecutor(node, qctx));
@@ -520,8 +528,11 @@ Status Executor::close() {
     stats.totalDurationInUs = totalDuration_.elapsedInUSec();
     stats.rows = numRows_;
     stats.execDurationInUs = execTime_;
-    stats.otherStats = std::move(otherStats_);
-    qctx()->addProfilingData(node_->id(), std::move(stats));
+    if (!otherStats_.empty()) {
+        stats.otherStats =
+            std::make_unique<std::unordered_map<std::string, std::string>>(std::move(otherStats_));
+    }
+    qctx()->plan()->addProfileStats(node_->id(), std::move(stats));
     return Status::OK();
 }
 

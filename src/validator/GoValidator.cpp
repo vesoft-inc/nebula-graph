@@ -58,7 +58,8 @@ Status GoValidator::validateWhere(WhereClause* where) {
     }
     if (filter_->kind() == Expression::Kind::kLabelAttribute) {
         auto laExpr = static_cast<LabelAttributeExpression*>(filter_);
-        where->setFilter(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr));
+        filter_ = ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr);
+        where->setFilter(filter_);
     } else {
         ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(filter_);
     }
@@ -440,22 +441,12 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
 
     auto objPool = qctx_->objPool();
 
-    auto* yieldDsts = objPool->makeAndAdd<YieldColumns>();
-    yieldDsts->addColumn(new YieldColumn(
-        new InputPropertyExpression(new std::string(joinDstVidColName_)),
-        new std::string(joinDstVidColName_)));
-    auto* projectDsts = Project::make(qctx_, projectSrcDstProps, yieldDsts);
-    projectDsts->setInputVar(projectSrcDstProps->outputVar());
-    projectDsts->setColNames(std::vector<std::string>{joinDstVidColName_});
-
-    auto* dedupVids = Dedup::make(qctx_, projectDsts);
-    dedupVids->setInputVar(projectDsts->outputVar());
-
     auto* vids = objPool->makeAndAdd<VariablePropertyExpression>(
-        new std::string(dedupVids->outputVar()), new std::string(joinDstVidColName_));
+        new std::string(projectSrcDstProps->outputVar()), new std::string(joinDstVidColName_));
     auto* getDstVertices =
-        GetVertices::make(qctx_, dedupVids, space_.id, vids, buildDstVertexProps(), {});
-    getDstVertices->setInputVar(dedupVids->outputVar());
+        GetVertices::make(qctx_, projectSrcDstProps, space_.id, vids, buildDstVertexProps(), {});
+    getDstVertices->setInputVar(projectSrcDstProps->outputVar());
+    getDstVertices->setDedup();
 
     auto vidColName = vctx_->anonColGen()->getCol();
     auto* vidCol = new YieldColumn(
@@ -472,7 +463,7 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
         new std::string(joinDstVidColName_));
     auto* probeKey = objPool->makeAndAdd<VariablePropertyExpression>(
         new std::string(project->outputVar()), new std::string(vidColName));
-    auto joinDst = DataJoin::make(qctx_, project,
+    auto joinDst = LeftJoin::make(qctx_, project,
             {projectSrcDstProps->outputVar(), ExecutionContext::kLatestVersion},
             {project->outputVar(), ExecutionContext::kLatestVersion},
             {joinHashKey}, {probeKey});
@@ -498,7 +489,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
         auto* probeKey = pool->add(new VariablePropertyExpression(
             new std::string(projectFromJoin->outputVar()), new std::string(dstVidColName_)));
         auto* join =
-            DataJoin::make(qctx_,
+            LeftJoin::make(qctx_,
                            dependencyForJoinInput,
                            {dependencyForJoinInput->outputVar(), ExecutionContext::kLatestVersion},
                            {projectFromJoin->outputVar(),
@@ -523,7 +514,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                                            : kVid)));
     std::string varName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;
     auto* joinInput =
-        DataJoin::make(qctx_, dependencyForJoinInput,
+        LeftJoin::make(qctx_, dependencyForJoinInput,
                         {dependencyForJoinInput->outputVar(),
                         ExecutionContext::kLatestVersion},
                         {varName,
@@ -554,7 +545,7 @@ PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin,
     auto probeKey = new VariablePropertyExpression(
         new std::string(dedupDstVids->outputVar()), new std::string(srcVidColName_));
     pool->add(probeKey);
-    auto* join = DataJoin::make(
+    auto* join = LeftJoin::make(
         qctx_, dedupDstVids,
         {projectLeftVarForJoin->outputVar(),
             ExecutionContext::kLatestVersion},
@@ -662,6 +653,9 @@ std::vector<storage::cpp2::VertexProp> GoValidator::buildDstVertexProps() {
 
 GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
     GetNeighbors::EdgeProps edgeProps;
+    bool onlyInputPropsOrConstant = exprProps_.srcTagProps().empty() &&
+                                    exprProps_.dstTagProps().empty() &&
+                                    exprProps_.edgeProps().empty();
     if (!exprProps_.edgeProps().empty()) {
         if (over_.direction == storage::cpp2::EdgeDirection::IN_EDGE) {
             edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
@@ -674,7 +668,7 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
             edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
             buildEdgeProps(edgeProps, false);
         }
-    } else if (!exprProps_.dstTagProps().empty()) {
+    } else if (!exprProps_.dstTagProps().empty() || onlyInputPropsOrConstant) {
         return buildEdgeDst();
     }
 
@@ -683,6 +677,7 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
 
 void GoValidator::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEdge) {
     edgeProps->reserve(over_.edgeTypes.size());
+    bool needJoin = !exprProps_.dstTagProps().empty();
     for (auto& e : over_.edgeTypes) {
         storage::cpp2::EdgeProp ep;
         if (isInEdge) {
@@ -697,7 +692,7 @@ void GoValidator::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEd
         } else {
             std::vector<std::string> props(propsFound->second.begin(),
                                            propsFound->second.end());
-            if (propsFound->second.find(kDst) == propsFound->second.end()) {
+            if (needJoin && propsFound->second.find(kDst) == propsFound->second.end()) {
                 props.emplace_back(kDst);
             }
             ep.set_props(std::move(props));
@@ -708,15 +703,19 @@ void GoValidator::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEd
 
 GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
     GetNeighbors::EdgeProps edgeProps;
-    if (!exprProps_.edgeProps().empty() || !exprProps_.dstTagProps().empty()) {
+    bool onlyInputPropsOrConstant = exprProps_.srcTagProps().empty() &&
+                                    exprProps_.dstTagProps().empty() &&
+                                    exprProps_.edgeProps().empty();
+    if (!exprProps_.edgeProps().empty() || !exprProps_.dstTagProps().empty() ||
+        onlyInputPropsOrConstant) {
         if (over_.direction == storage::cpp2::EdgeDirection::IN_EDGE) {
             edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
                 over_.edgeTypes.size());
             std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps->begin(),
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
-                            ep.type = -type;
-                            ep.props = {kDst};
+                            ep.set_type(-type);
+                            ep.set_props({kDst});
                             return ep;
                         });
         } else if (over_.direction == storage::cpp2::EdgeDirection::BOTH) {
@@ -725,16 +724,16 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
             std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps->begin(),
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
-                            ep.type = type;
-                            ep.props = {kDst};
+                            ep.set_type(type);
+                            ep.set_props({kDst});
                             return ep;
                         });
             std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(),
                            edgeProps->begin() + over_.edgeTypes.size(),
                            [](auto& type) {
                                storage::cpp2::EdgeProp ep;
-                               ep.type = -type;
-                               ep.props = {kDst};
+                               ep.set_type(-type);
+                               ep.set_props({kDst});
                                return ep;
                            });
         } else {
@@ -743,8 +742,8 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
             std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps->begin(),
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
-                            ep.type = type;
-                            ep.props = {kDst};
+                            ep.set_type(type);
+                            ep.set_props({kDst});
                             return ep;
                         });
         }

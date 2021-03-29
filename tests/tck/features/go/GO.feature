@@ -17,6 +17,21 @@ Feature: Go Sentence
       | "Spurs"    |
     When executing query:
       """
+      GO FROM "Tim Duncan" OVER like YIELD $^.player.name as name, $^.player.age as age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name         | age |
+      | "Tim Duncan" | 42  |
+    When executing query:
+      """
+      GO FROM "Tim Duncan", "Tony Parker" OVER like YIELD $^.player.name as name, $^.player.age as age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name          | age |
+      | "Tim Duncan"  | 42  |
+      | "Tony Parker" | 36  |
+    When executing query:
+      """
       GO FROM "Tim Duncan", "Tim Duncan" OVER serve
       """
     Then the result should be, in any order, with relax comparison:
@@ -144,10 +159,9 @@ Feature: Go Sentence
       GO FROM "Tracy McGrady" OVER like YIELD like._dst as vid | GO FROM $-.vid OVER like YIELD $-.vid as id
       """
     Then the result should be, in any order, with relax comparison:
-      | id            |
-      | "Kobe Bryant" |
-      | "Grant Hill"  |
-      | "Rudy Gay"    |
+      | id           |
+      | "Grant Hill" |
+      | "Rudy Gay"   |
 
   Scenario: pipe only yield constant
     When executing query:
@@ -155,7 +169,6 @@ Feature: Go Sentence
       GO FROM "Tracy McGrady" OVER like YIELD like._dst as vid | GO FROM $-.vid OVER like YIELD 3
       """
     Then the result should be, in any order, with relax comparison:
-      | 3 |
       | 3 |
       | 3 |
       | 3 |
@@ -330,17 +343,12 @@ Feature: Go Sentence
       | "Hornets"       |
       | "Trail Blazers" |
 
-  @skip
   Scenario: edge type
     When executing query:
       """
       YIELD serve.start_year, like.likeness, serve._type, like._type
       """
-    Then the result should be, in any order, with relax comparison:
-      | serve.start_year | like.likeness | serve._type | like._type |
-      | 2008             | EMPTY         | 6           | EMPTY      |
-      | EMPTY            | 90            | EMPTY       | 5          |
-      | EMPTY            | 90            | EMPTY       | 5          |
+    Then a SemanticError should be raised at runtime: Not supported expression `serve.start_year' for props deduction.
     When executing query:
       """
       GO FROM "Russell Westbrook" OVER serve, like REVERSELY
@@ -589,11 +597,10 @@ Feature: Go Sentence
       """
     Then a SemanticError should be raised at runtime: `serve.test', not found the property `test'.
 
-  @skip
-  Scenario: udf call (reason = "not support udf_is_in now")
+  Scenario: udf call
     When executing query:
       """
-      GO FROM 'Boris Diaw' OVER serve WHERE udf_is_in($$.team.name, 'Hawks', 'Suns')
+      GO FROM 'Boris Diaw' OVER serve WHERE $$.team.name IN ['Hawks', 'Suns']
       YIELD $^.player.name, serve.start_year, serve.end_year, $$.team.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -602,8 +609,8 @@ Feature: Go Sentence
       | "Boris Diaw"   | 2005             | 2008           | "Suns"       |
     When executing query:
       """
-      GO FROM 'Tim Duncan' OVER like YIELD like._dst AS id
-      | GO FROM  $-.id OVER serve WHERE udf_is_in($-.id, 'Tony Parker', 123)
+      GO FROM 'Tim Duncan' OVER like YIELD like._dst AS id |
+      GO FROM  $-.id OVER serve WHERE $-.id IN ['Tony Parker', 123]
       """
     Then the result should be, in any order, with relax comparison:
       | serve._dst |
@@ -611,8 +618,8 @@ Feature: Go Sentence
       | "Hornets"  |
     When executing query:
       """
-      GO FROM 'Tim Duncan' OVER like YIELD like._dst AS id
-      | GO FROM  $-.id OVER serve WHERE udf_is_in($-.id, 'Tony Parker', 123) AND 1 == 1
+      GO FROM 'Tim Duncan' OVER like YIELD like._dst AS id |
+      GO FROM  $-.id OVER serve WHERE $-.id IN ['Tony Parker', 123] AND 1 == 1
       """
     Then the result should be, in any order, with relax comparison:
       | serve._dst |
@@ -1070,6 +1077,13 @@ Feature: Go Sentence
       | GO FROM $-.id OVER serve
       """
     Then a SyntaxError should be raised at runtime: syntax error near `| GO FRO'
+
+  Scenario: invalid condition in where
+    When executing query:
+      """
+      GO FROM 'Tim Duncan' OVER like where like.likeness
+      """
+    Then a SemanticError should be raised at runtime: `like.likeness', expected Boolean, but was `INT'
 
   Scenario: contain
     When executing query:
@@ -1588,23 +1602,23 @@ Feature: Go Sentence
     When executing query:
       """
       $a = GO FROM 'Tony Parker' OVER like YIELD like._src as src, like._dst as dst;
-      GO 2 STEPS FROM $a.src OVER like YIELD $a.src as src, $a.dst, like._src, like._dst
-      | ORDER BY $-.src | OFFSET 1 LIMIT 2
+      GO 2 STEPS FROM $a.src OVER like YIELD $a.src as src, $a.dst, like._src as like_src, like._dst
+      | ORDER BY $-.src,$-.like_src | OFFSET 1 LIMIT 2
       """
     Then the result should be, in any order, with relax comparison:
-      | src           | $a.dst          | like._src       | like._dst    |
-      | "Tony Parker" | "Manu Ginobili" | "Manu Ginobili" | "Tim Duncan" |
-      | "Tony Parker" | "Tim Duncan"    | "Manu Ginobili" | "Tim Duncan" |
+      | src           | $a.dst          | like_src            | like._dst    |
+      | "Tony Parker" | "Manu Ginobili" | "LaMarcus Aldridge" | "Tim Duncan" |
+      | "Tony Parker" | "Tim Duncan"    | "LaMarcus Aldridge" | "Tim Duncan" |
     When executing query:
       """
       $a = GO FROM 'Tony Parker' OVER like YIELD like._src as src, like._dst as dst;
-      GO 2 STEPS FROM $a.src OVER like YIELD $a.src as src, $a.dst, like._src, like._dst
-      | ORDER BY $-.src | LIMIT 2 OFFSET 1
+      GO 2 STEPS FROM $a.src OVER like YIELD $a.src as src, $a.dst, like._src as like_src, like._dst
+      | ORDER BY $-.src,$-.like_src | LIMIT 2 OFFSET 1
       """
     Then the result should be, in any order, with relax comparison:
-      | src           | $a.dst          | like._src       | like._dst    |
-      | "Tony Parker" | "Manu Ginobili" | "Manu Ginobili" | "Tim Duncan" |
-      | "Tony Parker" | "Tim Duncan"    | "Manu Ginobili" | "Tim Duncan" |
+      | src           | $a.dst          | like_src            | like._dst    |
+      | "Tony Parker" | "Manu Ginobili" | "LaMarcus Aldridge" | "Tim Duncan" |
+      | "Tony Parker" | "Tim Duncan"    | "LaMarcus Aldridge" | "Tim Duncan" |
 
   Scenario: GroupBy and Count
     When executing query:

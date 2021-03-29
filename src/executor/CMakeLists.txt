@@ -6,6 +6,7 @@
 nebula_add_library(
     executor_obj OBJECT
     Executor.cpp
+    StorageAccessExecutor.cpp
     logic/LoopExecutor.cpp
     logic/PassThroughExecutor.cpp
     logic/StartExecutor.cpp
@@ -26,8 +27,11 @@ nebula_add_library(
     query/IndexScanExecutor.cpp
     query/SetExecutor.cpp
     query/UnionExecutor.cpp
+    query/UnionAllVersionVarExecutor.cpp
     query/DataCollectExecutor.cpp
-    query/DataJoinExecutor.cpp
+    query/JoinExecutor.cpp
+    query/LeftJoinExecutor.cpp
+    query/InnerJoinExecutor.cpp
     query/IndexScanExecutor.cpp
     query/AssignExecutor.cpp
     algo/ConjunctPathExecutor.cpp
