@@ -8,13 +8,13 @@
 #include "common/time/Duration.h"
 #include "common/encryption/MD5Utils.h"
 #include "common/clients/storage/GraphStorageClient.h"
+#include "common/version/Version.h"
 #include "service/GraphService.h"
 #include "service/RequestContext.h"
 #include "service/GraphFlags.h"
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"
 #include "stats/StatsDef.h"
-#include "version/Version.h"
 
 namespace nebula {
 namespace graph {
@@ -32,7 +32,7 @@ Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecuto
     options.role_ = meta::cpp2::HostRole::GRAPH;
     std::string localIP = network::NetworkUtils::getIPv4FromDevice(FLAGS_listen_netdev).value();
     options.localHost_ = hostAddr;
-    options.gitInfoSHA_ = nebula::graph::gitInfoSha();
+    options.gitInfoSHA_ = gitInfoSha();;
 
     metaClient_ = std::make_unique<meta::MetaClient>(ioExecutor,
                                                      std::move(addrs.value()),

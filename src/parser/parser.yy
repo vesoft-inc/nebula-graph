@@ -363,8 +363,6 @@ static constexpr size_t kCommentLengthLimit = 256;
 
 %type <sentence> grant_sentence revoke_sentence
 %type <sentence> set_config_sentence get_config_sentence balance_sentence
-%type <sentence> process_control_sentence return_sentence
-
 %type <sentence> sentence
 %type <seq_sentences> seq_sentences
 %type <explain_sentence> explain_sentence
