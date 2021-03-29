@@ -156,7 +156,8 @@ public:
         CHARSET,
         COLLATE,
         ATOMIC_EDGE,
-        GROUP_NAME
+        GROUP_NAME,
+        COMMENT
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -270,6 +271,11 @@ public:
             LOG(ERROR) << "atomic_edge value illegal.";
             return 0;
         }
+    }
+
+    const std::string& getComment() const {
+        DCHECK(isString());
+        return asString();
     }
 
     std::string toString() const;

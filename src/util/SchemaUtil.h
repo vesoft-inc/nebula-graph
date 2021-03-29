@@ -24,6 +24,9 @@ public:
     SchemaUtil() = delete;
 
 public:
+    // The length limitation of schema comment field.
+    static constexpr std::size_t kCommentLengthLimit = 256;
+
     static Status validateProps(const std::vector<SchemaPropItem*> &schemaProps,
                                 meta::cpp2::Schema &schema);
 
@@ -33,6 +36,8 @@ public:
     static Status setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
 
     static Status setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
+
+    static Status setComment(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
 
     static StatusOr<Value> toVertexID(Expression *expr, Value::Type vidType);
 

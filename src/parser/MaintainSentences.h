@@ -18,19 +18,87 @@ namespace nebula {
 
 std::ostream& operator<<(std::ostream& os, meta::cpp2::PropertyType type);
 
+class ColumnProperty final {
+public:
+    using Value = boost::variant<bool, Expression*, std::string*>;
+
+    explicit ColumnProperty(bool isNull = true)
+        : v_(isNull) {}
+
+    explicit ColumnProperty(Expression *defaultVaule = nullptr)
+        : v_(defaultVaule) {}
+
+    explicit ColumnProperty(std::string *comment = nullptr)
+        : v_(comment) {}
+
+    bool isIsNull() const {
+        return v_.which() == 0;
+    }
+
+    bool isNull() const {
+        DCHECK(isIsNull());
+        return boost::get<bool>(v_);
+    }
+
+    bool isDefaultValue() const {
+        return v_.which() == 1;
+    }
+
+    auto* defaultValue() const {
+        DCHECK(isDefaultValue());
+        return boost::get<Expression*>(v_);
+    }
+
+    bool isComment() const {
+        return v_.which() == 2;
+    }
+
+    auto* comment() const {
+        DCHECK(isComment());
+        return boost::get<std::string*>(v_);
+    }
+
+    std::string toString() const;
+
+private:
+    Value v_;
+};
+
+class ColumnProperties final {
+public:
+    ColumnProperties() = default;
+
+    void addProperty(ColumnProperty *property) {
+        properties_.emplace_back(property);
+    }
+
+    auto& properties() const {
+        return properties_;
+    }
+
+    std::string toString() const {
+        std::stringstream str;
+        for (const auto &property : properties_) {
+            str << property->toString();
+            str << " ";
+        }
+        return str.str();
+    }
+
+private:
+    std::vector<std::unique_ptr<ColumnProperty>> properties_;
+};
+
 class ColumnSpecification final {
 public:
     ColumnSpecification(std::string *name,
                         meta::cpp2::PropertyType type,
-                        bool isNull,
-                        Expression *defaultVaule,
-                        int16_t typeLen = 0) {
-        name_.reset(name);
-        type_ = type;
-        isNull_ = isNull;
-        defaultValue_.reset(defaultVaule);
-        typeLen_ = typeLen;
-    }
+                        ColumnProperties *properties,
+                        int16_t typeLen = 0)
+        : name_(name),
+          type_(type),
+          properties_(DCHECK_NOTNULL(properties)),
+          typeLen_(typeLen) {}
 
     meta::cpp2::PropertyType type() const {
         return type_;
@@ -40,29 +108,20 @@ public:
         return name_.get();
     }
 
-    bool isNull() const {
-        return isNull_;
-    }
-
     int16_t typeLen() const {
         return typeLen_;
     }
 
-    bool hasDefaultValue() const {
-        return defaultValue_ != nullptr;
-    }
-
-    Expression* getDefaultValue() const {
-        return defaultValue_.get();
+    auto& properties() const {
+        return properties_;
     }
 
     std::string toString() const;
 
 private:
-    meta::cpp2::PropertyType                    type_;
     std::unique_ptr<std::string>                name_;
-    bool                                        isNull_;
-    std::unique_ptr<Expression>                 defaultValue_;
+    meta::cpp2::PropertyType                    type_;
+    std::unique_ptr<ColumnProperties>           properties_{nullptr};
     int16_t                                     typeLen_{0};
 };
 
@@ -130,7 +189,8 @@ public:
 
     enum PropType : uint8_t {
         TTL_DURATION,
-        TTL_COL
+        TTL_COL,
+        COMMENT
     };
 
     SchemaPropItem(PropType op, int64_t val) {
@@ -163,6 +223,14 @@ public:
         } else {
             LOG(ERROR) << "Ttl_col value illegal: " << propValue_;
             return Status::Error("Ttl_col value illegal");
+        }
+    }
+
+    StatusOr<std::string> getComment() {
+        if (propType_ == COMMENT) {
+            return asString();
+        } else {
+            return Status::Error("Not exists comment.");
         }
     }
 
@@ -527,7 +595,8 @@ public:
     CreateTagIndexSentence(std::string *indexName,
                            std::string *tagName,
                            IndexFieldList *fields,
-                           bool ifNotExists)
+                           bool ifNotExists,
+                           std::string *comment)
         : CreateSentence(ifNotExists) {
         indexName_.reset(indexName);
         tagName_.reset(tagName);
@@ -536,6 +605,7 @@ public:
         } else {
             fields_.reset(fields);
         }
+        comment_.reset(comment);
         kind_ = Kind::kCreateTagIndex;
     }
 
@@ -558,10 +628,15 @@ public:
         return result;
     }
 
+    const std::string* comment() const {
+        return comment_.get();
+    }
+
 private:
     std::unique_ptr<std::string>                indexName_;
     std::unique_ptr<std::string>                tagName_;
     std::unique_ptr<IndexFieldList>             fields_;
+    std::unique_ptr<std::string>                comment_;
 };
 
 
@@ -570,7 +645,8 @@ public:
     CreateEdgeIndexSentence(std::string *indexName,
                             std::string *edgeName,
                             IndexFieldList *fields,
-                            bool ifNotExists)
+                            bool ifNotExists,
+                            std::string *comment)
         : CreateSentence(ifNotExists) {
         indexName_.reset(indexName);
         edgeName_.reset(edgeName);
@@ -579,6 +655,7 @@ public:
         } else {
             fields_.reset(fields);
         }
+        comment_.reset(comment);
         kind_ = Kind::kCreateEdgeIndex;
     }
 
@@ -601,10 +678,15 @@ public:
         return result;
     }
 
+    const std::string* comment() const {
+        return comment_.get();
+    }
+
 private:
     std::unique_ptr<std::string>                indexName_;
     std::unique_ptr<std::string>                edgeName_;
     std::unique_ptr<IndexFieldList>             fields_;
+    std::unique_ptr<std::string>                comment_;
 };
 
 

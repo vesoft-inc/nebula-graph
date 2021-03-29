@@ -11,6 +11,8 @@
 namespace nebula {
 namespace graph {
 
+/*static*/ constexpr std::size_t SchemaUtil::kCommentLengthLimit;
+
 // static
 Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
                                  meta::cpp2::Schema &schema) {
@@ -29,6 +31,10 @@ Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps
                     if (!status.ok()) {
                         return status;
                     }
+                    break;
+                case SchemaPropItem::COMMENT:
+                    status = setComment(schemaProp, schema);
+                    NG_RETURN_IF_ERROR(status);
                     break;
             }
         }
@@ -107,6 +113,18 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 }
 
 // static
+Status SchemaUtil::setComment(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
+    auto ret = schemaProp->getComment();
+    if (ret.ok()) {
+        if (ret.value().size() > kCommentLengthLimit) {
+            return Status::Error("Too long comment reach %ld bytes limit.", kCommentLengthLimit);
+        }
+        schema.schema_prop.set_comment(std::move(ret).value());
+    }
+    return Status::OK();
+}
+
+// static
 StatusOr<Value> SchemaUtil::toVertexID(Expression *expr, Value::Type vidType) {
     QueryExpressionContext ctx;
     auto vidVal = expr->eval(ctx(nullptr));
@@ -135,7 +153,7 @@ SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
 }
 
 StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
-    DataSet dataSet({"Field", "Type", "Null", "Default"});
+    DataSet dataSet({"Field", "Type", "Null", "Default", "Comment"});
     for (auto &col : schema.get_columns()) {
         Row row;
         row.values.emplace_back(Value(col.get_name()));
@@ -158,6 +176,11 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
             }
         }
         row.values.emplace_back(std::move(defaultValue));
+        if (col.__isset.comment) {
+            row.values.emplace_back(*col.get_comment());
+        } else {
+            row.values.emplace_back();
+        }
         dataSet.emplace_back(std::move(row));
     }
     return dataSet;
@@ -197,6 +220,11 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
             }
             createStr += " DEFAULT " + expr->toString();
         }
+        if (col.__isset.comment) {
+            createStr += " COMMENT \"";
+            createStr += *col.get_comment();
+            createStr += "\"";
+        }
         createStr += ",\n";
     }
     if (!schema.columns.empty()) {
@@ -216,6 +244,11 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
         createStr += "\"" + *prop.get_ttl_col() + "\"";
     } else {
         createStr += "\"\"";
+    }
+    if (prop.__isset.comment) {
+        createStr += ", comment = \"";
+        createStr += *prop.get_comment();
+        createStr += "\"";
     }
     row.emplace_back(std::move(createStr));
     dataSet.rows.emplace_back(std::move(row));

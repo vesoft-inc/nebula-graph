@@ -3,6 +3,8 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
+import re
+
 from typing import List
 
 from nebula2.common.ttypes import DataSet, Edge, NullType, Path, Value, Vertex
@@ -40,6 +42,8 @@ class DataSetPrinter:
         return '\n'.join([col_names, data_rows])
 
     def to_string(self, val: Value):
+        if isinstance(val, re.Pattern):
+            return '/' + val.pattern + '/'
         if val.getType() == Value.NVAL:
             return NullType._VALUES_TO_NAMES[val.get_nVal()]
         if val.getType() == Value.__EMPTY__:

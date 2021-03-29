@@ -64,6 +64,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::Sentence                       *sentences;
     nebula::SequentialSentences            *seq_sentences;
     nebula::ExplainSentence                *explain_sentence;
+    nebula::ColumnProperty                 *col_property;
+    nebula::ColumnProperties               *col_properties;
     nebula::ColumnSpecification            *colspec;
     nebula::ColumnSpecificationList        *colspeclist;
     nebula::ColumnNameList                 *column_name_list;
@@ -157,6 +159,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOST KW_HOSTS KW_PART KW_PARTS KW_ADD
 %token KW_PARTITION_NUM KW_REPLICA_FACTOR KW_CHARSET KW_COLLATE KW_COLLATION KW_VID_TYPE
 %token KW_ATOMIC_EDGE
+%token KW_COMMENT
 %token KW_DROP KW_REMOVE KW_SPACES KW_INGEST KW_INDEX KW_INDEXES
 %token KW_IF KW_NOT KW_EXISTS KW_WITH
 %token KW_BY KW_DOWNLOAD KW_HDFS KW_UUID KW_CONFIGS KW_FORCE
@@ -305,6 +308,9 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 %type <intval> legal_integer unary_integer rank port job_concurrency
 
+%type <strval>         opt_comment_prop
+%type <col_property>   column_property
+%type <col_properties> column_properties
 %type <colspec> column_spec
 %type <colspeclist> column_spec_list
 %type <column_name_list> column_name_list
@@ -492,6 +498,7 @@ unreserved_keyword
     | KW_TEXT_SEARCH        { $$ = new std::string("text_search"); }
     | KW_RESET              { $$ = new std::string("reset"); }
     | KW_PLAN               { $$ = new std::string("plan"); }
+    | KW_COMMENT            { $$ = new std::string("comment"); }
     ;
 
 expression
@@ -1956,6 +1963,10 @@ create_schema_prop_item
         $$ = new SchemaPropItem(SchemaPropItem::TTL_COL, *$3);
         delete $3;
     }
+    | KW_COMMENT ASSIGN STRING {
+        $$ = new SchemaPropItem(SchemaPropItem::COMMENT, *$3);
+        delete $3;
+    }
     ;
 
 create_tag_sentence
@@ -2033,6 +2044,10 @@ alter_schema_prop_item
         $$ = new SchemaPropItem(SchemaPropItem::TTL_COL, *$3);
         delete $3;
     }
+    | KW_COMMENT ASSIGN STRING {
+        $$ = new SchemaPropItem(SchemaPropItem::COMMENT, *$3);
+        delete $3;
+    }
     ;
 
 create_edge_sentence
@@ -2092,36 +2107,38 @@ column_spec_list
 
 column_spec
     : name_label type_spec {
-        $$ = new ColumnSpecification($1, $2->type, true, nullptr, $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, new ColumnProperties(), $2->type_length);
         delete $2;
     }
-    | name_label type_spec KW_DEFAULT expression {
-        $$ = new ColumnSpecification($1, $2->type, true, $4, $2->type_length);
+    | name_label type_spec column_properties {
+        $$ = new ColumnSpecification($1, $2->type, $3, $2->type_length);
         delete $2;
     }
-    | name_label type_spec KW_NOT KW_NULL {
-        $$ = new ColumnSpecification($1, $2->type, false, nullptr, $2->type_length);
-        delete $2;
+    ;
+
+column_properties
+    : column_property {
+        $$ = new ColumnProperties();
+        $$->addProperty($1);
     }
-    | name_label type_spec KW_NULL {
-        $$ = new ColumnSpecification($1, $2->type, true, nullptr, $2->type_length);
-        delete $2;
+    | column_properties column_property {
+        $$ = $1;
+        $$->addProperty($2);
     }
-    | name_label type_spec KW_NOT KW_NULL KW_DEFAULT expression {
-        $$ = new ColumnSpecification($1, $2->type, false, $6, $2->type_length);
-        delete $2;
+    ;
+
+column_property
+    : KW_NULL {
+        $$ = new ColumnProperty(true);
     }
-    | name_label type_spec KW_DEFAULT expression KW_NOT KW_NULL {
-        $$ = new ColumnSpecification($1, $2->type, false, $4, $2->type_length);
-        delete $2;
+    | KW_NOT KW_NULL {
+        $$ = new ColumnProperty(false);
     }
-    | name_label type_spec KW_NULL KW_DEFAULT expression {
-        $$ = new ColumnSpecification($1, $2->type, true, $5 , $2->type_length);
-        delete $2;
+    | KW_DEFAULT expression {
+        $$ = new ColumnProperty($2);
     }
-    | name_label type_spec KW_DEFAULT expression KW_NULL {
-        $$ = new ColumnSpecification($1, $2->type, true, $4 , $2->type_length);
-        delete $2;
+    | KW_COMMENT STRING {
+        $$ = new ColumnProperty($2);
     }
     ;
 
@@ -2197,14 +2214,23 @@ opt_index_field_list
     ;
 
 create_tag_index_sentence
-    : KW_CREATE KW_TAG KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN {
-        $$ = new CreateTagIndexSentence($5, $7, $9, $4);
+    : KW_CREATE KW_TAG KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN opt_comment_prop {
+        $$ = new CreateTagIndexSentence($5, $7, $9, $4, $11);
     }
     ;
 
 create_edge_index_sentence
-    : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN {
-        $$ = new CreateEdgeIndexSentence($5, $7, $9, $4);
+    : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN opt_comment_prop {
+        $$ = new CreateEdgeIndexSentence($5, $7, $9, $4, $11);
+    }
+    ;
+
+opt_comment_prop
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_COMMENT ASSIGN STRING {
+        $$ = $3;
     }
     ;
 
@@ -2907,6 +2933,9 @@ space_opt_item
     }
     | KW_ATOMIC_EDGE ASSIGN BOOL {
         $$ = new SpaceOptItem(SpaceOptItem::ATOMIC_EDGE, $3);
+    }
+    | KW_COMMENT ASSIGN STRING {
+        $$ = new SpaceOptItem(SpaceOptItem::COMMENT, *$3);
     }
     // TODO(YT) Create Spaces for different engines
     // KW_ENGINE_TYPE ASSIGN name_label
