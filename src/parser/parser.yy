@@ -2392,11 +2392,11 @@ assignment_sentence
     ;
 
 insert_vertex_sentence
-    : KW_INSERT KW_VERTEX vertex_tag_list KW_VALUES vertex_row_list {
-        $$ = new InsertVerticesSentence($3, $5);
+    : KW_INSERT KW_VERTEX opt_if_not_exists vertex_tag_list KW_VALUES vertex_row_list {
+        $$ = new InsertVerticesSentence($4, $6, $3);
     }
     | KW_INSERT KW_VERTEX KW_NO KW_OVERWRITE vertex_tag_list KW_VALUES vertex_row_list {
-        $$ = new InsertVerticesSentence($5, $7, false /* not overwritable */);
+        $$ = new InsertVerticesSentence($5, $7, false, false /* not overwritable */);
     }
     ;
 

@@ -25,6 +25,7 @@ folly::Future<Status> InsertVerticesExecutor::insertVertices() {
     return qctx()->getStorageClient()->addVertices(ivNode->getSpace(),
                                                    ivNode->getVertices(),
                                                    ivNode->getPropNames(),
+                                                   ivNode->getIfNotExists(),
                                                    ivNode->getOverwritable())
         .via(runner())
         .ensure([addVertTime]() {

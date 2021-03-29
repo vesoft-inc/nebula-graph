@@ -36,6 +36,7 @@ Status InsertVerticesValidator::toPlan() {
                                        spaceId_,
                                        std::move(vertices_),
                                        std::move(tagPropNames_),
+                                       ifNotExists_,
                                        overwritable_);
     root_ = doNode;
     tail_ = root_;
@@ -44,6 +45,7 @@ Status InsertVerticesValidator::toPlan() {
 
 Status InsertVerticesValidator::check() {
     auto sentence = static_cast<InsertVerticesSentence*>(sentence_);
+    ifNotExists_ = sentence->isIfNotExists();
     rows_ = sentence->rows();
     if (rows_.empty()) {
         return Status::SemanticError("VALUES cannot be empty");
