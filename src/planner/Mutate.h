@@ -24,12 +24,14 @@ public:
                                 GraphSpaceID spaceId,
                                 std::vector<storage::cpp2::NewVertex> vertices,
                                 std::unordered_map<TagID, std::vector<std::string>> tagPropNames,
+                                bool ifNotExists,
                                 bool overwritable) {
         return qctx->objPool()->add(new InsertVertices(qctx,
                                                        input,
                                                        spaceId,
                                                        std::move(vertices),
                                                        std::move(tagPropNames),
+                                                       ifNotExists,
                                                        overwritable));
     }
 
@@ -51,23 +53,30 @@ public:
         return spaceId_;
     }
 
+    bool getIfNotExists() const {
+        return ifNotExists_;
+    }
+
 private:
     InsertVertices(QueryContext* qctx,
                    PlanNode* input,
                    GraphSpaceID spaceId,
                    std::vector<storage::cpp2::NewVertex> vertices,
                    std::unordered_map<TagID, std::vector<std::string>> tagPropNames,
+                   bool ifNotExists,
                    bool overwritable)
         : SingleDependencyNode(qctx, Kind::kInsertVertices, input),
           spaceId_(spaceId),
           vertices_(std::move(vertices)),
           tagPropNames_(std::move(tagPropNames)),
+          ifNotExists_(ifNotExists),
           overwritable_(overwritable) {}
 
 private:
     GraphSpaceID spaceId_{-1};
     std::vector<storage::cpp2::NewVertex> vertices_;
     std::unordered_map<TagID, std::vector<std::string>> tagPropNames_;
+    bool ifNotExists_{false};
     bool overwritable_;
 };
 

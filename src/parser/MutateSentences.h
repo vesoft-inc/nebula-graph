@@ -160,9 +160,11 @@ class InsertVerticesSentence final : public Sentence {
 public:
     InsertVerticesSentence(VertexTagList *tagList,
                            VertexRowList *rows,
+                           bool ifNotExists,
                            bool overwritable = true) {
         tagList_.reset(tagList);
         rows_.reset(rows);
+        ifNotExists_(ifNotExists);
         overwritable_ = overwritable;
         kind_ = Kind::kInsertVertices;
     }
@@ -181,7 +183,12 @@ public:
 
     std::string toString() const override;
 
+    bool isIfNotExists() const {
+        return ifNotExists_;
+    }
+
 private:
+    bool                                        ifNotExists_{false};
     bool                                        overwritable_{true};
     std::unique_ptr<VertexTagList>              tagList_;
     std::unique_ptr<VertexRowList>              rows_;

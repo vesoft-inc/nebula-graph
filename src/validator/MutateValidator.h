@@ -38,6 +38,7 @@ private:
     std::vector<std::pair<TagID, TagSchema>>                    schemas_;
     uint16_t                                                    propSize_{0};
     bool                                                        overwritable_{false};
+    bool                                                        ifNotExists_{false};
     std::vector<storage::cpp2::NewVertex>                       vertices_;
 };
 
