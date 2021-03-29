@@ -21,7 +21,6 @@ void RewriteVisitor::visit(TypeCastingExpression *expr) {
     }
 }
 
-
 void RewriteVisitor::visit(UnaryExpression *expr) {
     if (!care(expr->kind())) {
         return;
@@ -33,7 +32,6 @@ void RewriteVisitor::visit(UnaryExpression *expr) {
         expr->operand()->accept(this);
     }
 }
-
 
 void RewriteVisitor::visit(FunctionCallExpression *expr) {
     if (!care(expr->kind())) {
@@ -69,7 +67,7 @@ void RewriteVisitor::visit(LogicalExpression *expr) {
 
     for (auto &operand : expr->operands()) {
         if (matcher_(operand.get())) {
-            const_cast<std::unique_ptr<Expression>&>(operand).reset(rewriter_(operand.get()));
+            const_cast<std::unique_ptr<Expression> &>(operand).reset(rewriter_(operand.get()));
         } else {
             operand->accept(this);
         }
@@ -81,43 +79,41 @@ void RewriteVisitor::visit(ListExpression *expr) {
         return;
     }
 
-    auto& items = expr->items();
-    for (auto& item : items) {
+    auto &items = expr->items();
+    for (auto &item : items) {
         if (matcher_(item.get())) {
-            const_cast<std::unique_ptr<Expression>&>(item).reset(rewriter_(item.get()));
+            const_cast<std::unique_ptr<Expression> &>(item).reset(rewriter_(item.get()));
         } else {
             item->accept(this);
         }
     }
 }
-
 
 void RewriteVisitor::visit(SetExpression *expr) {
     if (!care(expr->kind())) {
         return;
     }
 
-    auto& items = expr->items();
-    for (auto& item : items) {
+    auto &items = expr->items();
+    for (auto &item : items) {
         if (matcher_(item.get())) {
-            const_cast<std::unique_ptr<Expression>&>(item).reset(rewriter_(item.get()));
+            const_cast<std::unique_ptr<Expression> &>(item).reset(rewriter_(item.get()));
         } else {
             item->accept(this);
         }
     }
 }
 
-
 void RewriteVisitor::visit(MapExpression *expr) {
     if (!care(expr->kind())) {
         return;
     }
 
-    auto& items = expr->items();
-    for (auto& pair : items) {
-        auto& item = pair.second;
+    auto &items = expr->items();
+    for (auto &pair : items) {
+        auto &item = pair.second;
         if (matcher_(item.get())) {
-            const_cast<std::unique_ptr<Expression>&>(item).reset(rewriter_(item.get()));
+            const_cast<std::unique_ptr<Expression> &>(item).reset(rewriter_(item.get()));
         } else {
             item->accept(this);
         }
@@ -227,15 +223,15 @@ void RewriteVisitor::visit(ReduceExpression *expr) {
     }
 }
 
-void RewriteVisitor::visit(PathBuildExpression* expr) {
+void RewriteVisitor::visit(PathBuildExpression *expr) {
     if (!care(expr->kind())) {
         return;
     }
 
-    auto& items = expr->items();
-    for (auto& item : items) {
+    auto &items = expr->items();
+    for (auto &item : items) {
         if (matcher_(item.get())) {
-            const_cast<std::unique_ptr<Expression>&>(item).reset(rewriter_(item.get()));
+            const_cast<std::unique_ptr<Expression> &>(item).reset(rewriter_(item.get()));
         } else {
             item->accept(this);
         }
@@ -289,7 +285,7 @@ void RewriteVisitor::visitBinaryExpr(BinaryExpression *expr) {
 
 bool RewriteVisitor::care(Expression::Kind kind) {
     if (UNLIKELY(!needVisitedTypes_.empty())) {
-        for (auto& k : needVisitedTypes_) {
+        for (auto &k : needVisitedTypes_) {
             if (kind == k) {
                 return true;
             }
@@ -299,10 +295,7 @@ bool RewriteVisitor::care(Expression::Kind kind) {
     return true;
 }
 
-Expression*
-RewriteVisitor::transform(const Expression* expr,
-                          Matcher matcher,
-                          Rewriter rewriter) {
+Expression *RewriteVisitor::transform(const Expression *expr, Matcher matcher, Rewriter rewriter) {
     if (matcher(expr)) {
         return rewriter(expr);
     } else {
@@ -313,17 +306,16 @@ RewriteVisitor::transform(const Expression* expr,
     }
 }
 
-Expression*
-RewriteVisitor::transform(const Expression* expr,
-                          Matcher matcher,
-                          Rewriter rewriter,
-                          const std::unordered_set<Expression::Kind>& needVisitedTypes) {
+Expression *RewriteVisitor::transform(
+    const Expression *expr,
+    Matcher matcher,
+    Rewriter rewriter,
+    const std::unordered_set<Expression::Kind> &needVisitedTypes) {
     if (matcher(expr)) {
         return rewriter(expr);
     } else {
-        RewriteVisitor visitor(std::move(matcher),
-                               std::move(rewriter),
-                               std::move(needVisitedTypes));
+        RewriteVisitor visitor(
+            std::move(matcher), std::move(rewriter), std::move(needVisitedTypes));
         auto exprCopy = expr->clone();
         exprCopy->accept(&visitor);
         return exprCopy.release();

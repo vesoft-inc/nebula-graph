@@ -128,9 +128,9 @@ Status LookupValidator::prepareYield() {
         // TODO(shylock) support more expr
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
             auto la = static_cast<LabelAttributeExpression*>(col->expr());
-            const std::string &schemaName = *la->left()->name();
+            const std::string& schemaName = *la->left()->name();
             const auto& value = la->right()->value();
-            const std::string &colName = value.getStr();
+            const std::string& colName = value.getStr();
             if (isEdge_) {
                 newYieldColumns_->addColumn(new YieldColumn(new EdgePropertyExpression(
                     new std::string(schemaName), new std::string(colName))));

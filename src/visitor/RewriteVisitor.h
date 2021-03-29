@@ -14,11 +14,11 @@
 namespace nebula {
 namespace graph {
 
-using Matcher = std::function<bool(const Expression*)>;
-using Rewriter = std::function<Expression*(const Expression*)>;
-
 class RewriteVisitor final : public ExprVisitorImpl {
 public:
+    using Matcher = std::function<bool(const Expression*)>;
+    using Rewriter = std::function<Expression*(const Expression*)>;
+
     static Expression* transform(const Expression* expr,
                                  Matcher matcher,
                                  Rewriter rewriter);

@@ -30,5 +30,5 @@ StatusOr<SubPlan> WhereClausePlanner::transform(CypherClauseContextBase* ctx) {
 
     return Status::OK();
 }
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula

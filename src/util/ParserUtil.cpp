@@ -24,9 +24,9 @@ void ParserUtil::rewriteLC(QueryContext *qctx,
     const auto &newVarName = qctx->vctx()->anonVarGen()->getVar();
     qctx->ectx()->setValue(newVarName, Value());
 
-    auto matcher = [](const Expression *expr) -> bool{
-        return expr->kind() == Expression::Kind::kLabel
-            || expr->kind() == Expression::Kind::kLabelAttribute;
+    auto matcher = [](const Expression *expr) -> bool {
+        return expr->kind() == Expression::Kind::kLabel ||
+               expr->kind() == Expression::Kind::kLabelAttribute;
     };
     auto rewriter = [&oldVarName, &newVarName](const Expression *expr) {
         Expression *ret = nullptr;
@@ -55,16 +55,13 @@ void ParserUtil::rewriteLC(QueryContext *qctx,
     lc->setInnerVar(new std::string(newVarName));
     if (lc->hasFilter()) {
         Expression *filter = lc->filter();
-        auto* newFilter =
-            RewriteVisitor::transform(filter, matcher, rewriter);
+        auto *newFilter = RewriteVisitor::transform(filter, matcher, rewriter);
         lc->setFilter(newFilter);
     }
     if (lc->hasMapping()) {
         Expression *mapping = lc->mapping();
-        auto* newMapping =
-            RewriteVisitor::transform(mapping,
-                                      std::move(matcher),
-                                      std::move(rewriter));
+        auto *newMapping =
+            RewriteVisitor::transform(mapping, std::move(matcher), std::move(rewriter));
         lc->setMapping(newMapping);
     }
 }
@@ -76,9 +73,9 @@ void ParserUtil::rewritePred(QueryContext *qctx,
     const auto &newVarName = qctx->vctx()->anonVarGen()->getVar();
     qctx->ectx()->setValue(newVarName, Value());
 
-    auto matcher = [](const Expression *expr) -> bool{
-        return expr->kind() == Expression::Kind::kLabel
-            || expr->kind() == Expression::Kind::kLabelAttribute;
+    auto matcher = [](const Expression *expr) -> bool {
+        return expr->kind() == Expression::Kind::kLabel ||
+               expr->kind() == Expression::Kind::kLabelAttribute;
     };
     auto rewriter = [&oldVarName, &newVarName](const Expression *expr) {
         Expression *ret = nullptr;
@@ -106,9 +103,8 @@ void ParserUtil::rewritePred(QueryContext *qctx,
     pred->setOriginString(new std::string(pred->makeString()));
     pred->setInnerVar(new std::string(newVarName));
 
-    auto* newFilter = RewriteVisitor::transform(pred->filter(),
-                                                std::move(matcher),
-                                                std::move(rewriter));
+    auto *newFilter =
+        RewriteVisitor::transform(pred->filter(), std::move(matcher), std::move(rewriter));
     pred->setFilter(newFilter);
 }
 
@@ -122,9 +118,9 @@ void ParserUtil::rewriteReduce(QueryContext *qctx,
     const auto &newVarName = qctx->vctx()->anonVarGen()->getVar();
     qctx->ectx()->setValue(newVarName, Value());
 
-    auto matcher = [](const Expression *expr) -> bool{
-        return expr->kind() == Expression::Kind::kLabel
-            || expr->kind() == Expression::Kind::kLabelAttribute;
+    auto matcher = [](const Expression *expr) -> bool {
+        return expr->kind() == Expression::Kind::kLabel ||
+               expr->kind() == Expression::Kind::kLabelAttribute;
     };
     auto rewriter = [oldAccName, newAccName, oldVarName, newVarName](const Expression *expr) {
         Expression *ret = nullptr;
@@ -159,9 +155,8 @@ void ParserUtil::rewriteReduce(QueryContext *qctx,
     reduce->setAccumulator(new std::string(newAccName));
     reduce->setInnerVar(new std::string(newVarName));
 
-    auto* newMapping = RewriteVisitor::transform(reduce->mapping(),
-                                                 std::move(matcher),
-                                                 std::move(rewriter));
+    auto *newMapping =
+        RewriteVisitor::transform(reduce->mapping(), std::move(matcher), std::move(rewriter));
     reduce->setMapping(newMapping);
 }
 

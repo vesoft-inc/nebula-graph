@@ -48,8 +48,7 @@ public:
                                          const std::string& inputVar,
                                          SubPlan& plan);
 
-    static Expression* initialExprOrEdgeDstExpr(Expression* initialExpr,
-                                                const std::string& vidCol);
+    static Expression* initialExprOrEdgeDstExpr(Expression* initialExpr, const std::string& vidCol);
 
     static Expression* getEndVidInPath(const std::string& colName);
 
@@ -79,6 +78,6 @@ public:
                                                                         const SpaceInfo& space);
 };
 
-}  // namespace graph
-}  // namespace nebula
-#endif  // PLANNER_MATCHSOLVER_H_
+}   // namespace graph
+}   // namespace nebula
+#endif   // PLANNER_MATCHSOLVER_H_

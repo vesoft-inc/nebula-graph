@@ -8,74 +8,68 @@
 
 #include "context/ast/AstContext.h"
 #include "context/ast/QueryAstContext.h"
-#include "util/ExpressionUtils.h"
-#include "visitor/RewriteVisitor.h"
 #include "planner/Planner.h"
 #include "planner/Query.h"
+#include "util/ExpressionUtils.h"
+#include "visitor/RewriteVisitor.h"
 
 namespace nebula {
 namespace graph {
 Expression* MatchSolver::rewriteLabel2Vertex(const Expression* expr) {
-    auto matcher = [](const Expression *e) -> bool{
+    auto matcher = [](const Expression* e) -> bool {
         return e->kind() == Expression::Kind::kLabel ||
-               e->kind() == Expression::Kind::kLabelAttribute;};
-    auto rewriter = [](const Expression* e) -> Expression *{
+               e->kind() == Expression::Kind::kLabelAttribute;
+    };
+    auto rewriter = [](const Expression* e) -> Expression* {
         DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
                e->kind() == Expression::Kind::kLabel);
         if (e->kind() == Expression::Kind::kLabelAttribute) {
             auto la = static_cast<const LabelAttributeExpression*>(e);
-            return new AttributeExpression(new VertexExpression(),
-                                           la->right()->clone().release());
+            return new AttributeExpression(new VertexExpression(), la->right()->clone().release());
         }
-        return new VertexExpression();};
+        return new VertexExpression();
+    };
 
-    return RewriteVisitor::transform(expr,
-                                     std::move(matcher),
-                                     std::move(rewriter));
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
 }
 
 Expression* MatchSolver::rewriteLabel2Edge(const Expression* expr) {
-    auto matcher = [](const Expression *e) -> bool{
+    auto matcher = [](const Expression* e) -> bool {
         return e->kind() == Expression::Kind::kLabel ||
-               e->kind() == Expression::Kind::kLabelAttribute;};
-    auto rewriter = [](const Expression* e) -> Expression *{
+               e->kind() == Expression::Kind::kLabelAttribute;
+    };
+    auto rewriter = [](const Expression* e) -> Expression* {
         DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
                e->kind() == Expression::Kind::kLabel);
         if (e->kind() == Expression::Kind::kLabelAttribute) {
             auto la = static_cast<const LabelAttributeExpression*>(e);
-            return new AttributeExpression(new EdgeExpression(),
-                                           la->right()->clone().release());
+            return new AttributeExpression(new EdgeExpression(), la->right()->clone().release());
         }
-        return new EdgeExpression();};
+        return new EdgeExpression();
+    };
 
-    return RewriteVisitor::transform(expr,
-                                     std::move(matcher),
-                                     std::move(rewriter));
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
 }
 
 Expression* MatchSolver::rewriteLabel2VarProp(const Expression* expr) {
-    auto matcher = [](const Expression *e) -> bool{
+    auto matcher = [](const Expression* e) -> bool {
         return e->kind() == Expression::Kind::kLabel ||
-               e->kind() == Expression::Kind::kLabelAttribute;};
-    auto rewriter = [](const Expression* e) -> Expression *{
+               e->kind() == Expression::Kind::kLabelAttribute;
+    };
+    auto rewriter = [](const Expression* e) -> Expression* {
         DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
                e->kind() == Expression::Kind::kLabel);
         if (e->kind() == Expression::Kind::kLabelAttribute) {
             auto* la = static_cast<const LabelAttributeExpression*>(e);
-            auto* var = new VariablePropertyExpression(
-                            new std::string(),
-                            new std::string(*la->left()->name()));
-            return new AttributeExpression(
-                       var,
-                       new ConstantExpression(la->right()->value()));
+            auto* var = new VariablePropertyExpression(new std::string(),
+                                                       new std::string(*la->left()->name()));
+            return new AttributeExpression(var, new ConstantExpression(la->right()->value()));
         }
         auto label = static_cast<const LabelExpression*>(e);
-        return new VariablePropertyExpression(new std::string(),
-                               new std::string(*label->name()));};
+        return new VariablePropertyExpression(new std::string(), new std::string(*label->name()));
+    };
 
-    return RewriteVisitor::transform(expr,
-                                     std::move(matcher),
-                                     std::move(rewriter));
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
 }
 
 Expression* MatchSolver::doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
@@ -161,10 +155,10 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
             continue;
         }
 
-        const auto &value = la->right()->value();
-        auto *tpExpr = new TagPropertyExpression(new std::string(label),
-                                                 new std::string(value.getStr()));
-        auto *newConstant = constant->clone().release();
+        const auto& value = la->right()->value();
+        auto* tpExpr =
+            new TagPropertyExpression(new std::string(label), new std::string(value.getStr()));
+        auto* newConstant = constant->clone().release();
         if (left->kind() == Expression::Kind::kLabelAttribute) {
             auto* rel = new RelationalExpression(item->kind(), tpExpr, newConstant);
             relationals.emplace_back(rel);
@@ -329,5 +323,5 @@ StatusOr<std::vector<storage::cpp2::VertexProp>> MatchSolver::flattenTags(QueryC
     return props;
 }
 
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula

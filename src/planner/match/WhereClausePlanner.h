@@ -20,6 +20,6 @@ public:
 
     StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override;
 };
-}  // namespace graph
-}  // namespace nebula
-#endif  // PLANNER_MATCH_WHERECLAUSEPLANNER_H_
+}   // namespace graph
+}   // namespace nebula
+#endif   // PLANNER_MATCH_WHERECLAUSEPLANNER_H_

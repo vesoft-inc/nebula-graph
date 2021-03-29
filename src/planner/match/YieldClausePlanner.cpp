@@ -7,8 +7,8 @@
 #include "planner/match/YieldClausePlanner.h"
 
 #include "planner/Query.h"
-#include "visitor/RewriteVisitor.h"
 #include "planner/match/MatchSolver.h"
+#include "visitor/RewriteVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -28,8 +28,7 @@ void YieldClausePlanner::rewriteYieldColumns(const YieldClauseContext* yctx,
                                              YieldColumns* newYields) {
     auto* aliasesUsed = yctx->aliasesUsed;
     for (auto* col : yields->columns()) {
-        newYields->addColumn(
-            new YieldColumn(MatchSolver::doRewrite(*aliasesUsed, col->expr())));
+        newYields->addColumn(new YieldColumn(MatchSolver::doRewrite(*aliasesUsed, col->expr())));
     }
 }
 
@@ -51,9 +50,7 @@ Status YieldClausePlanner::buildYield(YieldClauseContext* yctx, SubPlan& subplan
     auto* newProjCols = yctx->qctx->objPool()->add(new YieldColumns());
     rewriteYieldColumns(yctx, yctx->projCols_, newProjCols);
     if (!yctx->hasAgg_) {
-        auto* project = Project::make(yctx->qctx,
-                                      currentRoot,
-                                      newProjCols);
+        auto* project = Project::make(yctx->qctx, currentRoot, newProjCols);
         project->setColNames(std::move(yctx->projOutputColumnNames_));
         subplan.root = project;
         subplan.tail = project;
@@ -63,13 +60,11 @@ Status YieldClausePlanner::buildYield(YieldClauseContext* yctx, SubPlan& subplan
         rewriteGroupExprs(yctx, &yctx->groupKeys_, &newGroupKeys);
         rewriteGroupExprs(yctx, &yctx->groupItems_, &newGroupItems);
 
-        auto* agg = Aggregate::make(yctx->qctx,
-                                    currentRoot,
-                                    std::move(newGroupKeys),
-                                    std::move(newGroupItems));
+        auto* agg = Aggregate::make(
+            yctx->qctx, currentRoot, std::move(newGroupKeys), std::move(newGroupItems));
         agg->setColNames(std::vector<std::string>(yctx->aggOutputColumnNames_));
         if (yctx->needGenProject_) {
-            auto *project = Project::make(yctx->qctx, agg, newProjCols);
+            auto* project = Project::make(yctx->qctx, agg, newProjCols);
             project->setInputVar(agg->outputVar());
             project->setColNames(std::move(yctx->projOutputColumnNames_));
             subplan.root = project;
@@ -89,5 +84,5 @@ Status YieldClausePlanner::buildYield(YieldClauseContext* yctx, SubPlan& subplan
 
     return Status::OK();
 }
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula
