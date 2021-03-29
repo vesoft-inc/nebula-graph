@@ -11,8 +11,7 @@ Feature: Schema Comment
       CREATE SPACE test_comment(comment = 'This is a comment of space.');
       """
     Then the execution should be successful
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       SHOW CREATE SPACE test_comment;
       """
@@ -39,8 +38,7 @@ Feature: Schema Comment
       CREATE SPACE test_comment_not_set;
       """
     Then the execution should be successful
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       SHOW CREATE SPACE test_comment_not_set;
       """
@@ -67,8 +65,7 @@ Feature: Schema Comment
       CREATE SPACE test_comment_empty(comment = '');
       """
     Then the execution should be successful
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       SHOW CREATE SPACE test_comment_empty;
       """
@@ -94,8 +91,7 @@ Feature: Schema Comment
       | partition_num  | 9                |
       | replica_factor | 1                |
       | vid_type       | FIXED_STRING(20) |
-    And wait 3 seconds
-    When executing query:
+    When try to execute query:
       """
       CREATE tag test_comment_tag(
           name string COMMENT 'The name.' NULL,
@@ -103,9 +99,8 @@ Feature: Schema Comment
       comment = 'The tag of person infomation.';
       """
     Then the execution should be successful
-    And wait 3 seconds
     # show
-    When executing query:
+    When try to execute query:
       """
       SHOW CREATE tag test_comment_tag;
       """
@@ -168,9 +163,8 @@ Feature: Schema Comment
       comment = 'The edge of person infomation.';
       """
     Then the execution should be successful
-    And wait 3 seconds
     # show
-    When executing query:
+    When try to execute query:
       """
       SHOW CREATE edge test_comment_edge;
       """
