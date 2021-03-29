@@ -84,11 +84,10 @@ fi
 echo "current version is [ $version ], strip enable is [$strip_enable], enablesanitizer is [$enablesanitizer], static_sanitizer is [$static_sanitizer]"
 
 function _build_storage {
-    if [ ! -d ${storage_dir} ]; then
+    if [ ! -d ${storage_dir} && ! -L ${storage_dir} ]; then
         git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
     fi
 
-    mkdir -p ${storage_build_dir}
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
           -DENABLE_ASAN=${san} \
@@ -110,7 +109,6 @@ function _build_storage {
 }
 
 function _build_graph {
-    mkdir -p ${build_dir}
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
           -DENABLE_ASAN=${san} \
@@ -140,7 +138,10 @@ function build {
     build_type=$4
     branch=$5
 
+    rm -rf ${build_dir} && mkdir -p ${build_dir}
+
     if [[ "$build_storage" == "ON" ]]; then
+        mkdir -p ${storage_build_dir}
         _build_storage
     fi
     _build_graph
