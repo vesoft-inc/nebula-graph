@@ -7,11 +7,19 @@
 #ifndef EXECUTOR_STORAGEACCESSEXECUTOR_H_
 #define EXECUTOR_STORAGEACCESSEXECUTOR_H_
 
-#include "executor/Executor.h"
 #include "common/clients/storage/StorageClientBase.h"
+#include "context/QueryContext.h"
+#include "executor/Executor.h"
+#include "service/Session.h"
 
 namespace nebula {
+
+class Expression;
+
 namespace graph {
+
+class Iterator;
+struct SpaceInfo;
 
 // It's used for data write/update/query
 class StorageAccessExecutor : public Executor {
@@ -44,6 +52,7 @@ protected:
                 return Status::Error("Request to storage failed, without failedCodes.");
             }
             // partial success is accepted
+            qctx()->setPartialSuccess();
             return Result::State::kPartialSuccess;
         }
         return Result::State::kSuccess;
@@ -123,6 +132,10 @@ protected:
                 folly::stringPrintf("%d(us)/%d(us)", std::get<1>(info), std::get<2>(info)));
         }
     }
+
+    bool isIntVidType(const SpaceInfo &space) const;
+
+    DataSet buildRequestDataSetByVidType(Iterator *iter, Expression *expr, bool dedup);
 };
 
 }   // namespace graph
