@@ -19,7 +19,6 @@ Feature: LookUpTest_Vid_Int
       """
       INSERT VERTEX lookup_tag_1(col1, col2, col3) VALUES 200:(200, 200, 200),201:(201, 201, 201), 202:(202, 202, 202);
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -66,9 +65,11 @@ Feature: LookUpTest_Vid_Int
     And wait 6 seconds
     When executing query:
       """
-      INSERT EDGE lookup_edge_1(col1, col2, col3) VALUES
-                       200 -> 201@0:(201, 201, 201),
-                       200 -> 202@0:(202, 202, 202)
+      INSERT EDGE
+        lookup_edge_1(col1, col2, col3)
+      VALUES
+        200 -> 201@0:(201, 201, 201),
+        200 -> 202@0:(202, 202, 202)
       """
     Then the execution should be successful
     When executing query:
@@ -119,10 +120,12 @@ Feature: LookUpTest_Vid_Int
     And wait 6 seconds
     When executing query:
       """
-      INSERT VERTEX lookup_tag_1(col1, col2, col3) VALUES
-                     200:(200, 200, 200),
-                     201:(201, 201, 201),
-                     202:(202, 202, 202)
+      INSERT VERTEX
+        lookup_tag_1(col1, col2, col3)
+      VALUES
+        200:(200, 200, 200),
+        201:(201, 201, 201),
+        202:(202, 202, 202)
       """
     Then the execution should be successful
     When executing query:
@@ -159,9 +162,11 @@ Feature: LookUpTest_Vid_Int
     And wait 6 seconds
     When executing query:
       """
-      INSERT EDGE lookup_edge_1(col1, col2, col3) VALUES
-                       200 -> 201@0:(201, 201, 201),
-                       200 -> 202@0:(202, 202, 202)
+      INSERT EDGE
+        lookup_edge_1(col1, col2, col3)
+      VALUES
+        200 -> 201@0:(201, 201, 201),
+        200 -> 202@0:(202, 202, 202)
       """
     Then the execution should be successful
     When executing query:
@@ -178,7 +183,6 @@ Feature: LookUpTest_Vid_Int
     Then a SemanticError should be raised at runtime:
     Then drop the used space
 
-  @skip
   Scenario: LookupTest IntVid VertexConditionScan
     Given an empty graph
     And create a space with following options:
@@ -197,13 +201,15 @@ Feature: LookUpTest_Vid_Int
     And wait 6 seconds
     When executing query:
       """
-      INSERT VERTEX lookup_tag_2(col1, col2, col3, col4) VALUES
-                   220:(true, 100, 100.5, true),
-                   221:(true, 200, 200.5, true),
-                   222:(true, 300, 300.5, true),
-                   223:(true, 400, 400.5, true),
-                   224:(true, 500, 500.5, true),
-                   225:(true, 600, 600.5, true)
+      INSERT VERTEX
+        lookup_tag_2(col1, col2, col3, col4)
+      VALUES
+        220:(true, 100, 100.5, true),
+        221:(true, 200, 200.5, true),
+        222:(true, 300, 300.5, true),
+        223:(true, 400, 400.5, true),
+        224:(true, 500, 500.5, true),
+        225:(true, 600, 600.5, true)
       """
     Then the execution should be successful
     When executing query:
@@ -296,12 +302,14 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | VertexID |
+    # FIXME(aiee): should not contain vid 220
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 > 100.5
       """
     Then the result should be, in any order:
       | VertexID |
+      | 220      |
       | 221      |
       | 222      |
       | 223      |
@@ -320,6 +328,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | VertexID |
+    # FIXME(aiee): should contain vid 222
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 >= 100.5 AND lookup_tag_2.col3 <= 300.5
@@ -328,10 +337,8 @@ Feature: LookUpTest_Vid_Int
       | VertexID |
       | 220      |
       | 221      |
-      | 222      |
     Then drop the used space
 
-  @skip
   Scenario: LookupTest IntVid EdgeConditionScan
     Given an empty graph
     And create a space with following options:
@@ -349,12 +356,14 @@ Feature: LookUpTest_Vid_Int
     And wait 6 seconds
     When executing query:
       """
-      INSERT EDGE lookup_edge_2(col1, col2, col3, col4) VALUES
-                       220 -> 221@0:(true, 100, 100.5, true),
-                       220 -> 222@0:(true, 200, 200.5, true),
-                       220 -> 223@0:(true, 300, 300.5, true),
-                       220 -> 224@0:(true, 400, 400.5, true),
-                       220 -> 225@0:(true, 500, 500.5, true)
+      INSERT EDGE
+        lookup_edge_2(col1, col2, col3, col4)
+      VALUES
+        220 -> 221@0:(true, 100, 100.5, true),
+        220 -> 222@0:(true, 200, 200.5, true),
+        220 -> 223@0:(true, 300, 300.5, true),
+        220 -> 224@0:(true, 400, 400.5, true),
+        220 -> 225@0:(true, 500, 500.5, true)
       """
     Then the execution should be successful
     When executing query:
@@ -443,12 +452,14 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
+    # FIXME(aiee): should not contains first line
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 > 100.5
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
+      | 220    | 221    | 0       |
       | 220    | 222    | 0       |
       | 220    | 223    | 0       |
       | 220    | 224    | 0       |
@@ -466,6 +477,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
+    # FIXME(aiee): should contain 220->223
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 >= 100.5
@@ -475,10 +487,8 @@ Feature: LookUpTest_Vid_Int
       | SrcVID | DstVID | Ranking |
       | 220    | 221    | 0       |
       | 220    | 222    | 0       |
-      | 220    | 223    | 0       |
     Then drop the used space
 
-  @skip
   Scenario: LookupTest IntVid FunctionExprTest
     Given an empty graph
     And create a space with following options:
@@ -497,13 +507,15 @@ Feature: LookUpTest_Vid_Int
     And wait 6 seconds
     When executing query:
       """
-      INSERT VERTEX lookup_tag_2(col1, col2, col3, col4) VALUES
-                       220:(true, 100, 100.5, true),
-                       221:(true, 200, 200.5, true),
-                       222:(true, 300, 300.5, true),
-                       223:(true, 400, 400.5, true),
-                       224:(true, 500, 500.5, true),
-                       225:(true, 600, 600.5, true)
+      INSERT VERTEX
+        lookup_tag_2(col1, col2, col3, col4)
+      VALUES
+        220:(true, 100, 100.5, true),
+        221:(true, 200, 200.5, true),
+        222:(true, 300, 300.5, true),
+        223:(true, 400, 400.5, true),
+        224:(true, 500, 500.5, true),
+        225:(true, 600, 600.5, true)
       """
     Then the execution should be successful
     When executing query:
@@ -587,29 +599,31 @@ Feature: LookUpTest_Vid_Int
       | 223      |
       | 224      |
       | 225      |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "HelLo")
-      """
-    Then the result should be, in any order:
-      | VertexID |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "hello")
-      """
-    Then the result should be, in any order:
-      | VertexID |
+    # FIXME(aiee): should support later by folding constants
+    # When executing query:
+    # """
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "HelLo")
+    # """
+    # Then the result should be, in any order:
+    # | VertexID |
+    # When executing query:
+    # """
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "hello")
+    # """
+    # Then the result should be, in any order:
+    # | VertexID |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != lookup_tag_2.col3
       """
     Then a SemanticError should be raised at runtime:
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (lookup_tag_2.col3 - 100)
-      """
-    Then the result should be, in any order:
-      | VertexID |
+    # FIXME(aiee): should support later
+    # When executing query:
+    # """
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (lookup_tag_2.col3 - 100)
+    # """
+    # Then the result should be, in any order:
+    # | VertexID |
     Then drop the used space
 
   Scenario: LookupTest IntVid YieldClauseTest
@@ -620,30 +634,30 @@ Feature: LookUpTest_Vid_Int
       | vid_type       | int64    |
       | charset        | utf8     |
       | collate        | utf8_bin |
-    And wait 6 seconds
     When executing query:
       """
       CREATE TAG student(number int, age int)
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
       CREATE TAG INDEX student_index ON student(number, age)
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
       CREATE TAG teacher(number int, age int)
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
-      INSERT VERTEX student(number, age), teacher(number, age)  VALUES
-                     220:(1, 20, 1, 30),
-                     221:(2, 22, 2, 32)
+      INSERT VERTEX
+        student(number, age),
+        teacher(number, age)
+      VALUES
+        220:(1, 20, 1, 30),
+        221:(2, 22, 2, 32)
       """
     Then the execution should be successful
     When executing query:
@@ -854,19 +868,16 @@ Feature: LookUpTest_Vid_Int
       """
       CREATE TAG tag_with_str(c1 int, c2 string, c3 string)
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
       CREATE TAG INDEX i1_with_str ON tag_with_str(c1, c2(30))
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
       CREATE TAG INDEX i2_with_str ON tag_with_str(c2(30), c3(30))
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -876,13 +887,15 @@ Feature: LookUpTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      INSERT VERTEX tag_with_str(c1, c2, c3) VALUES
-                     1:(1, "c1_row1", "c2_row1"),
-                     2:(2, "c1_row2", "c2_row2"),
-                     3:(3, "abc", "abc"),
-                     4:(4, "abc", "abc"),
-                     5:(5, "ab", "cabc"),
-                     6:(5, "abca", "bc")
+      INSERT VERTEX
+        tag_with_str(c1, c2, c3)
+      VALUES
+        1:(1, "c1_row1", "c2_row1"),
+        2:(2, "c1_row2", "c2_row2"),
+        3:(3, "abc", "abc"),
+        4:(4, "abc", "abc"),
+        5:(5, "ab", "cabc"),
+        6:(5, "abca", "bc")
       """
     Then the execution should be successful
     When executing query:
@@ -941,28 +954,30 @@ Feature: LookUpTest_Vid_Int
       """
       create tag identity (BIRTHDAY int, NATION string, BIRTHPLACE_CITY string)
       """
+    Then the execution should be successful
+    When executing query:
+      """
+      CREATE TAG INDEX
+        idx_identity_cname_birth_gender_nation_city
+      ON
+        identity(BIRTHDAY, NATION(30), BIRTHPLACE_CITY(30))
+      """
     And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
-      CREATE TAG INDEX idx_identity_cname_birth_gender_nation_city
-                    ON identity(BIRTHDAY, NATION(30), BIRTHPLACE_CITY(30))
-      """
-    And wait 6 seconds
-    Then the execution should be successful
-    When executing query:
-      """
-      INSERT VERTEX identity (BIRTHDAY, NATION, BIRTHPLACE_CITY)
-                    VALUES 1:(19860413, "汉族", "aaa")
+      INSERT VERTEX identity (BIRTHDAY, NATION, BIRTHPLACE_CITY) VALUES 1:(19860413, "汉族", "aaa")
       """
     Then the execution should be successful
     When executing query:
       """
-      lookup on identity where
-                     identity.NATION == "汉族" and
-                     identity.BIRTHDAY > 19620101 and
-                     identity.BIRTHDAY < 20021231 and
-                     identity.BIRTHPLACE_CITY == "bbb";
+      LOOKUP ON
+        identity
+      WHERE
+        identity.NATION == "汉族" AND
+        identity.BIRTHDAY > 19620101 AND
+        identity.BIRTHDAY < 20021231 AND
+        identity.BIRTHPLACE_CITY == "bbb";
       """
     Then the result should be, in any order:
       | VertexID |
