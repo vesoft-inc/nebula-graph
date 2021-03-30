@@ -124,14 +124,15 @@ folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
             auto edgeIndexItems = std::move(resp).value();
 
             DataSet dataSet;
-            dataSet.colNames = {"Names"};
-            std::set<std::string> orderEdgeIndexNames;
+            dataSet.colNames = {"ID", "Names"};
+            std::set<std::pair<IndexID, std::string>> orderEdgeIndexIdNames;
             for (auto &edgeIndex : edgeIndexItems) {
-                orderEdgeIndexNames.emplace(edgeIndex.get_index_name());
+                orderEdgeIndexIdNames.emplace(edgeIndex.get_index_id(), edgeIndex.get_index_name());
             }
-            for (auto &name : orderEdgeIndexNames) {
+            for (auto &item : orderEdgeIndexIdNames) {
                 Row row;
-                row.values.emplace_back(name);
+                row.values.emplace_back(item.first);
+                row.values.emplace_back(item.second);
                 dataSet.rows.emplace_back(std::move(row));
             }
             return finish(ResultBuilder()

@@ -94,14 +94,15 @@ folly::Future<Status> ShowTagsExecutor::execute() {
             auto tagItems = std::move(resp).value();
 
             DataSet dataSet;
-            dataSet.colNames = {"Name"};
-            std::set<std::string> orderTagNames;
+            dataSet.colNames = {"ID", "Name"};
+            std::set<std::pair<TagID, std::string>> orderTagIdNames;
             for (auto &tag : tagItems) {
-                orderTagNames.emplace(tag.get_tag_name());
+                orderTagIdNames.emplace(tag.get_tag_id(), tag.get_tag_name());
             }
-            for (auto &name : orderTagNames) {
+            for (auto &item : orderTagIdNames) {
                 Row row;
-                row.values.emplace_back(name);
+                row.values.emplace_back(item.first);
+                row.values.emplace_back(item.second);
                 dataSet.rows.emplace_back(std::move(row));
             }
             return finish(ResultBuilder()

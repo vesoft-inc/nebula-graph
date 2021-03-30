@@ -124,14 +124,15 @@ folly::Future<Status> ShowTagIndexesExecutor::execute() {
             auto tagIndexItems = std::move(resp).value();
 
             DataSet dataSet;
-            dataSet.colNames = {"Names"};
-            std::set<std::string> orderTagIndexNames;
+            dataSet.colNames = {"ID", "Names"};
+            std::set<std::pair<IndexID, std::string>> orderTagIndexIdNames;
             for (auto &tagIndex : tagIndexItems) {
-                orderTagIndexNames.emplace(tagIndex.get_index_name());
+                orderTagIndexIdNames.emplace(tagIndex.get_index_id(), tagIndex.get_index_name());
             }
-            for (auto &name : orderTagIndexNames) {
+            for (auto &item : orderTagIndexIdNames) {
                 Row row;
-                row.values.emplace_back(name);
+                row.values.emplace_back(item.first);
+                row.values.emplace_back(item.second);
                 dataSet.rows.emplace_back(std::move(row));
             }
             return finish(ResultBuilder()
