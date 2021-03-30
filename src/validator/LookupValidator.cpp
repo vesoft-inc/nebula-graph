@@ -303,10 +303,13 @@ StatusOr<Expression*> LookupValidator::checkFilter(Expression* expr) {
         case Expression::Kind::kLogicalAnd: {
             // TODO(dutor) Deal with n-ary operands
             auto lExpr = static_cast<LogicalExpression*>(expr);
-            auto ret = checkFilter(lExpr->operand(0));
-            NG_RETURN_IF_ERROR(ret);
-            ret = checkFilter(lExpr->operand(1));
-            NG_RETURN_IF_ERROR(ret);
+            auto& operands = lExpr->operands();
+            for (auto i = 0u; i < operands.size(); i++) {
+                auto ret = checkFilter(lExpr->operand(i));
+                NG_RETURN_IF_ERROR(ret);
+                static_cast<LogicalExpression*>(expr)->setOperand(i,
+                                                                  ret.value()->clone().release());
+            }
             break;
         }
         case Expression::Kind::kRelLE:
@@ -360,7 +363,6 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     // fold constant expression
     expr = static_cast<RelationalExpression*>(ExpressionUtils::foldConstantExpr(expr).release());
     DCHECK_EQ(expr->left()->kind(), Expression::Kind::kLabelAttribute);
-    DCHECK_EQ(expr->right()->kind(), Expression::Kind::kConstant);
 
     std::string prop = la->right()->value().getStr();
     auto relExprType = expr->kind();
