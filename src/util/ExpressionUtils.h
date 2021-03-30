@@ -130,6 +130,30 @@ public:
 
         return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
     }
+    
+    static bool isRelExpr(const Expression* expr) {
+        //    expr->kind() == Expression::Kind::kRelREG is not supported
+        return expr->kind() == Expression::Kind::kRelEQ ||
+               expr->kind() == Expression::Kind::kRelNE ||
+               expr->kind() == Expression::Kind::kRelLT ||
+               expr->kind() == Expression::Kind::kRelLE ||
+               expr->kind() == Expression::Kind::kRelGT ||
+               expr->kind() == Expression::Kind::kRelGE ||
+               expr->kind() == Expression::Kind::kRelIn ||
+               expr->kind() == Expression::Kind::kRelNotIn ||
+               expr->kind() == Expression::Kind::kContains ||
+               expr->kind() == Expression::Kind::kNotContains ||
+               expr->kind() == Expression::Kind::kStartsWith ||
+               expr->kind() == Expression::Kind::kNotStartsWith ||
+               expr->kind() == Expression::Kind::kEndsWith ||
+               expr->kind() == Expression::Kind::kNotEndsWith;
+    }
+
+    static bool isLogicalExpr(const Expression* expr) {
+        return expr->kind() == Expression::Kind::kLogicalAnd ||
+               expr->kind() == Expression::Kind::kLogicalOr ||
+               expr->kind() == Expression::Kind::kLogicalXor;
+    }
 
     static bool isEvaluableExpr(const Expression* expr) {
         EvaluableExprVisitor visitor;
@@ -227,6 +251,20 @@ public:
     static std::vector<std::unique_ptr<Expression>> expandImplOr(const Expression* expr);
 
     static Status checkAggExpr(const AggregateExpression* aggExpr);
+
+    // Negate the given logical expr
+    static std::unique_ptr<Expression> reverseLogicalExpr(Expression* expr);
+
+    // Return the negation of the given logical kind
+    static Expression::Kind getNegatedLogicalExprKind(const Expression::Kind kind);
+
+    // Negate the given relational expr
+    static std::unique_ptr<Expression> reverseRelExpr(Expression* expr);
+
+    // Return the negation of the given relational kind
+    static Expression::Kind getNegatedRelExprKind(const Expression::Kind kind);
+
+    static bool isEvaluableExpr(const Expression* expr);
 };
 
 }   // namespace graph
