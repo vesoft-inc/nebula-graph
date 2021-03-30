@@ -253,7 +253,7 @@ private:
 class InsertEdgesSentence final : public Sentence {
 public:
     explicit InsertEdgesSentence(bool ifNotExists)
-        : ifNotExists_(ifNotExists), Sentence(Kind::kInsertEdges) {}
+        : Sentence(Kind::kInsertEdges), ifNotExists_(ifNotExists) {}
 
     void setEdge(std::string *edge) {
         edge_.reset(edge);
