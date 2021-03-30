@@ -32,8 +32,8 @@ Feature: Insert string vid of vertex and edge
       FETCH PROP ON person "Conan" YIELD person.age as age
       """
     Then the result should be, in any order, with relax comparison:
-      | age |
-      | 10  |
+      | VertexID | age |
+      | "Conan"  | 10  |
     # insert vertex if not exists
     When try to execute query:
       """
@@ -46,8 +46,8 @@ Feature: Insert string vid of vertex and edge
       FETCH PROP ON person "Conan" YIELD person.age as age
       """
     Then the result should be, in any order, with relax comparison:
-      | age |
-      | 10  |
+      | VertexID | age |
+      | "Conan"  | 10  |
     # insert edge
     When executing query:
       """
@@ -61,7 +61,7 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
-      | 'Tom'     | 'Canon'   | 0          | 87            |
+      | 'Tom'     | 'Conan'   | 0          | 87            |
     # insert edge
     When executing query:
       """
@@ -75,4 +75,4 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
-      | 'Tom'     | 'Canon'   | 0          | 87            |
+      | 'Tom'     | 'Conan'   | 0          | 87            |
