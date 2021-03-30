@@ -2869,9 +2869,20 @@ create_space_sentence
         auto sentence = new CreateSpaceSentence($4, $3);
         $$ = sentence;
     }
+    | KW_CREATE KW_SPACE opt_if_not_exists name_label KW_COMMENT ASSIGN STRING {
+        auto sentence = new CreateSpaceSentence($4, $3);
+        sentence->setComment($7);
+        $$ = sentence;
+    }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label KW_ON name_label {
         auto sentence = new CreateSpaceSentence($4, $3);
         sentence->setGroupName($6);
+        $$ = sentence;
+    }
+    | KW_CREATE KW_SPACE opt_if_not_exists name_label KW_ON name_label KW_COMMENT ASSIGN STRING {
+        auto sentence = new CreateSpaceSentence($4, $3);
+        sentence->setGroupName($6);
+        sentence->setComment($9);
         $$ = sentence;
     }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN {
@@ -2879,10 +2890,23 @@ create_space_sentence
         sentence->setOpts($6);
         $$ = sentence;
     }
+    | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN KW_COMMENT ASSIGN STRING {
+        auto sentence = new CreateSpaceSentence($4, $3);
+        sentence->setOpts($6);
+        sentence->setComment($10);
+        $$ = sentence;
+    }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN KW_ON name_label {
         auto sentence = new CreateSpaceSentence($4, $3);
         sentence->setGroupName($9);
         sentence->setOpts($6);
+        $$ = sentence;
+    }
+    | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN KW_ON name_label KW_COMMENT ASSIGN STRING {
+        auto sentence = new CreateSpaceSentence($4, $3);
+        sentence->setGroupName($9);
+        sentence->setOpts($6);
+        sentence->setComment($12);
         $$ = sentence;
     }
     ;
@@ -2933,9 +2957,6 @@ space_opt_item
     }
     | KW_ATOMIC_EDGE ASSIGN BOOL {
         $$ = new SpaceOptItem(SpaceOptItem::ATOMIC_EDGE, $3);
-    }
-    | KW_COMMENT ASSIGN STRING {
-        $$ = new SpaceOptItem(SpaceOptItem::COMMENT, *$3);
     }
     // TODO(YT) Create Spaces for different engines
     // KW_ENGINE_TYPE ASSIGN name_label

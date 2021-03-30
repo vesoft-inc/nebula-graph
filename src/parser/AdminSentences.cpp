@@ -73,8 +73,6 @@ std::string SpaceOptItem::toString() const {
             return folly::stringPrintf("atomic_edge = %s", getAtomicEdge() ? "true" : "false");
         case OptionType::GROUP_NAME:
             return "";
-        case OptionType::COMMENT:
-            return folly::stringPrintf("comment = %s", getComment().c_str());
     }
     DLOG(FATAL) << "Space parameter illegal";
     return "Unknown";
@@ -107,6 +105,11 @@ std::string CreateSpaceSentence::toString() const {
     if (groupName_ != nullptr) {
         buf += " ON ";
         buf += *groupName_;
+    }
+    if (comment_ != nullptr) {
+        buf += " comment = \"";
+        buf += *comment_;
+        buf += "\"";
     }
     return buf;
 }

@@ -169,9 +169,9 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                 }
                 auto fmt = properties.__isset.comment ?
                            "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
-                           "charset = %s, collate = %s, vid_type = %s, atomic_edge = %s, "
-                           "comment = '%s'"
-                           ") ON %s" :
+                           "charset = %s, collate = %s, vid_type = %s, atomic_edge = %s"
+                           ") ON %s"
+                           " comment = '%s'" :
                            "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
                            "charset = %s, collate = %s, vid_type = %s, atomic_edge = %s"
                            ") ON %s";
@@ -185,9 +185,9 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                         properties.get_collate_name().c_str(),
                         SchemaUtil::typeToString(properties.get_vid_type()).c_str(),
                         sAtomicEdge.c_str(),
-                        properties.get_comment()->c_str(),
                         properties.__isset.group_name ? properties.get_group_name()->c_str()
-                                                    : "default"));
+                                                    : "default",
+                        properties.get_comment()->c_str()));
                 } else {
                     row.values.emplace_back(folly::stringPrintf(
                         fmt,

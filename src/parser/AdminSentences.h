@@ -6,7 +6,6 @@
 #ifndef PARSER_ADMINSENTENCES_H_
 #define PARSER_ADMINSENTENCES_H_
 
-#include <memory>
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
 #include "parser/MutateSentences.h"
@@ -157,7 +156,6 @@ public:
         COLLATE,
         ATOMIC_EDGE,
         GROUP_NAME,
-        COMMENT
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -273,11 +271,6 @@ public:
         }
     }
 
-    const std::string& getComment() const {
-        DCHECK(isString());
-        return asString();
-    }
-
     std::string toString() const;
 
 private:
@@ -326,6 +319,14 @@ public:
         groupName_.reset(name);
     }
 
+    void setComment(std::string *name) {
+        comment_.reset(name);
+    }
+
+    const std::string* comment() const {
+        return comment_.get();
+    }
+
     std::vector<SpaceOptItem*> getOpts() {
         if (spaceOpts_ == nullptr) {
             return {};
@@ -339,6 +340,7 @@ private:
     std::unique_ptr<std::string>     spaceName_;
     std::unique_ptr<std::string>     groupName_;
     std::unique_ptr<SpaceOptList>    spaceOpts_;
+    std::unique_ptr<std::string>     comment_;
 };
 
 

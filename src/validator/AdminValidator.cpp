@@ -94,15 +94,15 @@ Status CreateSpaceValidator::validateImpl() {
             case SpaceOptItem::GROUP_NAME: {
                 break;
             }
-            case SpaceOptItem::COMMENT: {
-                if (item->getComment().size() > SchemaUtil::kCommentLengthLimit) {
-                    return Status::Error("Too long comment reach %ld bytes limit.",
-                                         SchemaUtil::kCommentLengthLimit);
-                }
-                spaceDesc_.set_comment(item->getComment());
-                break;
-            }
         }
+    }
+    // check comment
+    if (sentence->comment() != nullptr) {
+        if (sentence->comment()->size() > SchemaUtil::kCommentLengthLimit) {
+            return Status::Error("Too long comment reach %ld bytes limit.",
+                                    SchemaUtil::kCommentLengthLimit);
+        }
+        spaceDesc_.set_comment(*sentence->comment());
     }
 
     // if charset and collate are not specified, set default value

@@ -8,7 +8,7 @@ Feature: Schema Comment
     Given an empty graph
     When executing query:
       """
-      CREATE SPACE test_comment(comment = 'This is a comment of space.');
+      CREATE SPACE test_comment comment = 'This is a comment of space.';
       """
     Then the execution should be successful
     When try to execute query:
@@ -16,8 +16,8 @@ Feature: Schema Comment
       SHOW CREATE SPACE test_comment;
       """
     Then the result should be, in any order:
-      | Space          | Create Space                                                                                                                                                                                                     |
-      | "test_comment" | "CREATE SPACE `test_comment` (partition_num = 100, replica_factor = 1, charset = utf8, collate = utf8_bin, vid_type = FIXED_STRING(8), atomic_edge = false, comment = 'This is a comment of space.') ON default" |
+      | Space          | Create Space                                                                                                                                                                                                    |
+      | "test_comment" | "CREATE SPACE `test_comment` (partition_num = 100, replica_factor = 1, charset = utf8, collate = utf8_bin, vid_type = FIXED_STRING(8), atomic_edge = false) ON default comment = 'This is a comment of space.'" |
     When executing query:
       """
       DESC SPACE test_comment;
@@ -62,7 +62,7 @@ Feature: Schema Comment
     Given an empty graph
     When executing query:
       """
-      CREATE SPACE test_comment_empty(comment = '');
+      CREATE SPACE test_comment_empty comment = '';
       """
     Then the execution should be successful
     When try to execute query:
@@ -71,7 +71,7 @@ Feature: Schema Comment
       """
     Then the result should be, in any order:
       | Space                | Create Space                                                                                                                                                                                |
-      | "test_comment_empty" | "CREATE SPACE `test_comment_empty` (partition_num = 100, replica_factor = 1, charset = utf8, collate = utf8_bin, vid_type = FIXED_STRING(8), atomic_edge = false, comment = '') ON default" |
+      | "test_comment_empty" | "CREATE SPACE `test_comment_empty` (partition_num = 100, replica_factor = 1, charset = utf8, collate = utf8_bin, vid_type = FIXED_STRING(8), atomic_edge = false) ON default comment = ''" |
     When executing query:
       """
       DESC SPACE test_comment_empty;
