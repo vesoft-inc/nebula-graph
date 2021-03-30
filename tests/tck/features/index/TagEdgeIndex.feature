@@ -350,22 +350,22 @@ Feature: tag and edge index tests from pytest
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking | edge_1.col2 |
-      | '102'  | '103'  |       0 |          22 |
+      | '102'  | '103'  | 0       | 22          |
     When executing query:
       """
       LOOKUP ON edge_1 WHERE edge_1.col3 > 43.4 YIELD edge_1.col1
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking | edge_1.col1 |
-      | '102'  | '103'  |       0 | 'Yellow'    |
-      | '101'  | '102'  |       0 | 'Red'       |
+      | '102'  | '103'  | 0       | 'Yellow'    |
+      | '101'  | '102'  | 0       | 'Red'       |
     When executing query:
       """
       LOOKUP ON edge_1 WHERE edge_1.col2 > 45 AND edge_1.col3 < 44.3 YIELD edge_1.col1
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking | edge_1.col1 |
-      | '103'  | '101'  |       0 | 'Blue'      |
+      | '103'  | '101'  | 0       | 'Blue'      |
     # Describe Edge Index
     When executing query:
       """
