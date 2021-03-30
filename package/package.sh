@@ -19,8 +19,10 @@ package_one=ON
 strip_enable="FALSE"
 usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF>"
 project_dir="$(cd "$(dirname "$0")" && pwd)/.."
+build_dir=${project_dir}/pkg-build
 modules_dir=${project_dir}/modules
 storage_dir=${modules_dir}/storage
+storage_build_dir=${build_dir}/modules/storage
 enablesanitizer="OFF"
 static_sanitizer="OFF"
 build_type="Release"
@@ -83,6 +85,7 @@ echo "current version is [ $version ], strip enable is [$strip_enable], enablesa
 
 function _build_storage {
 <<<<<<< HEAD
+<<<<<<< HEAD
     if [[ ! -d ${storage_dir} && ! -L ${storage_dir} ]]; then
         git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
     fi
@@ -95,6 +98,12 @@ function _build_storage {
 
     rm -rf ${storage_dir}/build && mkdir -p ${storage_dir}/build
 >>>>>>> 5bd53981... Fix version bug when packaging (#893)
+=======
+    if [ ! -d ${storage_dir} && ! -L ${storage_dir} ]; then
+        git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
+    fi
+
+>>>>>>> ca21bad9... Rename build directory of packaging to pkg-build (#896)
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
           -DENABLE_ASAN=${san} \
@@ -106,6 +115,7 @@ function _build_storage {
           -DENABLE_TESTING=OFF \
           -DENABLE_PACK_ONE=${package_one} \
           -S ${storage_dir} \
+<<<<<<< HEAD
 <<<<<<< HEAD
           -B ${storage_build_dir}
 
@@ -119,8 +129,11 @@ function _build_storage {
 =======
           -B ${storage_dir}/build
 >>>>>>> 5bd53981... Fix version bug when packaging (#893)
+=======
+          -B ${storage_build_dir}
+>>>>>>> ca21bad9... Rename build directory of packaging to pkg-build (#896)
 
-    if !( cmake --build ${storage_dir}/build -j ${jobs} ); then
+    if !( cmake --build ${storage_build_dir} -j ${jobs} ); then
         echo ">>> build nebula storage failed <<<"
         exit -1
     fi
@@ -128,8 +141,6 @@ function _build_storage {
 }
 
 function _build_graph {
-    build_dir=${project_dir}/build
-    rm -rf ${build_dir} && mkdir -p ${build_dir}
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
           -DENABLE_ASAN=${san} \
@@ -165,7 +176,10 @@ function build {
     build_type=$4
     branch=$5
 
+    rm -rf ${build_dir} && mkdir -p ${build_dir}
+
     if [[ "$build_storage" == "ON" ]]; then
+        mkdir -p ${storage_build_dir}
         _build_storage
     fi
     _build_graph
@@ -187,7 +201,7 @@ function package {
         -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
         -DENABLE_PACKAGE_STORAGE=${build_storage} \
         -DNEBULA_STORAGE_SOURCE_DIR=${storage_dir} \
-        -DNEBULA_STORAGE_BINARY_DIR=${storage_dir}/build \
+        -DNEBULA_STORAGE_BINARY_DIR=${storage_build_dir} \
         ${project_dir}/package/
 
     strip_enable=$1

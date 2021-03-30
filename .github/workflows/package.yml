@@ -32,7 +32,7 @@ jobs:
         env:
           SHA_EXT: sha256sum.txt
         run: |
-          filename=$(find build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
+          filename=$(find pkg-build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
           sha256sum $filename > $filename.$SHA_EXT
           subdir=$(date -u +%Y.%m.%d)
           echo "::set-output name=filepath::$filename"
@@ -41,13 +41,23 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.os }}-v2-nightly
+<<<<<<< HEAD
           path: build/cpack_output
       - name: upload package to oss
         uses: tvrcgo/upload-to-oss@v0.3.0
+=======
+          path: pkg-build/cpack_output
+      - uses: ./.github/actions/upload-to-oss-action
+>>>>>>> ca21bad9... Rename build directory of packaging to pkg-build (#896)
         with:
           key-id: ${{ secrets.OSS_ID }}
           key-secret: ${{ secrets.OSS_SECRET }}
           endpoint: ${{ secrets.OSS_ENDPOINT }}
           bucket: nebula-graph
+<<<<<<< HEAD
           asset-path: build/cpack_output
           target-path: /package/v2-nightly/${{ steps.vars.outputs.subdir }}
+=======
+          asset-path: pkg-build/cpack_output
+          target-path: package/v2-nightly/${{ steps.vars.outputs.subdir }}
+>>>>>>> ca21bad9... Rename build directory of packaging to pkg-build (#896)
