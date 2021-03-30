@@ -236,21 +236,21 @@ Status InsertEdgesValidator::prepareEdges() {
         storage::cpp2::NewEdge edge;
         storage::cpp2::EdgeKey key;
 
-        if (useToss) {
-            // outbound
-            key.set_src(srcId);
-            key.set_dst(dstId);
-            key.set_edge_type(edgeType_);
-        } else {
+        key.set_src(srcId);
+        key.set_dst(dstId);
+        key.set_edge_type(edgeType_);
+        key.set_ranking(rank);
+        edge.set_key(key);
+        edge.set_props(std::move(props));
+        edges_.emplace_back(edge);
+        if (!useToss) {
             // inbound
             key.set_src(dstId);
             key.set_dst(srcId);
             key.set_edge_type(-edgeType_);
+            edge.set_key(key);
+            edges_.emplace_back(std::move(edge));
         }
-        key.set_ranking(rank);
-        edge.set_key(std::move(key));
-        edge.set_props(std::move(props));
-        edges_.emplace_back(std::move(edge));
     }
 
     return Status::OK();
