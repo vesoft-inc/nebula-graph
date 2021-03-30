@@ -65,6 +65,18 @@ public:
                dstTagProps_.empty();
     }
 
+    bool hasVertexExpr() const {
+        return hasVertexExpr_;
+    }
+
+    bool hasEdgeExpr() const {
+        return hasEdgeExpr_;
+    }
+
+    bool hasPathExpr() const {
+        return hasPathExpr_;
+    }
+
     void insertInputProp(folly::StringPiece prop);
     void insertVarProp(const std::string& outputVar, folly::StringPiece prop);
     void insertSrcTagProp(TagID tagId, folly::StringPiece prop);
@@ -76,6 +88,18 @@ public:
     bool isSubsetOfVar(const VarPropMap& props);
     void unionProps(ExpressionProps exprProps);
 
+    void setHasVertices(bool has) {
+        hasVertexExpr_ = has;
+    }
+
+    void setHasEdges(bool has) {
+        hasEdgeExpr_ = has;
+    }
+
+    void setHasPath(bool has) {
+        hasPathExpr_ = has;
+    }
+
 private:
     std::set<folly::StringPiece> inputProps_;
     VarPropMap varProps_;
@@ -84,6 +108,9 @@ private:
     EdgePropMap edgeProps_;
     TagIDPropsMap tagProps_;
     TagNameIds tagNameIds_;
+    bool hasVertexExpr_{false};
+    bool hasEdgeExpr_{false};
+    bool hasPathExpr_{false};
 };
 
 class DeducePropsVisitor : public ExprVisitorImpl {
@@ -123,6 +150,8 @@ private:
     void visit(VertexExpression* expr) override;
     void visit(EdgeExpression* expr) override;
     void visit(ColumnExpression* expr) override;
+    void visit(PathBuildExpression* expr) override;
+    void visit(VidExpression*) override {};
 
     void visitEdgePropExpr(PropertyExpression* expr);
     void reportError(const Expression* expr);

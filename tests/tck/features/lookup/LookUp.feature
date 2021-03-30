@@ -30,21 +30,21 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 300
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     When executing query:
       """
       LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "200"    |
     When executing query:
       """
       LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200
-      YIELD lookup_tag_1.col1, lookup_tag_1.col2, lookup_tag_1.col3
+      YIELD _vid, lookup_tag_1.col1, lookup_tag_1.col2, lookup_tag_1.col3
       """
     Then the result should be, in any order:
-      | VertexID | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
+      | _vid | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
       | "200"    | 200               | 200               | 200               |
     Then drop the used space
 
@@ -71,20 +71,21 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 300
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank |
     When executing query:
       """
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank |
       | "200"  | "201"  | 0       |
     When executing query:
       """
-      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201 YIELD lookup_edge_1.col1, lookup_edge_1.col2, lookup_edge_1.col3
+      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201
+      YIELD lookup_edge_1._src, lookup_edge_1._dst, lookup_edge_1._rank, lookup_edge_1.col1, lookup_edge_1.col2, lookup_edge_1.col3
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking | lookup_edge_1.col1 | lookup_edge_1.col2 | lookup_edge_1.col3 |
+      | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank | lookup_edge_1.col1 | lookup_edge_1.col2 | lookup_edge_1.col3 |
       | "200"  | "201"  | 0       | 201                | 201                | 201                |
     Then drop the used space
 
@@ -115,7 +116,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col2 == 200
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "200"    |
     When executing query:
       """
@@ -149,7 +150,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col2 == 201
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank |
       | "200"  | "201"  | 0       |
     When executing query:
       """
@@ -185,14 +186,14 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 == 100
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 == 100 OR lookup_tag_2.col2 == 200
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
       | "221"    |
     When executing query:
@@ -200,7 +201,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > 100
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "221"    |
       | "222"    |
       | "223"    |
@@ -211,7 +212,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != 100
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "221"    |
       | "222"    |
       | "223"    |
@@ -222,7 +223,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
       | "221"    |
       | "222"    |
@@ -234,7 +235,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 AND lookup_tag_2.col4 == true
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
       | "221"    |
       | "222"    |
@@ -246,13 +247,13 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 AND lookup_tag_2.col4 != true
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >= 100 AND lookup_tag_2.col2 <= 400
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
       | "221"    |
       | "222"    |
@@ -262,7 +263,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 AND lookup_tag_2.col2 == 100
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
     When executing query:
       """
@@ -270,6 +271,7 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | VertexID |
+      | _vid |
     When executing query:
       """
       LOOKUP ON lookup_tag_2
@@ -277,7 +279,7 @@ Feature: LookUpTest_Vid_String
       YIELD lookup_tag_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | VertexID | col3  |
+      | _vid     | col3  |
       | "221"    | 200.5 |
       | "222"    | 300.5 |
       | "223"    | 400.5 |
@@ -288,14 +290,14 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.1
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     When executing query:
       """
       LOOKUP ON lookup_tag_2
@@ -303,7 +305,7 @@ Feature: LookUpTest_Vid_String
       YIELD lookup_tag_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | VertexID | col3  |
+      | _vid | col3  |
       | "220"    | 100.5 |
       | "221"    | 200.5 |
       | "222"    | 300.5 |
@@ -334,14 +336,14 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 == 100
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "221"  | 0       |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 == 100 OR lookup_edge_2.col2 == 200
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "221"  | 0       |
       | "220"  | "222"  | 0       |
     When executing query:
@@ -349,7 +351,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 > 100
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "222"  | 0       |
       | "220"  | "223"  | 0       |
       | "220"  | "224"  | 0       |
@@ -359,7 +361,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 != 100
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "222"  | 0       |
       | "220"  | "223"  | 0       |
       | "220"  | "224"  | 0       |
@@ -369,7 +371,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "221"  | 0       |
       | "220"  | "222"  | 0       |
       | "220"  | "223"  | 0       |
@@ -380,7 +382,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100 AND lookup_edge_2.col4 == true
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "221"  | 0       |
       | "220"  | "222"  | 0       |
       | "220"  | "223"  | 0       |
@@ -391,13 +393,13 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100 AND lookup_edge_2.col4 != true
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100 AND lookup_edge_2.col2 <= 400
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "221"  | 0       |
       | "220"  | "222"  | 0       |
       | "220"  | "223"  | 0       |
@@ -407,14 +409,14 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5 AND lookup_edge_2.col2 == 100
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "221"  | 0       |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5 AND lookup_edge_2.col2 == 200
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
     When executing query:
       """
       LOOKUP ON lookup_edge_2
@@ -422,7 +424,7 @@ Feature: LookUpTest_Vid_String
       YIELD lookup_edge_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking | col3  |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank | col3  |
       | "220"  | "222"  | 0       | 200.5 |
       | "220"  | "223"  | 0       | 300.5 |
       | "220"  | "224"  | 0       | 400.5 |
@@ -432,14 +434,14 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
       | "220"  | "221"  | 0       |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.1
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
     When executing query:
       """
       LOOKUP ON lookup_edge_2
@@ -447,7 +449,7 @@ Feature: LookUpTest_Vid_String
       YIELD lookup_edge_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking | col3  |
+      | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank | col3  |
       | "220"  | "221"  | 0       | 100.5 |
       | "220"  | "222"  | 0       | 200.5 |
       | "220"  | "223"  | 0       | 300.5 |
@@ -495,7 +497,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > abs(-5)
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
       | "221"    |
       | "222"    |
@@ -507,13 +509,13 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 < abs(-5)
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (1 + 2)
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
       | "221"    |
       | "222"    |
@@ -525,19 +527,19 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 < (1 + 2)
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 != (true AND true)
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true AND true)
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
       | "221"    |
       | "222"    |
@@ -549,7 +551,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true or false)
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "220"    |
       | "221"    |
       | "222"    |
@@ -563,6 +565,7 @@ Feature: LookUpTest_Vid_String
     # """
     # Then the result should be, in any order:
     # | VertexID |
+    # | _vid |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != lookup_tag_2.col3
@@ -574,7 +577,7 @@ Feature: LookUpTest_Vid_String
     # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (lookup_tag_2.col3 - 100)
     # """
     # Then the result should be, in any order:
-    # | VertexID |
+    # | _vid |
     Then drop the used space
 
   Scenario: LookupTest YieldClauseTest
@@ -613,10 +616,10 @@ Feature: LookUpTest_Vid_String
     Then a SemanticError should be raised at runtime.
     When executing query:
       """
-      LOOKUP ON student WHERE student.number == 1 YIELD student.age
+      LOOKUP ON student WHERE student.number == 1 YIELD _vid, student.age
       """
     Then the result should be, in any order:
-      | VertexID | student.age |
+      | _vid | student.age |
       | "220"    | 20          |
     Then drop the used space
 
@@ -802,34 +805,34 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "1"      |
     When executing query:
       """
       LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1 AND tag_with_str.c2 == "ccc"
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     When executing query:
       """
       LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1 AND tag_with_str.c2 == "c1_row1"
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "1"      |
     When executing query:
       """
       LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 5 AND tag_with_str.c2 == "ab"
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "5"      |
     When executing query:
       """
       LOOKUP ON tag_with_str WHERE tag_with_str.c2 == "abc" AND tag_with_str.c3 == "abc"
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "3"      |
       | "4"      |
     When executing query:
@@ -837,7 +840,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 5 AND tag_with_str.c2 == "abca" AND tag_with_str.c3 == "bc"
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "6"      |
     Then drop the used space
 
@@ -870,7 +873,7 @@ Feature: LookUpTest_Vid_String
         identity.BIRTHPLACE_CITY == "bbb";
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     Then drop the used space
 
   Scenario: LookupTest from pytest

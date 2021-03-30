@@ -973,6 +973,14 @@ public:
     PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
+    void setColsDef(ColsDef colsDef) {
+        colsDef_ = colsDef;
+    }
+
+    ColsDef colsDef() const {
+        return colsDef_;
+    }
+
 private:
     DataCollect(QueryContext* qctx,
                 PlanNode* input,
@@ -993,6 +1001,7 @@ private:
     // using for m to n steps
     StepClause::MToN*           mToN_{nullptr};
     bool                        distinct_{false};
+    ColsDef                     colsDef_;
 };
 
 class Join : public SingleDependencyNode {

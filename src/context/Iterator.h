@@ -483,6 +483,8 @@ private:
         // {tag1 : {prop1 : 1, prop2 : 2}
         // {edge1 : {prop1 : 4, prop2 : 5}
         std::unordered_map<std::string, std::unordered_map<std::string, size_t> > propsMap;
+        // _vid
+        int    vidPos_{-1};
     };
 
 private:

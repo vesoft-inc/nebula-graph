@@ -19,11 +19,12 @@ TEST_F(LookupValidatorTest, InputOutput) {
     // pipe
     {
         const std::string query = "LOOKUP ON person where person.age == 35 | "
-                                  "FETCH PROP ON person $-.VertexID";
+                                  "FETCH PROP ON person $-._vid";
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kIndexScan,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -45,11 +46,12 @@ TEST_F(LookupValidatorTest, InputOutput) {
     // variable
     {
         const std::string query = "$a = LOOKUP ON person where person.age == 35; "
-                                  "FETCH PROP ON person $a.VertexID";
+                                  "FETCH PROP ON person $a._vid";
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kIndexScan,
                                     PlanNode::Kind::kStart,
                                 }));

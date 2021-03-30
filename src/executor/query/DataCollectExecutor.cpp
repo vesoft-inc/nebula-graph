@@ -58,6 +58,8 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
 }
 
 Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
+    auto* dc = asNode<DataCollect>(node());
+    auto colsDef = dc->colsDef();
     DataSet ds;
     ds.colNames = std::move(colNames_);
     // the subgraph not need duplicate vertices or edges, so dedup here directly
@@ -75,30 +77,39 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                 msg << "Iterator should be kind of GetNeighborIter, but was: " << iter->kind();
                 return Status::Error(msg.str());
             }
-            List vertices;
-            List edges;
+
+            Row row;
             auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-            auto originVertices = gnIter->getVertices();
-            for (auto& v : originVertices.values) {
-                if (!v.isVertex()) {
-                    continue;
-                }
-                if (uniqueVids.emplace(v.getVertex().vid).second) {
-                    vertices.emplace_back(std::move(v));
+            for (const auto &colDef : colsDef) {
+                if (colDef.type == Value::Type::VERTEX) {
+                    List vertices;
+                    auto originVertices = gnIter->getVertices();
+                    for (auto& v : originVertices.values) {
+                        if (!v.isVertex()) {
+                            continue;
+                        }
+                        if (uniqueVids.emplace(v.getVertex().vid).second) {
+                            vertices.emplace_back(std::move(v));
+                        }
+                    }
+                    row.emplace_back(std::move(vertices));
+                } else if (colDef.type == Value::Type::EDGE) {
+                    List edges;
+                    auto originEdges = gnIter->getEdges();
+                    for (auto &edge : originEdges.values) {
+                        if (!edge.isEdge()) {
+                            continue;
+                        }
+                        const auto &e = edge.getEdge();
+                        auto edgeKey = std::make_tuple(e.src, e.type, e.ranking, e.dst);
+                        if (uniqueEdges.emplace(std::move(edgeKey)).second) {
+                            edges.emplace_back(std::move(edge));
+                        }
+                    }
+                    row.emplace_back(std::move(edges));
                 }
             }
-            auto originEdges = gnIter->getEdges();
-            for (auto& edge : originEdges.values) {
-                if (!edge.isEdge()) {
-                    continue;
-                }
-                const auto& e = edge.getEdge();
-                auto edgeKey = std::make_tuple(e.src, e.type, e.ranking, e.dst);
-                if (uniqueEdges.emplace(std::move(edgeKey)).second) {
-                    edges.emplace_back(std::move(edge));
-                }
-            }
-            ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
+            ds.rows.emplace_back(std::move(row));
         }
     }
     result_.setDataSet(std::move(ds));
@@ -220,7 +231,7 @@ Status DataCollectExecutor::collectMultiplePairShortestPath(const std::vector<st
             }
             auto* seqIter = static_cast<SequentialIter*>(iter.get());
             for (; seqIter->valid(); seqIter->next()) {
-                auto& pathVal = seqIter->getColumn("_path");
+                auto& pathVal = seqIter->getColumn(kPathStr);
                 auto cost = seqIter->getColumn("cost");
                 if (!pathVal.isPath()) {
                     return Status::Error("Type error `%s', should be PATH",

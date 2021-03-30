@@ -38,7 +38,6 @@ protected:
             }
         }
         if (!colNames.empty()) {
-            DCHECK_EQ(colNames.size(), v.colSize());
             v.colNames = colNames;
         }
         VLOG(2) << "Dataset in get props: \n" << v << "\n";

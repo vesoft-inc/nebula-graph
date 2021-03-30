@@ -72,6 +72,8 @@ private:
     void visit(LabelAttributeExpression* expr) override;
     void visit(VertexExpression* expr) override;
     void visit(EdgeExpression* expr) override;
+    void visit(VidExpression* expr) override;
+
     void visit(ColumnExpression* expr) override;
     void visit(ListComprehensionExpression* expr) override;
     void visit(SubscriptRangeExpression* expr) override;

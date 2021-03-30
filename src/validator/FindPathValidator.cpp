@@ -22,7 +22,7 @@ Status FindPathValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateOver(fpSentence->over(), over_));
     NG_RETURN_IF_ERROR(validateStep(fpSentence->step(), steps_));
 
-    outputs_.emplace_back("path", Value::Type::PATH);
+    outputs_.emplace_back(kPathStr, Value::Type::PATH);
     return Status::OK();
 }
 
@@ -64,14 +64,14 @@ Status FindPathValidator::singlePairPlan() {
 
     auto* conjunct =
         ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kBiBFS, steps_.steps);
-    conjunct->setColNames({"_path"});
+    conjunct->setColNames({kPathStr});
 
     auto* loop = Loop::make(
         qctx_, nullptr, conjunct, buildBfsLoopCondition(steps_.steps, conjunct->outputVar()));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->outputVar()});
-    dataCollect->setColNames({"path"});
+    dataCollect->setColNames({kPathStr});
 
     root_ = dataCollect;
     tail_ = loop;
@@ -175,7 +175,7 @@ PlanNode* FindPathValidator::buildAllPairFirstDataSet(PlanNode* dep, const std::
     auto* exprList = new ExpressionList();
     exprList->add(pathExpr);
     auto* listExprssion = new ListExpression(exprList);
-    auto* path = new YieldColumn(listExprssion, new std::string("path"));
+    auto* path = new YieldColumn(listExprssion, new std::string(kPathStr));
 
     auto* columns = qctx_->objPool()->add(new YieldColumns());
     columns->addColumn(vid);
@@ -184,7 +184,7 @@ PlanNode* FindPathValidator::buildAllPairFirstDataSet(PlanNode* dep, const std::
     auto* project = Project::make(qctx_, dep, columns);
     project->setInputVar(inputVar);
     auto* outputVarPtr = qctx_->symTable()->getVar(inputVar);
-    outputVarPtr->colNames = {nebula::kVid, "path"};
+    outputVarPtr->colNames = {kVid, kPathStr};
     project->setOutputVar(inputVar);
     return project;
 }
@@ -206,7 +206,7 @@ Status FindPathValidator::allPairPaths() {
 
     auto* conjunct = ConjunctPath::make(
         qctx_, forward, backward, ConjunctPath::PathKind::kAllPaths, steps_.steps);
-    conjunct->setColNames({"_path"});
+    conjunct->setColNames({kPathStr});
     conjunct->setNoLoop(noLoop_);
 
     PlanNode* projectFromDep = nullptr;
@@ -220,7 +220,7 @@ Status FindPathValidator::allPairPaths() {
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kAllPaths, {conjunct->outputVar()});
-    dataCollect->setColNames({"path"});
+    dataCollect->setColNames({kPathStr});
 
     root_ = dataCollect;
     tail_ = loopDepTail_ == nullptr ? projectFrom : loopDepTail_;
@@ -239,7 +239,7 @@ PlanNode* FindPathValidator::allPaths(PlanNode* dep,
 
     auto* allPaths = ProduceAllPaths::make(qctx_, gn);
     allPaths->setOutputVar(startVidsVar);
-    allPaths->setColNames({nebula::kVid, "path"});
+    allPaths->setColNames({kVid, kPathStr});
     return allPaths;
 }
 
@@ -341,7 +341,7 @@ Status FindPathValidator::multiPairPlan() {
 
     conjunct->setLeftVar(fromPathVar);
     conjunct->setRightVar(toPathVar);
-    conjunct->setColNames({"_path", "cost"});
+    conjunct->setColNames({kPathStr, "cost"});
 
     PlanNode* projectFromDep = nullptr;
     linkLoopDepFromTo(projectFromDep);
@@ -363,7 +363,7 @@ Status FindPathValidator::multiPairPlan() {
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kMultiplePairShortest, {conjunct->outputVar()});
-    dataCollect->setColNames({"path"});
+    dataCollect->setColNames({kPathStr});
 
     root_ = dataCollect;
     tail_ = loopDepTail_ == nullptr ? projectFrom : loopDepTail_;

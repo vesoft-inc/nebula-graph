@@ -30,7 +30,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     auto dst = std::make_unique<VariablePropertyExpression>(new std::string("_VAR4_"),
                                                             new std::string(kDst));
     {
-        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\"");
+        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD EDGES");
 
         auto *start = StartNode::make(qctx);
 
@@ -53,21 +53,19 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                           "like.likeness"};
         ge->setColNames(colNames);
 
-        // filter
-        auto *filter = Filter::make(qctx, ge, nullptr /*TODO*/);
-        filter->setColNames(colNames);
-
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(new EdgeExpression(), new std::string("edges_")));
-        auto *project = Project::make(qctx, filter, yieldColumns.get());
-        project->setColNames({"edges_"});
+        yieldColumns->addColumn(new YieldColumn(new EdgeExpression(), new std::string("EDGES")));
+        auto *project = Project::make(qctx, ge, yieldColumns.get());
+        project->setColNames({"EDGES"});
         auto result = Eq(qctx->plan()->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD
     {
-        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end");
+        auto qctx = getQCtx(
+                "FETCH PROP ON like \"1\"->\"2\" "
+                "YIELD like._src, like._dst, like._rank, like.start, like.end");
 
         auto *start = StartNode::make(qctx);
 
@@ -128,7 +126,9 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     }
     // With YIELD const expression
     {
-        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, 1 + 1, like.end");
+        auto qctx = getQCtx(
+                "FETCH PROP ON like \"1\"->\"2\" "
+                "YIELD like._src, like._dst, like._rank, like.start, 1 + 1, like.end");
 
         auto *start = StartNode::make(qctx);
 
@@ -193,7 +193,9 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     }
     // With YIELD combine properties
     {
-        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end");
+        auto qctx = getQCtx(
+                "FETCH PROP ON like \"1\"->\"2\" "
+                "YIELD like._src, like._dst, like._rank, like.start > like.end");
 
         auto *start = StartNode::make(qctx);
 
@@ -255,7 +257,9 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     }
     // With YIELD distinct
     {
-        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD distinct like.start, like.end");
+        auto qctx = getQCtx(
+                "FETCH PROP ON like \"1\"->\"2\" "
+                "YIELD distinct like._src, like._dst, like._rank, like.start, like.end");
 
         auto *start = StartNode::make(qctx);
 
@@ -335,10 +339,8 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -351,10 +353,8 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -371,10 +371,8 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -388,10 +386,8 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));

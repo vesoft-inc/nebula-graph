@@ -29,15 +29,15 @@ Feature: Delete string vid of vertex
     # get value by fetch
     When executing query:
       """
-      FETCH PROP ON player "Tony Parker" YIELD player.name, player.age
+      FETCH PROP ON player "Tony Parker" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID      | player.name   | player.age |
+      | _vid      | player.name   | player.age |
       | "Tony Parker" | "Tony Parker" | 36         |
     # check value by fetch
     When executing query:
       """
-      FETCH PROP ON serve "Tony Parker"->"Spurs" YIELD serve.start_year, serve.end_year
+      FETCH PROP ON serve "Tony Parker"->"Spurs" YIELD serve._src, serve._dst, serve._rank, serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
       | serve._src    | serve._dst | serve._rank | serve.start_year | serve.end_year |
@@ -51,14 +51,14 @@ Feature: Delete string vid of vertex
     # after delete to check value by fetch
     When executing query:
       """
-      FETCH PROP ON player "Tony Parker" YIELD player.name, player.age
+      FETCH PROP ON player "Tony Parker" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID | player.name | player.age |
+      | _vid | player.name | player.age |
     # check value by fetch
     When executing query:
       """
-      FETCH PROP ON serve "Tony Parker"->"Spurs" YIELD serve.start_year, serve.end_year
+      FETCH PROP ON serve "Tony Parker"->"Spurs" YIELD serve._src, serve._dst, serve._rank, serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
       | serve._src | serve._dst | serve._rank | serve.start_year | serve.end_year |
@@ -96,10 +96,10 @@ Feature: Delete string vid of vertex
     # after delete multi vertexes to check value by go
     When executing query:
       """
-      FETCH PROP ON player "Tony Parker" YIELD player.name, player.age
+      FETCH PROP ON player "Tony Parker" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID | player.name | player.age |
+      | _vid | player.name | player.age |
     # before delete hash id vertex to check value by go
     When executing query:
       """
@@ -121,15 +121,15 @@ Feature: Delete string vid of vertex
     # before delete hash id vertex to check value by fetch
     When executing query:
       """
-      FETCH PROP ON player "Grant Hill" YIELD player.name, player.age
+      FETCH PROP ON player "Grant Hill" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age |
+      | _vid     | player.name  | player.age |
       | "Grant Hill" | "Grant Hill" | 46         |
     # before delete hash id vertex to check value by fetch
     When executing query:
       """
-      FETCH PROP ON serve "Grant Hill"->"Pistons" YIELD serve.start_year, serve.end_year
+      FETCH PROP ON serve "Grant Hill"->"Pistons" YIELD serve._src, serve._dst, serve._rank, serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
       | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
@@ -159,10 +159,10 @@ Feature: Delete string vid of vertex
     # after delete hash id vertex to check value by fetch
     When executing query:
       """
-      FETCH PROP ON player "Grant Hill" YIELD player.name, player.age
+      FETCH PROP ON player "Grant Hill" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID | player.name | player.age |
+      | _vid | player.name | player.age |
     # delete not existed vertex
     When executing query:
       """
@@ -179,10 +179,10 @@ Feature: Delete string vid of vertex
     # check delete a vertex without edges
     When executing query:
       """
-      FETCH PROP ON player "A Loner" YIELD player.name, player.age
+      FETCH PROP ON player "A Loner" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID | player.name | player.age |
+      | _vid | player.name | player.age |
     # delete with no edge
     When executing query:
       """
@@ -192,10 +192,10 @@ Feature: Delete string vid of vertex
     # check delete with no edge
     When executing query:
       """
-      FETCH PROP ON player "Nobody" YIELD player.name, player.age
+      FETCH PROP ON player "Nobody" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID | player.name | player.age |
+      | _vid | player.name | player.age |
     Then drop the used space
 
   Scenario: delete string vertex by pipe

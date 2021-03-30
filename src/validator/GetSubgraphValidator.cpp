@@ -27,6 +27,7 @@ Status GetSubgraphValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateInBound(gsSentence->in()));
     NG_RETURN_IF_ERROR(validateOutBound(gsSentence->out()));
     NG_RETURN_IF_ERROR(validateBothInOutBound(gsSentence->both()));
+    NG_RETURN_IF_ERROR(validateYield(gsSentence->yield()));
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty()) {
         return Status::SemanticError("Only support input and variable in Subgraph sentence.");
@@ -187,7 +188,7 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
                         {},
                         {func});
     collectVertex->setInputVar(getVertex->outputVar());
-    collectVertex->setColNames({"_vertices"});
+    collectVertex->setColNames({kVerticesStr});
 
     root_ = collectVertex;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : getVertex;
@@ -234,7 +235,8 @@ Status GetSubgraphValidator::toPlan() {
     std::vector<std::string> collects = {gn->outputVar(), oneMoreStepOutput};
     auto* dc =
         DataCollect::make(qctx_, loop, DataCollect::CollectKind::kSubgraph, std::move(collects));
-    dc->setColNames({"_vertices", "_edges"});
+    dc->setColNames(colNames_);
+    dc->setColsDef(outputs_);
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;
     return Status::OK();
@@ -261,6 +263,24 @@ StatusOr<std::vector<storage::cpp2::VertexProp>> GetSubgraphValidator::buildVert
         vProps.emplace_back(std::move(vProp));
     }
     return vProps;
+}
+
+Status GetSubgraphValidator::validateYield(YieldClause* yield) {
+    auto yieldSize = yield->columns().size();
+    colNames_.reserve(yieldSize);
+    outputs_.reserve(yieldSize);
+
+    for (auto col : yield->columns()) {
+        if (col->expr()->kind() != Expression::Kind::kVertex
+                && col->expr()->kind() != Expression::Kind::kEdge) {
+            return Status::Error("Get Subgraph only supported use YIELD vertices or edges");
+        }
+        colNames_.emplace_back(deduceColName(col));
+        auto typeResult = deduceExprType(col->expr());
+        NG_RETURN_IF_ERROR(typeResult);
+        outputs_.emplace_back(colNames_.back(), typeResult.value());
+    }
+    return Status::OK();
 }
 
 }   // namespace graph

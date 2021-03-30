@@ -48,6 +48,7 @@ private:
     void visit(LogicalExpression *) override;
     void visit(ColumnExpression *) override;
     void visit(SubscriptRangeExpression *) override;
+    void visit(VidExpression *) override;
 
     bool canBePushed_{true};
     std::unique_ptr<Expression> remainedExpr_;

@@ -14,7 +14,7 @@ Feature: Lookup by index itself in integer vid
       LOOKUP ON team
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID        |
+      | _vid        |
       | 'Nets'          |
       | 'Pistons'       |
       | 'Bucks'         |
@@ -47,10 +47,10 @@ Feature: Lookup by index itself in integer vid
       | 'Bulls'         |
     When executing query:
       """
-      LOOKUP ON team YIELD team.name AS Name
+      LOOKUP ON team YIELD _vid, team.name AS Name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID        | Name            |
+      | _vid        | Name            |
       | 'Nets'          | 'Nets'          |
       | 'Pistons'       | 'Pistons'       |
       | 'Bucks'         | 'Bucks'         |
@@ -112,7 +112,7 @@ Feature: Lookup by index itself in integer vid
       LOOKUP ON serve
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
-      | SrcVID                  | DstVID          | Ranking |
+      | serve._src                  | serve._dst          | serve._rank |
       | "Amar'e Stoudemire"     | 'Suns'          | 0       |
       | "Amar'e Stoudemire"     | 'Knicks'        | 0       |
       | "Amar'e Stoudemire"     | 'Heat'          | 0       |
@@ -267,10 +267,10 @@ Feature: Lookup by index itself in integer vid
       | 'Dwight Howard'         | 'Wizards'       | 0       |
     When executing query:
       """
-      LOOKUP ON serve YIELD serve.start_year AS startYear
+      LOOKUP ON serve YIELD serve._src, serve._dst, serve._rank, serve.start_year AS startYear
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
-      | SrcVID                  | DstVID          | Ranking | startYear |
+      | serve._src                  | serve._dst          | serve._rank | startYear |
       | "Amar'e Stoudemire"     | 'Suns'          | 0       | 2002      |
       | "Amar'e Stoudemire"     | 'Knicks'        | 0       | 2010      |
       | "Amar'e Stoudemire"     | 'Heat'          | 0       | 2015      |
@@ -451,18 +451,18 @@ Feature: Lookup by index itself in integer vid
   Scenario: [1] Compare INT and FLOAT during IndexScan
     When executing query:
       """
-      LOOKUP ON player WHERE player.age == 40 YIELD player.age AS Age
+      LOOKUP ON player WHERE player.age == 40 YIELD _vid, player.age AS Age
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID        | Age |
+      | _vid        | Age |
       | "Dirk Nowitzki" | 40  |
       | "Kobe Bryant"   | 40  |
     When executing query:
       """
-      LOOKUP ON player WHERE player.age > 40 YIELD player.age AS Age
+      LOOKUP ON player WHERE player.age > 40 YIELD _vid, player.age AS Age
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID          | Age |
+      | _vid          | Age |
       | "Grant Hill"      | 46  |
       | "Jason Kidd"      | 45  |
       | "Manu Ginobili"   | 41  |
@@ -473,10 +473,10 @@ Feature: Lookup by index itself in integer vid
       | "Vince Carter"    | 42  |
     When executing query:
       """
-      LOOKUP ON player WHERE player.age >= 40.0 YIELD player.age AS Age
+      LOOKUP ON player WHERE player.age >= 40.0 YIELD _vid, player.age AS Age
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID          | Age |
+      | _vid          | Age |
       | "Grant Hill"      | 46  |
       | "Jason Kidd"      | 45  |
       | "Manu Ginobili"   | 41  |
@@ -489,10 +489,10 @@ Feature: Lookup by index itself in integer vid
       | "Kobe Bryant"     | 40  |
     When executing query:
       """
-      LOOKUP ON player WHERE player.age > 40.5 YIELD player.age AS Age
+      LOOKUP ON player WHERE player.age > 40.5 YIELD _vid, player.age AS Age
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID          | Age |
+      | _vid          | Age |
       | "Grant Hill"      | 46  |
       | "Jason Kidd"      | 45  |
       | "Manu Ginobili"   | 41  |
@@ -503,10 +503,10 @@ Feature: Lookup by index itself in integer vid
       | "Vince Carter"    | 42  |
     When executing query:
       """
-      LOOKUP ON player WHERE player.age >= 40.5 YIELD player.age AS Age
+      LOOKUP ON player WHERE player.age >= 40.5 YIELD _vid, player.age AS Age
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID          | Age |
+      | _vid          | Age |
       | "Grant Hill"      | 46  |
       | "Jason Kidd"      | 45  |
       | "Manu Ginobili"   | 41  |
@@ -518,10 +518,10 @@ Feature: Lookup by index itself in integer vid
     When executing query:
       """
       LOOKUP ON player WHERE player.age < 40
-      YIELD player.age AS Age, player.name AS Name | order by Age DESC, Name| limit 10
+      YIELD _vid, player.age AS Age, player.name AS Name | order by Age DESC, Name| limit 10
       """
     Then the result should be, in order, with relax comparison, and the columns 0 should be hashed:
-      | VertexID            | Age | Name                |
+      | _vid            | Age | Name                |
       | "Tracy McGrady"     | 39  | "Tracy McGrady"     |
       | "David West"        | 38  | "David West"        |
       | "Paul Gasol"        | 38  | "Paul Gasol"        |
@@ -535,10 +535,10 @@ Feature: Lookup by index itself in integer vid
     When executing query:
       """
       LOOKUP ON player WHERE player.age <= 40
-      YIELD player.age AS Age, player.name AS Name | order by Age DESC, Name| limit 10
+      YIELD _vid, player.age AS Age, player.name AS Name | order by Age DESC, Name| limit 10
       """
     Then the result should be, in order, with relax comparison, and the columns 0 should be hashed:
-      | VertexID            | Age | Name                |
+      | _vid            | Age | Name                |
       | "Dirk Nowitzki"     | 40  | "Dirk Nowitzki"     |
       | "Kobe Bryant"       | 40  | "Kobe Bryant"       |
       | "Tracy McGrady"     | 39  | "Tracy McGrady"     |
@@ -568,7 +568,7 @@ Feature: Lookup by index itself in integer vid
       LOOKUP ON weight WHERE weight.WEIGHT > 70;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID      |
+      | _vid      |
       | "Tim Duncan"  |
       | "Tony Parker" |
     When executing query:
@@ -576,7 +576,7 @@ Feature: Lookup by index itself in integer vid
       LOOKUP ON weight WHERE weight.WEIGHT > 70.4;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID      |
+      | _vid      |
       | "Tim Duncan"  |
       | "Tony Parker" |
     When executing query:
@@ -584,7 +584,7 @@ Feature: Lookup by index itself in integer vid
       LOOKUP ON weight WHERE weight.WEIGHT >= 70.5;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID      |
+      | _vid      |
       | "Tim Duncan"  |
       | "Tony Parker" |
     Then drop the used space
@@ -596,7 +596,7 @@ Feature: Lookup by index itself in integer vid
 # WHERE weight.WEIGHT > 70.5;
 # """
 # Then the result should be, in any order, and the columns 0 should be hashed:
-# | VertexID      |
+# | _vid      |
 # | "Tony Parker" |
 # When executing query:
 # """
@@ -604,6 +604,6 @@ Feature: Lookup by index itself in integer vid
 # WHERE weight.WEIGHT <= 80.0;
 # """
 # Then the result should be, in any order, and the columns 0 should be hashed:
-# | VertexID      |
+# | _vid      |
 # | "Tim Duncan"  |
 # | "Tony Parker" |

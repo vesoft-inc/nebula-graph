@@ -27,8 +27,8 @@ private:
 
     Status prepareEdges();
 
-    Status preparePropertiesWithYield(const YieldClause* yield);
-    Status preparePropertiesWithoutYield();
+    Status preparePropertiesWithYield();
+    Status preparePropertiesWithEdgeExpr();
     Status prepareProperties();
 
     static const Expression* findInvalidYieldExpression(const Expression* root);
@@ -44,7 +44,7 @@ private:
 
     Expression* lgAnd(Expression* left, Expression* right) {
         return new LogicalExpression(
-            Expression::Kind::kLogicalAnd, DCHECK_NOTNULL(left), DCHECK_NOTNULL(right));
+                Expression::Kind::kLogicalAnd, DCHECK_NOTNULL(left), DCHECK_NOTNULL(right));
     }
 
     Expression* emptyEdgeKeyFilter();
@@ -76,10 +76,10 @@ private:
     // outputs
     std::vector<std::string> colNames_;
     std::vector<std::string> geColNames_;
-    // new yield to inject reserved properties for compatible with 1.0
-    YieldClause* newYield_{nullptr};
+    YieldClause* yield_{nullptr};
     // input
     std::string inputVar_;
+    bool isEdgeCol_{false};
 };
 
 }   // namespace graph

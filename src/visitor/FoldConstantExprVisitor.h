@@ -72,6 +72,8 @@ public:
     void visit(ReduceExpression *expr) override;
     // subscript range expression
     void visit(SubscriptRangeExpression *expr) override;
+    // vid expression
+    void visit(VidExpression *expr) override;
 
     void visitBinaryExpr(BinaryExpression *expr);
     Expression *fold(Expression *expr) const;

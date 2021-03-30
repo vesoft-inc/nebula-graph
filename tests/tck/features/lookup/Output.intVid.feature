@@ -7,21 +7,21 @@ Feature: Lookup with output in integer vid
     When executing query:
       """
       LOOKUP ON player WHERE player.age == 40 |
-      FETCH PROP ON player $-.VertexID YIELD player.name
+      FETCH PROP ON player $-._vid YIELD _vid, player.name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID        | player.name     |
+      | _vid        | player.name     |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
   Scenario: [1] tag ouput with yield rename
     When executing query:
       """
-      LOOKUP ON player WHERE player.age == 40 YIELD player.name AS name |
-      FETCH PROP ON player $-.VertexID YIELD player.name AS name
+      LOOKUP ON player WHERE player.age == 40 YIELD _vid, player.name AS name |
+      FETCH PROP ON player $-._vid YIELD _vid, player.name AS name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID        | name            |
+      | _vid        | name            |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
@@ -29,21 +29,21 @@ Feature: Lookup with output in integer vid
     When executing query:
       """
       $a = LOOKUP ON player WHERE player.age == 40;
-      FETCH PROP ON player $a.VertexID YIELD player.name
+      FETCH PROP ON player $a._vid YIELD _vid, player.name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID        | player.name     |
+      | _vid        | player.name     |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
   Scenario: [1] tag ouput with yield rename by var
     When executing query:
       """
-      $a = LOOKUP ON player WHERE player.age == 40 YIELD player.name AS name;
-      FETCH PROP ON player $a.VertexID YIELD player.name AS name
+      $a = LOOKUP ON player WHERE player.age == 40 YIELD _vid, player.name AS name;
+      FETCH PROP ON player $a._vid YIELD _vid, player.name AS name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID        | name            |
+      | _vid        | name            |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
@@ -51,8 +51,8 @@ Feature: Lookup with output in integer vid
     When executing query:
       """
       LOOKUP ON serve WHERE serve.start_year == 2008 and serve.end_year == 2019
-      YIELD serve.start_year |
-      FETCH PROP ON serve $-.SrcVID->$-.DstVID YIELD serve.start_year
+      YIELD serve._src as src, serve._dst as dst, serve.start_year |
+      FETCH PROP ON serve $-.src->$-.dst YIELD serve._src, serve._dst, serve._rank, serve.start_year
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
       | serve._src          | serve._dst  | serve._rank | serve.start_year |
@@ -63,8 +63,8 @@ Feature: Lookup with output in integer vid
     When executing query:
       """
       LOOKUP ON serve WHERE serve.start_year == 2008 and serve.end_year == 2019
-      YIELD serve.start_year AS startYear |
-      FETCH PROP ON serve $-.SrcVID->$-.DstVID YIELD serve.start_year AS startYear
+      YIELD serve._src as src, serve._dst as dst, serve.start_year AS startYear |
+      FETCH PROP ON serve $-.src->$-.dst YIELD serve._src, serve._dst, serve._rank, serve.start_year AS startYear
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
       | serve._src          | serve._dst  | serve._rank | startYear |
@@ -75,8 +75,8 @@ Feature: Lookup with output in integer vid
     When executing query:
       """
       $a = LOOKUP ON serve WHERE serve.start_year == 2008 and serve.end_year == 2019
-      YIELD serve.start_year;
-      FETCH PROP ON serve $a.SrcVID->$a.DstVID YIELD serve.start_year
+      YIELD serve._src as src, serve._dst as dst, serve.start_year;
+      FETCH PROP ON serve $a.src->$a.dst YIELD serve._src, serve._dst, serve._rank, serve.start_year
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
       | serve._src          | serve._dst  | serve._rank | serve.start_year |
@@ -87,8 +87,8 @@ Feature: Lookup with output in integer vid
     When executing query:
       """
       $a = LOOKUP ON serve WHERE serve.start_year == 2008 and serve.end_year == 2019
-      YIELD serve.start_year AS startYear;
-      FETCH PROP ON serve $a.SrcVID->$a.DstVID YIELD serve.start_year AS startYear
+      YIELD serve._src as src, serve._dst as dst, serve.start_year AS startYear;
+      FETCH PROP ON serve $a.src->$a.dst YIELD serve._src, serve._dst, serve._rank, serve.start_year AS startYear
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
       | serve._src          | serve._dst  | serve._rank | startYear |

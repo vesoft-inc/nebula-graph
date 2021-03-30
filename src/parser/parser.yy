@@ -33,6 +33,7 @@
 #include "util/ExpressionUtils.h"
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
+#include "util/OutputColName.h"
 
 namespace nebula {
 
@@ -196,7 +197,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
 %token PIPE ASSIGN
 %token DOT DOT_DOT COLON QM SEMICOLON L_ARROW R_ARROW AT
-%token ID_PROP TYPE_PROP SRC_ID_PROP DST_ID_PROP RANK_PROP INPUT_REF DST_REF SRC_REF
+%token VID_PROP TYPE_PROP SRC_ID_PROP DST_ID_PROP RANK_PROP INPUT_REF DST_REF SRC_REF
 
 /* token type specification */
 %token <boolval> BOOL
@@ -502,6 +503,9 @@ unreserved_keyword
     | KW_RESET              { $$ = new std::string("reset"); }
     | KW_PLAN               { $$ = new std::string("plan"); }
     | KW_COMMENT            { $$ = new std::string("comment"); }
+    | KW_VERTEX             { $$ = new std::string("vertex"); }
+    | KW_EDGE               { $$ = new std::string("edge"); }
+    | KW_EDGES              { $$ = new std::string("edges"); }
     ;
 
 expression
@@ -628,6 +632,9 @@ expression
     }
     | reduce_expression {
         $$ = $1;
+    }
+    | VID_PROP {
+        $$ = new VidExpression();
     }
     ;
 
@@ -875,6 +882,21 @@ input_prop_expression
     | INPUT_REF DOT STAR {
         $$ = new InputPropertyExpression(new std::string("*"));
     }
+    | INPUT_REF DOT VID_PROP {
+        $$ = new InputPropertyExpression(new std::string(kVid));
+    }
+    | INPUT_REF DOT TYPE_PROP {
+        $$ = new InputPropertyExpression(new std::string(kType));
+    }
+    | INPUT_REF DOT SRC_ID_PROP {
+        $$ = new InputPropertyExpression(new std::string(kSrc));
+    }
+    | INPUT_REF DOT DST_ID_PROP {
+        $$ = new InputPropertyExpression(new std::string(kDst));
+    }
+    | INPUT_REF DOT RANK_PROP {
+        $$ = new InputPropertyExpression(new std::string(kRank));
+    }
     ;
 
 vertex_prop_expression
@@ -884,6 +906,9 @@ vertex_prop_expression
     | DST_REF DOT name_label DOT name_label {
         $$ = new DestPropertyExpression($3, $5);
     }
+    | name_label DOT VID_PROP {
+        $$ = new TagPropertyExpression($1, new std::string(kVid));
+    }
     ;
 
 var_prop_expression
@@ -892,6 +917,21 @@ var_prop_expression
     }
     | VARIABLE DOT STAR {
         $$ = new VariablePropertyExpression($1, new std::string("*"));
+    }
+    | VARIABLE DOT VID_PROP {
+        $$ = new VariablePropertyExpression($1, new std::string(kVid));
+    }
+    | VARIABLE DOT TYPE_PROP {
+        $$ = new VariablePropertyExpression($1, new std::string(kType));
+    }
+    | VARIABLE DOT SRC_ID_PROP {
+        $$ = new VariablePropertyExpression($1, new std::string(kSrc));
+    }
+    | VARIABLE DOT DST_ID_PROP {
+        $$ = new VariablePropertyExpression($1, new std::string(kDst));
+    }
+    | VARIABLE DOT RANK_PROP {
+        $$ = new VariablePropertyExpression($1, new std::string(kRank));
     }
     ;
 
@@ -1895,7 +1935,6 @@ find_path_sentence
         s->setTo($6);
         s->setOver($7);
         s->setStep($8);
-        /* s->setWhere($9); */
         $$ = s;
     }
     | KW_FIND KW_NOLOOP KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
@@ -1905,7 +1944,6 @@ find_path_sentence
         s->setTo($6);
         s->setOver($7);
         s->setStep($8);
-        /* s->setWhere($9) */
         $$ = s;
     }
     ;
@@ -1968,8 +2006,16 @@ both_in_out_clause
     | KW_BOTH over_edges { $$ = new BothInOutClause($2, BoundClause::BOTH); }
 
 get_subgraph_sentence
-    : KW_GET KW_SUBGRAPH step_clause from_clause in_bound_clause out_bound_clause both_in_out_clause {
-        $$ = new GetSubgraphSentence($3, $4, $5, $6, $7);
+    : KW_GET KW_SUBGRAPH step_clause from_clause in_bound_clause out_bound_clause both_in_out_clause yield_clause {
+        if ($8 == nullptr) {
+            auto *cols = new YieldColumns();
+            auto *vertices = new YieldColumn(new VertexExpression(new std::string(kVerticesStr)), new std::string(kVerticesStr));
+            cols->addColumn(vertices);
+            auto *edges = new YieldColumn(new EdgeExpression(new std::string(kEdgesStr)), new std::string(kEdgesStr));
+            cols->addColumn(edges);
+            $8 = new YieldClause(cols);
+        }
+        $$ = new GetSubgraphSentence($3, $4, $5, $6, $7, $8);
     }
 
 use_sentence

@@ -92,6 +92,8 @@ private:
     void visit(ReduceExpression *expr) override;
     // subscript range
     void visit(SubscriptRangeExpression *expr) override;
+    // vid expression
+    void visit(VidExpression *expr) override;
 
     void visitVertexPropertyExpr(PropertyExpression *expr);
 

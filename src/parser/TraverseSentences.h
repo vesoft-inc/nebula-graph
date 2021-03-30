@@ -6,10 +6,13 @@
 #ifndef PARSER_TRAVERSESENTENCES_H_
 #define PARSER_TRAVERSESENTENCES_H_
 
+#include "common/base/Base.h"
+#include "common/expression/VertexExpression.h"
 #include "parser/Clauses.h"
 #include "parser/EdgeKey.h"
 #include "parser/MutateSentences.h"
 #include "parser/Sentence.h"
+#include "util/OutputColName.h"
 
 namespace nebula {
 
@@ -302,7 +305,7 @@ public:
         kind_ = Kind::kFetchVertices;
         tags_.reset(tags);
         vertices_.reset(new VerticesClause(vidList));
-        yieldClause_.reset(clause);
+        initYieldClause(clause);
     }
 
     FetchVerticesSentence(NameLabelList *tags,
@@ -310,22 +313,22 @@ public:
                           YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
         tags_.reset(tags);
-        vertices_.reset(new VerticesClause(ref));
-        yieldClause_.reset(clause);
+        vertices_.reset(new VerticesClause(ref));;
+        initYieldClause(clause);
     }
 
     explicit FetchVerticesSentence(Expression *ref, YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
         tags_ = std::make_unique<NameLabelList>();
         vertices_.reset(new VerticesClause(ref));
-        yieldClause_.reset(clause);
+        initYieldClause(clause);
     }
 
     explicit FetchVerticesSentence(VertexIDList *vidList, YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
         tags_ = std::make_unique<NameLabelList>();
         vertices_.reset(new VerticesClause(vidList));
-        yieldClause_.reset(clause);
+        initYieldClause(clause);
     }
 
     bool isAllTagProps() {
@@ -351,6 +354,19 @@ public:
     std::string toString() const override;
 
 private:
+    void initYieldClause(YieldClause *clause) {
+        auto *cols = new YieldColumns();
+        if (clause == nullptr) {
+            auto *vertex = new YieldColumn(new VertexExpression(new std::string(kVerticesStr)),
+                                           new std::string(kVerticesStr));
+            cols->addColumn(vertex);
+            yieldClause_.reset(new YieldClause(cols));
+        } else {
+            yieldClause_.reset(clause);
+        }
+    }
+
+private:
     std::unique_ptr<NameLabelList>  tags_;
     std::unique_ptr<VerticesClause> vertices_;
     std::unique_ptr<YieldClause>    yieldClause_;
@@ -364,7 +380,7 @@ public:
         kind_ = Kind::kFetchEdges;
         edge_.reset(edge);
         edgeKeys_.reset(keys);
-        yieldClause_.reset(clause);
+        initYieldClause(clause);
     }
 
     FetchEdgesSentence(NameLabelList *edge,
@@ -373,7 +389,7 @@ public:
         kind_ = Kind::kFetchEdges;
         edge_.reset(edge);
         keyRef_.reset(ref);
-        yieldClause_.reset(clause);
+        initYieldClause(clause);
     }
 
     bool isRef() const  {
@@ -415,6 +431,19 @@ public:
     std::string toString() const override;
 
 private:
+    void initYieldClause(YieldClause *clause) {
+        auto *cols = new YieldColumns();
+        if (clause == nullptr) {
+            auto *edges = new YieldColumn(new EdgeExpression(new std::string(kEdgesStr)),
+                                          new std::string(kEdgesStr));
+            cols->addColumn(edges);
+            yieldClause_.reset(new YieldClause(cols));
+        } else {
+            yieldClause_.reset(clause);
+        }
+    }
+
+private:
     std::unique_ptr<NameLabelList>  edge_;
     std::unique_ptr<EdgeKeys>       edgeKeys_;
     std::unique_ptr<EdgeKeyRef>     keyRef_;
@@ -450,6 +479,10 @@ public:
         where_.reset(clause);
     }
 
+    void setYield(YieldClause *clause) {
+        yield_.reset(clause);
+    }
+
     FromClause* from() const {
         return from_.get();
     }
@@ -468,6 +501,10 @@ public:
 
     WhereClause* where() const {
         return where_.get();
+    }
+
+    YieldClause* yield() const {
+        return yield_.get();
     }
 
     bool isShortest() const {
@@ -493,6 +530,7 @@ private:
     std::unique_ptr<OverClause>     over_;
     std::unique_ptr<StepClause>     step_;
     std::unique_ptr<WhereClause>    where_;
+    std::unique_ptr<YieldClause>    yield_;
 };
 
 class LimitSentence final : public Sentence {
@@ -601,13 +639,15 @@ public:
                         FromClause* from,
                         InBoundClause* in,
                         OutBoundClause* out,
-                        BothInOutClause* both) {
+                        BothInOutClause* both,
+                        YieldClause* yield) {
         kind_ = Kind::kGetSubgraph;
         step_.reset(step);
         from_.reset(from);
         in_.reset(in);
         out_.reset(out);
         both_.reset(both);
+        yield_.reset(yield);
     }
 
     StepClause* step() const {
@@ -630,6 +670,10 @@ public:
         return both_.get();
     }
 
+    YieldClause* yield() const {
+        return yield_.get();
+    }
+
     std::string toString() const override;
 
 private:
@@ -638,6 +682,7 @@ private:
     std::unique_ptr<InBoundClause>      in_;
     std::unique_ptr<OutBoundClause>     out_;
     std::unique_ptr<BothInOutClause>    both_;
+    std::unique_ptr<YieldClause>        yield_;
 };
 }   // namespace nebula
 #endif  // PARSER_TRAVERSESENTENCES_H_

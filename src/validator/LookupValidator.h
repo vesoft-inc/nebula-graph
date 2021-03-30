@@ -56,13 +56,9 @@ private:
 
     const nebula::plugin::HttpClient& randomFTClient() const;
 
+    void prepareDefaultOutputCols();
+
 private:
-    static constexpr char kSrcVID[] = "SrcVID";
-    static constexpr char kDstVID[] = "DstVID";
-    static constexpr char kRanking[] = "Ranking";
-
-    static constexpr char kVertexID[] = "VertexID";
-
     GraphSpaceID                      spaceId_{0};
     IndexScan::IndexQueryCtx          contexts_{};
     IndexScan::IndexReturnCols        returnCols_{};
@@ -74,7 +70,6 @@ private:
     std::vector<nebula::plugin::HttpClient> esClients_;
     std::vector<std::string>          idxScanColNames_;
     std::vector<std::string>          colNames_;
-    bool                              withProject_{false};
     bool                              dedup_{false};
     YieldColumns                     *newYieldColumns_{nullptr};
 };

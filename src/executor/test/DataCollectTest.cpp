@@ -139,7 +139,11 @@ protected:
 TEST_F(DataCollectTest, CollectSubgraph) {
     auto* dc = DataCollect::make(qctx_.get(), nullptr,
             DataCollect::CollectKind::kSubgraph, {"input_datasets"});
-    dc->setColNames(std::vector<std::string>{"_vertices", "_edges"});
+    dc->setColNames(std::vector<std::string>{kVerticesStr, kEdgesStr});
+    ColsDef colsDef;
+    colsDef.emplace_back(kVerticesStr, Value::Type::VERTEX);
+    colsDef.emplace_back(kEdgesStr, Value::Type::EDGE);
+    dc->setColsDef(std::move(colsDef));
 
     auto dcExe = std::make_unique<DataCollectExecutor>(dc, qctx_.get());
     auto future = dcExe->execute();
@@ -148,7 +152,7 @@ TEST_F(DataCollectTest, CollectSubgraph) {
     auto& result = qctx_->ectx()->getResult(dc->outputVar());
 
     DataSet expected;
-    expected.colNames = {"_vertices", "_edges"};
+    expected.colNames = {kVerticesStr, kEdgesStr};
     auto& hist = qctx_->ectx()->getHistory("input_datasets");
     auto iter = hist[0].iter();
     auto* gNIter = static_cast<GetNeighborsIter*>(iter.get());
@@ -209,7 +213,11 @@ TEST_F(DataCollectTest, RowBasedMove) {
 TEST_F(DataCollectTest, EmptyResult) {
     auto* dc = DataCollect::make(qctx_.get(), nullptr,
             DataCollect::CollectKind::kSubgraph, {"empty_get_neighbors"});
-    dc->setColNames(std::vector<std::string>{"_vertices", "_edges"});
+    dc->setColNames(std::vector<std::string>{kVerticesStr, kEdgesStr});
+    ColsDef colsDef;
+    colsDef.emplace_back(kVerticesStr, Value::Type::VERTEX);
+    colsDef.emplace_back(kEdgesStr, Value::Type::EDGE);
+    dc->setColsDef(std::move(colsDef));
 
     auto dcExe = std::make_unique<DataCollectExecutor>(dc, qctx_.get());
     auto future = dcExe->execute();
@@ -218,7 +226,7 @@ TEST_F(DataCollectTest, EmptyResult) {
     auto& result = qctx_->ectx()->getResult(dc->outputVar());
 
     DataSet expected;
-    expected.colNames = {"_vertices", "_edges"};
+    expected.colNames = {kVerticesStr, kEdgesStr};
     Row row;
     row.values.emplace_back(Value(List()));
     row.values.emplace_back(Value(List()));

@@ -2115,10 +2115,6 @@ TEST(Parser, UseReservedKeyword) {
     {
         std::string query = "CREATE EDGE edge()";
         auto result = parse(query);
-        ASSERT_FALSE(result.ok());
-
-        query = "CREATE EDGE `edge`()";
-        result = parse(query);
         ASSERT_TRUE(result.ok());
     }
     {

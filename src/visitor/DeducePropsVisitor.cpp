@@ -207,16 +207,20 @@ void DeducePropsVisitor::visit(ConstantExpression *expr) {
     UNUSED(expr);
 }
 
-void DeducePropsVisitor::visit(VertexExpression *expr) {
-    UNUSED(expr);
+void DeducePropsVisitor::visit(VertexExpression*) {
+    exprProps_->setHasVertices(true);
 }
 
-void DeducePropsVisitor::visit(EdgeExpression *expr) {
-    UNUSED(expr);
+void DeducePropsVisitor::visit(EdgeExpression*) {
+    exprProps_->setHasEdges(true);
 }
 
 void DeducePropsVisitor::visit(ColumnExpression *expr) {
     UNUSED(expr);
+}
+
+void DeducePropsVisitor::visit(PathBuildExpression*) {
+    exprProps_->setHasPath(true);
 }
 
 void DeducePropsVisitor::visitEdgePropExpr(PropertyExpression *expr) {
