@@ -243,7 +243,7 @@ Status ExpressionUtils::checkAggExpr(const AggregateExpression* aggExpr) {
     return Status::OK();
 }
 
-std::unique_ptr<Expression> ExpressionUtils::reverseRelExpr(Expression *expr) {
+std::unique_ptr<RelationalExpression> ExpressionUtils::reverseRelExpr(RelationalExpression *expr) {
     auto left = static_cast<RelationalExpression *>(expr)->left();
     auto right = static_cast<RelationalExpression *>(expr)->right();
     auto negatedKind = getNegatedRelExprKind(expr->kind());
@@ -288,7 +288,7 @@ Expression::Kind ExpressionUtils::getNegatedRelExprKind(const Expression::Kind k
     }
 }
 
-std::unique_ptr<Expression> ExpressionUtils::reverseLogicalExpr(Expression *expr) {
+std::unique_ptr<LogicalExpression> ExpressionUtils::reverseLogicalExpr(LogicalExpression *expr) {
     DCHECK(isLogicalExpr(expr));
 
     std::vector<std::unique_ptr<Expression>> operands;

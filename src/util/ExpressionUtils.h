@@ -186,11 +186,11 @@ public:
     // Clone and reduce constant expression
     static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* objPool);
 
-    // Negate the given logical expr
-    static std::unique_ptr<Expression> reverseLogicalExpr(Expression* expr);
+    // Negate the given logical expr: (A && B) -> (!A || !B)
+    static std::unique_ptr<LogicalExpression> reverseLogicalExpr(LogicalExpression* expr);
 
-    // Negate the given relational expr
-    static std::unique_ptr<Expression> reverseRelExpr(Expression* expr);
+    // Negate the given relational expr: (A > B) -> (A <= B)
+    static std::unique_ptr<RelationalExpression> reverseRelExpr(RelationalExpression* expr);
 
     // Return the negation of the given relational kind
     static Expression::Kind getNegatedRelExprKind(const Expression::Kind kind);
