@@ -86,6 +86,7 @@ echo "current version is [ $version ], strip enable is [$strip_enable], enablesa
 function _build_storage {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     if [[ ! -d ${storage_dir} && ! -L ${storage_dir} ]]; then
         git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
     fi
@@ -100,6 +101,9 @@ function _build_storage {
 >>>>>>> 5bd53981... Fix version bug when packaging (#893)
 =======
     if [ ! -d ${storage_dir} && ! -L ${storage_dir} ]; then
+=======
+    if [[ ! -d ${storage_dir} && ! -L ${storage_dir} ]]; then
+>>>>>>> d965a363... Fix unstable test cases related to index (#904)
         git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
     fi
 
@@ -120,6 +124,7 @@ function _build_storage {
           -B ${storage_build_dir}
 
     if ! ( cmake --build ${storage_build_dir} -j ${jobs} ); then
+<<<<<<< HEAD
         echo ">>> build nebula storage failed <<<"
         exit 1
     fi
@@ -134,8 +139,10 @@ function _build_storage {
 >>>>>>> ca21bad9... Rename build directory of packaging to pkg-build (#896)
 
     if !( cmake --build ${storage_build_dir} -j ${jobs} ); then
+=======
+>>>>>>> d965a363... Fix unstable test cases related to index (#904)
         echo ">>> build nebula storage failed <<<"
-        exit -1
+        exit 1
     fi
     echo ">>> build nebula storage successfully <<<"
 }
@@ -156,6 +163,7 @@ function _build_graph {
           -B ${build_dir}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     if ! ( cmake --build ${build_dir} -j ${jobs} ); then
         echo ">>> build nebula graph failed <<<"
         exit 1
@@ -164,6 +172,11 @@ function _build_graph {
         echo ">>> build nebula graph failed <<<"
         exit -1
 >>>>>>> 5bd53981... Fix version bug when packaging (#893)
+=======
+    if ! ( cmake --build ${build_dir} -j ${jobs} ); then
+        echo ">>> build nebula graph failed <<<"
+        exit 1
+>>>>>>> d965a363... Fix unstable test cases related to index (#904)
     fi
     echo ">>> build nebula graph successfully <<<"
 }

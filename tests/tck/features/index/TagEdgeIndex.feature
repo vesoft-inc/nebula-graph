@@ -214,11 +214,14 @@ Feature: tag and edge index tests from pytest
     Then an ExecutionError should be raised at runtime.
     When executing query:
       """
+<<<<<<< HEAD
       SHOW CREATE EDGE INDEX disorder_tag_index
       """
     Then an ExecutionError should be raised at runtime.
     When executing query:
       """
+=======
+>>>>>>> d965a363... Fix unstable test cases related to index (#904)
       SHOW TAG INDEXES
       """
     Then the result should contain:
@@ -410,11 +413,14 @@ Feature: tag and edge index tests from pytest
       | 'single_edge_index' | 'CREATE EDGE INDEX `single_edge_index` ON `edge_1` (\n `col2`\n)' |
     When executing query:
       """
+<<<<<<< HEAD
       SHOW CREATE TAG INDEX single_edge_index
       """
     Then an ExecutionError should be raised at runtime.
     When executing query:
       """
+=======
+>>>>>>> d965a363... Fix unstable test cases related to index (#904)
       SHOW CREATE EDGE INDEX multi_edge_index
       """
     Then the result should be, in any order:
