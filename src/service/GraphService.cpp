@@ -29,7 +29,7 @@ Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecuto
 folly::Future<AuthResponse> GraphService::future_authenticate(
         const std::string& username,
         const std::string& password) {
-    auto *peer = getConnectionContext()->getPeerAddress();
+    auto *peer = getRequestContext()->getPeerAddress();
     LOG(INFO) << "Authenticating user " << username << " from " <<  peer->describe();
 
     RequestContext<AuthResponse> ctx;
@@ -125,6 +125,8 @@ const char* GraphService::getErrorStr(ErrorCode result) {
             return "User not found";
         case ErrorCode::E_TOO_MANY_CONNECTIONS:
             return "Too many connections";
+        case ErrorCode::E_PARTIAL_SUCCEEDED:
+            return "Partial results";
     }
     /**********************
      * Unknown error

@@ -7,11 +7,20 @@
 #ifndef EXECUTOR_STORAGEACCESSEXECUTOR_H_
 #define EXECUTOR_STORAGEACCESSEXECUTOR_H_
 
-#include "executor/Executor.h"
+#include <thrift/lib/cpp/util/EnumUtils.h>
 #include "common/clients/storage/StorageClientBase.h"
+#include "context/QueryContext.h"
+#include "executor/Executor.h"
+#include "service/Session.h"
 
 namespace nebula {
+
+class Expression;
+
 namespace graph {
+
+class Iterator;
+struct SpaceInfo;
 
 // It's used for data write/update/query
 class StorageAccessExecutor : public Executor {
@@ -32,7 +41,7 @@ protected:
             const auto &failedCodes = rpcResp.failedParts();
             for (auto it = failedCodes.begin(); it != failedCodes.end(); it++) {
                 LOG(ERROR) << name_ << " failed, error "
-                           << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second) << ", part "
+                           << apache::thrift::util::enumNameSafe(it->second) << ", part "
                            << it->first;
             }
             // cannot execute at all, or partial success is not accepted
@@ -44,6 +53,7 @@ protected:
                 return Status::Error("Request to storage failed, without failedCodes.");
             }
             // partial success is accepted
+            qctx()->setPartialSuccess();
             return Result::State::kPartialSuccess;
         }
         return Result::State::kSuccess;
@@ -105,7 +115,7 @@ protected:
             default:
                 auto status = Status::Error("Storage Error: part: %d, error: %s(%d).",
                                             partId,
-                                            storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(code),
+                                            apache::thrift::util::enumNameSafe(code).c_str(),
                                             static_cast<int32_t>(code));
                 LOG(ERROR) << status;
                 return status;
@@ -123,6 +133,10 @@ protected:
                 folly::stringPrintf("%d(us)/%d(us)", std::get<1>(info), std::get<2>(info)));
         }
     }
+
+    bool isIntVidType(const SpaceInfo &space) const;
+
+    DataSet buildRequestDataSetByVidType(Iterator *iter, Expression *expr, bool dedup);
 };
 
 }   // namespace graph

@@ -1,17 +1,18 @@
 *.md
 LICENSES/
 docs/
-modules/
 
 *.swp
 *.so
 *.DS_Store
 
 # build
+pkg-build/
 build/
 _build/
 _build.log
 _install/
+install/
 install_manifest.txt
 
 # ccls
