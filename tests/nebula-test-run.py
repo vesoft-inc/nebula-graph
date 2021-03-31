@@ -39,6 +39,7 @@ RESULT_DIR = os.path.join(TEST_LOGS_DIR, 'results')
 LOGGING_ARGS = {'--html': 'TEST-nebula-{0}.html'}
 
 
+<<<<<<< HEAD
 class TestExecutor(object):
     def __init__(self, exit_on_error=True):
         self._exit_on_error = exit_on_error
@@ -54,6 +55,74 @@ class TestExecutor(object):
                 "Unexpected exception with pytest {0}".format(args))
             error_code = 1
         return error_code
+=======
+def init_parser():
+    from optparse import OptionParser
+    opt_parser = OptionParser()
+    opt_parser.add_option('--build_dir',
+                          dest='build_dir',
+                          default=os.path.join(NEBULA_HOME, 'build'),
+                          help='Build directory of nebula graph')
+    opt_parser.add_option('--rm_dir',
+                          dest='rm_dir',
+                          default='true',
+                          help='Whether to remove the test folder')
+    opt_parser.add_option('--user',
+                          dest='user',
+                          default='root',
+                          help='nebula graph user')
+    opt_parser.add_option('--password',
+                          dest='password',
+                          default='nebula',
+                          help='nebula graph password')
+    opt_parser.add_option('--cmd',
+                          dest='cmd',
+                          default='',
+                          help='start or stop command')
+    return opt_parser
+
+
+def start_nebula(nb, configs):
+    nb.install()
+    port = nb.start()
+
+    # Load csv data
+    pool = get_conn_pool("localhost", port)
+    sess = pool.get_session(configs.user, configs.password)
+
+    if not os.path.exists(TMP_DIR):
+        os.mkdir(TMP_DIR)
+
+    with open(SPACE_TMP_PATH, "w") as f:
+        spaces = []
+        for space in ("nba", "nba_int_vid", "student"):
+            data_dir = os.path.join(CURR_PATH, "data", space)
+            space_desc = load_csv_data(sess, data_dir, space)
+            spaces.append(space_desc.__dict__)
+        f.write(json.dumps(spaces))
+
+    with open(NB_TMP_PATH, "w") as f:
+        data = {
+            "ip": "localhost",
+            "port": port,
+            "work_dir": nb.work_dir
+        }
+        f.write(json.dumps(data))
+    print('Start nebula successfully')
+
+
+def stop_nebula(nb):
+    with open(NB_TMP_PATH, "r") as f:
+        data = json.loads(f.readline())
+        nb.set_work_dir(data["work_dir"])
+    nb.stop()
+    shutil.rmtree(TMP_DIR, ignore_errors=True)
+    print('nebula services have been stopped.')
+
+
+def opt_is(val, expect):
+    return type(val) == str and val.lower() == expect
+>>>>>>> d965a363... Fix unstable test cases related to index (#904)
 
 
 if __name__ == "__main__":
