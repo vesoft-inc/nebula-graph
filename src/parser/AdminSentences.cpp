@@ -71,8 +71,6 @@ std::string SpaceOptItem::toString() const {
             return folly::stringPrintf("collate = %s", boost::get<std::string>(optValue_).c_str());
         case ATOMIC_EDGE:
             return folly::stringPrintf("atomic_edge = %s", getAtomicEdge() ? "true" : "false");
-        case GROUP_NAME:
-            return "";
     }
     DLOG(FATAL) << "Space parameter illegal";
     return "Unknown";

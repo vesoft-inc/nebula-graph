@@ -91,10 +91,11 @@ Status CreateSpaceValidator::validateImpl() {
                     spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::DEFAULT);
                 }
             }
-            case SpaceOptItem::GROUP_NAME: {
-                break;
-            }
         }
+    }
+
+    if (sentence->groupName() != nullptr) {
+        spaceDesc_.set_group_name(*sentence->groupName());
     }
 
     // if charset and collate are not specified, set default value
