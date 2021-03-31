@@ -5,11 +5,12 @@
 
 import re
 import json
-
+import pdb
 class PlanDiffer:
-    OP_INFO = "operator info"
-    DEPENDS = "dependencies"
+    ID = "id"
     NAME = "name"
+    DEPENDS = "dependencies"
+    OP_INFO = "operator info"
     PATTERN = re.compile(r"\{\"loopBody\": \"(\d+)\"\}")
 
     def __init__(self, resp, expect):
@@ -26,20 +27,28 @@ class PlanDiffer:
         if self._resp_plan is None:
             return False
 
-        return self._diff_plan_node(self._resp_plan, 0, self._expect_plan, 0)
+        return self._diff_plan_node(self._resp_plan, 0, self._expect_plan, 0, -1)
 
-    def _diff_plan_node(self, plan_desc, line_num, expect, expect_idx) -> bool:
+    def _diff_plan_node(self, plan_desc, line_num, expect, expect_row_idx, expect_dep_id) -> bool:
         rows = expect.get("rows", [])
         column_names = expect.get("column_names", [])
 
         plan_node_desc = plan_desc.plan_node_descs[line_num]
-        expect_node = rows[expect_idx]
+        expect_node = rows[expect_row_idx]
         name = bytes.decode(plan_node_desc.name)
 
-        idx = column_names.index(self.NAME)
+        id_col_idx = column_names.index(self.ID)
+        node_id = int(expect_node[id_col_idx])
 
-        if not self._is_same_node(name, expect_node[idx]):
-            self._err_msg = f"{name} is not expected {expect_node[idx]}"
+        if line_num != 0:
+            if node_id != expect_dep_id:
+                self._err_msg = "Incorrect plan node dependencies: expected dep node id: {} vs. actual node id: {}".format(
+                    expect_dep_id, node_id)
+                return False
+        name_col_idx = column_names.index(self.NAME)
+
+        if not self._is_same_node(name, expect_node[name_col_idx]):
+            self._err_msg = f"{name} is not expected {expect_node[name_col_idx]}"
             return False
 
         if self._is_same_node(name, "Loop"):
@@ -54,7 +63,7 @@ class PlanDiffer:
                 self._err_msg = "Could not find loop body"
                 return False
             if not self._diff_plan_node(plan_desc, loop_body_idx, expect,
-                                        body_id):
+                                        plan_desc.node_index_map[body_id], body_id):
                 return False
         elif self._is_same_node(name, "Select"):
             # TODO(yee): check select node
@@ -65,15 +74,16 @@ class PlanDiffer:
             expect_op_dict = {}
             if op:
                 expect_op_dict = json.loads(op)
-            self._err_msg = self._check_op_info(expect_op_dict, plan_node_desc.description)
+            self._err_msg = self._check_op_info(
+                expect_op_dict, plan_node_desc.description)
             if self._err_msg:
                 return False
 
         if plan_node_desc.dependencies is None:
             return True
 
-        idx = column_names.index(self.DEPENDS)
-        exp_deps = expect_node[idx]
+        dep_col_idx = column_names.index(self.DEPENDS)
+        exp_deps = expect_node[dep_col_idx]
         if not len(exp_deps) == len(plan_node_desc.dependencies):
             self._err_msg = "Different plan node dependencies: {} vs. {}".format(
                 len(plan_node_desc.dependencies), len(exp_deps))
@@ -81,8 +91,7 @@ class PlanDiffer:
 
         for i in range(len(plan_node_desc.dependencies)):
             line_num = plan_desc.node_index_map[plan_node_desc.dependencies[i]]
-            if not self._diff_plan_node(plan_desc, line_num, expect,
-                                        int(exp_deps[i])):
+            if not self._diff_plan_node(plan_desc, line_num, expect, plan_desc.node_index_map[exp_deps[i]], exp_deps[i]):
                 return False
         return True
 

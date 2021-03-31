@@ -25,6 +25,24 @@ Feature: Push Limit down rule
       | GetNeighbors | 4            | {"limit": "2"} |
       | Start        |              |                |
 
+  Scenario: push limit down to GetNeighbors
+    When profiling query:
+      """
+      GO 1 STEPS FROM "James Harden" OVER like REVERSELY |
+      Limit 2
+      """
+    Then the result should be, in any order:
+      | like._dst         |
+      | "Dejounte Murray" |
+      | "Luka Doncic"     |
+    And the execution plan should be:
+      | id | name         | dependencies | operator info  |
+      | 4  | DataCollect  | 5            |                |
+      | 5  | Limit        | 6            |                |
+      | 6  | Project      | 7            |                |
+      | 7  | GetNeighbors | 0            | {"limit": "2"} |
+      | 0  | Start        |              |                |
+
   Scenario: push limit down to GetNeighbors with offset
     When profiling query:
       """
