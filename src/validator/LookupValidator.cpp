@@ -352,7 +352,8 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     // swap LHS and RHS of relExpr if LabelAttributeExpr in on the right,
     // so that LabelAttributeExpr is always on the left
     if (right->kind() == Expression::Kind::kLabelAttribute) {
-        expr = static_cast<RelationalExpression*>(reverseRelKind(expr).release());
+        expr = qctx_->objPool()->add(
+            static_cast<RelationalExpression*>(reverseRelKind(expr).release()));
     }
     auto left = expr->left();
     auto* la = static_cast<LabelAttributeExpression*>(left);
@@ -361,7 +362,8 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     }
 
     // fold constant expression
-    expr = static_cast<RelationalExpression*>(ExpressionUtils::foldConstantExpr(expr).release());
+    expr = qctx_->objPool()->add(
+        static_cast<RelationalExpression*>(ExpressionUtils::foldConstantExpr(expr).release()));
     DCHECK_EQ(expr->left()->kind(), Expression::Kind::kLabelAttribute);
 
     std::string prop = la->right()->value().getStr();
