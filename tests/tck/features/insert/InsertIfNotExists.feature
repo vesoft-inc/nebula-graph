@@ -2,9 +2,9 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-Feature: Insert string vid of vertex and edge
+Feature: Insert vertex and edge with if not exists
 
-  Scenario: insert vertex and edge test
+  Scenario: insert vertex and edge if not exists test
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9                |
@@ -14,6 +14,7 @@ Feature: Insert string vid of vertex and edge
       """
       CREATE TAG IF NOT EXISTS person(name string, age int);
       CREATE EDGE IF NOT EXISTS like(likeness int);
+      CREATE TAG IF NOT EXISTS student(grade string, number int);
       """
     # insert vertex succeeded
     When try to execute query:
@@ -23,7 +24,7 @@ Feature: Insert string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      INSERT VERTEX person(age, name) VALUES "Conan":(10, "Conan")
+      INSERT VERTEX person(name, age) VALUES "Conan":("Conan", 10)
       """
     Then the execution should be successful
     # check vertex result with fetch
@@ -35,12 +36,11 @@ Feature: Insert string vid of vertex and edge
       | VertexID | age |
       | "Conan"  | 10  |
     # insert vertex if not exists
-    When try to execute query:
+    When executing query:
       """
       INSERT VERTEX IF NOT EXISTS person(name, age) VALUES "Conan":("Conan", 20)
       """
     Then the execution should be successful
-    # check vertex result with fetch
     When executing query:
       """
       FETCH PROP ON person "Conan" YIELD person.age as age
@@ -48,6 +48,19 @@ Feature: Insert string vid of vertex and edge
     Then the result should be, in any order, with relax comparison:
       | VertexID | age |
       | "Conan"  | 10  |
+    # insert same vertex
+    When executing query:
+      """
+      INSERT VERTEX person(name, age) VALUES "Conan":("Conan", 40)
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      FETCH PROP ON person "Conan" YIELD person.age as age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | VertexID | age |
+      | "Conan"  | 40  |
     # insert edge
     When executing query:
       """
@@ -62,7 +75,7 @@ Feature: Insert string vid of vertex and edge
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
       | 'Tom'     | 'Conan'   | 0          | 87            |
-    # insert edge
+    # insert edge if not exists
     When executing query:
       """
       INSERT EDGE IF NOT EXISTS like(likeness) VALUES "Tom"->"Conan":(10)
@@ -76,3 +89,77 @@ Feature: Insert string vid of vertex and edge
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
       | 'Tom'     | 'Conan'   | 0          | 87            |
+    # insert same edge
+    When executing query:
+      """
+      INSERT EDGE like(likeness) VALUES "Tom"->"Conan":(100)
+      """
+    Then the execution should be successful
+    # check edge result with fetch
+    When executing query:
+      """
+      FETCH PROP ON like "Tom"->"Conan" YIELD like.likeness
+      """
+    Then the result should be, in any order:
+      | like._src | like._dst | like._rank | like.likeness |
+      | 'Tom'     | 'Conan'   | 0          | 100           |
+    # check result with go
+    When executing query:
+      """
+      GO FROM "Tom" over like YIELD like.likeness as like, like._src as src, like._dst as dst
+      """
+    Then the result should be, in any order:
+      | like | src   | dst     |
+      | 100  | "Tom" | "Conan" |
+    # insert multi vertex multi tags
+    When executing query:
+      """
+      INSERT VERTEX IF NOT EXISTS
+        person(name, age),
+        student(grade, number)
+      VALUES
+        "Tom":("Tom", 8, "three", 20190901008),
+        "Conan":("Conan", 9, "four", 20180901003),
+        "Peter":("Peter", 20, "five", 2019020113);
+      """
+    Then the execution should be successful
+    # check same vertex different tag
+    When executing query:
+      """
+      FETCH PROP ON person "Conan" YIELD person.age as age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | VertexID | age |
+      | "Conan"  | 40  |
+    When executing query:
+      """
+      FETCH PROP ON student "Conan" YIELD student.number as number
+      """
+    Then the result should be, in any order, with relax comparison:
+      | VertexID | number      |
+      | "Conan"  | 20180901003 |
+    # insert multi edges if not exists
+    When executing query:
+      """
+      INSERT EDGE IF NOT EXISTS
+        like(likeness)
+      VALUES
+        "Tom"->"Conan":(81),
+        "Tom"->"Peter":(83);
+      """
+    Then the execution should be successful
+    # check edge result with fetch
+    When executing query:
+      """
+      FETCH PROP ON like "Tom"->"Conan" YIELD like.likeness
+      """
+    Then the result should be, in any order:
+      | like._src | like._dst | like._rank | like.likeness |
+      | 'Tom'     | 'Conan'   | 0          | 100           |
+    When executing query:
+      """
+      FETCH PROP ON like "Tom"->"Peter" YIELD like.likeness
+      """
+    Then the result should be, in any order:
+      | like._src | like._dst | like._rank | like.likeness |
+      | 'Tom'     | 'Peter'   | 0          | 83            |
