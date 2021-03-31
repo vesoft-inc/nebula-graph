@@ -5,7 +5,7 @@
 
 import re
 import json
-import pdb
+
 class PlanDiffer:
     ID = "id"
     NAME = "name"
@@ -27,26 +27,19 @@ class PlanDiffer:
         if self._resp_plan is None:
             return False
 
-        return self._diff_plan_node(self._resp_plan, 0, self._expect_plan, 0, -1)
+        rows = self._expect_plan.get("rows", [])
+        column_names = self._expect_plan.get("column_names", [])
+        if not self._validate_expect(rows, column_names):
+            return False
 
-    def _diff_plan_node(self, plan_desc, line_num, expect, expect_row_idx, expect_dep_id) -> bool:
-        rows = expect.get("rows", [])
-        column_names = expect.get("column_names", [])
+        return self._diff_plan_node(self._resp_plan, 0, rows, column_names)
 
+    def _diff_plan_node(self, plan_desc, line_num, rows, column_names) -> bool:
         plan_node_desc = plan_desc.plan_node_descs[line_num]
-        expect_node = rows[expect_row_idx]
+        expect_node = rows[line_num]
         name = bytes.decode(plan_node_desc.name)
 
-        id_col_idx = column_names.index(self.ID)
-        node_id = int(expect_node[id_col_idx])
-
-        if line_num != 0:
-            if node_id != expect_dep_id:
-                self._err_msg = "Incorrect plan node dependencies: expected dep node id: {} vs. actual node id: {}".format(
-                    expect_dep_id, node_id)
-                return False
         name_col_idx = column_names.index(self.NAME)
-
         if not self._is_same_node(name, expect_node[name_col_idx]):
             self._err_msg = f"{name} is not expected {expect_node[name_col_idx]}"
             return False
@@ -62,8 +55,7 @@ class PlanDiffer:
             if loop_body_idx is None:
                 self._err_msg = "Could not find loop body"
                 return False
-            if not self._diff_plan_node(plan_desc, loop_body_idx, expect,
-                                        plan_desc.node_index_map[body_id], body_id):
+            if not self._diff_plan_node(plan_desc, loop_body_idx, rows, column_names):
                 return False
         elif self._is_same_node(name, "Select"):
             # TODO(yee): check select node
@@ -91,7 +83,7 @@ class PlanDiffer:
 
         for i in range(len(plan_node_desc.dependencies)):
             line_num = plan_desc.node_index_map[plan_node_desc.dependencies[i]]
-            if not self._diff_plan_node(plan_desc, line_num, expect, plan_desc.node_index_map[exp_deps[i]], exp_deps[i]):
+            if not self._diff_plan_node(plan_desc, line_num, rows, column_names):
                 return False
         return True
 
@@ -187,3 +179,37 @@ class PlanDiffer:
         else:
             return "Failed to extract dict from unknown object: {} type: {}".format(
                 obj, type(obj))
+
+    def _validate_expect(self, rows, column_names):
+        # Check expected plan column
+        if self.ID not in column_names:
+            self._err_msg = "Plan node id column is missing in expectde plan"
+            return False
+        if self.NAME not in column_names:
+            self._err_msg = "Plan node name column is missing in expectde plan"
+            return False
+        if self.DEPENDS not in column_names:
+            self._err_msg = "Plan node dependencies column is missing in expectde plan"
+            return False
+        if self.OP_INFO not in column_names:
+            self._err_msg = "Plan node operator info column is missing in expectde plan"
+            return False
+        
+        id_idx_dict = {}
+        # Check node id existence
+        for i in range(len(rows)):
+            node_id = rows[i][0]
+            if not node_id:
+                self._err_msg = "Plan node id is missing in expectde plan"
+                return False
+            id_idx_dict[int(node_id)] = i
+
+        # Check dependencies
+        for i in range(len(rows)):
+            deps = rows[i][2]
+            if deps:
+                for dep in deps:
+                    if dep not in id_idx_dict:
+                        self._err_msg = "Failed to find dependencies: {}".format(dep)
+                        return False
+        return True

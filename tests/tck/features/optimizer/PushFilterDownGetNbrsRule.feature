@@ -45,6 +45,7 @@ Feature: Push Filter down GetNeighbors rule
       | 1  | GetNeighbors | 2            | {"filter": "($^.player.age>18)"} |
       | 2  | Start        |              |                                  |
 
+  @aiee
   Scenario: push edge props filter down
     When profiling query:
       """
@@ -87,10 +88,10 @@ Feature: Push Filter down GetNeighbors rule
       | like._dst           | like.likeness |
       | "LaMarcus Aldridge" | 90            |
     And the execution plan should be:
-      | id | name         | dependencies | operator info                                                |
-      | 0  | Project      | 1            |                                                              |
-      | 1  | GetNeighbors | 2            | {"filter": "(any(v IN [5,6] WHERE ((like.likeness+v)<100))"} |
-      | 2  | Start        |              |                                                              |
+      | id | name         | dependencies | operator info                                               |
+      | 0  | Project      | 1            |                                                             |
+      | 1  | GetNeighbors | 2            | {"filter": "any(v IN [5,6] WHERE ((like.likeness+v)<100))"} |
+      | 2  | Start        |              |                                                             |
 
   Scenario: push edge props filter down when reversely
     When profiling query:

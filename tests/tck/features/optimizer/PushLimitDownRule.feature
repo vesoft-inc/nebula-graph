@@ -18,24 +18,6 @@ Feature: Push Limit down rule
       | "Dejounte Murray" |
       | "Luka Doncic"     |
     And the execution plan should be:
-      | name         | dependencies | operator info  |
-      | DataCollect  | 1            |                |
-      | Limit        | 2            |                |
-      | Project      | 3            |                |
-      | GetNeighbors | 4            | {"limit": "2"} |
-      | Start        |              |                |
-
-  Scenario: push limit down to GetNeighbors
-    When profiling query:
-      """
-      GO 1 STEPS FROM "James Harden" OVER like REVERSELY |
-      Limit 2
-      """
-    Then the result should be, in any order:
-      | like._dst         |
-      | "Dejounte Murray" |
-      | "Luka Doncic"     |
-    And the execution plan should be:
       | id | name         | dependencies | operator info  |
       | 4  | DataCollect  | 5            |                |
       | 5  | Limit        | 6            |                |
@@ -57,9 +39,9 @@ Feature: Push Limit down rule
       | 2011       |
       | 1998       |
     And the execution plan should be:
-      | name         | dependencies | operator info  |
-      | DataCollect  | 1            |                |
-      | Limit        | 2            |                |
-      | Project      | 3            |                |
-      | GetNeighbors | 4            | {"limit": "7"} |
-      | Start        |              |                |
+      | id | name         | dependencies | operator info  |
+      | 0  | DataCollect  | 1            |                |
+      | 1  | Limit        | 2            |                |
+      | 2  | Project      | 3            |                |
+      | 3  | GetNeighbors | 4            | {"limit": "7"} |
+      | 4  | Start        |              |                |
