@@ -70,11 +70,6 @@ Status GetVarStepsNeighborsExecutor::buildRequestDataSet() {
 }
 
 folly::Future<Status> GetVarStepsNeighborsExecutor::getVarStepsNeighbors() {
-    getNeighbors();
-    return promise_.getFuture();
-}
-
-folly::Future<Status> GetVarStepsNeighborsExecutor::getNeighbors() {
     if (reqDs_.rows.empty()) {
         VLOG(1) << "Empty input.";
         List emptyResult;
@@ -83,12 +78,16 @@ folly::Future<Status> GetVarStepsNeighborsExecutor::getNeighbors() {
                           .iter(Iterator::Kind::kGetNeighbors)
                           .finish());
     }
+    getNeighbors();
+    return promise_.getFuture();
+}
 
+void GetVarStepsNeighborsExecutor::getNeighbors() {
     time::Duration getNbrTime;
     GraphStorageClient* storageClient = qctx_->getStorageClient();
-    return storageClient
+    storageClient
         ->getNeighbors(gn_->space(),
-                       std::move(reqDs_.colNames),
+                       reqDs_.colNames,
                        std::move(reqDs_.rows),
                        gn_->edgeTypes(),
                        gn_->edgeDirection(),
@@ -119,38 +118,63 @@ folly::Future<Status> GetVarStepsNeighborsExecutor::getNeighbors() {
                                                         std::get<2>(info),
                                                         resp.responses()[i].vertices.size()));
             }
-            return handleResponse(resp);
+            handleResponse(resp);
         });
 }
 
-Status GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
+void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
     auto result = handleCompleteness(resps, FLAGS_accept_partial_success);
-    NG_RETURN_IF_ERROR(result);
+    if (!result.ok()) {
+        promise_.setValue(std::move(result).status());
+    }
 
     auto& responses = resps.responses();
     VLOG(1) << "Resp size: " << responses.size();
-    List list;
-    for (auto& resp : responses) {
-        auto dataset = resp.get_vertices();
-        if (dataset == nullptr) {
-            LOG(INFO) << "Empty dataset in response";
-            continue;
-        }
-
-        VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
-        list.values.emplace_back(std::move(*dataset));
-    }
 
     if (currentStep_ == steps_) {
+        List list;
+        for (auto& resp : responses) {
+            auto dataset = resp.get_vertices();
+            if (dataset == nullptr) {
+                LOG(INFO) << "Empty dataset in response";
+                continue;
+            }
+
+            VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
+            list.values.emplace_back(std::move(*dataset));
+        }
         ResultBuilder builder;
         builder.state(result.value());
         builder.value(Value(std::move(list)));
         finish(builder.iter(Iterator::Kind::kGetNeighbors).finish());
         promise_.setValue(Status::OK());
     } else {
-        // get next steps start vids
+        for (auto& resp : responses) {
+            auto dataset = resp.get_vertices();
+            if (dataset == nullptr) {
+                LOG(INFO) << "Empty dataset in response";
+                continue;
+            }
+
+            VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
+            std::unordered_set<Value> uniqueVid;
+            for (auto& row : dataset->rows) {
+                auto& vid = row[0];
+                if (uniqueVid.emplace(vid).second) {
+                    reqDs_.rows.emplace_back(Row({std::move(vid)}));
+                }
+            }
+        }
+        if (reqDs_.rows.empty()) {
+            VLOG(1) << "Empty input.";
+            List emptyResult;
+            promise_.setValue(finish(ResultBuilder()
+                                         .value(Value(std::move(emptyResult)))
+                                         .iter(Iterator::Kind::kGetNeighbors)
+                                         .finish()));
+        }
+        getNeighbors();
     }
-    return Status::OK();
 }
 
 }   // namespace graph

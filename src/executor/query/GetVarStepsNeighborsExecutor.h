@@ -36,10 +36,10 @@ private:
 
     folly::Future<Status> getVarStepsNeighbors();
 
-    folly::Future<Status> getNeighbors();
+    void getNeighbors();
 
     using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
-    Status handleResponse(RpcResponse& resps);
+    void handleResponse(RpcResponse& resps);
 
 private:
     DataSet                             reqDs_;
