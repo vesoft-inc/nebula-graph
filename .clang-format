@@ -154,4 +154,5 @@ BinPackParameters: false
 IndentWidth:     4
 SpacesBeforeTrailingComments: 3
 AllowShortFunctionsOnASingleLine: Empty
+AlignConsecutiveDeclarations: true
 ...
