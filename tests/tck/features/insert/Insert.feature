@@ -109,7 +109,7 @@ Feature: Insert string vid of vertex and edge
       FETCH PROP ON person "Conan"
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices |
+      | vertices  |
       | ('Conan') |
     # insert vertex with string timestamp succeeded
     When try to execute query:
@@ -147,7 +147,7 @@ Feature: Insert string vid of vertex and edge
       FETCH PROP ON school "sun_school" YIELD _vid, school.name, school.create_time
       """
     Then the result should be, in any order:
-      | _vid     | school.name  | school.create_time |
+      | _vid         | school.name  | school.create_time |
       | "sun_school" | "sun_school" | 1262340000         |
     # insert one vertex multi tags
     When executing query:
@@ -167,16 +167,16 @@ Feature: Insert string vid of vertex and edge
       FETCH PROP ON person "Bob" YIELD _vid, person.name, person.age
       """
     Then the result should be, in any order:
-      | _vid | person.name | person.age |
-      | 'Bob'    | 'Bob'       | 9          |
+      | _vid  | person.name | person.age |
+      | 'Bob' | 'Bob'       | 9          |
     # check student tag result with fetch
     When executing query:
       """
       FETCH PROP ON student "Bob" YIELD _vid, student.grade, student.number
       """
     Then the result should be, in any order:
-      | _vid | student.grade | student.number |
-      | 'Bob'    | 'four'        | 20191106001    |
+      | _vid  | student.grade | student.number |
+      | 'Bob' | 'four'        | 20191106001    |
     # insert multi vertex multi tags
     When executing query:
       """
@@ -471,7 +471,7 @@ Feature: Insert string vid of vertex and edge
       FETCH PROP ON course "English"
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices   |
+      | vertices    |
       | ('English') |
     # check result
     When executing query:
@@ -480,5 +480,5 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | student.name | student.age |
-      | ''       | 'Tom'        | 12          |
+      | ''   | 'Tom'        | 12          |
     Then drop the used space

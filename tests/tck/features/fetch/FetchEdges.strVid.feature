@@ -17,7 +17,7 @@ Feature: Fetch String Vid Edges
       FETCH PROP ON serve "Boris Diaw"->"Spurs"
       """
     Then the result should be, in any order:
-      | edges                                                               |
+      | edges                                                                |
       | [:serve "Boris Diaw"->"Spurs" @0 {end_year: 2016, start_year: 2012}] |
     When executing query:
       """
@@ -223,8 +223,8 @@ Feature: Fetch String Vid Edges
       """
     Then the result should be, in any order:
       | properties($-.edges) |
-      | {likeness: 95}        |
-      | {likeness: 90}        |
+      | {likeness: 95}       |
+      | {likeness: 90}       |
     When executing query:
       """
       FETCH PROP ON like "Tony Parker"->"Tim Duncan", "Grant Hill" -> "Tracy McGrady" | yield startNode($-.edges) AS nodes
@@ -271,3 +271,51 @@ Feature: Fetch String Vid Edges
       FETCH PROP ON serve 'Boris Diaw'->'Hawks' YIELD serve.not_exist_prop
       """
     Then a SemanticError should be raised at runtime:
+    # Fetch prop returns vertices and edges
+    When executing query:
+      """
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks' YIELD edges, vertices
+      """
+    Then a SemanticError should be raised at runtime: Unsupported vertex expression in yield.
+
+  Scenario: Fetch prop on an edge and return serve._src, serve.start_year
+    When executing query:
+      """
+      FETCH PROP ON serve 'Boris Diaw'->"Spurs" YIELD serve._src as src, serve.start_year
+      """
+    Then the result should be, in any order:
+      | src          | serve.start_year |
+      | "Boris Diaw" | 2012             |
+
+  Scenario: Fetch prop on an edge and return empty value prop
+    When executing query:
+      """
+      FETCH PROP ON serve "111"->"222" YIELD serve.start_year
+      """
+    Then the result should be, in any order:
+      | serve.start_year |
+      | EMPTY            |
+
+  Scenario: Fetch prop on  edge with rank and prop and return empty
+    When executing query:
+      """
+      FETCH PROP ON serve "111"->"222" YIELD serve._rank, serve.start_year
+      """
+    Then the result should be, in any order:
+      | serve._rank | serve.start_year |
+
+  Scenario: Fetch prop on edge with src and prop and return empty
+    When executing query:
+      """
+      FETCH PROP ON serve "111"->"222" YIELD serve._src, serve.start_year
+      """
+    Then the result should be, in any order:
+      | serve._src | serve.start_year |
+
+  Scenario: Fetch prop on  edge with dst and prop and return empty
+    When executing query:
+      """
+      FETCH PROP ON serve "111"->"222" YIELD serve._dst, serve.start_year
+      """
+    Then the result should be, in any order:
+      | serve._dst | serve.start_year |

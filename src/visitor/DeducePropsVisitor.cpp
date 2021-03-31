@@ -226,7 +226,7 @@ void DeducePropsVisitor::visit(PathBuildExpression*) {
 void DeducePropsVisitor::visitEdgePropExpr(PropertyExpression *expr) {
     auto status = qctx_->schemaMng()->toEdgeType(space_, *expr->sym());
     if (!status.ok()) {
-        status_ = std::move(status).status();
+        status_ = Status::SemanticError(status.status().toString());
         return;
     }
     exprProps_->insertEdgeProp(status.value(), *expr->prop());

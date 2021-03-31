@@ -569,14 +569,14 @@ Feature: IndexTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid | tag_1.col5 | tag_1.col1 |
-      | 100      | 5          | true       |
+      | 100  | 5          | true       |
     When executing query:
       """
       LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD _vid, tag_1.col1, tag_1.col5
       """
     Then the result should be, in any order:
       | _vid | tag_1.col1 | tag_1.col5 |
-      | 100      | true       | 5          |
+      | 100  | true       | 5          |
     Then drop the used space
 
   Scenario: IndexTest IntVid RebuildTagIndexStatusInfo

@@ -511,7 +511,7 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | t.name | t.age | t.description |
-      | "1"      | "N/A"  | -1    | "none"        |
+      | "1"  | "N/A"  | -1    | "none"        |
     # alter change
     When executing query:
       """
@@ -532,7 +532,7 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | t.name | t.age | t.description |
-      | "1"      | "N/A"  | -1    | "some one"    |
+      | "1"  | "N/A"  | -1    | "some one"    |
     # insert without default prop, failed
     When executing query:
       """
@@ -563,7 +563,7 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | t.name | t.age | t.description |
-      | "1"      | "N/A"  | -1    | "some one"    |
+      | "1"  | "N/A"  | -1    | "some one"    |
     # alter drop default
     When executing query:
       """

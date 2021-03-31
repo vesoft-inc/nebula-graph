@@ -272,7 +272,7 @@ Feature: Update int vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | course.name | course.credits |
-      | 103      | "CS"        | 5              |
+      | 103  | "CS"        | 5              |
     # not allow to handle multi tagid when update
     When executing query:
       """
@@ -519,7 +519,7 @@ Feature: Update int vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | building.name |
-      | 100      | "No1"         |
+      | 100  | "No1"         |
     # insert
     When executing query:
       """
@@ -532,7 +532,7 @@ Feature: Update int vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | building.name |
-      | 100      | "No2"         |
+      | 100  | "No2"         |
     When executing query:
       """
       UPSERT VERTEX 101 SET building.name = "No1"
@@ -544,7 +544,7 @@ Feature: Update int vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | building.name |
-      | 101      | "No1"         |
+      | 101  | "No1"         |
     # insert
     When executing query:
       """
@@ -557,7 +557,7 @@ Feature: Update int vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | building.name |
-      | 101      | "No2"         |
+      | 101  | "No2"         |
     # upsert after alter schema
     When executing query:
       """
@@ -578,7 +578,7 @@ Feature: Update int vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | building.name | building.new_field |
-      | 100      | "No2"         | "123"              |
+      | 100  | "No2"         | "123"              |
     # upsert after alter schema
     When executing query:
       """
@@ -591,7 +591,7 @@ Feature: Update int vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | building.name | building.new_field |
-      | 100      | "No3"         | "321"              |
+      | 100  | "No3"         | "321"              |
     # upsert after alter schema
     When executing query:
       """
@@ -604,7 +604,7 @@ Feature: Update int vid of vertex and edge
       """
     Then the result should be, in any order:
       | _vid | building.name | building.new_field |
-      | 101      | "No1"         | "No2"              |
+      | 101  | "No1"         | "No2"              |
     # Test upsert edge after alter schema
     When executing query:
       """

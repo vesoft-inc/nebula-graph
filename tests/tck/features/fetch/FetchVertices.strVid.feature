@@ -9,7 +9,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON player 'Boris Diaw' YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age |
+      | _vid         | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
     # Fetch Vertices yield duplicate columns
     When executing query:
@@ -17,14 +17,14 @@ Feature: Fetch String Vertices
       FETCH PROP ON player 'Boris Diaw' YIELD _vid, player.name, player.name
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.name  |
+      | _vid         | player.name  | player.name  |
       | "Boris Diaw" | "Boris Diaw" | "Boris Diaw" |
     When executing query:
       """
       FETCH PROP ON player 'Boris Diaw' YIELD _vid, player.name, player.age, player.age > 30
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age | (player.age>30) |
+      | _vid         | player.name  | player.age | (player.age>30) |
       | "Boris Diaw" | "Boris Diaw" | 36         | True            |
     # Fetch Vertices without YIELD
     When executing query:
@@ -32,14 +32,14 @@ Feature: Fetch String Vertices
       FETCH PROP ON bachelor 'Tim Duncan'
       """
     Then the result should be, in any order:
-      | vertices                                                          |
+      | vertices                                                           |
       | ("Tim Duncan":bachelor{name:"Tim Duncan",speciality:"psychology"}) |
     When executing query:
       """
       FETCH PROP ON player 'Boris Diaw'
       """
     Then the result should be, in any order:
-      | vertices                                        |
+      | vertices                                         |
       | ("Boris Diaw":player{name:"Boris Diaw", age:36}) |
 
   Scenario: Fetch Vertices works with ORDER BY
@@ -50,7 +50,7 @@ Feature: Fetch String Vertices
       ORDER BY name
       """
     Then the result should be, in order:
-      | _vid      | name          | player.age |
+      | _vid          | name          | player.age |
       | "Tim Duncan"  | "Tim Duncan"  | 42         |
       | "Tony Parker" | "Tony Parker" | 36         |
 
@@ -60,14 +60,14 @@ Feature: Fetch String Vertices
       FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age |
+      | _vid         | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
     When executing query:
       """
       FETCH PROP ON player "Boris Diaw", "Tony Parker" YIELD DISTINCT _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age |
+      | _vid          | player.name   | player.age |
       | "Boris Diaw"  | "Boris Diaw"  | 36         |
       | "Tony Parker" | "Tony Parker" | 36         |
     When executing query:
@@ -75,7 +75,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT _vid, player.age
       """
     Then the result should be, in any order:
-      | _vid     | player.age |
+      | _vid         | player.age |
       | "Boris Diaw" | 36         |
 
   Scenario: Fetch prop on multiple tags, multiple vertices
@@ -84,7 +84,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON bachelor, team, player "Tim Duncan", "Boris Diaw" YIELD _vid, player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
+      | _vid         | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
       | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
       | "Tim Duncan" | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
     When executing query:
@@ -92,7 +92,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON player, team "Tim Duncan","Boris Diaw" YIELD _vid, player.name, team.name
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | team.name |
+      | _vid         | player.name  | team.name |
       | "Boris Diaw" | "Boris Diaw" | EMPTY     |
       | "Tim Duncan" | "Tim Duncan" | EMPTY     |
     When executing query:
@@ -100,7 +100,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON player, team "Boris Diaw","Boris Diaw" YIELD _vid, player.name, team.name
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | team.name |
+      | _vid         | player.name  | team.name |
       | "Boris Diaw" | "Boris Diaw" | EMPTY     |
       | "Boris Diaw" | "Boris Diaw" | EMPTY     |
     When executing query:
@@ -108,14 +108,14 @@ Feature: Fetch String Vertices
       FETCH PROP ON team, player, bachelor "Boris Diaw" YIELD _vid, player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
+      | _vid         | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
       | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
     When executing query:
       """
       FETCH PROP ON player, team, bachelor "Tim Duncan" YIELD _vid, player.name, team.name, bachelor.name
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | team.name | bachelor.name |
+      | _vid         | player.name  | team.name | bachelor.name |
       | "Tim Duncan" | "Tim Duncan" | EMPTY     | "Tim Duncan"  |
 
   Scenario: Fetch prop on not existing vertex
@@ -130,7 +130,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON player 'NON EXIST VERTEX ID', "Boris Diaw" YIELD _vid, player.name
       """
     Then the result should be, in any order:
-      | _vid     | player.name  |
+      | _vid         | player.name  |
       | "Boris Diaw" | "Boris Diaw" |
     When executing query:
       """
@@ -145,21 +145,21 @@ Feature: Fetch String Vertices
       FETCH PROP ON * 'Boris Diaw' YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age |
+      | _vid         | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
     When executing query:
       """
       FETCH PROP ON * 'Boris Diaw' YIELD _vid, player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
+      | _vid         | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
       | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
     When executing query:
       """
       FETCH PROP ON * "Tim Duncan" YIELD _vid, player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
+      | _vid         | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
     # Fetch prop on * with not existing vertex
     When executing query:
@@ -173,7 +173,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON * 'NON EXIST VERTEX ID', 'Boris Diaw' YIELD _vid, player.name
       """
     Then the result should be, in any order:
-      | _vid     | player.name  |
+      | _vid         | player.name  |
       | "Boris Diaw" | "Boris Diaw" |
     # Fetch prop on * with multiple vertices
     When executing query:
@@ -181,7 +181,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON * 'Boris Diaw', 'Boris Diaw' YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age |
+      | _vid         | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
       | "Boris Diaw" | "Boris Diaw" | 36         |
     When executing query:
@@ -189,7 +189,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON * 'Tim Duncan', 'Boris Diaw' YIELD _vid, player.name, bachelor.name
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | bachelor.name |
+      | _vid         | player.name  | bachelor.name |
       | "Tim Duncan" | "Tim Duncan" | "Tim Duncan"  |
       | "Boris Diaw" | "Boris Diaw" | EMPTY         |
     When executing query:
@@ -197,7 +197,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD _vid, player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
+      | _vid         | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
       | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
 
@@ -208,7 +208,7 @@ Feature: Fetch String Vertices
       GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age |
+      | _vid          | player.name   | player.age |
       | "Tony Parker" | "Tony Parker" | 36         |
       | "Tim Duncan"  | "Tim Duncan"  | 42         |
     When executing query:
@@ -217,7 +217,7 @@ Feature: Fetch String Vertices
       | FETCH PROP ON player, bachelor $-.id YIELD _vid, player.name, player.age, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age | bachelor.name | bachelor.speciality |
+      | _vid          | player.name   | player.age | bachelor.name | bachelor.speciality |
       | "Tony Parker" | "Tony Parker" | 36         | EMPTY         | EMPTY               |
       | "Tim Duncan"  | "Tim Duncan"  | 42         | "Tim Duncan"  | "psychology"        |
     # Fetch prop on multi tags of vertices from pipe
@@ -227,7 +227,7 @@ Feature: Fetch String Vertices
       | FETCH PROP ON player, team, bachelor $-.id YIELD _vid, player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
+      | _vid          | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
       | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
       | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
     When executing query:
@@ -236,7 +236,7 @@ Feature: Fetch String Vertices
       | FETCH PROP ON player, bachelor $-.id YIELD _vid, player.name, player.age, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age | bachelor.name | bachelor.speciality |
+      | _vid          | player.name   | player.age | bachelor.name | bachelor.speciality |
       | "Tony Parker" | "Tony Parker" | 36         | EMPTY         | EMPTY               |
       | "Tim Duncan"  | "Tim Duncan"  | 42         | "Tim Duncan"  | "psychology"        |
     # Fetch vertices with empty input
@@ -259,7 +259,7 @@ Feature: Fetch String Vertices
       YIELD 'Tim Duncan' as id | FETCH PROP ON * $-.id YIELD _vid, player.name, player.age, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age | bachelor.name | bachelor.speciality |
+      | _vid         | player.name  | player.age | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
     When executing query:
       """
@@ -267,7 +267,7 @@ Feature: Fetch String Vertices
       | FETCH PROP ON * $-.id YIELD _vid, player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
+      | _vid          | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
       | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
       | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
 
@@ -277,7 +277,7 @@ Feature: Fetch String Vertices
       $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age |
+      | _vid          | player.name   | player.age |
       | "Tony Parker" | "Tony Parker" | 36         |
       | "Tim Duncan"  | "Tim Duncan"  | 42         |
     When executing query:
@@ -285,7 +285,7 @@ Feature: Fetch String Vertices
       $var = GO FROM "Boris Diaw" over like YIELD like._dst as id; FETCH PROP ON * $var.id YIELD _vid, player.name, team.name, bachelor.name
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | team.name | bachelor.name |
+      | _vid          | player.name   | team.name | bachelor.name |
       | "Tony Parker" | "Tony Parker" | EMPTY     | EMPTY         |
       | "Tim Duncan"  | "Tim Duncan"  | EMPTY     | "Tim Duncan"  |
     # Fetch prop on multi tags of vertices from variable
@@ -295,7 +295,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON player, team, bachelor $var.id YIELD _vid, player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
+      | _vid          | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
       | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
       | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
 
@@ -438,3 +438,27 @@ Feature: Fetch String Vertices
       GO FROM 'NON EXIST VERTEX ID' OVER serve | FETCH PROP ON team $-
       """
     Then a SyntaxError should be raised at runtime:
+    # Fetch prop returns vertices and edges
+    When executing query:
+      """
+      FETCH PROP ON player "Tim Duncan" YIELD edges, vertices
+      """
+    Then a SemanticError should be raised at runtime: Unsupported edge expression in yield.
+
+  Scenario: fetch vertex without vid
+    When executing query:
+      """
+      FETCH PROP ON * 'Boris Diaw' YIELD player.name, player.age
+      """
+    Then the result should be, in any order:
+      | player.name  | player.age |
+      | "Boris Diaw" | 36         |
+
+  Scenario: fetch vertex without vid with pipe
+    When executing query:
+      """
+      FETCH PROP ON * 'Boris Diaw' YIELD _vid | FETCH PROP ON * $-._vid YIELD _vid
+      """
+    Then the result should be, in any order:
+      | _vid         |
+      | "Boris Diaw" |

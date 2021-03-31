@@ -37,7 +37,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 200      |
+      | 200  |
     When executing query:
       """
       LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200
@@ -45,7 +45,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
-      | 200      | 200               | 200               | 200               |
+      | 200  | 200               | 200               | 200               |
     Then drop the used space
 
   Scenario: LookupTest IntVid SimpleEdge
@@ -89,14 +89,14 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank |
-      | 200    | 201    | 0       |
+      | 200                | 201                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201 YIELD lookup_edge_1._src, lookup_edge_1._dst, lookup_edge_1._rank, lookup_edge_1.col1, lookup_edge_1.col2, lookup_edge_1.col3
       """
     Then the result should be, in any order:
       | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank | lookup_edge_1.col1 | lookup_edge_1.col2 | lookup_edge_1.col3 |
-      | 200    | 201    | 0       | 201                | 201                | 201                |
+      | 200                | 201                | 0                   | 201                | 201                | 201                |
     Then drop the used space
 
   Scenario: LookupTest IntVid VertexIndexHint
@@ -134,7 +134,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 200      |
+      | 200  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col1 == true
@@ -175,7 +175,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank |
-      | 200    | 201    | 0       |
+      | 200                | 201                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col1 == 200
@@ -218,61 +218,61 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
+      | 220  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 == 100 OR lookup_tag_2.col2 == 200
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
-      | 221      |
+      | 220  |
+      | 221  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > 100
       """
     Then the result should be, in any order:
       | _vid |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != 100
       """
     Then the result should be, in any order:
       | _vid |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 AND lookup_tag_2.col4 == true
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 AND lookup_tag_2.col4 != true
@@ -285,17 +285,17 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
-      | 221      |
-      | 222      |
-      | 223      |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 AND lookup_tag_2.col2 == 100
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
+      | 220  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 AND lookup_tag_2.col2 == 200
@@ -321,7 +321,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
+      | 220  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.1
@@ -374,57 +374,57 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 221    | 0       |
+      | 220                | 221                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 == 100 OR lookup_edge_2.col2 == 200
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 221    | 0       |
-      | 220    | 222    | 0       |
+      | 220                | 221                | 0                   |
+      | 220                | 222                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 > 100
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 222    | 0       |
-      | 220    | 223    | 0       |
-      | 220    | 224    | 0       |
-      | 220    | 225    | 0       |
+      | 220                | 222                | 0                   |
+      | 220                | 223                | 0                   |
+      | 220                | 224                | 0                   |
+      | 220                | 225                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 != 100
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 222    | 0       |
-      | 220    | 223    | 0       |
-      | 220    | 224    | 0       |
-      | 220    | 225    | 0       |
+      | 220                | 222                | 0                   |
+      | 220                | 223                | 0                   |
+      | 220                | 224                | 0                   |
+      | 220                | 225                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 221    | 0       |
-      | 220    | 222    | 0       |
-      | 220    | 223    | 0       |
-      | 220    | 224    | 0       |
-      | 220    | 225    | 0       |
+      | 220                | 221                | 0                   |
+      | 220                | 222                | 0                   |
+      | 220                | 223                | 0                   |
+      | 220                | 224                | 0                   |
+      | 220                | 225                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100 AND lookup_edge_2.col4 == true
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 221    | 0       |
-      | 220    | 222    | 0       |
-      | 220    | 223    | 0       |
-      | 220    | 224    | 0       |
-      | 220    | 225    | 0       |
+      | 220                | 221                | 0                   |
+      | 220                | 222                | 0                   |
+      | 220                | 223                | 0                   |
+      | 220                | 224                | 0                   |
+      | 220                | 225                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100 AND lookup_edge_2.col4 != true
@@ -437,17 +437,17 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 221    | 0       |
-      | 220    | 222    | 0       |
-      | 220    | 223    | 0       |
-      | 220    | 224    | 0       |
+      | 220                | 221                | 0                   |
+      | 220                | 222                | 0                   |
+      | 220                | 223                | 0                   |
+      | 220                | 224                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5 AND lookup_edge_2.col2 == 100
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 221    | 0       |
+      | 220                | 221                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5 AND lookup_edge_2.col2 == 200
@@ -472,7 +472,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
-      | 220    | 221    | 0       |
+      | 220                | 221                | 0                   |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.1
@@ -542,12 +542,12 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 < abs(-5)
@@ -560,12 +560,12 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 < (1 + 2)
@@ -584,24 +584,24 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true or false)
       """
     Then the result should be, in any order:
       | _vid |
-      | 220      |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
     # FIXME(aiee): should support later by folding constants
     # When executing query:
     # """
@@ -684,7 +684,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid | student.age |
-      | 220      | 20          |
+      | 220  | 20          |
     Then drop the used space
 
   Scenario: LookupTest IntVid OptimizerTest
@@ -907,7 +907,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 1        |
+      | 1    |
     When executing query:
       """
       LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1 and tag_with_str.c2 == "ccc"
@@ -920,29 +920,29 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | _vid |
-      | 1        |
+      | 1    |
     When executing query:
       """
       LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 5 and tag_with_str.c2 == "ab"
       """
     Then the result should be, in any order:
       | _vid |
-      | 5        |
+      | 5    |
     When executing query:
       """
       LOOKUP ON tag_with_str WHERE tag_with_str.c2 == "abc" and tag_with_str.c3 == "abc"
       """
     Then the result should be, in any order:
       | _vid |
-      | 3        |
-      | 4        |
+      | 3    |
+      | 4    |
     When executing query:
       """
       LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 5 and tag_with_str.c2 == "abca" and tag_with_str.c3 == "bc"
       """
     Then the result should be, in any order:
       | _vid |
-      | 6        |
+      | 6    |
     Then drop the used space
 
   Scenario: LookupTest IntVid ConditionTest

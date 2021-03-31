@@ -19,8 +19,7 @@ protected:
     GetPropExecutor(const std::string &name, const PlanNode *node, QueryContext *qctx)
         : StorageAccessExecutor(name, node, qctx) {}
 
-    Status handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp,
-                      const std::vector<std::string> &colNames) {
+    Status handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp) {
         auto result = handleCompleteness(rpcResp, FLAGS_accept_partial_success);
         NG_RETURN_IF_ERROR(result);
         auto state = std::move(result).value();
@@ -36,9 +35,6 @@ protected:
             } else {
                 state = Result::State::kPartialSuccess;
             }
-        }
-        if (!colNames.empty()) {
-            v.colNames = colNames;
         }
         VLOG(2) << "Dataset in get props: \n" << v << "\n";
         return finish(ResultBuilder()

@@ -9,7 +9,7 @@ Feature: Lookup with yield in integer vid
       LOOKUP ON player WHERE player.age == 40 YIELD _vid, player.name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | _vid        | player.name     |
+      | _vid            | player.name     |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
@@ -19,7 +19,7 @@ Feature: Lookup with yield in integer vid
       LOOKUP ON player WHERE player.age == 40 YIELD _vid, player.name AS name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | _vid        | name            |
+      | _vid            | name            |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
@@ -30,9 +30,9 @@ Feature: Lookup with yield in integer vid
       YIELD serve._src, serve._dst, serve._rank, serve.start_year
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
-      | serve._src              | serve._dst      | serve._rank | serve.start_year |
-      | 'Russell Westbrook' | 'Thunders'  | 0       | 2008             |
-      | 'Marc Gasol'        | 'Grizzlies' | 0       | 2008             |
+      | serve._src          | serve._dst  | serve._rank | serve.start_year |
+      | 'Russell Westbrook' | 'Thunders'  | 0           | 2008             |
+      | 'Marc Gasol'        | 'Grizzlies' | 0           | 2008             |
 
   Scenario: [2] edge with yield rename
     When executing query:
@@ -41,6 +41,6 @@ Feature: Lookup with yield in integer vid
       YIELD serve._src, serve._dst, serve._rank, serve.start_year AS startYear
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
-      | serve._src              | serve._dst      | serve._rank | startYear |
-      | 'Russell Westbrook' | 'Thunders'  | 0       | 2008      |
-      | 'Marc Gasol'        | 'Grizzlies' | 0       | 2008      |
+      | serve._src          | serve._dst  | serve._rank | startYear |
+      | 'Russell Westbrook' | 'Thunders'  | 0           | 2008      |
+      | 'Marc Gasol'        | 'Grizzlies' | 0           | 2008      |

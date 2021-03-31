@@ -25,7 +25,7 @@ Feature: Fetch Int Vid Edges
       FETCH PROP ON serve hash("Boris Diaw")->hash("Spurs")
       """
     Then the result should be, in any order:
-      | edges                                                                           |
+      | edges                                                                            |
       | [:serve hash("Boris Diaw")->hash("Spurs") @0 {end_year: 2016, start_year: 2012}] |
     When executing query:
       """
@@ -47,7 +47,7 @@ Feature: Fetch Int Vid Edges
       FETCH PROP ON like hash("Tony Parker")->hash("Tim Duncan")@0
       """
     Then the result should be, in any order:
-      | edges                                                            |
+      | edges                                                             |
       | [:like hash("Tony Parker")->hash("Tim Duncan") @0 {likeness: 95}] |
 
   Scenario: Fetch prop on multiple edges
@@ -248,3 +248,49 @@ Feature: Fetch Int Vid Edges
     Then the result should be, in any order, and the columns 0,1 should be hashed:
       | serve._src   | serve._dst | serve._rank |
       | "Boris Diaw" | "Spurs"    | 0           |
+
+  Scenario: Fetch prop on an edge and return serve._src, serve.start_year
+    When executing query:
+      """
+      FETCH PROP ON serve hash('Boris Diaw')->hash("Spurs") YIELD serve._src as src, serve.start_year
+      """
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | src          | serve.start_year |
+      | "Boris Diaw" | 2012             |
+
+  Scenario: Fetch prop on an edge and return empty value prop
+    When executing query:
+      """
+      FETCH PROP ON serve 111->222 YIELD serve.start_year
+      """
+    Then the result should be, in any order:
+      | serve.start_year |
+      | EMPTY            |
+
+  Scenario: Fetch prop on an edge and return empty
+    When executing query:
+      """
+      FETCH PROP ON serve 111->222 YIELD serve._rank, serve.start_year
+      """
+    Then the result should be, in any order:
+      | serve._rank | serve.start_year |
+
+  Scenario: Fetch prop on edge with src and dst and pipe
+    When executing query:
+      """
+      FETCH PROP ON serve hash('Boris Diaw')->hash("Spurs") YIELD serve._src as src, serve._dst as dst
+        | FETCH PROP ON serve $-.src->$-.dst YIELD serve._src, serve._dst
+      """
+    Then the result should be, in any order, and the columns 0,1 should be hashed:
+      | serve._src   | serve._dst |
+      | "Boris Diaw" | "Spurs"    |
+
+  Scenario: Fetch prop on edge with src and dst and var
+    When executing query:
+      """
+      $var = FETCH PROP ON serve hash('Boris Diaw')->hash("Spurs") YIELD serve._src as src, serve._dst as dst;
+        FETCH PROP ON serve $var.src->$var.dst YIELD serve._src, serve._dst
+      """
+    Then the result should be, in any order, and the columns 0,1 should be hashed:
+      | serve._src   | serve._dst |
+      | "Boris Diaw" | "Spurs"    |

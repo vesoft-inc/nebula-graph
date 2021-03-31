@@ -50,49 +50,49 @@ Feature: Integer Vid subgraph
       GET SUBGRAPH 0 STEPS FROM hash("Tim Duncan")
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices        |
+      | vertices         |
       | [("Tim Duncan")] |
     When executing query:
       """
       GET SUBGRAPH 0 STEPS FROM hash("Tim Duncan"), hash("Spurs")
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices                   |
+      | vertices                    |
       | [("Tim Duncan"), ("Spurs")] |
     When executing query:
       """
       GET SUBGRAPH 0 STEPS FROM hash("Tim Duncan"), hash("Tony Parker"), hash("Spurs")
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices                                    |
+      | vertices                                     |
       | [("Tim Duncan"), ("Spurs"), ("Tony Parker")] |
     When executing query:
       """
       GO FROM hash('Tim Duncan') over serve YIELD serve._dst AS id | GET SUBGRAPH 0 STEPS FROM $-.id
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices   |
+      | vertices    |
       | [("Spurs")] |
     When executing query:
       """
       GO FROM hash('Tim Duncan') over like YIELD like._dst AS id | GET SUBGRAPH 0 STEPS FROM $-.id
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices                            |
+      | vertices                             |
       | [("Manu Ginobili"), ("Tony Parker")] |
     When executing query:
       """
       $a = GO FROM hash('Tim Duncan') over serve YIELD serve._dst AS id; GET SUBGRAPH 0 STEPS FROM $a.id
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices   |
+      | vertices    |
       | [("Spurs")] |
     When executing query:
       """
       $a = GO FROM hash('Tim Duncan') over like YIELD like._dst AS id; GET SUBGRAPH 0 STEPS FROM $a.id
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices                            |
+      | vertices                             |
       | [("Manu Ginobili"), ("Tony Parker")] |
 
   Scenario: Integer Vid subgraph
@@ -128,7 +128,7 @@ Feature: Integer Vid subgraph
       |                                                 |                       | [:like "Danny Green"->"Marco Belinelli"@0]       |
       |                                                 |                       | [:serve "Danny Green"->"Spurs"@0]                |
     Then the result should be, in any order, with relax comparison:
-      | vertices        | edges    |
+      | vertices         | edges     |
       | [("Tim Duncan")] | <[edge1]> |
       | <[vertex2]>      | <[edge2]> |
 
@@ -210,7 +210,7 @@ Feature: Integer Vid subgraph
       |                                                 |                       | [:serve "Tiago Splitter"->"76ers"@0]             |                       |                                               |
       |                                                 |                       | [:serve "Tiago Splitter"->"Hawks"@0]             |                       |                                               |
     Then the result should be, in any order, with relax comparison:
-      | vertices        | edges    |
+      | vertices         | edges     |
       | [("Tim Duncan")] | <[edge1]> |
       | <[vertex2]>      | <[edge2]> |
       | <[vertex3]>      | <[edge3]> |
@@ -240,7 +240,7 @@ Feature: Integer Vid subgraph
       |                                             |                       | [:like "Marco Belinelli"->"Tony Parker"@0]      |                    |
       |                                             |                       | [:like "Tim Duncan"->"Tony Parker"@0]           |                    |
     Then the result should be, in any order, with relax comparison:
-      | vertices        | edges    |
+      | vertices         | edges     |
       | [("Tim Duncan")] | <[edge1]> |
       | <[vertex2]>      | <[edge2]> |
       | <[vertex3]>      | []        |
@@ -306,7 +306,7 @@ Feature: Integer Vid subgraph
       |                                             |                       | [:like "Marco Belinelli"->"Tony Parker"@0]      |                    |                                              |
       |                                             |                       | [:like "Tim Duncan"->"Tony Parker"@0]           |                    |                                              |
     Then the result should be, in any order, with relax comparison:
-      | vertices        | edges    |
+      | vertices         | edges     |
       | [("Tim Duncan")] | <[edge1]> |
       | <[vertex2]>      | <[edge2]> |
       | <[vertex3]>      | <[edge3]> |
@@ -326,7 +326,7 @@ Feature: Integer Vid subgraph
       |                  |                                             |                   | [:teammate "Manu Ginobili"->"Tony Parker"@0] |             |
       |                  |                                             |                   | [:teammate "Tim Duncan"->"Tony Parker"@0]    |             |
     Then the result should be, in any order, with relax comparison:
-      | vertices   | edges    |
+      | vertices    | edges     |
       | <[vertex1]> | <[edge1]> |
       | <[vertex2]> | <[edge2]> |
       | <[vertex3]> | []        |
@@ -360,7 +360,7 @@ Feature: Integer Vid subgraph
       |                                              |                                                  |                                                |                     | [:serve "Chris Paul"->"Rockets"@0]         |
       |                                              |                                                  |                                                |                     | [:like "Chris Paul"->"LeBron James"@0]     |
     Then the result should be, in any order, with relax comparison:
-      | vertices                                         | edges    |
+      | vertices                                          | edges     |
       | [("Paul George")]                                 | <[edge1]> |
       | [("Russell Westbrook"), ("Pacers"), ("Thunders")] | <[edge2]> |
       | [("Dejounte Murray"), ("James Harden")]           | <[edge3]> |
@@ -382,7 +382,7 @@ Feature: Integer Vid subgraph
       | [:like "Tony Parker"->"Manu Ginobili"@0]     |                       | [:like "Dejounte Murray"->"Tim Duncan"@0]      |
       | [:like "Tony Parker"->"Tim Duncan"@0]        |                       | [:like "LaMarcus Aldridge"->"Tim Duncan"@0]    |
     Then the result should be, in any order, with relax comparison:
-      | vertices         | edges    |
+      | vertices          | edges     |
       | [("Tony Parker")] | <[edge1]> |
       | <[vertex2]>       | <[edge2]> |
 
@@ -419,7 +419,7 @@ Feature: Integer Vid subgraph
       |                                                 |                       | [:serve "Marco Belinelli"->"Spurs"@1]            |
       |                                                 |                       | [:like "Dejounte Murray"->"Marco Belinelli"@0]   |
     Then the result should be, in any order, with relax comparison:
-      | vertices        | edges    |
+      | vertices         | edges     |
       | [("Tim Duncan")] | <[edge1]> |
       | <[vertex2]>      | <[edge2]> |
 
@@ -457,7 +457,7 @@ Feature: Integer Vid subgraph
       |                                                 |                       | [:serve "Marco Belinelli"->"Spurs"@1]            |
       |                                                 |                       | [:like "Dejounte Murray"->"Marco Belinelli"@0]   |
     Then the result should be, in any order, with relax comparison:
-      | vertices        | edges    |
+      | vertices         | edges     |
       | [("Tim Duncan")] | <[edge1]> |
       | <[vertex2]>      | <[edge2]> |
 
@@ -467,7 +467,7 @@ Feature: Integer Vid subgraph
       GET SUBGRAPH 4 STEPS FROM hash('Yao Ming') IN teammate OUT serve
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices      | edges                             |
+      | vertices       | edges                              |
       | [("Yao Ming")] | [[:serve "Yao Ming"->"Rockets"@0]] |
       | [("Rockets")]  | []                                 |
       | []             | []                                 |
@@ -478,12 +478,12 @@ Feature: Integer Vid subgraph
       GET SUBGRAPH 4 STEPS FROM hash('NOBODY') IN teammate OUT serve
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices    | edges |
-      | [("NOBODY")] | []     |
-      | []           | []     |
-      | []           | []     |
-      | []           | []     |
-      | []           | []     |
+      | vertices     | edges |
+      | [("NOBODY")] | []    |
+      | []           | []    |
+      | []           | []    |
+      | []           | []    |
+      | []           | []    |
     When executing query:
       """
       Get Subgraph 4 steps from hash('Yao Ming') IN teammate OUT serve BOTH like
@@ -564,7 +564,7 @@ Feature: Integer Vid subgraph
       |                                         |                     |                                             |                  |                                             |                       | [:serve "Tiago Splitter"->"Hawks"@0]             |                       |                                               |
       |                                         |                     |                                             |                  |                                             |                       | [:serve "Tiago Splitter"->"Spurs"@0]             |                       |                                               |
     Then the result should be, in any order, with relax comparison:
-      | vertices      | edges    |
+      | vertices       | edges     |
       | [("Yao Ming")] | <[edge1]> |
       | <[vertex2]>    | <[edge2]> |
       | <[vertex3]>    | <[edge3]> |
@@ -632,7 +632,7 @@ Feature: Integer Vid subgraph
       |                                              |                       |                                                  |                       | [:like "Chris Paul"->"Carmelo Anthony"@0]     |                     |                                               |                        |                                              |                |                                      |
       |                                              |                       |                                                  |                       | [:like "Chris Paul"->"Dwyane Wade"@0]         |                     |                                               |                        |                                              |                |                                      |
     Then the result should be, in any order, with relax comparison:
-      | vertices         | edges    |
+      | vertices          | edges     |
       | [("Tony Parker")] | <[edge1]> |
       | <[vertex2]>       | <[edge2]> |
       | <[vertex3]>       | <[edge3]> |
@@ -669,7 +669,7 @@ Feature: Integer Vid subgraph
       |                                             |                       | [:like "Yao Ming"->"Shaquile O'Neal"@0]          |                       |                                               |                     |                                               |                        |
       |                                             |                       | [:like "Shaquile O'Neal"->"JaVale McGee"@0]      |                       |                                               |                     |                                               |                        |
     Then the result should be, in any order, with relax comparison:
-      | vertices        | edges    |
+      | vertices         | edges     |
       | [("Tim Duncan")] | <[edge1]> |
       | <[vertex2]>      | <[edge2]> |
       | <[vertex3]>      | <[edge3]> |

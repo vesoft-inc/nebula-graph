@@ -10,7 +10,7 @@ Feature: Lookup with output in integer vid
       FETCH PROP ON player $-._vid YIELD _vid, player.name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | _vid        | player.name     |
+      | _vid            | player.name     |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
@@ -21,7 +21,7 @@ Feature: Lookup with output in integer vid
       FETCH PROP ON player $-._vid YIELD _vid, player.name AS name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | _vid        | name            |
+      | _vid            | name            |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
@@ -32,7 +32,7 @@ Feature: Lookup with output in integer vid
       FETCH PROP ON player $a._vid YIELD _vid, player.name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | _vid        | player.name     |
+      | _vid            | player.name     |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 
@@ -43,7 +43,7 @@ Feature: Lookup with output in integer vid
       FETCH PROP ON player $a._vid YIELD _vid, player.name AS name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | _vid        | name            |
+      | _vid            | name            |
       | 'Kobe Bryant'   | 'Kobe Bryant'   |
       | 'Dirk Nowitzki' | 'Dirk Nowitzki' |
 

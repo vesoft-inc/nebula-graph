@@ -32,7 +32,7 @@ Feature: Delete int vid of vertex
       FETCH PROP ON player hash("Tony Parker") YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | _vid      | player.name   | player.age |
+      | _vid          | player.name   | player.age |
       | "Tony Parker" | "Tony Parker" | 36         |
     # check value by fetch
     When executing query:
@@ -124,7 +124,7 @@ Feature: Delete int vid of vertex
       FETCH PROP ON player hash("Grant Hill") YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid            | player.name  | player.age |
+      | _vid                | player.name  | player.age |
       | 6293765385213992205 | "Grant Hill" | 46         |
     # before delete hash id vertex to check value by fetch
     When executing query:

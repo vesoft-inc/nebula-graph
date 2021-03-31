@@ -32,7 +32,7 @@ Feature: Delete string vid of vertex
       FETCH PROP ON player "Tony Parker" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid      | player.name   | player.age |
+      | _vid          | player.name   | player.age |
       | "Tony Parker" | "Tony Parker" | 36         |
     # check value by fetch
     When executing query:
@@ -124,7 +124,7 @@ Feature: Delete string vid of vertex
       FETCH PROP ON player "Grant Hill" YIELD _vid, player.name, player.age
       """
     Then the result should be, in any order:
-      | _vid     | player.name  | player.age |
+      | _vid         | player.name  | player.age |
       | "Grant Hill" | "Grant Hill" | 46         |
     # before delete hash id vertex to check value by fetch
     When executing query:
