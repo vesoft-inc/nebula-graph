@@ -320,6 +320,10 @@ public:
         groupName_.reset(name);
     }
 
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
     std::vector<SpaceOptItem*> getOpts() {
         if (spaceOpts_ == nullptr) {
             return {};
