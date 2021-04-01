@@ -130,7 +130,7 @@ public:
 
         return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
     }
-    
+
     static bool isRelExpr(const Expression* expr) {
         //    expr->kind() == Expression::Kind::kRelREG is not supported
         return expr->kind() == Expression::Kind::kRelEQ ||
