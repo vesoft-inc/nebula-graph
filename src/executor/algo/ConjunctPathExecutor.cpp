@@ -77,7 +77,7 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
 std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
     Iterator* iter,
     bool isLatest,
-    std::multimap<Value, const Edge*>& table) {
+    std::unordered_multimap<Value, const Edge*>& table) {
     std::unordered_set<Value> meets;
     for (; iter->valid(); iter->next()) {
         auto& dst = iter->getColumn(kVid);
@@ -118,10 +118,10 @@ std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
     return rows;
 }
 
-std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
+std::unordered_multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
     std::unordered_set<Value>& meets,
-    std::vector<std::multimap<Value, const Edge*>>& hists) {
-    std::multimap<Value, Path> results;
+    std::vector<std::unordered_multimap<Value, const Edge*>>& hists) {
+    std::unordered_multimap<Value, Path> results;
     for (auto& v : meets) {
         VLOG(1) << "Meet at: " << v;
         Path start;
