@@ -64,8 +64,8 @@ Feature: Integer Vid Shortest Path
       FIND SHORTEST PATH FROM hash("Tiago Splitter") TO hash("Tim Duncan") OVER * UPTO 1 STEPS
       """
     Then the result should be, in any order, with relax comparison:
-      | path                                       |
-      | ("Tiago Splitter")-[:like]->("Tim Duncan") |
+      | path                                         |
+      | <("Tiago Splitter")-[:like]->("Tim Duncan")> |
 
   Scenario: Integer Vid [1] MultiPair Shortest Path
     When executing query:
@@ -124,10 +124,10 @@ Feature: Integer Vid Shortest Path
       FIND SHORTEST PATH FROM hash("Yao Ming") TO hash("Tim Duncan"), hash("Spurs"), hash("Lakers") OVER * UPTO 2 STEPS
       """
     Then the result should be, in any order, with relax comparison:
-      | path                                                               |
-      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan") |
-      | <("Yao Ming")-[:like]->("Tracy McGrady")-[:serve]->("Spurs")>      |
-      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:serve]->("Lakers")>   |
+      | path                                                                |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan")> |
+      | <("Yao Ming")-[:like]->("Tracy McGrady")-[:serve]->("Spurs")>       |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:serve]->("Lakers")>    |
 
   Scenario: Integer Vid [5] MultiPair Shortest Path
     When executing query:
@@ -414,11 +414,13 @@ Feature: Integer Vid Shortest Path
       FIND SHORTEST PATH FROM hash("Tony Parker"), hash("Yao Ming") TO hash("Manu Ginobili"), hash("Spurs"), hash("Lakers") OVER * BIDIRECT UPTO 2 STEPS
       """
     Then the result should be, in any order, with relax comparison:
-      | path                                             |
-      | <("Tony Parker")-[:serve]->("Spurs")>            |
-      | <("Tony Parker")<-[:teammate]-("Manu Ginobili")> |
-      | <("Tony Parker")-[:like]->("Manu Ginobili")>     |
-      | <("Tony Parker")-[:teammate]->("Manu Ginobili")> |
+      | path                                                             |
+      | <("Yao Ming")-[:like]->("Tracy McGrady")-[:serve]->("Spurs")>    |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:serve]->("Lakers")> |
+      | <("Tony Parker")-[:serve]->("Spurs")>                            |
+      | <("Tony Parker")<-[:teammate]-("Manu Ginobili")>                 |
+      | <("Tony Parker")-[:like]->("Manu Ginobili")>                     |
+      | <("Tony Parker")-[:teammate]->("Manu Ginobili")>                 |
 
   Scenario: Integer Vid [3] Shortest Path BIDIRECT
     When executing query:
