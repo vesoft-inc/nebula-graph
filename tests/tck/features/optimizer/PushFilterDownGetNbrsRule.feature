@@ -45,7 +45,6 @@ Feature: Push Filter down GetNeighbors rule
       | 1  | GetNeighbors | 2            | {"filter": "($^.player.age>18)"} |
       | 2  | Start        |              |                                  |
 
-  @aiee
   Scenario: push edge props filter down
     When profiling query:
       """
