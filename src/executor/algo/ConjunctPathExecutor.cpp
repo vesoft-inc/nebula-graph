@@ -33,6 +33,9 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
             << " right input: " << conjunct->rightInputVar();
     DCHECK(!!lIter);
 
+    auto steps = conjunct->steps();
+    count_++;
+
     DataSet ds;
     ds.colNames = conjunct->colNames();
 
@@ -62,14 +65,16 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
         }
     }
 
-    auto latest = rHist.back().iter();
-    isLatest = true;
-    backward_.emplace_back();
-    VLOG(1) << "Find even length path.";
-    auto rows = findBfsShortestPath(latest.get(), isLatest, forward_.back());
-    if (!rows.empty()) {
-        VLOG(1) << "Meet even length path.";
-        ds.rows = std::move(rows);
+    if (count_ * 2 <= steps) {
+        auto latest = rHist.back().iter();
+        isLatest = true;
+        backward_.emplace_back();
+        VLOG(1) << "Find even length path.";
+        auto rows = findBfsShortestPath(latest.get(), isLatest, forward_.back());
+        if (!rows.empty()) {
+            VLOG(1) << "Meet even length path.";
+            ds.rows = std::move(rows);
+        }
     }
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
@@ -205,7 +210,7 @@ folly::Future<Status> ConjunctPathExecutor::floydShortestPath() {
         findPath(previous.get(), forwardCostPathMap, ds);
     }
 
-    if (count_ * 2 < steps) {
+    if (count_ * 2 <= steps) {
         VLOG(1) << "Find even length path.";
         auto latest = rHist.back().iter();
         findPath(latest.get(), forwardCostPathMap, ds);
@@ -224,7 +229,7 @@ Status ConjunctPathExecutor::conjunctPath(const List& forwardPaths,
         }
         for (auto& j : backwardPaths.values) {
             if (!j.isPath()) {
-                return Status::Error("Forward Path Type Error");
+                return Status::Error("Backward Path Type Error");
             }
             Row row;
             auto forward = i.getPath();

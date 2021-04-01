@@ -1,8 +1,7 @@
-# Copyright (c) 2020 vesoft inc. All rights reserved.
+# Copyright (c) 2021 vesoft inc. All rights reserved.
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@jmq
 Feature: Shortest Path
 
   Background:
@@ -105,6 +104,15 @@ Feature: Shortest Path
       | <("Tony Parker")-[:like]->("Manu Ginobili")>                                                       |
       | <("Tony Parker")-[:teammate]->("Manu Ginobili")>                                                   |
       | <("Tony Parker")-[:serve]->("Spurs")>                                                              |
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Yao Ming" TO "Tim Duncan", "Spurs", "Lakers" OVER * UPTO 2 STEPS
+      """
+    Then the result should be, in any order, with relax comparison:
+      | path                                                               |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan") |
+      | <("Yao Ming")-[:like]->("Tracy McGrady")-[:serve]->("Spurs")>      |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:serve]->("Lakers")>   |
 
   Scenario: [5] MultiPair Shortest Path
     When executing query:
