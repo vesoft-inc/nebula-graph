@@ -214,7 +214,7 @@ Status GoValidator::buildNStepsPlan() {
     auto* gn = GetVarStepsNeighbors::make(qctx_, dedupStartVid, space_.id);
     gn->setSrc(from_.src);
     gn->setVertexProps(buildSrcVertexProps());
-    // TODO:
+    gn->setEdgeDst(buildEdgeDst());
     gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(startVidsVar);
     gn->setSteps(steps_.steps);
@@ -252,7 +252,6 @@ Status GoValidator::buildNStepsPlan() {
 >>>>>>> Refactor go n steps.
     }
 
-    /*
     PlanNode* joinInput = nullptr;
     if (from_.fromType != FromType::kInstantExpr) {
         joinInput = buildJoinPipeOrVariableInput(
@@ -261,7 +260,6 @@ Status GoValidator::buildNStepsPlan() {
     if (joinInput != nullptr) {
         dependencyForProjectResult = joinInput;
     }
-    */
 
     if (filter_ != nullptr) {
         auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,

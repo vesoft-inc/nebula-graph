@@ -91,15 +91,15 @@ void GetVarStepsNeighborsExecutor::getNeighbors() {
                        std::move(reqDs_.rows),
                        gn_->edgeTypes(),
                        gn_->edgeDirection(),
-                       gn_->statProps(),
-                       gn_->vertexProps(),
-                       gn_->edgeProps(),
-                       gn_->exprs(),
-                       gn_->dedup(),
-                       gn_->random(),
-                       gn_->orderBy(),
-                       gn_->limit(),
-                       gn_->filter())
+                       currentStep_ == steps_ ? gn_->statProps() : nullptr,
+                       currentStep_ == steps_ ? gn_->vertexProps() : nullptr,
+                       currentStep_ == steps_ ? gn_->edgeProps() : gn_->edgeDst(),
+                       currentStep_ == steps_ ? gn_->exprs() : nullptr,
+                       currentStep_ == steps_ ? gn_->dedup() : false,
+                       currentStep_ == steps_ ? gn_->random() : false,
+                       currentStep_ == steps_ ? gn_->orderBy() : nullptr,
+                       currentStep_ == steps_ ? gn_->limit() : -1,
+                       currentStep_ == steps_ ? gn_->filter() : "")
         .via(runner())
         .ensure([this, getNbrTime]() {
             SCOPED_TIMER(&execTime_);
@@ -143,6 +143,7 @@ void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
     }
     auto iter = std::make_unique<GetNeighborsIter>(std::make_shared<Value>(std::move(list)));
     VLOG(1) << "curr step: " << currentStep_ << " steps: " << steps_;
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     if (currentStep_ == steps_) {
         ResultBuilder builder;
         builder.state(result.value());
@@ -163,6 +164,9 @@ void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
             std::unordered_set<Value> uniqueVid;
             for (; iter->valid(); iter->next()) {
                 auto& vid = iter->getEdgeProp("*", kDst);
+                if (!SchemaUtil::isValidVid(vid, spaceInfo.spaceDesc.vid_type)) {
+                    continue;
+                }
                 if (uniqueVid.emplace(vid).second) {
                     reqDs.rows.emplace_back(Row({std::move(vid)}));
                 }

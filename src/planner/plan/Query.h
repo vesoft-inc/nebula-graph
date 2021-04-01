@@ -47,8 +47,8 @@ public:
         return filter_;
     }
 
-    const std::vector<storage::cpp2::OrderBy>& orderBy() const {
-        return orderBy_;
+    const std::vector<storage::cpp2::OrderBy>* orderBy() const {
+        return &orderBy_;
     }
 
     void setDedup(bool dedup = true) {
@@ -279,9 +279,6 @@ public:
 
     GetVarStepsNeighbors* clone(QueryContext* qctx) const;
 
-
-
-
     Expression* src() const {
         return src_;
     }
@@ -312,6 +309,14 @@ public:
 
     bool random() const {
         return random_;
+    }
+
+    size_t steps() const {
+        return steps_;
+    }
+
+    const std::vector<storage::cpp2::EdgeProp>* edgeDst() const {
+        return edgeDst_.get();
     }
 
     void setSrc(Expression* src) {
@@ -350,8 +355,8 @@ public:
         steps_ = steps;
     }
 
-    size_t steps() const {
-        return steps_;
+    void setEdgeDst(EdgeProps edgeProps) {
+        edgeDst_ = std::move(edgeProps);
     }
 
 private:
@@ -368,6 +373,7 @@ private:
     storage::cpp2::EdgeDirection edgeDirection_{storage::cpp2::EdgeDirection::OUT_EDGE};
     VertexProps                                  vertexProps_;
     EdgeProps                                    edgeProps_;
+    EdgeProps                                    edgeDst_;
     StatProps                                    statProps_;
     Exprs                                        exprs_;
     bool                                         random_{false};
