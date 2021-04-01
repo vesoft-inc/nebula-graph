@@ -144,11 +144,12 @@ void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
     auto iter = std::make_unique<GetNeighborsIter>(std::make_shared<Value>(std::move(list)));
     VLOG(1) << "curr step: " << currentStep_ << " steps: " << steps_;
     const auto& spaceInfo = qctx()->rctx()->session()->space();
+
+    ResultBuilder builder;
+    builder.state(result.value());
+    builder.iter(iter->copy());
+    finish(builder.finish());
     if (currentStep_ == steps_) {
-        ResultBuilder builder;
-        builder.state(result.value());
-        builder.iter(std::move(iter));
-        finish(builder.finish());
         promise_.setValue(Status::OK());
     } else {
         DataSet reqDs;
