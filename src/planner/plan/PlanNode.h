@@ -25,6 +25,7 @@ public:
         kUnknown = 0,
         kStart,
         kGetNeighbors,
+        kGetVarStepsNeighbors,
         kGetVertices,
         kGetEdges,
         kIndexScan,

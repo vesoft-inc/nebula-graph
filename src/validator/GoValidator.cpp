@@ -202,8 +202,6 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
 }
 
 Status GoValidator::buildNStepsPlan() {
-    auto* bodyStart = StartNode::make(qctx_);
-
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
     if (!from_.vids.empty() && from_.originalSrc == nullptr) {
@@ -213,20 +211,18 @@ Status GoValidator::buildNStepsPlan() {
         startVidsVar = dedupStartVid->outputVar();
     }
 
-    PlanNode* projectLeftVarForJoin = nullptr;
-    if (from_.fromType != FromType::kInstantExpr) {
-        projectLeftVarForJoin = buildLeftVarForTraceJoin(dedupStartVid);
-    }
-
-    auto* gn = GetNeighbors::make(qctx_, bodyStart, space_.id);
+    auto* gn = GetVarStepsNeighbors::make(qctx_, dedupStartVid, space_.id);
     gn->setSrc(from_.src);
-    gn->setEdgeProps(buildEdgeDst());
+    gn->setVertexProps(buildSrcVertexProps());
+    // TODO:
+    gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(startVidsVar);
+    gn->setSteps(steps_.steps);
     VLOG(1) << gn->outputVar();
 
-    PlanNode* dedupDstVids = projectDstVidsFromGN(gn, startVidsVar);
-    PlanNode* loopBody = dedupDstVids;
+    PlanNode* dependencyForProjectResult = gn;
 
+<<<<<<< HEAD
     PlanNode* dedupSrcDstVids = nullptr;
     if (from_.fromType != FromType::kInstantExpr) {
         dedupSrcDstVids = projectSrcDstVidsFromGN(dedupDstVids, gn);
@@ -239,24 +235,55 @@ Status GoValidator::buildNStepsPlan() {
         dedupSrcDstVids != nullptr) {
         projectFromJoin = traceToStartVid(projectLeftVarForJoin, dedupSrcDstVids);
         loopBody = projectFromJoin;
+=======
+    PlanNode* projectSrcEdgeProps = nullptr;
+    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
+        !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
+        projectSrcEdgeProps = buildProjectSrcEdgePropsForGN(gn->outputVar(), gn);
     }
 
-    auto* loop = Loop::make(
-        qctx_,
-        projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
-        loopBody,                                                                   // body
-        buildNStepLoopCondition(steps_.steps - 1));
+    // Join the dst props if $$.tag.prop was declared.
+    PlanNode* joinDstProps = nullptr;
+    if (!exprProps_.dstTagProps().empty() && projectSrcEdgeProps != nullptr) {
+        joinDstProps = buildJoinDstProps(projectSrcEdgeProps);
+    }
+    if (joinDstProps != nullptr) {
+        dependencyForProjectResult = joinDstProps;
+>>>>>>> Refactor go n steps.
+    }
 
-    NG_RETURN_IF_ERROR(oneStep(loop, dedupDstVids->outputVar(), projectFromJoin));
-    // reset tail_
-    if (projectStartVid_ != nullptr) {
-        tail_ = projectStartVid_;
-    } else if (projectLeftVarForJoin != nullptr) {
-        tail_ = projectLeftVarForJoin;
+    /*
+    PlanNode* joinInput = nullptr;
+    if (from_.fromType != FromType::kInstantExpr) {
+        joinInput = buildJoinPipeOrVariableInput(
+            nullptr, joinDstProps == nullptr ? projectSrcEdgeProps : joinDstProps);
+    }
+    if (joinInput != nullptr) {
+        dependencyForProjectResult = joinInput;
+    }
+    */
+
+    if (filter_ != nullptr) {
+        auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
+                    newFilter_ != nullptr ? newFilter_ : filter_);
+        filterNode->setInputVar(dependencyForProjectResult->outputVar());
+        filterNode->setColNames(dependencyForProjectResult->colNames());
+        dependencyForProjectResult = filterNode;
+    }
+    auto* projectResult =
+        Project::make(qctx_, dependencyForProjectResult,
+        newYieldCols_ != nullptr ? newYieldCols_ : yields_);
+    projectResult->setInputVar(dependencyForProjectResult->outputVar());
+    projectResult->setColNames(std::vector<std::string>(colNames_));
+    if (distinct_) {
+        Dedup* dedupNode = Dedup::make(qctx_, projectResult);
+        dedupNode->setInputVar(projectResult->outputVar());
+        dedupNode->setColNames(std::move(colNames_));
+        root_ = dedupNode;
     } else {
-        tail_ = loop;
+        root_ = projectResult;
     }
-    VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
+    tail_ = gn;
     return Status::OK();
 }
 

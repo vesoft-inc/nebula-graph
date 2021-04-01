@@ -279,6 +279,9 @@ public:
 
     GetVarStepsNeighbors* clone(QueryContext* qctx) const;
 
+
+
+
     Expression* src() const {
         return src_;
     }
@@ -353,12 +356,12 @@ public:
 
 private:
     GetVarStepsNeighbors(QueryContext* qctx, PlanNode* input, GraphSpaceID space)
-        : Explore(qctx, Kind::kGetNeighbors, input, space) {
+        : Explore(qctx, Kind::kGetVarStepsNeighbors, input, space) {
         setLimit(-1);
     }
 
 private:
-    void clone(const GetNeighbors& g);
+    void clone(const GetVarStepsNeighbors& g);
 
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;

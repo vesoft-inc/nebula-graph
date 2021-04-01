@@ -69,6 +69,7 @@
 #include "executor/query/FilterExecutor.h"
 #include "executor/query/GetEdgesExecutor.h"
 #include "executor/query/GetNeighborsExecutor.h"
+#include "executor/query/GetVarStepsNeighborsExecutor.h"
 #include "executor/query/GetVerticesExecutor.h"
 #include "executor/query/IndexScanExecutor.h"
 #include "executor/query/InnerJoinExecutor.h"
@@ -163,6 +164,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kGetNeighbors: {
             return pool->add(new GetNeighborsExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kGetVarStepsNeighbors: {
+            return pool->add(new GetVarStepsNeighborsExecutor(node, qctx));
         }
         case PlanNode::Kind::kLimit: {
             return pool->add(new LimitExecutor(node, qctx));

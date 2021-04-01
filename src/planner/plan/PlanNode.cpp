@@ -38,6 +38,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Start";
         case Kind::kGetNeighbors:
             return "GetNeighbors";
+        case Kind::kGetVarStepsNeighbors:
+            return "GetVarStepsNeighbors";
         case Kind::kGetVertices:
             return "GetVertices";
         case Kind::kGetEdges:

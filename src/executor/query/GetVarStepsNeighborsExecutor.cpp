@@ -25,7 +25,6 @@ namespace graph {
 
 folly::Future<Status> GetVarStepsNeighborsExecutor::execute() {
     steps_ = gn_->steps();
-    currentStep_ = 1;
     auto status = buildRequestDataSet();
     if (!status.ok()) {
         return error(std::move(status));
@@ -83,6 +82,7 @@ folly::Future<Status> GetVarStepsNeighborsExecutor::getVarStepsNeighbors() {
 }
 
 void GetVarStepsNeighborsExecutor::getNeighbors() {
+    currentStep_++;
     time::Duration getNbrTime;
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     storageClient
@@ -130,25 +130,28 @@ void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
 
     auto& responses = resps.responses();
     VLOG(1) << "Resp size: " << responses.size();
-
-    if (currentStep_ == steps_) {
-        List list;
-        for (auto& resp : responses) {
-            auto dataset = resp.get_vertices();
-            if (dataset == nullptr) {
-                LOG(INFO) << "Empty dataset in response";
-                continue;
-            }
-
-            VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
-            list.values.emplace_back(std::move(*dataset));
+    List list;
+    for (auto& resp : responses) {
+        auto dataset = resp.get_vertices();
+        if (dataset == nullptr) {
+            LOG(INFO) << "Empty dataset in response";
+            continue;
         }
+
+        VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
+        list.values.emplace_back(std::move(*dataset));
+    }
+    auto iter = std::make_unique<GetNeighborsIter>(std::make_shared<Value>(std::move(list)));
+    VLOG(1) << "curr step: " << currentStep_ << " steps: " << steps_;
+    if (currentStep_ == steps_) {
         ResultBuilder builder;
         builder.state(result.value());
-        builder.value(Value(std::move(list)));
-        finish(builder.iter(Iterator::Kind::kGetNeighbors).finish());
+        builder.iter(std::move(iter));
+        finish(builder.finish());
         promise_.setValue(Status::OK());
     } else {
+        DataSet reqDs;
+        reqDs.colNames = reqDs_.colNames;
         for (auto& resp : responses) {
             auto dataset = resp.get_vertices();
             if (dataset == nullptr) {
@@ -158,13 +161,14 @@ void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
 
             VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
             std::unordered_set<Value> uniqueVid;
-            for (auto& row : dataset->rows) {
-                auto& vid = row[0];
+            for (; iter->valid(); iter->next()) {
+                auto& vid = iter->getEdgeProp("*", kDst);
                 if (uniqueVid.emplace(vid).second) {
-                    reqDs_.rows.emplace_back(Row({std::move(vid)}));
+                    reqDs.rows.emplace_back(Row({std::move(vid)}));
                 }
             }
         }
+        reqDs_ = std::move(reqDs);
         if (reqDs_.rows.empty()) {
             VLOG(1) << "Empty input.";
             List emptyResult;

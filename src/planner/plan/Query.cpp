@@ -96,6 +96,61 @@ void GetNeighbors::cloneMembers(const GetNeighbors& g) {
 }
 
 
+GetVarStepsNeighbors* GetVarStepsNeighbors::clone(QueryContext* qctx) const {
+    auto newGN = GetVarStepsNeighbors::make(qctx, nullptr, space_);
+    newGN->clone(*this);
+    return newGN;
+}
+
+std::unique_ptr<PlanNodeDescription> GetVarStepsNeighbors::explain() const {
+    auto desc = Explore::explain();
+    addDescription("src", src_ ? src_->toString() : "", desc.get());
+    addDescription("edgeTypes", folly::toJson(util::toJson(edgeTypes_)), desc.get());
+    addDescription("edgeDirection",
+                   storage::cpp2::_EdgeDirection_VALUES_TO_NAMES.at(edgeDirection_),
+                   desc.get());
+    addDescription(
+        "vertexProps", vertexProps_ ? folly::toJson(util::toJson(*vertexProps_)) : "", desc.get());
+    addDescription(
+        "edgeProps", edgeProps_ ? folly::toJson(util::toJson(*edgeProps_)) : "", desc.get());
+    addDescription(
+        "statProps", statProps_ ? folly::toJson(util::toJson(*statProps_)) : "", desc.get());
+    addDescription("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "", desc.get());
+    addDescription("random", util::toJson(random_), desc.get());
+    return desc;
+}
+
+void GetVarStepsNeighbors::clone(const GetVarStepsNeighbors& g) {
+    Explore::clone(g);
+    setSrc(qctx_->objPool()->add(g.src_->clone().release()));
+    setEdgeTypes(g.edgeTypes_);
+    setEdgeDirection(g.edgeDirection_);
+    setRandom(g.random_);
+    if (g.vertexProps_) {
+        auto vertexProps = *g.vertexProps_;
+        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(vertexProps);
+        setVertexProps(std::move(vertexPropsPtr));
+    }
+
+    if (g.edgeProps_) {
+        auto edgeProps = *g.edgeProps_;
+        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(std::move(edgeProps));
+        setEdgeProps(std::move(edgePropsPtr));
+    }
+
+    if (g.statProps_) {
+        auto statProps = *g.statProps_;
+        auto statPropsPtr = std::make_unique<decltype(statProps)>(std::move(statProps));
+        setStatProps(std::move(statPropsPtr));
+    }
+
+    if (g.exprs_) {
+        auto exprs = *g.exprs_;
+        auto exprsPtr = std::make_unique<decltype(exprs)>(exprs);
+        setExprs(std::move(exprsPtr));
+    }
+}
+
 std::unique_ptr<PlanNodeDescription> GetVertices::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
