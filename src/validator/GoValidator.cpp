@@ -281,7 +281,12 @@ Status GoValidator::buildNStepsPlan() {
     } else {
         root_ = projectResult;
     }
-    tail_ = gn;
+
+    if (projectStartVid_ != nullptr) {
+        tail_ = projectStartVid_;
+    } else {
+        tail_ = gn;
+    }
     return Status::OK();
 }
 
@@ -493,7 +498,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                                     PlanNode* dependencyForJoinInput) {
     auto* pool = qctx_->objPool();
 
-    if (steps_.steps > 1 || steps_.mToN != nullptr) {
+    if (steps_.mToN != nullptr) {
         DCHECK(projectFromJoin != nullptr);
         auto* joinHashKey = pool->add(new VariablePropertyExpression(
             new std::string(dependencyForJoinInput->outputVar()), new std::string(kVid)));
