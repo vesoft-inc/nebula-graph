@@ -289,7 +289,7 @@ Expression::Kind ExpressionUtils::getNegatedRelExprKind(const Expression::Kind k
 }
 
 std::unique_ptr<LogicalExpression> ExpressionUtils::reverseLogicalExpr(LogicalExpression *expr) {
-    DCHECK(isLogicalExpr(expr));
+    DCHECK(expr->isLogicalExpr());
 
     std::vector<std::unique_ptr<Expression>> operands;
     Expression *newExpr;

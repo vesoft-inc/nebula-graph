@@ -82,8 +82,6 @@ private:
 
 private:
     bool isUnaryNotExpr(const Expression *expr);
-    bool isRelExpr(const Expression *expr);
-    bool isLogicalExpr(const Expression *expr);
 
     Expression *expr_;
     ObjectPool *pool_;

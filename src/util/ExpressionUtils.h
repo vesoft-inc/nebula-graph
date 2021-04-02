@@ -111,30 +111,6 @@ public:
         return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
     }
 
-    static bool isRelExpr(const Expression* expr) {
-        //    expr->kind() == Expression::Kind::kRelREG is not supported
-        return expr->kind() == Expression::Kind::kRelEQ ||
-               expr->kind() == Expression::Kind::kRelNE ||
-               expr->kind() == Expression::Kind::kRelLT ||
-               expr->kind() == Expression::Kind::kRelLE ||
-               expr->kind() == Expression::Kind::kRelGT ||
-               expr->kind() == Expression::Kind::kRelGE ||
-               expr->kind() == Expression::Kind::kRelIn ||
-               expr->kind() == Expression::Kind::kRelNotIn ||
-               expr->kind() == Expression::Kind::kContains ||
-               expr->kind() == Expression::Kind::kNotContains ||
-               expr->kind() == Expression::Kind::kStartsWith ||
-               expr->kind() == Expression::Kind::kNotStartsWith ||
-               expr->kind() == Expression::Kind::kEndsWith ||
-               expr->kind() == Expression::Kind::kNotEndsWith;
-    }
-
-    static bool isLogicalExpr(const Expression* expr) {
-        return expr->kind() == Expression::Kind::kLogicalAnd ||
-               expr->kind() == Expression::Kind::kLogicalOr ||
-               expr->kind() == Expression::Kind::kLogicalXor;
-    }
-
     static bool isEvaluableExpr(const Expression* expr) {
         EvaluableExprVisitor visitor;
         const_cast<Expression*>(expr)->accept(&visitor);
