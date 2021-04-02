@@ -346,15 +346,14 @@ StatusOr<Expression*> LookupValidator::checkRelExpr(RelationalExpression* expr) 
 }
 
 StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr) {
-    auto right = expr->right();
-    // auto relExprType = expr->kind();
-
     // swap LHS and RHS of relExpr if LabelAttributeExpr in on the right,
     // so that LabelAttributeExpr is always on the left
+    auto right = expr->right();
     if (right->kind() == Expression::Kind::kLabelAttribute) {
         expr = qctx_->objPool()->add(
             static_cast<RelationalExpression*>(reverseRelKind(expr).release()));
     }
+
     auto left = expr->left();
     auto* la = static_cast<LabelAttributeExpression*>(left);
     if (*la->left()->name() != from_) {
