@@ -122,12 +122,11 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
     PlanNode* firstStep = subplan.root;
 
     // Build Start node from first step
-    SubPlan loopBodyPlan;
     PlanNode* startNode = StartNode::make(matchCtx_->qctx);
     startNode->setOutputVar(firstStep->outputVar());
     startNode->setColNames(firstStep->colNames());
-    loopBodyPlan.tail = startNode;
-    loopBodyPlan.root = startNode;
+
+    SubPlan loopBodyPlan(startNode, startNode);
 
     // Construct loop body
     NG_RETURN_IF_ERROR(expandStep(edge,
@@ -214,7 +213,9 @@ Status Expand::collectData(const PlanNode* joinLeft,
                            SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
     // [dataJoin] read start node (joinLeft)
-    auto join = SegmentsConnector::innerJoinSegments(qctx, joinLeft, joinRight);
+    Join::DepParam leftParam(joinLeft, 0, true);
+    Join::DepParam rightParam(joinRight, 0, false);
+    auto join = SegmentsConnector::innerJoinSegments(qctx, leftParam, rightParam);
     auto lpath = folly::stringPrintf("%s_%d", kPathStr, 0);
     auto rpath = folly::stringPrintf("%s_%d", kPathStr, 1);
     join->setColNames({lpath, rpath});

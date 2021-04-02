@@ -19,7 +19,7 @@ class AddDependencyStrategy final : public SegmentsConnectStrategy {
 public:
     AddDependencyStrategy() : SegmentsConnectStrategy(nullptr) {}
 
-    PlanNode* connect(const PlanNode* left, const PlanNode* right) override;
+    PlanNode* connect(const PlanNode::Dependency& left, const PlanNode::Dependency& right) override;
 };
 }   // namespace graph
 }   // namespace nebula

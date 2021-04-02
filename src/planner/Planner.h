@@ -21,6 +21,8 @@ struct SubPlan {
     // root and tail of a subplan.
     PlanNode*   root{nullptr};
     PlanNode*   tail{nullptr};
+
+    explicit SubPlan(PlanNode* root = nullptr, PlanNode* tail = nullptr) : root(root), tail(tail) {}
 };
 
 std::ostream& operator<<(std::ostream& os, const SubPlan& subplan);

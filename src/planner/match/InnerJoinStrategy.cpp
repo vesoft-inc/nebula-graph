@@ -13,42 +13,44 @@
 
 namespace nebula {
 namespace graph {
-PlanNode* InnerJoinStrategy::connect(const PlanNode* left, const PlanNode* right) {
+
+PlanNode* InnerJoinStrategy::connect(const PlanNode::Dependency& left,
+                                     const PlanNode::Dependency& right) {
     return joinDataSet(left, right);
 }
 
-PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* right) {
+PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode::Dependency& left,
+                                         const PlanNode::Dependency& right) {
     Expression* buildExpr = nullptr;
     if (leftPos_ == JoinPos::kStart) {
-        auto& leftKey = left->colNamesRef().front();
+        auto& leftKey = left.node->colNamesRef().front();
         buildExpr = MatchSolver::getStartVidInPath(leftKey);
     } else {
-        auto& leftKey = left->colNamesRef().back();
+        auto& leftKey = left.node->colNamesRef().back();
         buildExpr = MatchSolver::getEndVidInPath(leftKey);
     }
 
     Expression* probeExpr = nullptr;
     if (rightPos_ == JoinPos::kStart) {
-        auto& rightKey = right->colNamesRef().front();
+        auto& rightKey = right.node->colNamesRef().front();
         probeExpr = MatchSolver::getStartVidInPath(rightKey);
     } else {
-        auto& rightKey = right->colNamesRef().back();
+        auto& rightKey = right.node->colNamesRef().back();
         probeExpr = MatchSolver::getEndVidInPath(rightKey);
     }
 
     qctx_->objPool()->add(buildExpr);
     qctx_->objPool()->add(probeExpr);
-    auto join = InnerJoin::make(qctx_,
-                               const_cast<PlanNode*>(right),
-                               {left->outputVar(), 0},
-                               {right->outputVar(), 0},
-                               {buildExpr},
-                               {probeExpr});
-    std::vector<std::string> colNames = left->colNames();
-    const auto& rightColNames = right->colNamesRef();
+    // TODO(yee): dynamic cast
+    Join::DepParam leftParam = static_cast<const Join::DepParam&>(left);
+    Join::DepParam rightParam = static_cast<const Join::DepParam&>(right);
+    auto join = InnerJoin::make(qctx_, leftParam, rightParam, {buildExpr}, {probeExpr});
+    std::vector<std::string> colNames = left.node->colNames();
+    const auto& rightColNames = right.node->colNamesRef();
     colNames.insert(colNames.end(), rightColNames.begin(), rightColNames.end());
     join->setColNames(std::move(colNames));
     return join;
 }
+
 }  // namespace graph
 }  // namespace nebula

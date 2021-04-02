@@ -7,7 +7,6 @@
 #ifndef PLANNER_PLANNERS_MATCH_INNERJOINSTRATEGY_H_
 #define PLANNER_PLANNERS_MATCH_INNERJOINSTRATEGY_H_
 
-#include "planner/PlanNode.h"
 #include "planner/match/SegmentsConnectStrategy.h"
 
 namespace nebula {
@@ -34,10 +33,10 @@ public:
         return this;
     }
 
-    PlanNode* connect(const PlanNode* left, const PlanNode* right) override;
+    PlanNode* connect(const PlanNode::Dependency& left, const PlanNode::Dependency& right) override;
 
 private:
-    PlanNode* joinDataSet(const PlanNode* left, const PlanNode* right);
+    PlanNode* joinDataSet(const PlanNode::Dependency& left, const PlanNode::Dependency& right);
 
     JoinPos     leftPos_{JoinPos::kEnd};
     JoinPos     rightPos_{JoinPos::kStart};

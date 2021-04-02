@@ -144,6 +144,16 @@ public:
         kIngest,
     };
 
+    // Dependency represents combination of plan node and weakness. And actually scheduler will not
+    // schedule the weak depended plan node to execute. The default value of weakness is false.
+    struct Dependency {
+        bool weak{false};
+        const PlanNode* node{nullptr};
+
+        Dependency(const PlanNode* node, bool weak = false) noexcept   // NOLINT
+            : weak(weak), node(node) {}
+    };
+
     PlanNode(QueryContext* qctx, Kind kind);
 
     virtual ~PlanNode() = default;
@@ -210,13 +220,17 @@ public:
     }
 
     const PlanNode* dep(size_t index = 0) const {
-        DCHECK_LT(index, dependencies_.size());
+        return dependency(index).node;
+    }
+
+    const Dependency& dependency(size_t index = 0U) const {
+        DCHECK_LT(index, numDeps());
         return dependencies_.at(index);
     }
 
     void setDep(size_t index, const PlanNode* dep) {
-        DCHECK_LT(index, dependencies_.size());
-        dependencies_[index] = DCHECK_NOTNULL(dep);
+        DCHECK_LT(index, numDeps());
+        dependencies_[index] = Dependency(DCHECK_NOTNULL(dep));
     }
 
     void addDep(const PlanNode* dep) {
@@ -262,9 +276,11 @@ protected:
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
     double                                   cost_{0.0};
-    std::vector<const PlanNode*>             dependencies_;
     std::vector<Variable*>                   inputVars_;
     std::vector<Variable*>                   outputVars_;
+
+private:
+    std::vector<Dependency> dependencies_;
 };
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);

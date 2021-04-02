@@ -7,6 +7,8 @@
 #ifndef PLANNER_MATCH_SEGMENTSCONNECTSTRATEGY_H_
 #define PLANNER_MATCH_SEGMENTSCONNECTSTRATEGY_H_
 
+#include "planner/PlanNode.h"
+
 namespace nebula {
 namespace graph {
 
@@ -16,11 +18,14 @@ public:
 
     virtual ~SegmentsConnectStrategy() = default;
 
-    virtual PlanNode* connect(const PlanNode* left, const PlanNode* right) = 0;
+    virtual PlanNode* connect(const PlanNode::Dependency& left,
+                              const PlanNode::Dependency& right) = 0;
 
 protected:
-    QueryContext*   qctx_;
+    QueryContext* qctx_;
 };
-}  // namespace graph
-}  // namespace nebula
-#endif  // PLANNER_MATCH_SEGMENTSCONNECTSTRATEGY_H_
+
+}   // namespace graph
+}   // namespace nebula
+
+#endif   // PLANNER_MATCH_SEGMENTSCONNECTSTRATEGY_H_

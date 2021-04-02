@@ -39,14 +39,14 @@ public:
 
     static PlanNode* innerJoinSegments(
         QueryContext* qctx,
-        const PlanNode* left,
-        const PlanNode* right,
+        const PlanNode::Dependency& left,
+        const PlanNode::Dependency& right,
         InnerJoinStrategy::JoinPos leftPos = InnerJoinStrategy::JoinPos::kEnd,
         InnerJoinStrategy::JoinPos rightPos = InnerJoinStrategy::JoinPos::kStart);
 
     static PlanNode* cartesianProductSegments(QueryContext* qctx,
-                                              const PlanNode* left,
-                                              const PlanNode* right);
+                                              const PlanNode::Dependency& left,
+                                              const PlanNode::Dependency& right);
 
     static void addDependency(const PlanNode* left, const PlanNode* right);
 

@@ -7,6 +7,7 @@
 #include "planner/match/MatchClausePlanner.h"
 
 #include "context/ast/QueryAstContext.h"
+#include "planner/Logic.h"
 #include "planner/Query.h"
 #include "planner/match/Expand.h"
 #include "planner/match/MatchSolver.h"
@@ -128,16 +129,20 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
     }
 
     // Pattern: ()-[]-...-(start)-...-[]-()
+    auto qctx = matchClauseCtx->qctx;
+    auto pt = PassThroughNode::make(qctx, subplan.root);
+    pt->setOutputVar(subplan.root->outputVar());
+    SubPlan rightPlan(pt, pt), leftPlan(pt, pt);
     NG_RETURN_IF_ERROR(
-        rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, subplan));
-    auto left = subplan.root;
+        rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, rightPlan));
     NG_RETURN_IF_ERROR(
-        leftExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, var, subplan));
+        leftExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, var, leftPlan));
 
     // Connect the left expand and right expand part.
-    auto right = subplan.root;
+    Join::DepParam leftParam(leftPlan.root, 0, false);
+    Join::DepParam rightParam(rightPlan.root, 0, false);
     subplan.root = SegmentsConnector::innerJoinSegments(
-        matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart);
+        qctx, leftParam, rightParam, JoinStrategyPos::kStart, JoinStrategyPos::kStart);
     return Status::OK();
 }
 
@@ -164,7 +169,10 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             auto right = subplan.root;
             VLOG(1) << "left: " << folly::join(",", left->colNames())
                     << " right: " << folly::join(",", right->colNames());
-            subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
+            Join::DepParam leftParam(left, 0, true);
+            Join::DepParam rightParam(right, 0, false);
+            subplan.root =
+                SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, leftParam, rightParam);
             joinColNames.emplace_back(
                 folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + i));
             subplan.root->setColNames(joinColNames);
@@ -184,7 +192,10 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
         auto right = subplan.root;
         VLOG(1) << "left: " << folly::join(",", left->colNames())
                 << " right: " << folly::join(",", right->colNames());
-        subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
+        Join::DepParam leftParam(left, 0, true);
+        Join::DepParam rightParam(right, 0, false);
+        subplan.root =
+            SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, leftParam, rightParam);
         joinColNames.emplace_back(
             folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex));
         subplan.root->setColNames(joinColNames);
@@ -214,7 +225,10 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
             auto right = subplan.root;
             VLOG(1) << "left: " << folly::join(",", left->colNames())
                     << " right: " << folly::join(",", right->colNames());
-            subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
+            Join::DepParam leftParam(left, 0, true);
+            Join::DepParam rightParam(right, 0, false);
+            subplan.root =
+                SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, leftParam, rightParam);
             joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, i));
             subplan.root->setColNames(joinColNames);
         }
@@ -232,7 +246,10 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
         auto right = subplan.root;
         VLOG(1) << "left: " << folly::join(",", left->colNames())
                 << " right: " << folly::join(",", right->colNames());
-        subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
+        Join::DepParam leftParam(left, 0, true);
+        Join::DepParam rightParam(right, 0, false);
+        subplan.root =
+            SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, leftParam, rightParam);
         joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, edgeInfos.size()));
         subplan.root->setColNames(joinColNames);
     }

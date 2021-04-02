@@ -129,7 +129,10 @@ Executor *Executor::makeExecutor(const PlanNode *node,
     }
 
     for (size_t i = 0; i < node->numDeps(); ++i) {
-        exec->dependsOn(makeExecutor(node->dep(i), qctx, visited));
+        const auto &dep = node->dependency(i);
+        if (!dep.weak) {
+            exec->dependsOn(makeExecutor(dep.node, qctx, visited));
+        }
     }
 
     visited->insert({node->id(), exec});

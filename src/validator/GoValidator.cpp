@@ -6,6 +6,7 @@
 
 #include "validator/GoValidator.h"
 
+#include "context/ExecutionContext.h"
 #include "util/ExpressionUtils.h"
 
 #include "common/base/Base.h"
@@ -446,15 +447,14 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
         new std::string(projectSrcDstProps->outputVar()), new std::string(joinDstVidColName_));
     auto* probeKey = objPool->makeAndAdd<VariablePropertyExpression>(
         new std::string(project->outputVar()), new std::string(vidColName));
-    auto joinDst =
-        LeftJoin::make(qctx_,
-                       project,
-                       {projectSrcDstProps->outputVar(), ExecutionContext::kLatestVersion},
-                       {project->outputVar(), ExecutionContext::kLatestVersion},
-                       {joinHashKey},
-                       {probeKey});
+
+    Join::DepParam leftParam(projectSrcDstProps, ExecutionContext::kLatestVersion, true);
+    Join::DepParam rightParam(project, ExecutionContext::kLatestVersion, false);
+    auto joinDst = LeftJoin::make(qctx_, leftParam, rightParam, {joinHashKey}, {probeKey});
+
     VLOG(1) << joinDst->outputVar() << " hash key: " << joinHashKey->toString()
             << " probe key: " << probeKey->toString();
+
     std::vector<std::string> colNames = projectSrcDstProps->colNames();
     for (auto& col : project->colNames()) {
         colNames.emplace_back(col);
@@ -474,15 +474,11 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
             new std::string(dependencyForJoinInput->outputVar()), new std::string(kVid)));
         auto* probeKey = pool->add(new VariablePropertyExpression(
             new std::string(projectFromJoin->outputVar()), new std::string(dstVidColName_)));
-        auto* join =
-            LeftJoin::make(qctx_,
-                           dependencyForJoinInput,
-                           {dependencyForJoinInput->outputVar(), ExecutionContext::kLatestVersion},
-                           {projectFromJoin->outputVar(),
-                            steps_.mToN != nullptr ? ExecutionContext::kPreviousOneVersion
-                                                   : ExecutionContext::kLatestVersion},
-                           {joinHashKey},
-                           {probeKey});
+        Join::DepParam leftParam(dependencyForJoinInput, ExecutionContext::kLatestVersion, false);
+        auto version =
+            steps_.mToN ? ExecutionContext::kPreviousOneVersion : ExecutionContext::kLatestVersion;
+        Join::DepParam rightParam(projectFromJoin, version, true);
+        auto* join = LeftJoin::make(qctx_, leftParam, rightParam, {joinHashKey}, {probeKey});
         std::vector<std::string> colNames = dependencyForJoinInput->colNames();
         for (auto& col : projectFromJoin->colNames()) {
             colNames.emplace_back(col);
@@ -499,16 +495,21 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                                            ? from_.firstBeginningSrcVidColName
                                                            : kVid)));
     std::string varName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;
-    auto* joinInput =
-        LeftJoin::make(qctx_,
-                       dependencyForJoinInput,
-                       {dependencyForJoinInput->outputVar(), ExecutionContext::kLatestVersion},
-                       {varName, ExecutionContext::kLatestVersion},
-                       {joinHashKey},
-                       {from_.originalSrc});
-    std::vector<std::string> colNames = dependencyForJoinInput->colNames();
     auto* varPtr = qctx_->symTable()->getVar(varName);
     DCHECK(varPtr != nullptr);
+    DCHECK_LE(varPtr->writtenBy.size(), 1U);
+    PlanNode* rightNode = nullptr;
+    if (varPtr->writtenBy.empty()) {
+        rightNode = StartNode::make(qctx_);
+        rightNode->setOutputVar(varName);
+    } else {
+        rightNode = *varPtr->writtenBy.begin();
+    }
+    Join::DepParam leftParam(dependencyForJoinInput, ExecutionContext::kLatestVersion, false);
+    Join::DepParam rightParam(rightNode, ExecutionContext::kLatestVersion, true);
+    auto* joinInput =
+        LeftJoin::make(qctx_, leftParam, rightParam, {joinHashKey}, {from_.originalSrc});
+    std::vector<std::string> colNames = dependencyForJoinInput->colNames();
     for (auto& col : varPtr->colNames) {
         colNames.emplace_back(col);
     }
@@ -529,13 +530,9 @@ PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode
     auto probeKey = new VariablePropertyExpression(new std::string(dedupDstVids->outputVar()),
                                                    new std::string(srcVidColName_));
     pool->add(probeKey);
-    auto* join =
-        LeftJoin::make(qctx_,
-                       dedupDstVids,
-                       {projectLeftVarForJoin->outputVar(), ExecutionContext::kLatestVersion},
-                       {dedupDstVids->outputVar(), ExecutionContext::kLatestVersion},
-                       {hashKey},
-                       {probeKey});
+    Join::DepParam rightParam(dedupDstVids, ExecutionContext::kLatestVersion, false);
+    Join::DepParam leftParam(projectLeftVarForJoin, ExecutionContext::kLatestVersion, true);
+    auto* join = LeftJoin::make(qctx_, leftParam, rightParam, {hashKey}, {probeKey});
     std::vector<std::string> colNames = projectLeftVarForJoin->colNames();
     for (auto& col : dedupDstVids->colNames()) {
         colNames.emplace_back(col);

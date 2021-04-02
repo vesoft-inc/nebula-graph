@@ -20,7 +20,7 @@ public:
     explicit AddInputStrategy(bool copyColNames)
         : SegmentsConnectStrategy(nullptr), copyColNames_(copyColNames) {}
 
-    PlanNode* connect(const PlanNode* left, const PlanNode* right) override;
+    PlanNode* connect(const PlanNode::Dependency& left, const PlanNode::Dependency& right) override;
 
 private:
     bool copyColNames_{false};

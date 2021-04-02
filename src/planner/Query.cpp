@@ -11,6 +11,7 @@
 #include <folly/json.h>
 #include <thrift/lib/cpp/util/EnumUtils.h>
 
+#include "planner/PlanNode.h"
 #include "util/ToJson.h"
 
 using folly::stringPrintf;
@@ -304,27 +305,26 @@ std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
 
 Join::Join(QueryContext* qctx,
            Kind kind,
-           PlanNode* input,
-           std::pair<std::string, int64_t> leftVar,
-           std::pair<std::string, int64_t> rightVar,
+           const DepParam& leftVar,
+           const DepParam& rightVar,
            std::vector<Expression*> hashKeys,
            std::vector<Expression*> probeKeys)
-    : SingleDependencyNode(qctx, kind, input),
-      leftVar_(std::move(leftVar)),
-      rightVar_(std::move(rightVar)),
+    : BiInputNode(qctx, kind, leftVar.node, rightVar.node),
+      varVersions_{leftVar.version, rightVar.version},
       hashKeys_(std::move(hashKeys)),
       probeKeys_(std::move(probeKeys)) {
     inputVars_.clear();
-    readVariable(leftVar_.first);
-    readVariable(rightVar_.first);
+    readVariable(leftVar.node->outputVar());
+    readVariable(rightVar.node->outputVar());
 }
 
 std::unique_ptr<PlanNodeDescription> Join::explain() const {
-    auto desc = SingleDependencyNode::explain();
-    folly::dynamic inputVar = folly::dynamic::object();
-    inputVar.insert("leftVar", util::toJson(leftVar_));
-    inputVar.insert("rightVar", util::toJson(rightVar_));
-    addDescription("inputVar", folly::toJson(inputVar), desc.get());
+    auto desc = BiInputNode::explain();
+    folly::dynamic varVersions = folly::dynamic::array();
+    for (auto version : varVersions_) {
+        varVersions.push_back(version);
+    }
+    addDescription("varVersions", folly::toJson(varVersions), desc.get());
     addDescription("hashKeys", folly::toJson(util::toJson(hashKeys_)), desc.get());
     addDescription("probeKeys", folly::toJson(util::toJson(probeKeys_)), desc.get());
     return desc;

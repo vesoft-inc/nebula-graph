@@ -8,14 +8,15 @@
 
 namespace nebula {
 namespace graph {
-PlanNode* AddInputStrategy::connect(const PlanNode* left, const PlanNode* right) {
-    DCHECK(left->isSingleInput());
-    auto* mutableLeft = const_cast<PlanNode*>(left);
+PlanNode* AddInputStrategy::connect(const PlanNode::Dependency& left,
+                                    const PlanNode::Dependency& right) {
+    DCHECK(left.node->isSingleInput());
+    auto* mutableLeft = const_cast<PlanNode*>(left.node);
     auto* siLeft = static_cast<SingleInputNode*>(mutableLeft);
-    siLeft->dependsOn(const_cast<PlanNode*>(right));
-    siLeft->setInputVar(right->outputVar());
+    siLeft->dependsOn(const_cast<PlanNode*>(right.node));
+    siLeft->setInputVar(right.node->outputVar());
     if (copyColNames_) {
-        siLeft->setColNames(right->colNames());
+        siLeft->setColNames(right.node->colNames());
     }
     return nullptr;
 }
