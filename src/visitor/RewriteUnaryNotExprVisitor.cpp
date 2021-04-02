@@ -24,14 +24,14 @@ void RewriteUnaryNotExprVisitor::visit(UnaryExpression *expr) {
             static_cast<UnaryExpression *>(operand)->operand()->accept(this);
             return;
         } else if (operand->isRelExpr() && operand->kind() != Expression::Kind::kRelREG) {
-            expr_ = pool_->add(
-                ExpressionUtils::reverseRelExpr(static_cast<RelationalExpression *>(operand))
-                    .release());
+            auto reversedExpt =
+                ExpressionUtils::reverseRelExpr(static_cast<RelationalExpression *>(operand));
+            expr_ = pool_->add(reversedExpt.release());
             return;
         } else if (operand->isLogicalExpr()) {
-            auto reducedLogicalExpr = pool_->add(
-                ExpressionUtils::reverseLogicalExpr(static_cast<LogicalExpression *>(operand))
-                    .release());
+            auto reducedExpr =
+                ExpressionUtils::reverseLogicalExpr(static_cast<LogicalExpression *>(operand));
+            auto reducedLogicalExpr = pool_->add(reducedExpr.release());
             reducedLogicalExpr->accept(this);
             return;
         }
