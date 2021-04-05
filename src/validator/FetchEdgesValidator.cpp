@@ -175,11 +175,9 @@ Status FetchEdgesValidator::preparePropertiesWithYield() {
             return Status::SemanticError("Invalid YieldClause expression `%s'.",
                                          col->expr()->toString().c_str());
         }
-        if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
-            col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr));
-        } else if (col->expr()->kind() != Expression::Kind::kEdge) {
-            ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());
+        if (col->expr()->kind() == Expression::Kind::kLabelAttribute
+                || col->expr()->kind() != Expression::Kind::kEdge) {
+            col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
         }
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
         col->expr()->accept(&deducePropsVisitor);

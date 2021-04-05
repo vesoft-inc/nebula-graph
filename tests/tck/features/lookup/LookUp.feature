@@ -939,56 +939,56 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON serve where serve.start_year > 0
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-      | '100'  | '200'  | 0       |
-      | '101'  | '201'  | 0       |
-      | '102'  | '202'  | 0       |
-      | '103'  | '203'  | 0       |
-      | '105'  | '204'  | 0       |
-      | '121'  | '201'  | 0       |
+      | serve._src | serve._dst | serve._rank |
+      | '100'      | '200'      | 0           |
+      | '101'      | '201'      | 0           |
+      | '102'      | '202'      | 0           |
+      | '103'      | '203'      | 0           |
+      | '105'      | '204'      | 0           |
+      | '121'      | '201'      | 0           |
     When executing query:
       """
       LOOKUP ON serve where serve.start_year > 1997 and serve.end_year < 2020
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-      | '101'  | '201'  | 0       |
-      | '103'  | '203'  | 0       |
-      | '121'  | '201'  | 0       |
+      | serve._src | serve._dst | serve._rank |
+      | '101'      | '201'      | 0           |
+      | '103'      | '203'      | 0           |
+      | '121'      | '201'      | 0           |
     When executing query:
       """
       LOOKUP ON serve where serve.start_year > 2000 and serve.end_year < 2020
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | serve._src | serve._dst | serve._rank |
     When executing query:
       """
       LOOKUP ON like where like.likeness > 89
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-      | '100'  | '101'  | 0       |
-      | '101'  | '102'  | 0       |
-      | '105'  | '106'  | 0       |
+      | like._src | like._dst | like._rank |
+      | '100'     | '101'     | 0          |
+      | '101'     | '102'     | 0          |
+      | '105'     | '106'     | 0          |
     When executing query:
       """
       LOOKUP ON like where like.likeness < 39
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | like._src | like._dst | like._rank |
     When executing query:
       """
       LOOKUP ON player where player.age == 35
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | '103'    |
     When executing query:
       """
       LOOKUP ON player where player.age > 0
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | '100'    |
       | '101'    |
       | '102'    |
@@ -1002,7 +1002,7 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON player where player.age < 100
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | '100'    |
       | '101'    |
       | '102'    |
@@ -1016,27 +1016,27 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON player where player.name == "Useless"
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | '121'    |
     When executing query:
       """
       LOOKUP ON player where player.name == "Useless" and player.age < 30
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | '121'    |
     When executing query:
       """
       LOOKUP ON team where team.name == "Warriors"
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | '200'    |
     When executing query:
       """
       LOOKUP ON team where team.name == "oopp"
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | '202'    |
     Then drop the used space
