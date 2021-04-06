@@ -41,7 +41,7 @@ void MockIndexManager::init() {
     type.set_type_length(32);
     field.set_type(std::move(type));
     book_name_index.set_fields({});
-    book_name_index.fields.emplace_back(std::move(field));
+    book_name_index.fields_ref().value().emplace_back(std::move(field));
 
     meta::cpp2::IndexItem like_index;
     like_index.set_index_id(235);

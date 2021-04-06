@@ -24,7 +24,7 @@ bool PropIndexSeek::matchEdge(EdgeContext* edgeCtx) {
     if (matchClauseCtx->where != nullptr && matchClauseCtx->where->filter != nullptr) {
         filter = MatchSolver::makeIndexFilter(*edge.types.back(),
                                               *edge.alias,
-                                               matchClauseCtx->where->filter.get(),
+                                               matchClauseCtx->where->filter,
                                                matchClauseCtx->qctx,
                                                true);
     }
@@ -113,7 +113,7 @@ bool PropIndexSeek::matchNode(NodeContext* nodeCtx) {
     if (matchClauseCtx->where != nullptr && matchClauseCtx->where->filter != nullptr) {
         filter = MatchSolver::makeIndexFilter(*node.labels.back(),
                                               *node.alias,
-                                               matchClauseCtx->where->filter.get(),
+                                               matchClauseCtx->where->filter,
                                                matchClauseCtx->qctx);
     }
     if (filter == nullptr) {
