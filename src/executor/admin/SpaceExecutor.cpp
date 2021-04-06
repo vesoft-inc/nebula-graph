@@ -19,7 +19,7 @@ folly::Future<Status> CreateSpaceExecutor::execute() {
     auto *csNode = asNode<CreateSpace>(node());
     return qctx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
             .via(runner())
-            .then([](StatusOr<bool> resp) {
+            .thenValue([](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();
@@ -35,7 +35,7 @@ folly::Future<Status> DescSpaceExecutor::execute() {
     auto *dsNode = asNode<DescSpace>(node());
     return qctx()->getMetaClient()->getSpace(dsNode->getSpaceName())
             .via(runner())
-            .then([this](StatusOr<meta::cpp2::SpaceItem> resp) {
+            .thenValue([this](StatusOr<meta::cpp2::SpaceItem> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();
@@ -68,18 +68,18 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 row.values.emplace_back(properties.get_collate_name());
                 row.values.emplace_back(SchemaUtil::typeToString(properties.get_vid_type()));
                 bool sAtomicEdge{false};
-                if (properties.__isset.isolation_level  &&
-                    (*properties.get_isolation_level() == meta::cpp2::IsolationLevel::TOSS)) {
+                if (properties.isolation_level_ref().has_value()  &&
+                    (*properties.isolation_level_ref() == meta::cpp2::IsolationLevel::TOSS)) {
                     sAtomicEdge = true;
                 }
                 row.values.emplace_back(sAtomicEdge);
-                if (properties.__isset.group_name) {
-                    row.values.emplace_back(*properties.get_group_name());
+                if (properties.group_name_ref().has_value()) {
+                    row.values.emplace_back(*properties.group_name_ref());
                 } else {
                     row.values.emplace_back("default");
                 }
-                if (properties.__isset.comment) {
-                    row.values.emplace_back(*properties.get_comment());
+                if (properties.comment_ref().has_value()) {
+                    row.values.emplace_back(*properties.comment_ref());
                 } else {
                     row.values.emplace_back();
                 }
@@ -97,7 +97,7 @@ folly::Future<Status> DropSpaceExecutor::execute() {
     auto *dsNode = asNode<DropSpace>(node());
     return qctx()->getMetaClient()->dropSpace(dsNode->getSpaceName(), dsNode->getIfExists())
             .via(runner())
-            .then([this, dsNode](StatusOr<bool> resp) {
+            .thenValue([this, dsNode](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "Drop space `" << dsNode->getSpaceName()
                                << "' failed: " << resp.status();
@@ -117,7 +117,7 @@ folly::Future<Status> DropSpaceExecutor::execute() {
 folly::Future<Status> ShowSpacesExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
-    return qctx()->getMetaClient()->listSpaces().via(runner()).then(
+    return qctx()->getMetaClient()->listSpaces().via(runner()).thenValue(
         [this](StatusOr<std::vector<meta::SpaceIdName>> resp) {
             if (!resp.ok()) {
                 LOG(ERROR) << "Show spaces failed: " << resp.status();
@@ -152,7 +152,7 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
     auto *scsNode = asNode<ShowCreateSpace>(node());
     return qctx()->getMetaClient()->getSpace(scsNode->getSpaceName())
             .via(runner())
-            .then([this, scsNode](StatusOr<meta::cpp2::SpaceItem> resp) {
+            .thenValue([this, scsNode](StatusOr<meta::cpp2::SpaceItem> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "Show create space `" << scsNode->getSpaceName()
                                << "' failed: " << resp.status();
@@ -163,11 +163,11 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                 Row row;
                 row.values.emplace_back(properties.get_space_name());
                 std::string sAtomicEdge{"false"};
-                if (properties.__isset.isolation_level &&
-                    (*properties.get_isolation_level() == meta::cpp2::IsolationLevel::TOSS)) {
+                if (properties.isolation_level_ref().has_value() &&
+                    (*properties.isolation_level_ref() == meta::cpp2::IsolationLevel::TOSS)) {
                     sAtomicEdge = "true";
                 }
-                auto fmt = properties.__isset.comment ?
+                auto fmt = properties.comment_ref().has_value() ?
                            "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
                            "charset = %s, collate = %s, vid_type = %s, atomic_edge = %s"
                            ") ON %s"
@@ -175,7 +175,7 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                            "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
                            "charset = %s, collate = %s, vid_type = %s, atomic_edge = %s"
                            ") ON %s";
-                if (properties.__isset.comment) {
+                if (properties.comment_ref().has_value()) {
                     row.values.emplace_back(folly::stringPrintf(
                         fmt,
                         properties.get_space_name().c_str(),
@@ -185,9 +185,10 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                         properties.get_collate_name().c_str(),
                         SchemaUtil::typeToString(properties.get_vid_type()).c_str(),
                         sAtomicEdge.c_str(),
-                        properties.__isset.group_name ? properties.get_group_name()->c_str()
-                                                    : "default",
-                        properties.get_comment()->c_str()));
+                        properties.group_name_ref().has_value() ?
+                            properties.get_group_name()->c_str() :
+                            "default",
+                        properties.comment_ref()->c_str()));
                 } else {
                     row.values.emplace_back(folly::stringPrintf(
                         fmt,
@@ -198,8 +199,9 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                         properties.get_collate_name().c_str(),
                         SchemaUtil::typeToString(properties.get_vid_type()).c_str(),
                         sAtomicEdge.c_str(),
-                        properties.__isset.group_name ? properties.get_group_name()->c_str()
-                                                    : "default"));
+                        properties.group_name_ref().has_value() ?
+                            properties.group_name_ref()->c_str() :
+                            "default"));
                 }
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()

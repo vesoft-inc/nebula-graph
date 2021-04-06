@@ -57,10 +57,10 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification *>
                 column.set_comment(*DCHECK_NOTNULL(property->comment()));
             }
         }
-        if (!column.__isset.nullable) {
+        if (!column.nullable_ref().has_value()) {
             column.set_nullable(true);
         }
-        schema.columns.emplace_back(std::move(column));
+        schema.columns_ref().value().emplace_back(std::move(column));
     }
 
     return Status::OK();
@@ -160,7 +160,7 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem *> &sche
             for (auto &colName : colNames) {
                 meta::cpp2::ColumnDef column;
                 column.name = *colName;
-                schema.columns.emplace_back(std::move(column));
+                schema.columns_ref().value().emplace_back(std::move(column));
             }
         } else {
             const auto &specs = schemaOpt->columnSpecs();

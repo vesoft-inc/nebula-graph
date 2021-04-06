@@ -871,7 +871,7 @@ function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
         if (!$3) {
             if (FunctionManager::find(*$1, 0).ok()) {
-                $$ = new FunctionCallExpression($1, $3);
+                $$ = new FunctionCallExpression($1);
             } else {
                 throw nebula::GraphParser::syntax_error(@1, "Unknown function ");
             }
@@ -2107,11 +2107,11 @@ column_spec_list
 
 column_spec
     : name_label type_spec {
-        $$ = new ColumnSpecification($1, $2->type, new ColumnProperties(), $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, new ColumnProperties(), $2->type_length_ref().value_or(0));
         delete $2;
     }
     | name_label type_spec column_properties {
-        $$ = new ColumnSpecification($1, $2->type, $3, $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, $3, $2->type_length_ref().value_or(0));
         delete $2;
     }
     ;
