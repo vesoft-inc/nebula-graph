@@ -11,7 +11,7 @@
 namespace nebula {
 namespace graph {
 folly::Future<Status> TraceProjectExecutor::execute() {
-    // get var steps result
+    SCOPED_TIMER(&execTime_);
     auto trace = asNode<TraceProject>(node());
     auto inputVar = trace->inputVar();
     auto& hist = ectx_->getHistory(inputVar);
@@ -50,11 +50,13 @@ folly::Future<Status> TraceProjectExecutor::execute() {
         for (auto& startVid : startVids) {
             Row row;
             row.values.reserve(vals.size() + 1);
-            row.values.emplace_back(startVid);
             row.values.insert(row.values.end(), vals.begin(), vals.end());
+            row.values.emplace_back(startVid);
             ds.rows.emplace_back(std::move(row));
         }
     }
+
+    VLOG(1) << node()->outputVar() << ":" << ds;
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 }  // namespace graph

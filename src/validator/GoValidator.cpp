@@ -239,7 +239,7 @@ Status GoValidator::buildNStepsPlan() {
     PlanNode* projectSrcEdgeProps = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
         !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
-        projectSrcEdgeProps = buildProjectSrcEdgePropsForGN(gn->outputVar(), gn);
+        projectSrcEdgeProps = buildTraceProjectForGN(gn->outputVar(), gn);
     }
 
     // Join the dst props if $$.tag.prop was declared.
@@ -421,6 +421,29 @@ Status GoValidator::buildMToNPlan() {
     return Status::OK();
 }
 
+PlanNode* GoValidator::buildTraceProjectForGN(std::string gnVar, PlanNode* dependency) {
+    DCHECK(dependency != nullptr);
+    DCHECK(dependency->kind() == PlanNode::Kind::kGetVarStepsNeighbors);
+
+    // Get all _dst to a single column which used for join the dst vertices.
+    if (!exprProps_.dstTagProps().empty()) {
+        joinDstVidColName_ = vctx_->anonColGen()->getCol();
+        auto* dstVidCol =
+            new YieldColumn(new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
+                            new std::string(joinDstVidColName_));
+        srcAndEdgePropCols_->addColumn(dstVidCol);
+    }
+
+    auto* project = TraceProject::make(qctx_, dependency, srcAndEdgePropCols_);
+    project->setInputVar(gnVar);
+    auto colNames = deduceColNames(srcAndEdgePropCols_);
+    colNames.emplace_back(kVid);
+    project->setColNames(std::move(colNames));
+    VLOG(1) << project->outputVar();
+
+    return project;
+}
+
 PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode* dependency) {
     DCHECK(dependency != nullptr);
 
@@ -525,7 +548,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
     DCHECK(dependencyForJoinInput != nullptr);
     auto* joinHashKey = pool->add(
         new VariablePropertyExpression(new std::string(dependencyForJoinInput->outputVar()),
-                                       new std::string((steps_.steps > 1 || steps_.mToN != nullptr)
+                                       new std::string(steps_.mToN != nullptr
                                                            ? from_.firstBeginningSrcVidColName
                                                            : kVid)));
     std::string varName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;

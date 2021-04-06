@@ -67,6 +67,8 @@ private:
 
     PlanNode* projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn);
 
+    PlanNode* buildTraceProjectForGN(std::string gnVar, PlanNode* dependency);
+
 private:
     Over over_;
     Expression* filter_{nullptr};
