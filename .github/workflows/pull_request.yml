@@ -61,6 +61,8 @@ jobs:
       - name: Cleanup
         if: ${{ always() }}
         run: rm -rf *
+      - id: branch
+        run: echo "::set-output name=BRANCH::$(echo ${{ github.base_ref }} | tr / -)"
       - uses: actions/checkout@v2
       - name: Prepare environment
         id: prepare
@@ -72,11 +74,13 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/nebula-common
           path: modules/common
+          ref: ${{ steps.branch.outputs.BRANCH }}
       - name: Checkout storage
         uses: actions/checkout@v2
         with:
           repository: ${{ github.repository_owner }}/nebula-storage
           path: modules/storage
+          ref: ${{ steps.branch.outputs.BRANCH }}
       - name: CMake
         id: cmake
         run: |
