@@ -104,12 +104,12 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
         case PlanNode::Kind::kSelect: {
             auto sel = static_cast<SelectExecutor *>(executor);
             return doScheduleParallel(sel->depends())
-                .then(task(sel,
+                .thenValue(task(sel,
                            [sel, this](Status status) {
                                if (!status.ok()) return sel->error(std::move(status));
                                return execute(sel);
                            }))
-                .then(task(sel, [sel, this](Status status) {
+                .thenValue(task(sel, [sel, this](Status status) {
                     if (!status.ok()) return sel->error(std::move(status));
 
                     auto val = qctx_->ectx()->getValue(sel->node()->outputVar());
@@ -119,9 +119,10 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
         }
         case PlanNode::Kind::kLoop: {
             auto loop = static_cast<LoopExecutor *>(executor);
-            return doScheduleParallel(loop->depends()).then(task(loop, [loop, this](Status status) {
-                if (!status.ok()) return loop->error(std::move(status));
-                return iterate(loop);
+            return doScheduleParallel(loop->depends())
+                .thenValue(task(loop, [loop, this](Status status) {
+                    if (!status.ok()) return loop->error(std::move(status));
+                    return iterate(loop);
             }));
         }
         case PlanNode::Kind::kPassThrough: {
@@ -144,7 +145,7 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
             }
 
             return doScheduleParallel(mout->depends())
-                .then(task(mout, [&data, mout, this](Status status) {
+                .thenValue(task(mout, [&data, mout, this](Status status) {
                     // Notify and wake up all waited tasks
                     data.promise->setValue(status);
 
@@ -158,9 +159,10 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
                 return execute(executor);
             }
 
-            return doScheduleParallel(deps).then(task(executor, [executor, this](Status stats) {
-                if (!stats.ok()) return executor->error(std::move(stats));
-                return execute(executor);
+            return doScheduleParallel(deps)
+                .thenValue(task(executor, [executor, this](Status stats) {
+                    if (!stats.ok()) return executor->error(std::move(stats));
+                    return execute(executor);
             }));
         }
     }
@@ -173,7 +175,8 @@ folly::Future<Status> Scheduler::doScheduleParallel(const std::set<Executor *> &
     for (auto dep : dependents) {
         futures.emplace_back(doSchedule(dep));
     }
-    return folly::collect(futures).then([](std::vector<Status> stats) {
+    auto *runner = qctx_->rctx()->runner();
+    return folly::collect(futures).via(runner).thenValue([](std::vector<Status> stats) {
         for (auto &s : stats) {
             if (!s.ok()) return s;
         }
@@ -182,7 +185,7 @@ folly::Future<Status> Scheduler::doScheduleParallel(const std::set<Executor *> &
 }
 
 folly::Future<Status> Scheduler::iterate(LoopExecutor *loop) {
-    return execute(loop).then(task(loop, [loop, this](Status status) {
+    return execute(loop).thenValue(task(loop, [loop, this](Status status) {
         if (!status.ok()) return loop->error(std::move(status));
 
         auto val = qctx_->ectx()->getValue(loop->node()->outputVar());
@@ -193,7 +196,7 @@ folly::Future<Status> Scheduler::iterate(LoopExecutor *loop) {
         }
         auto cond = val.moveBool();
         if (!cond) return folly::makeFuture(Status::OK());
-        return doSchedule(loop->loopBody()).then(task(loop, [loop, this](Status s) {
+        return doSchedule(loop->loopBody()).thenValue(task(loop, [loop, this](Status s) {
             if (!s.ok()) return loop->error(std::move(s));
             return iterate(loop);
         }));
@@ -205,7 +208,7 @@ folly::Future<Status> Scheduler::execute(Executor *executor) {
     if (!status.ok()) {
         return executor->error(std::move(status));
     }
-    return executor->execute().then([executor](Status s) {
+    return executor->execute().thenValue([executor](Status s) {
         NG_RETURN_IF_ERROR(s);
         return executor->close();
     });
