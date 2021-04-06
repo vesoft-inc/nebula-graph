@@ -27,13 +27,13 @@ Feature: LookUpTest_Vid_Int
     Then a SemanticError should be raised at runtime:
     When executing query:
       """
-      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 300
+      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 300  YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
     When executing query:
       """
-      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200
+      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200  YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -80,12 +80,14 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 300
+      YIELD lookup_edge_1._src, lookup_edge_1._dst, lookup_edge_1._rank
       """
     Then the result should be, in any order:
       | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank |
     When executing query:
       """
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201
+      YIELD lookup_edge_1._src, lookup_edge_1._dst, lookup_edge_1._rank
       """
     Then the result should be, in any order:
       | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank |
@@ -130,7 +132,7 @@ Feature: LookUpTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col2 == 200
+      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col2 == 200 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -172,6 +174,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col2 == 201
+      YIELD lookup_edge_1._src, lookup_edge_1._dst, lookup_edge_1._rank
       """
     Then the result should be, in any order:
       | lookup_edge_1._src | lookup_edge_1._dst | lookup_edge_1._rank |
@@ -214,14 +217,14 @@ Feature: LookUpTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 == 100
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 == 100 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
       | 220  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 == 100 OR lookup_tag_2.col2 == 200
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 == 100 OR lookup_tag_2.col2 == 200 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -229,7 +232,7 @@ Feature: LookUpTest_Vid_Int
       | 221  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > 100
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > 100 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -240,7 +243,7 @@ Feature: LookUpTest_Vid_Int
       | 225  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != 100
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != 100 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -251,19 +254,7 @@ Feature: LookUpTest_Vid_Int
       | 225  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100
-      """
-    Then the result should be, in any order:
-      | _vid |
-      | 220  |
-      | 221  |
-      | 222  |
-      | 223  |
-      | 224  |
-      | 225  |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 AND lookup_tag_2.col4 == true
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -275,13 +266,25 @@ Feature: LookUpTest_Vid_Int
       | 225  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 AND lookup_tag_2.col4 != true
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 AND lookup_tag_2.col4 == true YIELD _vid
+      """
+    Then the result should be, in any order:
+      | _vid |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
+    When executing query:
+      """
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >=100 AND lookup_tag_2.col4 != true YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >= 100 AND lookup_tag_2.col2 <= 400
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 >= 100 AND lookup_tag_2.col2 <= 400 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -291,14 +294,14 @@ Feature: LookUpTest_Vid_Int
       | 223  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 AND lookup_tag_2.col2 == 100
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 AND lookup_tag_2.col2 == 100 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
       | 220  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 AND lookup_tag_2.col2 == 200
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 AND lookup_tag_2.col2 == 200 YIELD _vid
       """
     Then the result should be, in any order:
       | VertexID |
@@ -306,7 +309,7 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP ON lookup_tag_2
       WHERE lookup_tag_2.col3 > 100.5
-      YIELD lookup_tag_2.col3 AS col3
+      YIELD _vid, lookup_tag_2.col3 AS col3
       """
     Then the result should be, in any order:
       | _vid | col3  |
@@ -317,14 +320,14 @@ Feature: LookUpTest_Vid_Int
       | 225      | 600.5 |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
       | 220  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.1
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.1 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -332,7 +335,7 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP ON lookup_tag_2
       WHERE lookup_tag_2.col3 >= 100.5 AND lookup_tag_2.col3 <= 300.5
-      YIELD lookup_tag_2.col3 AS col3
+      YIELD _vid, lookup_tag_2.col3 AS col3
       """
     Then the result should be, in any order:
       | _vid | col3  |
@@ -371,6 +374,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 == 100
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -378,6 +382,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 == 100 OR lookup_edge_2.col2 == 200
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -386,6 +391,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 > 100
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -396,6 +402,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 != 100
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -406,6 +413,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -417,6 +425,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100 AND lookup_edge_2.col4 == true
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -428,12 +437,14 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100 AND lookup_edge_2.col4 != true
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col2 >= 100 AND lookup_edge_2.col2 <= 400
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -444,6 +455,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5 AND lookup_edge_2.col2 == 100
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -451,6 +463,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5 AND lookup_edge_2.col2 == 200
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -458,7 +471,7 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP ON lookup_edge_2
       WHERE lookup_edge_2.col3 > 100.5
-      YIELD lookup_edge_2.col3 AS col3
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank, lookup_edge_2.col3 AS col3
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank | col3  |
@@ -469,6 +482,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -476,6 +490,7 @@ Feature: LookUpTest_Vid_Int
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.1
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank |
@@ -483,7 +498,7 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP ON lookup_edge_2
       WHERE lookup_edge_2.col3 >= 100.5 AND lookup_edge_2.col3 <= 300.5
-      YIELD lookup_edge_2.col3 AS col3
+      YIELD lookup_edge_2._src, lookup_edge_2._dst, lookup_edge_2._rank, lookup_edge_2.col3 AS col3
       """
     Then the result should be, in any order:
       | lookup_edge_2._src | lookup_edge_2._dst | lookup_edge_2._rank | col3  |
@@ -538,7 +553,7 @@ Feature: LookUpTest_Vid_Int
     Then a SemanticError should be raised at runtime:
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > abs(-5)
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > abs(-5) YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -550,37 +565,13 @@ Feature: LookUpTest_Vid_Int
       | 225  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 < abs(-5)
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 < abs(-5) YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (1 + 2)
-      """
-    Then the result should be, in any order:
-      | _vid |
-      | 220  |
-      | 221  |
-      | 222  |
-      | 223  |
-      | 224  |
-      | 225  |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 < (1 + 2)
-      """
-    Then the result should be, in any order:
-      | _vid |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 != (true and true)
-      """
-    Then the result should be, in any order:
-      | _vid |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true and true)
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (1 + 2) YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -592,7 +583,31 @@ Feature: LookUpTest_Vid_Int
       | 225  |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true or false)
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 < (1 + 2) YIELD _vid
+      """
+    Then the result should be, in any order:
+      | _vid |
+    When executing query:
+      """
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 != (true and true) YIELD _vid
+      """
+    Then the result should be, in any order:
+      | _vid |
+    When executing query:
+      """
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true and true) YIELD _vid
+      """
+    Then the result should be, in any order:
+      | _vid |
+      | 220  |
+      | 221  |
+      | 222  |
+      | 223  |
+      | 224  |
+      | 225  |
+    When executing query:
+      """
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true or false) YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -605,25 +620,25 @@ Feature: LookUpTest_Vid_Int
     # FIXME(aiee): should support later by folding constants
     # When executing query:
     # """
-    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "HelLo")
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "HelLo") YIELD _vid
     # """
     # Then the result should be, in any order:
     # | _vid |
     # When executing query:
     # """
-    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "hello")
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "hello") YIELD _vid
     # """
     # Then the result should be, in any order:
     # | _vid |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != lookup_tag_2.col3
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 != lookup_tag_2.col3 YIELD _vid
       """
     Then a SemanticError should be raised at runtime:
     # FIXME(aiee): should support later
     # When executing query:
     # """
-    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (lookup_tag_2.col3 - 100)
+    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > (lookup_tag_2.col3 - 100) YIELD _vid
     # """
     # Then the result should be, in any order:
     # | _vid |
@@ -903,34 +918,34 @@ Feature: LookUpTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1
+      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
       | 1    |
     When executing query:
       """
-      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1 and tag_with_str.c2 == "ccc"
+      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1 and tag_with_str.c2 == "ccc" YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
     When executing query:
       """
-      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1 and tag_with_str.c2 == "c1_row1"
+      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 1 and tag_with_str.c2 == "c1_row1" YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
       | 1    |
     When executing query:
       """
-      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 5 and tag_with_str.c2 == "ab"
+      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 5 and tag_with_str.c2 == "ab" YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
       | 5    |
     When executing query:
       """
-      LOOKUP ON tag_with_str WHERE tag_with_str.c2 == "abc" and tag_with_str.c3 == "abc"
+      LOOKUP ON tag_with_str WHERE tag_with_str.c2 == "abc" and tag_with_str.c3 == "abc" YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -938,7 +953,9 @@ Feature: LookUpTest_Vid_Int
       | 4    |
     When executing query:
       """
-      LOOKUP ON tag_with_str WHERE tag_with_str.c1 == 5 and tag_with_str.c2 == "abca" and tag_with_str.c3 == "bc"
+      LOOKUP ON tag_with_str
+      WHERE tag_with_str.c1 == 5 and tag_with_str.c2 == "abca" and tag_with_str.c3 == "bc"
+      YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -980,7 +997,9 @@ Feature: LookUpTest_Vid_Int
         identity.NATION == "汉族" AND
         identity.BIRTHDAY > 19620101 AND
         identity.BIRTHDAY < 20021231 AND
-        identity.BIRTHPLACE_CITY == "bbb";
+        identity.BIRTHPLACE_CITY == "bbb"
+      YIELD
+        _vid;
       """
     Then the result should be, in any order:
       | _vid |

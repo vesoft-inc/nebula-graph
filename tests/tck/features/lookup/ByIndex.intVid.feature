@@ -11,7 +11,7 @@ Feature: Lookup by index itself in integer vid
   Scenario: [1] tag index
     When executing query:
       """
-      LOOKUP ON team
+      LOOKUP ON team YIELD _vid
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
       | _vid            |
@@ -109,7 +109,7 @@ Feature: Lookup by index itself in integer vid
   Scenario: [2] edge index
     When executing query:
       """
-      LOOKUP ON serve
+      LOOKUP ON serve YIELD serve._src, serve._dst, serve._rank
       """
     Then the result should be, in any order, and the columns 0,1 should be hashed:
       | serve._src              | serve._dst      | serve._rank |
@@ -565,7 +565,7 @@ Feature: Lookup by index itself in integer vid
       """
     When executing query:
       """
-      LOOKUP ON weight WHERE weight.WEIGHT > 70;
+      LOOKUP ON weight WHERE weight.WEIGHT > 70 YIELD _vid;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
       | _vid          |
@@ -573,7 +573,7 @@ Feature: Lookup by index itself in integer vid
       | "Tony Parker" |
     When executing query:
       """
-      LOOKUP ON weight WHERE weight.WEIGHT > 70.4;
+      LOOKUP ON weight WHERE weight.WEIGHT > 70.4 YIELD _vid;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
       | _vid          |
@@ -581,7 +581,7 @@ Feature: Lookup by index itself in integer vid
       | "Tony Parker" |
     When executing query:
       """
-      LOOKUP ON weight WHERE weight.WEIGHT >= 70.5;
+      LOOKUP ON weight WHERE weight.WEIGHT >= 70.5 YIELD _vid;
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
       | _vid          |
@@ -593,7 +593,7 @@ Feature: Lookup by index itself in integer vid
 # When executing query:
 # """
 # LOOKUP ON weight
-# WHERE weight.WEIGHT > 70.5;
+# WHERE weight.WEIGHT > 70.5 YIELD _vid;
 # """
 # Then the result should be, in any order, and the columns 0 should be hashed:
 # | _vid      |
@@ -601,7 +601,7 @@ Feature: Lookup by index itself in integer vid
 # When executing query:
 # """
 # LOOKUP ON weight
-# WHERE weight.WEIGHT <= 80.0;
+# WHERE weight.WEIGHT <= 80.0 YIELD _vid;
 # """
 # Then the result should be, in any order, and the columns 0 should be hashed:
 # | _vid      |

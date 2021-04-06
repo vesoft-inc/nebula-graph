@@ -706,7 +706,9 @@ Feature: IndexTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD alter_tag.type
+      LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD _vid, alter_tag.type
       """
-    Then the execution should be successful
+    Then the result should be, in any order:
+      | _vid | alter_tag.type |
+      | 100  | NULL           |
     Then drop the used space

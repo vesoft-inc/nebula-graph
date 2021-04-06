@@ -112,25 +112,25 @@ Feature: tag and edge index tests from pytest
       | 'disorder_tag_index' | 'FINISHED'   |
     When executing query:
       """
-      LOOKUP ON tag_1 WHERE tag_1.col2 == 18 YIELD tag_1.col1
+      LOOKUP ON tag_1 WHERE tag_1.col2 == 18 YIELD _vid, tag_1.col1
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col1 |
+      | _vid | tag_1.col1 |
       | '101'    | 'Tom'      |
     When executing query:
       """
-      LOOKUP ON tag_1 WHERE tag_1.col3 > 35.7 YIELD tag_1.col1
+      LOOKUP ON tag_1 WHERE tag_1.col3 > 35.7 YIELD _vid, tag_1.col1
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col1 |
+      | _vid | tag_1.col1 |
       | '102'    | 'Jerry'    |
       | '103'    | 'Bob'      |
     When executing query:
       """
-      LOOKUP ON tag_1 WHERE tag_1.col2 > 18 AND tag_1.col3 < 37.2 YIELD tag_1.col1
+      LOOKUP ON tag_1 WHERE tag_1.col2 > 18 AND tag_1.col3 < 37.2 YIELD _vid, tag_1.col1
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col1 |
+      | _vid | tag_1.col1 |
       | '103'    | 'Bob'      |
     When executing query:
       """
@@ -351,25 +351,28 @@ Feature: tag and edge index tests from pytest
     # Lookup
     When executing query:
       """
-      LOOKUP ON edge_1 WHERE edge_1.col2 == 22 YIELD edge_1.col2
+      LOOKUP ON edge_1 WHERE edge_1.col2 == 22
+      YIELD edge_1._src, edge_1._dst, edge_1._rank, edge_1.col2
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking | edge_1.col2 |
+      | edge_1._src | edge_1._dst | edge_1._rank | edge_1.col2 |
       | '102'  | '103'  | 0       | 22          |
     When executing query:
       """
-      LOOKUP ON edge_1 WHERE edge_1.col3 > 43.4 YIELD edge_1.col1
+      LOOKUP ON edge_1 WHERE edge_1.col3 > 43.4
+      YIELD edge_1._src, edge_1._dst, edge_1._rank, edge_1.col1
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking | edge_1.col1 |
+      | edge_1._src | edge_1._dst | edge_1._rank | edge_1.col1 |
       | '102'  | '103'  | 0       | 'Yellow'    |
       | '101'  | '102'  | 0       | 'Red'       |
     When executing query:
       """
-      LOOKUP ON edge_1 WHERE edge_1.col2 > 45 AND edge_1.col3 < 44.3 YIELD edge_1.col1
+      LOOKUP ON edge_1 WHERE edge_1.col2 > 45 AND edge_1.col3 < 44.3
+      YIELD edge_1._src, edge_1._dst, edge_1._rank, edge_1.col1
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking | edge_1.col1 |
+      | edge_1._src | edge_1._dst | edge_1._rank | edge_1.col1 |
       | '103'  | '101'  | 0       | 'Blue'      |
     # Describe Edge Index
     When executing query:

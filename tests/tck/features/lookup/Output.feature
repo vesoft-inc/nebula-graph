@@ -6,7 +6,7 @@ Feature: Lookup with output
   Scenario: [1] tag output
     When executing query:
       """
-      LOOKUP ON player WHERE player.age == 40 |
+      LOOKUP ON player WHERE player.age == 40 YIELD _vid |
       FETCH PROP ON player $-._vid YIELD _vid, player.name
       """
     Then the result should be, in any order:
@@ -28,7 +28,7 @@ Feature: Lookup with output
   Scenario: [1] tag output by var
     When executing query:
       """
-      $a = LOOKUP ON player WHERE player.age == 40;
+      $a = LOOKUP ON player WHERE player.age == 40 YIELD _vid;
       FETCH PROP ON player $a._vid YIELD _vid, player.name
       """
     Then the result should be, in any order:

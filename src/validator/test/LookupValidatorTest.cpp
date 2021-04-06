@@ -18,7 +18,7 @@ class LookupValidatorTest : public ValidatorTestBase {};
 TEST_F(LookupValidatorTest, InputOutput) {
     // pipe
     {
-        const std::string query = "LOOKUP ON person where person.age == 35 | "
+        const std::string query = "LOOKUP ON person where person.age == 35 YIELD _vid | "
                                   "FETCH PROP ON person $-._vid";
         EXPECT_TRUE(checkResult(query,
                                 {
@@ -45,7 +45,7 @@ TEST_F(LookupValidatorTest, InputOutput) {
     }
     // variable
     {
-        const std::string query = "$a = LOOKUP ON person where person.age == 35; "
+        const std::string query = "$a = LOOKUP ON person where person.age == 35 YIELD _vid; "
                                   "FETCH PROP ON person $a._vid";
         EXPECT_TRUE(checkResult(query,
                                 {

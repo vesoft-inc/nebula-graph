@@ -56,7 +56,7 @@ private:
 
     const nebula::plugin::HttpClient& randomFTClient() const;
 
-    void prepareDefaultOutputCols();
+    void prepareVertexEdgeOutputCols();
 
 private:
     GraphSpaceID                      spaceId_{0};
@@ -72,6 +72,8 @@ private:
     std::vector<std::string>          colNames_;
     bool                              dedup_{false};
     YieldColumns                     *newYieldColumns_{nullptr};
+    bool                              isVertexEdgeCol_{false};
+    std::shared_ptr<const meta::SchemaProviderIf> schema_{nullptr};
 };
 
 }   // namespace graph

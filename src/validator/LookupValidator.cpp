@@ -63,38 +63,42 @@ Status LookupValidator::prepareFrom() {
     }
     isEdge_ = ret.value().first;
     schemaId_ = ret.value().second;
+    schema_ = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
+                      : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
+    if (schema_ == nullptr) {
+        return isEdge_ ? Status::EdgeNotFound("Edge schema not found : %s", from_.c_str())
+                       : Status::TagNotFound("Tag schema not found : %s", from_.c_str());
+    }
     return Status::OK();
 }
 
-void LookupValidator::prepareDefaultOutputCols() {
+void LookupValidator::prepareVertexEdgeOutputCols() {
+    if (isVertexEdgeCol_) {
+        return;
+    }
+    isVertexEdgeCol_ = true;
     if (isEdge_) {
-        newYieldColumns_->addColumn(
-                new YieldColumn(new EdgeSrcIdExpression(new std::string(from_))));
-        newYieldColumns_->addColumn(
-                new YieldColumn(new EdgeDstIdExpression(new std::string(from_))));
-        newYieldColumns_->addColumn(
-                new YieldColumn(new EdgeRankExpression(new std::string(from_))));
+        // _src
         returnCols_->emplace_back(kSrc);
-        colNames_.emplace_back(from_ + "." + kSrc);
-        idxScanColNames_.emplace_back(colNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+        idxScanColNames_.emplace_back(from_ + "." + kSrc);
+        // _dst
         returnCols_->emplace_back(kDst);
-        colNames_.emplace_back(from_ + "." + kDst);
-        idxScanColNames_.emplace_back(colNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+        idxScanColNames_.emplace_back(from_ + "." + kDst);
+        // _rank
         returnCols_->emplace_back(kRank);
-        colNames_.emplace_back(from_ + "." + kRank);
-        idxScanColNames_.emplace_back(colNames_.back());
-        outputs_.emplace_back(colNames_.back(), Value::Type::INT);
+        idxScanColNames_.emplace_back(from_ + "." + kRank);
+        // _type
+        returnCols_->emplace_back(kType);
+        idxScanColNames_.emplace_back(from_ + "." + kType);
     } else {
-        newYieldColumns_->addColumn(
-                new YieldColumn(
-                        new VidExpression(),
-                        new std::string(kVid)));
+        // _vid
         returnCols_->emplace_back(kVid);
         idxScanColNames_.emplace_back(kVid);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+    }
+    for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
+        const auto propName = schema_->getFieldName(i);
+        returnCols_->emplace_back(propName);
+        idxScanColNames_.emplace_back(from_ + "." + propName);
     }
 }
 
@@ -103,18 +107,26 @@ Status LookupValidator::prepareYield() {
     returnCols_ = std::make_unique<std::vector<std::string>>();
     newYieldColumns_ = qctx_->objPool()->makeAndAdd<YieldColumns>();
     if (sentence->yieldClause() == nullptr) {
-        prepareDefaultOutputCols();
+        if (isEdge_) {
+            newYieldColumns_->addColumn(
+                new YieldColumn(new EdgeExpression(new std::string(kEdgesStr)),
+                                new std::string(kEdgesStr)));
+            colNames_.emplace_back(kEdgesStr);
+            outputs_.emplace_back(kEdgesStr, Value::Type::EDGE);
+        } else {
+            newYieldColumns_->addColumn(
+                new YieldColumn(new VertexExpression(new std::string(kVerticesStr)),
+                                new std::string(kVerticesStr)));
+            colNames_.emplace_back(kVerticesStr);
+            outputs_.emplace_back(kVerticesStr, Value::Type::VERTEX);
+        }
+
+        prepareVertexEdgeOutputCols();
         return Status::OK();
     }
+    auto columns = sentence->yieldClause()->columns();
     if (sentence->yieldClause()->isDistinct()) {
         dedup_ = true;
-    }
-    auto columns = sentence->yieldClause()->columns();
-    auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
-                          : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
-    if (schema == nullptr) {
-        return isEdge_ ? Status::EdgeNotFound("Edge schema not found : %s", from_.c_str())
-                       : Status::TagNotFound("Tag schema not found : %s", from_.c_str());
     }
     for (auto col : columns) {
         // TODO(shylock) support more expr
@@ -136,7 +148,7 @@ Status LookupValidator::prepareYield() {
             if (schemaName != from_) {
                 return Status::SemanticError("Schema name error : %s", schemaName.c_str());
             }
-            auto ret = schema->getFieldType(colName);
+            auto ret = schema_->getFieldType(colName);
             if (ret == meta::cpp2::PropertyType::UNKNOWN) {
                 return Status::SemanticError(
                         "Column %s not found in schema %s", colName.c_str(), from_.c_str());
@@ -152,8 +164,8 @@ Status LookupValidator::prepareYield() {
             colNames_.emplace_back(deduceColName(col));
             outputs_.emplace_back(colNames_.back(), vidType_);
         } else if (col->expr()->kind() == Expression::Kind::kEdgeSrc
-                   || col->expr()->kind() == Expression::Kind::kEdgeDst
-                   || col->expr()->kind() == Expression::Kind::kEdgeRank) {
+            || col->expr()->kind() == Expression::Kind::kEdgeDst
+            || col->expr()->kind() == Expression::Kind::kEdgeRank) {
             newYieldColumns_->addColumn(col->clone().release());
             const auto *expr = static_cast<const PropertyExpression *>(col->expr());
             returnCols_->emplace_back(*expr->prop());
@@ -162,6 +174,24 @@ Status LookupValidator::prepareYield() {
             auto typeResult = deduceExprType(col->expr());
             NG_RETURN_IF_ERROR(typeResult);
             outputs_.emplace_back(colNames_.back(), typeResult.value());
+        } else if (col->expr()->kind() == Expression::Kind::kVertex) {
+            if (isEdge_) {
+                return Status::SemanticError("Unsupported edge property expression in yield.");
+            }
+            newYieldColumns_->addColumn(col->clone().release());
+            // vertices
+            colNames_.emplace_back(deduceColName(col));
+            outputs_.emplace_back(kVerticesStr, Value::Type::VERTEX);
+            prepareVertexEdgeOutputCols();
+        } else if (col->expr()->kind() == Expression::Kind::kEdge) {
+            if (!isEdge_) {
+                return Status::SemanticError("Unsupported vertex property expression in yield.");
+            }
+            newYieldColumns_->addColumn(col->clone().release());
+            // edges
+            colNames_.emplace_back(deduceColName(col));
+            outputs_.emplace_back(kEdgesStr, Value::Type::EDGE);
+            prepareVertexEdgeOutputCols();
         } else {
             return Status::SemanticError("Yield clauses are not supported : %s",
                                          col->expr()->toString().c_str());
@@ -397,9 +427,7 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
         return Status::SemanticError("'%s' is not an evaluable expression.",
                                      expr->toString().c_str());
     }
-    auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
-                          : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
-    auto type = schema->getFieldType(prop);
+    auto type = schema_->getFieldType(prop);
     QueryExpressionContext dummy(nullptr);
     auto v = Expression::eval(expr, dummy);
     // TODO(Aiee) extract the type cast logic as a method if we decide to support more cross-type

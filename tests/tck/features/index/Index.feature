@@ -712,9 +712,11 @@ Feature: IndexTest_Vid_String
     And wait 6 seconds
     When executing query:
       """
-      LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD alter_tag.type
+      LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD _vid, alter_tag.type
       """
-    Then the execution should be successful
+    Then the result should be, in any order:
+      | _vid | alter_tag.type |
+      | "100"    |  NULL     |
     Then drop the used space
 
   Scenario: IndexTest rebuild all tag indexes by empty input
@@ -754,7 +756,7 @@ Feature: IndexTest_Vid_String
       | "rebuild_tag_space_all_tag_indexes" | "FINISHED"   |
     When executing query:
       """
-      LOOKUP ON id_tag WHERE id_tag.id == 100
+      LOOKUP ON id_tag WHERE id_tag.id == 100 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -762,7 +764,7 @@ Feature: IndexTest_Vid_String
       | "200"    |
     When executing query:
       """
-      LOOKUP ON name_tag WHERE name_tag.name == "100"
+      LOOKUP ON name_tag WHERE name_tag.name == "100" YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -809,7 +811,7 @@ Feature: IndexTest_Vid_String
       | "id_tag_index,name_tag_index" | "FINISHED"   |
     When executing query:
       """
-      LOOKUP ON id_tag WHERE id_tag.id == 100
+      LOOKUP ON id_tag WHERE id_tag.id == 100 YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -817,7 +819,7 @@ Feature: IndexTest_Vid_String
       | "200"    |
     When executing query:
       """
-      LOOKUP ON name_tag WHERE name_tag.name == "100"
+      LOOKUP ON name_tag WHERE name_tag.name == "100"  YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -825,7 +827,7 @@ Feature: IndexTest_Vid_String
       | "400"    |
     When executing query:
       """
-      LOOKUP ON age_tag WHERE age_tag.age == 8
+      LOOKUP ON age_tag WHERE age_tag.age == 8  YIELD _vid
       """
     Then the result should be, in any order:
       | _vid |
@@ -868,14 +870,18 @@ Feature: IndexTest_Vid_String
       | "rebuild_edge_space_all_edge_indexes" | "FINISHED"   |
     When executing query:
       """
-      LOOKUP ON id_edge WHERE id_edge.id == 100
+      LOOKUP ON id_edge
+      WHERE id_edge.id == 100
+      YIELD id_edge._src, id_edge._dst, id_edge._rank
       """
     Then the result should be, in any order:
       | id_edge._src | id_edge._dst | id_edge._rank |
       | "100"  | "200"  | 0       |
     When executing query:
       """
-      LOOKUP ON name_edge WHERE name_edge.name == "100"
+      LOOKUP ON name_edge
+      WHERE name_edge.name == "100"
+      YIELD name_edge._src, name_edge._dst, name_edge._rank
       """
     Then the result should be, in any order:
       | name_edge._src | name_edge._dst | name_edge._rank |
@@ -922,6 +928,7 @@ Feature: IndexTest_Vid_String
     When executing query:
       """
       LOOKUP ON id_edge WHERE id_edge.id == 100
+      YIELD id_edge._src, id_edge._dst, id_edge._rank
       """
     Then the result should be, in any order:
       | id_edge._src | id_edge._dst | id_edge._rank |
@@ -929,6 +936,7 @@ Feature: IndexTest_Vid_String
     When executing query:
       """
       LOOKUP ON name_edge WHERE name_edge.name == "100"
+      YIELD name_edge._src, name_edge._dst, name_edge._rank
       """
     Then the result should be, in any order:
       | name_edge._src | name_edge._dst | name_edge._rank |
@@ -936,6 +944,7 @@ Feature: IndexTest_Vid_String
     When executing query:
       """
       LOOKUP ON age_edge WHERE age_edge.age == 8
+      YIELD age_edge._src, age_edge._dst, age_edge._rank
       """
     Then the result should be, in any order:
       | age_edge._src | age_edge._dst | age_edge._rank |
