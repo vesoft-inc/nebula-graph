@@ -231,156 +231,6 @@ private:
 };
 
 /**
- * Get neighbors' property
- */
-class GetVarStepsNeighbors final : public Explore {
-public:
-    using VertexProps = std::unique_ptr<std::vector<storage::cpp2::VertexProp>>;
-    using EdgeProps = std::unique_ptr<std::vector<storage::cpp2::EdgeProp>>;
-    using StatProps = std::unique_ptr<std::vector<storage::cpp2::StatProp>>;
-    using Exprs = std::unique_ptr<std::vector<storage::cpp2::Expr>>;
-
-    static GetVarStepsNeighbors* make(QueryContext* qctx, PlanNode* input, GraphSpaceID space) {
-        return qctx->objPool()->add(new GetVarStepsNeighbors(qctx, input, space));
-    }
-
-    static GetVarStepsNeighbors* make(QueryContext* qctx,
-                                      PlanNode* input,
-                                      GraphSpaceID space,
-                                      Expression* src,
-                                      std::vector<EdgeType> edgeTypes,
-                                      storage::cpp2::EdgeDirection edgeDirection,
-                                      VertexProps&& vertexProps,
-                                      EdgeProps&& edgeProps,
-                                      StatProps&& statProps,
-                                      Exprs&& exprs,
-                                      bool dedup = false,
-                                      bool random = false,
-                                      std::vector<storage::cpp2::OrderBy> orderBy = {},
-                                      int64_t limit = -1,
-                                      std::string filter = "") {
-        auto gn = make(qctx, input, space);
-        gn->setSrc(src);
-        gn->setEdgeTypes(std::move(edgeTypes));
-        gn->setEdgeDirection(edgeDirection);
-        gn->setVertexProps(std::move(vertexProps));
-        gn->setEdgeProps(std::move(edgeProps));
-        gn->setExprs(std::move(exprs));
-        gn->setStatProps(std::move(statProps));
-        gn->setRandom(random);
-        gn->setDedup(dedup);
-        gn->setOrderBy(std::move(orderBy));
-        gn->setLimit(limit);
-        gn->setFilter(std::move(filter));
-        return gn;
-    }
-
-    std::unique_ptr<PlanNodeDescription> explain() const override;
-
-    GetVarStepsNeighbors* clone(QueryContext* qctx) const;
-
-    Expression* src() const {
-        return src_;
-    }
-
-    storage::cpp2::EdgeDirection edgeDirection() const {
-        return edgeDirection_;
-    }
-
-    const std::vector<EdgeType>& edgeTypes() const {
-        return edgeTypes_;
-    }
-
-    const std::vector<storage::cpp2::VertexProp>* vertexProps() const {
-        return vertexProps_.get();
-    }
-
-    const std::vector<storage::cpp2::EdgeProp>* edgeProps() const {
-        return edgeProps_.get();
-    }
-
-    const std::vector<storage::cpp2::StatProp>* statProps() const {
-        return statProps_.get();
-    }
-
-    const std::vector<storage::cpp2::Expr>* exprs() const {
-        return exprs_.get();
-    }
-
-    bool random() const {
-        return random_;
-    }
-
-    size_t steps() const {
-        return steps_;
-    }
-
-    const std::vector<storage::cpp2::EdgeProp>* edgeDst() const {
-        return edgeDst_.get();
-    }
-
-    void setSrc(Expression* src) {
-        src_ = src;
-    }
-
-    void setEdgeDirection(storage::cpp2::EdgeDirection direction) {
-        edgeDirection_ = direction;
-    }
-
-    void setEdgeTypes(std::vector<EdgeType> edgeTypes) {
-        edgeTypes_ = std::move(edgeTypes);
-    }
-
-    void setVertexProps(VertexProps vertexProps) {
-        vertexProps_ = std::move(vertexProps);
-    }
-
-    void setEdgeProps(EdgeProps edgeProps) {
-        edgeProps_ = std::move(edgeProps);
-    }
-
-    void setStatProps(StatProps statProps) {
-        statProps_ = std::move(statProps);
-    }
-
-    void setExprs(Exprs exprs) {
-        exprs_ = std::move(exprs);
-    }
-
-    void setRandom(bool random = false) {
-        random_ = random;
-    }
-
-    void setSteps(size_t steps) {
-        steps_ = steps;
-    }
-
-    void setEdgeDst(EdgeProps edgeProps) {
-        edgeDst_ = std::move(edgeProps);
-    }
-
-private:
-    GetVarStepsNeighbors(QueryContext* qctx, PlanNode* input, GraphSpaceID space)
-        : Explore(qctx, Kind::kGetVarStepsNeighbors, input, space) {
-        setLimit(-1);
-    }
-
-private:
-    void clone(const GetVarStepsNeighbors& g);
-
-    Expression*                                  src_{nullptr};
-    std::vector<EdgeType>                        edgeTypes_;
-    storage::cpp2::EdgeDirection edgeDirection_{storage::cpp2::EdgeDirection::OUT_EDGE};
-    VertexProps                                  vertexProps_;
-    EdgeProps                                    edgeProps_;
-    EdgeProps                                    edgeDst_;
-    StatProps                                    statProps_;
-    Exprs                                        exprs_;
-    bool                                         random_{false};
-    size_t                                       steps_{0};
-};
-
-/**
  * Get property with given vertex keys.
  */
 class GetVertices final : public Explore {
@@ -1315,6 +1165,181 @@ private:
     void cloneMembers(const UnionAllVersionVar&);
 };
 
+/**
+ * Get neighbors' property
+ */
+class GetVarStepsNeighbors final : public Explore {
+public:
+    using VertexProps = std::unique_ptr<std::vector<storage::cpp2::VertexProp>>;
+    using EdgeProps = std::unique_ptr<std::vector<storage::cpp2::EdgeProp>>;
+    using StatProps = std::unique_ptr<std::vector<storage::cpp2::StatProp>>;
+    using Exprs = std::unique_ptr<std::vector<storage::cpp2::Expr>>;
+
+    static GetVarStepsNeighbors* make(QueryContext* qctx, PlanNode* input, GraphSpaceID space) {
+        return qctx->objPool()->add(new GetVarStepsNeighbors(qctx, input, space));
+    }
+
+    static GetVarStepsNeighbors* make(QueryContext* qctx,
+                                      PlanNode* input,
+                                      GraphSpaceID space,
+                                      Expression* src,
+                                      std::vector<EdgeType> edgeTypes,
+                                      storage::cpp2::EdgeDirection edgeDirection,
+                                      VertexProps&& vertexProps,
+                                      EdgeProps&& edgeProps,
+                                      StatProps&& statProps,
+                                      Exprs&& exprs,
+                                      bool dedup = false,
+                                      bool random = false,
+                                      std::vector<storage::cpp2::OrderBy> orderBy = {},
+                                      int64_t limit = -1,
+                                      std::string filter = "") {
+        auto gn = make(qctx, input, space);
+        gn->setSrc(src);
+        gn->setEdgeTypes(std::move(edgeTypes));
+        gn->setEdgeDirection(edgeDirection);
+        gn->setVertexProps(std::move(vertexProps));
+        gn->setEdgeProps(std::move(edgeProps));
+        gn->setExprs(std::move(exprs));
+        gn->setStatProps(std::move(statProps));
+        gn->setRandom(random);
+        gn->setDedup(dedup);
+        gn->setOrderBy(std::move(orderBy));
+        gn->setLimit(limit);
+        gn->setFilter(std::move(filter));
+        return gn;
+    }
+
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+    GetVarStepsNeighbors* clone(QueryContext* qctx) const;
+
+    Expression* src() const {
+        return src_;
+    }
+
+    storage::cpp2::EdgeDirection edgeDirection() const {
+        return edgeDirection_;
+    }
+
+    const std::vector<EdgeType>& edgeTypes() const {
+        return edgeTypes_;
+    }
+
+    const std::vector<storage::cpp2::VertexProp>* vertexProps() const {
+        return vertexProps_.get();
+    }
+
+    const std::vector<storage::cpp2::EdgeProp>* edgeProps() const {
+        return edgeProps_.get();
+    }
+
+    const std::vector<storage::cpp2::StatProp>* statProps() const {
+        return statProps_.get();
+    }
+
+    const std::vector<storage::cpp2::Expr>* exprs() const {
+        return exprs_.get();
+    }
+
+    bool random() const {
+        return random_;
+    }
+
+    size_t steps() const {
+        return steps_;
+    }
+
+    const std::vector<storage::cpp2::EdgeProp>* edgeDst() const {
+        return edgeDst_.get();
+    }
+
+    void setSrc(Expression* src) {
+        src_ = src;
+    }
+
+    void setEdgeDirection(storage::cpp2::EdgeDirection direction) {
+        edgeDirection_ = direction;
+    }
+
+    void setEdgeTypes(std::vector<EdgeType> edgeTypes) {
+        edgeTypes_ = std::move(edgeTypes);
+    }
+
+    void setVertexProps(VertexProps vertexProps) {
+        vertexProps_ = std::move(vertexProps);
+    }
+
+    void setEdgeProps(EdgeProps edgeProps) {
+        edgeProps_ = std::move(edgeProps);
+    }
+
+    void setStatProps(StatProps statProps) {
+        statProps_ = std::move(statProps);
+    }
+
+    void setExprs(Exprs exprs) {
+        exprs_ = std::move(exprs);
+    }
+
+    void setRandom(bool random = false) {
+        random_ = random;
+    }
+
+    void setSteps(size_t steps) {
+        steps_ = steps;
+    }
+
+    void setEdgeDst(EdgeProps edgeProps) {
+        edgeDst_ = std::move(edgeProps);
+    }
+
+private:
+    GetVarStepsNeighbors(QueryContext* qctx, PlanNode* input, GraphSpaceID space)
+        : Explore(qctx, Kind::kGetVarStepsNeighbors, input, space) {
+        setLimit(-1);
+    }
+
+private:
+    void clone(const GetVarStepsNeighbors& g);
+
+    Expression*                                  src_{nullptr};
+    std::vector<EdgeType>                        edgeTypes_;
+    storage::cpp2::EdgeDirection edgeDirection_{storage::cpp2::EdgeDirection::OUT_EDGE};
+    VertexProps                                  vertexProps_;
+    EdgeProps                                    edgeProps_;
+    EdgeProps                                    edgeDst_;
+    StatProps                                    statProps_;
+    Exprs                                        exprs_;
+    bool                                         random_{false};
+    size_t                                       steps_{0};
+};
+
+class TraceProject final : public SingleInputNode {
+public:
+    static TraceProject* make(QueryContext* qctx,
+                         PlanNode* input,
+                         YieldColumns* cols) {
+        return qctx->objPool()->add(new TraceProject(qctx, input, cols));
+    }
+
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+    TraceProject* clone(QueryContext* qctx) const;
+
+    const YieldColumns* columns() const {
+        return cols_;
+    }
+
+private:
+    TraceProject(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
+      : SingleInputNode(qctx, Kind::kTraceProject, input), cols_(cols) { }
+
+    void clone(const TraceProject &p);
+
+private:
+    YieldColumns*               cols_{nullptr};
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLAN_QUERY_H_

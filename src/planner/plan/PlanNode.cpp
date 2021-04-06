@@ -58,6 +58,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Minus";
         case Kind::kProject:
             return "Project";
+        case Kind::kTraceProject:
+            return "TraceProject";
         case Kind::kUnwind:
             return "Unwind";
         case Kind::kSort:

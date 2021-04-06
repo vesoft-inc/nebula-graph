@@ -35,6 +35,7 @@ public:
         kIntersect,
         kMinus,
         kProject,
+        kTraceProject,
         kUnwind,
         kSort,
         kTopN,

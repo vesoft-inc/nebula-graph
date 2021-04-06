@@ -95,31 +95,6 @@ void GetNeighbors::cloneMembers(const GetNeighbors& g) {
     }
 }
 
-
-GetVarStepsNeighbors* GetVarStepsNeighbors::clone(QueryContext* qctx) const {
-    auto newGN = GetVarStepsNeighbors::make(qctx, nullptr, space_);
-    newGN->clone(*this);
-    return newGN;
-}
-
-std::unique_ptr<PlanNodeDescription> GetVarStepsNeighbors::explain() const {
-    auto desc = Explore::explain();
-    addDescription("src", src_ ? src_->toString() : "", desc.get());
-    addDescription("edgeTypes", folly::toJson(util::toJson(edgeTypes_)), desc.get());
-    addDescription("edgeDirection",
-                   storage::cpp2::_EdgeDirection_VALUES_TO_NAMES.at(edgeDirection_),
-                   desc.get());
-    addDescription(
-        "vertexProps", vertexProps_ ? folly::toJson(util::toJson(*vertexProps_)) : "", desc.get());
-    addDescription(
-        "edgeProps", edgeProps_ ? folly::toJson(util::toJson(*edgeProps_)) : "", desc.get());
-    addDescription(
-        "statProps", statProps_ ? folly::toJson(util::toJson(*statProps_)) : "", desc.get());
-    addDescription("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "", desc.get());
-    addDescription("random", util::toJson(random_), desc.get());
-    return desc;
-}
-
 void GetVarStepsNeighbors::clone(const GetVarStepsNeighbors& g) {
     Explore::clone(g);
     setSrc(qctx_->objPool()->add(g.src_->clone().release()));
@@ -669,5 +644,56 @@ void UnionAllVersionVar::cloneMembers(const UnionAllVersionVar& f) {
     SingleInputNode::cloneMembers(f);
 }
 
+GetVarStepsNeighbors* GetVarStepsNeighbors::clone(QueryContext* qctx) const {
+    auto newGN = GetVarStepsNeighbors::make(qctx, nullptr, space_);
+    newGN->clone(*this);
+    return newGN;
+}
+
+std::unique_ptr<PlanNodeDescription> GetVarStepsNeighbors::explain() const {
+    auto desc = Explore::explain();
+    addDescription("src", src_ ? src_->toString() : "", desc.get());
+    addDescription("edgeTypes", folly::toJson(util::toJson(edgeTypes_)), desc.get());
+    addDescription("edgeDirection",
+                   storage::cpp2::_EdgeDirection_VALUES_TO_NAMES.at(edgeDirection_),
+                   desc.get());
+    addDescription(
+        "vertexProps", vertexProps_ ? folly::toJson(util::toJson(*vertexProps_)) : "", desc.get());
+    addDescription(
+        "edgeProps", edgeProps_ ? folly::toJson(util::toJson(*edgeProps_)) : "", desc.get());
+    addDescription(
+        "statProps", statProps_ ? folly::toJson(util::toJson(*statProps_)) : "", desc.get());
+    addDescription("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "", desc.get());
+    addDescription("random", util::toJson(random_), desc.get());
+    return desc;
+}
+
+
+TraceProject* TraceProject::clone(QueryContext* qctx) const {
+    auto newProj = TraceProject::make(qctx, nullptr, nullptr);
+    newProj->clone(*this);
+    return newProj;
+}
+
+void TraceProject::clone(const TraceProject &p) {
+    SingleInputNode::clone(p);
+    cols_ = qctx_->objPool()->makeAndAdd<YieldColumns>();
+    for (const auto &col : p.columns()->columns()) {
+        cols_->addColumn(col->clone().release());
+    }
+}
+
+std::unique_ptr<PlanNodeDescription> TraceProject::explain() const {
+    auto desc = SingleInputNode::explain();
+    auto columns = folly::dynamic::array();
+    if (cols_) {
+        for (const auto* col : cols_->columns()) {
+            DCHECK(col != nullptr);
+            columns.push_back(col->toString());
+        }
+    }
+    addDescription("columns", folly::toJson(columns), desc.get());
+    return desc;
+}
 }   // namespace graph
 }   // namespace nebula

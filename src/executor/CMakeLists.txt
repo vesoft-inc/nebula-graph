@@ -16,7 +16,6 @@ nebula_add_library(
     query/FilterExecutor.cpp
     query/GetEdgesExecutor.cpp
     query/GetNeighborsExecutor.cpp
-    query/GetVarStepsNeighborsExecutor.cpp
     query/GetVerticesExecutor.cpp
     query/IntersectExecutor.cpp
     query/LimitExecutor.cpp
@@ -35,6 +34,8 @@ nebula_add_library(
     query/InnerJoinExecutor.cpp
     query/IndexScanExecutor.cpp
     query/AssignExecutor.cpp
+    query/GetVarStepsNeighborsExecutor.cpp
+    query/TraceProjectExecutor.cpp
     algo/ConjunctPathExecutor.cpp
     algo/BFSShortestPathExecutor.cpp
     algo/ProduceSemiShortestPathExecutor.cpp

@@ -78,6 +78,7 @@
 #include "executor/query/LimitExecutor.h"
 #include "executor/query/MinusExecutor.h"
 #include "executor/query/ProjectExecutor.h"
+#include "executor/query/TraceProjectExecutor.h"
 #include "executor/query/SortExecutor.h"
 #include "executor/query/TopNExecutor.h"
 #include "executor/query/UnionAllVersionVarExecutor.h"
@@ -173,6 +174,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kProject: {
             return pool->add(new ProjectExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kTraceProject: {
+            return pool->add(new TraceProjectExecutor(node, qctx));
         }
         case PlanNode::Kind::kUnwind: {
             return pool->add(new UnwindExecutor(node, qctx));
