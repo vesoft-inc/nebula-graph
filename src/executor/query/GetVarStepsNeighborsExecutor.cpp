@@ -85,21 +85,22 @@ void GetVarStepsNeighborsExecutor::getNeighbors() {
     currentStep_++;
     time::Duration getNbrTime;
     GraphStorageClient* storageClient = qctx_->getStorageClient();
+    bool finalStep = isFinalStep();
     storageClient
         ->getNeighbors(gn_->space(),
                        reqDs_.colNames,
                        std::move(reqDs_.rows),
                        gn_->edgeTypes(),
                        gn_->edgeDirection(),
-                       currentStep_ == steps_ ? gn_->statProps() : nullptr,
-                       currentStep_ == steps_ ? gn_->vertexProps() : nullptr,
-                       currentStep_ == steps_ ? gn_->edgeProps() : gn_->edgeDst(),
-                       currentStep_ == steps_ ? gn_->exprs() : nullptr,
-                       currentStep_ == steps_ ? gn_->dedup() : false,
-                       currentStep_ == steps_ ? gn_->random() : false,
-                       currentStep_ == steps_ ? gn_->orderBy() : nullptr,
-                       currentStep_ == steps_ ? gn_->limit() : -1,
-                       currentStep_ == steps_ ? gn_->filter() : "")
+                       finalStep ? gn_->statProps() : nullptr,
+                       finalStep ? gn_->vertexProps() : nullptr,
+                       finalStep ? gn_->edgeProps() : gn_->edgeDst(),
+                       finalStep ? gn_->exprs() : nullptr,
+                       finalStep ? gn_->dedup() : false,
+                       finalStep ? gn_->random() : false,
+                       finalStep ? gn_->orderBy() : nullptr,
+                       finalStep ? gn_->limit() : -1,
+                       finalStep ? gn_->filter() : "")
         .via(runner())
         .ensure([this, getNbrTime]() {
             SCOPED_TIMER(&execTime_);
@@ -141,39 +142,26 @@ void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
         VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
         list.values.emplace_back(std::move(*dataset));
     }
-    auto iter = std::make_unique<GetNeighborsIter>(std::make_shared<Value>(std::move(list)));
-    VLOG(1) << "curr step: " << currentStep_ << " steps: " << steps_;
+    auto listVal = std::make_shared<Value>(std::move(list));
+    auto iter = std::make_unique<GetNeighborsIter>(listVal);
+    VLOG(1) << "curr step: " << currentStep_ << " steps: " << steps_.nSteps();
     const auto& spaceInfo = qctx()->rctx()->session()->space();
 
-    ResultBuilder builder;
-    builder.state(result.value());
-    builder.iter(iter->copy());
-    finish(builder.finish());
-    if (currentStep_ == steps_) {
-        promise_.setValue(Status::OK());
-    } else {
+    if (!isFinalStep()) {
         DataSet reqDs;
         reqDs.colNames = reqDs_.colNames;
-        for (auto& resp : responses) {
-            auto dataset = resp.get_vertices();
-            if (dataset == nullptr) {
-                LOG(INFO) << "Empty dataset in response";
+        std::unordered_set<Value> uniqueVid;
+        for (; iter->valid(); iter->next()) {
+            auto& vid = iter->getEdgeProp("*", kDst);
+            if (!SchemaUtil::isValidVid(vid, spaceInfo.spaceDesc.vid_type)) {
                 continue;
             }
-
-            VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
-            std::unordered_set<Value> uniqueVid;
-            for (; iter->valid(); iter->next()) {
-                auto& vid = iter->getEdgeProp("*", kDst);
-                if (!SchemaUtil::isValidVid(vid, spaceInfo.spaceDesc.vid_type)) {
-                    continue;
-                }
-                if (uniqueVid.emplace(vid).second) {
-                    reqDs.rows.emplace_back(Row({std::move(vid)}));
-                }
+            if (uniqueVid.emplace(vid).second) {
+                reqDs.rows.emplace_back(Row({std::move(vid)}));
             }
         }
         reqDs_ = std::move(reqDs);
+        buildResult(listVal, iter.get(), result.value());
         if (reqDs_.rows.empty()) {
             VLOG(1) << "Empty input.";
             List emptyResult;
@@ -181,8 +169,35 @@ void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
                                          .value(Value(std::move(emptyResult)))
                                          .iter(Iterator::Kind::kGetNeighbors)
                                          .finish()));
+        } else {
+            getNeighbors();
         }
-        getNeighbors();
+    } else {
+        buildResult(listVal, iter.get(), result.value());
+        promise_.setValue(Status::OK());
+    }
+}
+
+void GetVarStepsNeighborsExecutor::buildResult(std::shared_ptr<Value> listVal,
+                                               GetNeighborsIter* iter,
+                                               Result::State state) {
+    if (steps_.isMToN() && currentStep_ >= steps_.mSteps()) {
+        auto&& list = listVal->moveList();
+        unionAllResult_.values.insert(unionAllResult_.values.end(),
+                                      std::make_move_iterator(list.values.begin()),
+                                      std::make_move_iterator(list.values.end()));
+        VLOG(1) << "result size: " << unionAllResult_.values.size();
+        if (isFinalStep()) {
+            finish(ResultBuilder()
+                       .value(std::make_shared<Value>(std::move(unionAllResult_)))
+                       .iter(Iterator::Kind::kGetNeighbors)
+                       .finish());
+        }
+    } else {
+        ResultBuilder builder;
+        builder.state(state);
+        builder.iter(iter->copy());
+        finish(builder.finish());
     }
 }
 

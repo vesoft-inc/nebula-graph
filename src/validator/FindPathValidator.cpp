@@ -67,7 +67,7 @@ Status FindPathValidator::singlePairPlan() {
     conjunct->setColNames({"_path"});
 
     auto* loop = Loop::make(
-        qctx_, nullptr, conjunct, buildBfsLoopCondition(steps_.steps, conjunct->outputVar()));
+        qctx_, nullptr, conjunct, buildBfsLoopCondition(steps_.steps(), conjunct->outputVar()));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->outputVar()});
@@ -216,7 +216,7 @@ Status FindPathValidator::allPairPaths() {
     auto* projectTo = buildAllPairFirstDataSet(projectFrom, toStartVidsVar);
 
     auto* loop =
-        Loop::make(qctx_, projectTo, conjunct, buildAllPathsLoopCondition(steps_.steps));
+        Loop::make(qctx_, projectTo, conjunct, buildAllPathsLoopCondition(steps_.steps()));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kAllPaths, {conjunct->outputVar()});
@@ -336,8 +336,8 @@ Status FindPathValidator::multiPairPlan() {
     auto* backward = multiPairShortestPath(passThrough, to_, toStartVidsVar, toPathVar, true);
     VLOG(1) << "backward: " << toPathVar;
 
-    auto* conjunct =
-        ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kFloyd, steps_.steps);
+    auto* conjunct = ConjunctPath::make(
+        qctx_, forward, backward, ConjunctPath::PathKind::kFloyd, steps_.steps());
 
     conjunct->setLeftVar(fromPathVar);
     conjunct->setRightVar(toPathVar);
@@ -359,7 +359,7 @@ Status FindPathValidator::multiPairPlan() {
         Loop::make(qctx_,
                    cartesianProduct,
                    conjunct,
-                   buildMultiPairLoopCondition(steps_.steps, cartesianProduct->outputVar()));
+                   buildMultiPairLoopCondition(steps_.steps(), cartesianProduct->outputVar()));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kMultiplePairShortest, {conjunct->outputVar()});

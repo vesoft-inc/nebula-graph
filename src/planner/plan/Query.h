@@ -942,8 +942,8 @@ public:
             new DataCollect(qctx, input, collectKind, std::move(vars)));
     }
 
-    void setMToN(StepClause::MToN* mToN) {
-        mToN_ = mToN;
+    void setMToN(StepClause step) {
+        step_ = std::move(step);
     }
 
     void setDistinct(bool distinct) {
@@ -962,8 +962,8 @@ public:
         return vars;
     }
 
-    StepClause::MToN* mToN() const {
-        return mToN_;
+    StepClause step() const {
+        return step_;
     }
 
     bool distinct() const {
@@ -991,7 +991,7 @@ private:
 private:
     CollectKind                 collectKind_;
     // using for m to n steps
-    StepClause::MToN*           mToN_{nullptr};
+    StepClause                  step_;
     bool                        distinct_{false};
 };
 
@@ -1246,7 +1246,7 @@ public:
         return random_;
     }
 
-    size_t steps() const {
+    StepClause steps() const {
         return steps_;
     }
 
@@ -1286,7 +1286,7 @@ public:
         random_ = random;
     }
 
-    void setSteps(size_t steps) {
+    void setSteps(StepClause steps) {
         steps_ = steps;
     }
 
@@ -1312,7 +1312,7 @@ private:
     StatProps                                    statProps_;
     Exprs                                        exprs_;
     bool                                         random_{false};
-    size_t                                       steps_{0};
+    StepClause                                   steps_;
 };
 
 class TraceProject final : public SingleInputNode {

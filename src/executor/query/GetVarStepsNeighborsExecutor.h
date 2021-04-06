@@ -41,12 +41,19 @@ private:
     using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
     void handleResponse(RpcResponse& resps);
 
+    void buildResult(std::shared_ptr<Value> listVal, GetNeighborsIter* iter, Result::State state);
+
+    bool isFinalStep() const {
+        return currentStep_ == steps_.nSteps();
+    }
+
 private:
     DataSet                             reqDs_;
     const GetVarStepsNeighbors*         gn_{nullptr};
     folly::Promise<Status>              promise_;
-    size_t                              steps_{0};
+    StepClause                          steps_;
     size_t                              currentStep_{0};
+    List                                unionAllResult_;
 };
 
 }   // namespace graph

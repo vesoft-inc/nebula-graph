@@ -126,15 +126,15 @@ Status GoValidator::validateYield(YieldClause* yield) {
 }
 
 Status GoValidator::toPlan() {
-    if (steps_.mToN == nullptr) {
-        if (steps_.steps == 0) {
+    if (!steps_.isMToN()) {
+        if (steps_.steps() == 0) {
             auto* passThrough = PassThroughNode::make(qctx_, nullptr);
             passThrough->setColNames(std::move(colNames_));
             tail_ = passThrough;
             root_ = tail_;
             return Status::OK();
         }
-        if (steps_.steps == 1) {
+        if (steps_.steps() == 1) {
             return buildOneStepPlan();
         }
         return buildNStepsPlan();
@@ -217,7 +217,7 @@ Status GoValidator::buildNStepsPlan() {
     gn->setEdgeDst(buildEdgeDst());
     gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(startVidsVar);
-    gn->setSteps(steps_.steps);
+    gn->setSteps(steps_);
     VLOG(1) << gn->outputVar();
 
     PlanNode* dependencyForProjectResult = gn;
@@ -291,8 +291,6 @@ Status GoValidator::buildNStepsPlan() {
 }
 
 Status GoValidator::buildMToNPlan() {
-    auto* bodyStart = StartNode::make(qctx_);
-
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
     if (!from_.vids.empty() && from_.originalSrc == nullptr) {
@@ -302,18 +300,16 @@ Status GoValidator::buildMToNPlan() {
         startVidsVar = dedupStartVid->outputVar();
     }
 
-    PlanNode* projectLeftVarForJoin = nullptr;
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
-        projectLeftVarForJoin = buildLeftVarForTraceJoin(dedupStartVid);
-    }
-
-    auto* gn = GetNeighbors::make(qctx_, bodyStart, space_.id);
+    auto* gn = GetVarStepsNeighbors::make(qctx_, dedupStartVid, space_.id);
     gn->setSrc(from_.src);
     gn->setVertexProps(buildSrcVertexProps());
+    gn->setEdgeDst(buildEdgeDst());
     gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(startVidsVar);
+    gn->setSteps(steps_);
     VLOG(1) << gn->outputVar();
 
+<<<<<<< HEAD
     PlanNode* dedupDstVids = projectDstVidsFromGN(gn, startVidsVar);
 
     PlanNode* dependencyForProjectResult = dedupDstVids;
@@ -330,19 +326,14 @@ Status GoValidator::buildMToNPlan() {
         dedupSrcDstVids != nullptr) {
         projectFromJoin = traceToStartVid(projectLeftVarForJoin, dedupSrcDstVids);
     }
+=======
+    PlanNode* dependencyForProjectResult = gn;
+>>>>>>> Support m to n.
 
-    // Get the src props and edge props if $-.prop, $var.prop, $$.tag.prop were declared.
     PlanNode* projectSrcEdgeProps = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
-        !exprProps_.dstTagProps().empty()) {
-        PlanNode* depForProject = dedupDstVids;
-        if (dedupSrcDstVids != nullptr) {
-            depForProject = projectFromJoin;
-        }
-        if (projectFromJoin != nullptr) {
-            depForProject = projectFromJoin;
-        }
-        projectSrcEdgeProps = buildProjectSrcEdgePropsForGN(gn->outputVar(), depForProject);
+        !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
+        projectSrcEdgeProps = buildTraceProjectForGN(gn->outputVar(), gn);
     }
 
     // Join the dst props if $$.tag.prop was declared.
@@ -354,17 +345,17 @@ Status GoValidator::buildMToNPlan() {
         dependencyForProjectResult = joinDstProps;
     }
 
-    // Join input props if $-.prop declared.
     PlanNode* joinInput = nullptr;
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
+    if (from_.fromType != FromType::kInstantExpr) {
         joinInput = buildJoinPipeOrVariableInput(
-            projectFromJoin, joinDstProps == nullptr ? projectSrcEdgeProps : joinDstProps);
+            nullptr, joinDstProps == nullptr ? projectSrcEdgeProps : joinDstProps);
     }
     if (joinInput != nullptr) {
         dependencyForProjectResult = joinInput;
     }
 
     if (filter_ != nullptr) {
+<<<<<<< HEAD
         auto* filterNode = Filter::make(
             qctx_, dependencyForProjectResult, newFilter_ != nullptr ? newFilter_ : filter_);
         if (dependencyForProjectResult == dedupDstVids ||
@@ -385,39 +376,42 @@ Status GoValidator::buildMToNPlan() {
     } else {
         projectResult->setInputVar(dependencyForProjectResult->outputVar());
     }
+=======
+        auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
+                    newFilter_ != nullptr ? newFilter_ : filter_);
+        filterNode->setInputVar(dependencyForProjectResult->outputVar());
+        filterNode->setColNames(dependencyForProjectResult->colNames());
+        dependencyForProjectResult = filterNode;
+    }
+    auto* projectResult =
+        Project::make(qctx_, dependencyForProjectResult,
+        newYieldCols_ != nullptr ? newYieldCols_ : yields_);
+    projectResult->setInputVar(dependencyForProjectResult->outputVar());
+>>>>>>> Support m to n.
     projectResult->setColNames(std::vector<std::string>(colNames_));
-
-    SingleInputNode* dedupNode = nullptr;
     if (distinct_) {
-        dedupNode = Dedup::make(qctx_, projectResult);
+        Dedup* dedupNode = Dedup::make(qctx_, projectResult);
         dedupNode->setInputVar(projectResult->outputVar());
         dedupNode->setColNames(std::move(colNames_));
+        root_ = dedupNode;
+    } else {
+        root_ = projectResult;
     }
 
+<<<<<<< HEAD
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
         dedupNode == nullptr ? projectResult : dedupNode,                           // body
         buildNStepLoopCondition(steps_.mToN->nSteps));
 
+=======
+>>>>>>> Support m to n.
     if (projectStartVid_ != nullptr) {
         tail_ = projectStartVid_;
     } else {
-        tail_ = loop;
+        tail_ = gn;
     }
-
-    std::vector<std::string> collectVars;
-    if (dedupNode == nullptr) {
-        collectVars = {projectResult->outputVar()};
-    } else {
-        collectVars = {dedupNode->outputVar()};
-    }
-    auto* dataCollect =
-        DataCollect::make(qctx_, loop, DataCollect::CollectKind::kMToN, collectVars);
-    dataCollect->setMToN(steps_.mToN);
-    dataCollect->setDistinct(distinct_);
-    dataCollect->setColNames(projectResult->colNames());
-    root_ = dataCollect;
     return Status::OK();
 }
 
@@ -521,7 +515,9 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                                     PlanNode* dependencyForJoinInput) {
     auto* pool = qctx_->objPool();
 
-    if (steps_.mToN != nullptr) {
+    UNUSED(projectFromJoin);
+    /*
+    if (steps_.isMToN()) {
         DCHECK(projectFromJoin != nullptr);
         auto* joinHashKey = pool->add(new VariablePropertyExpression(
             new std::string(dependencyForJoinInput->outputVar()), new std::string(kVid)));
@@ -532,7 +528,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                            dependencyForJoinInput,
                            {dependencyForJoinInput->outputVar(), ExecutionContext::kLatestVersion},
                            {projectFromJoin->outputVar(),
-                            steps_.mToN != nullptr ? ExecutionContext::kPreviousOneVersion
+                            steps_.isMToN() ? ExecutionContext::kPreviousOneVersion
                                                    : ExecutionContext::kLatestVersion},
                            {joinHashKey},
                            {probeKey});
@@ -544,11 +540,12 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
         VLOG(1) << join->outputVar();
         dependencyForJoinInput = join;
     }
+    */
 
     DCHECK(dependencyForJoinInput != nullptr);
     auto* joinHashKey = pool->add(
         new VariablePropertyExpression(new std::string(dependencyForJoinInput->outputVar()),
-                                       new std::string(steps_.mToN != nullptr
+                                       new std::string(steps_.isMToN()
                                                            ? from_.firstBeginningSrcVidColName
                                                            : kVid)));
     std::string varName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;

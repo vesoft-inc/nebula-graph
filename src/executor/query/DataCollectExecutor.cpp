@@ -34,7 +34,7 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
             break;
         }
         case DataCollect::CollectKind::kMToN: {
-            NG_RETURN_IF_ERROR(collectMToN(vars, dc->mToN(), dc->distinct()));
+            NG_RETURN_IF_ERROR(collectMToN(vars, dc->step(), dc->distinct()));
             break;
         }
         case DataCollect::CollectKind::kBFSShortest: {
@@ -127,7 +127,7 @@ Status DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {
 }
 
 Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
-                                        StepClause::MToN* mToN,
+                                        StepClause mToN,
                                         bool distinct) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
@@ -137,8 +137,8 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
     std::vector<std::unique_ptr<Iterator>> itersHolder;
     for (auto& var : vars) {
         auto& hist = ectx_->getHistory(var);
-        DCHECK_GE(mToN->mSteps, 1);
-        for (auto i = mToN->mSteps - 1; i < mToN->nSteps; ++i) {
+        DCHECK_GE(mToN.mSteps(), 1);
+        for (auto i = mToN.mSteps() - 1; i < mToN.nSteps(); ++i) {
             auto iter = hist[i].iter();
             if (iter->isSequentialIter()) {
                 auto* seqIter = static_cast<SequentialIter*>(iter.get());

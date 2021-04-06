@@ -106,35 +106,20 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
     return Status::OK();
 }
 
-Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
+Status TraversalValidator::validateStep(const StepClause* clause, StepClause& step) {
     if (clause == nullptr) {
         return Status::SemanticError("Step clause nullptr.");
     }
+    step = *clause;
     if (clause->isMToN()) {
-        auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
-        mToN->mSteps = clause->mToN()->mSteps;
-        mToN->nSteps = clause->mToN()->nSteps;
-
-        if (mToN->mSteps == 0 && mToN->nSteps == 0) {
-            step.steps = 0;
-            return Status::OK();
+        if (steps_.mSteps() == 0) {
+            steps_.setMSteps(1);
         }
-        if (mToN->mSteps == 0) {
-            mToN->mSteps = 1;
-        }
-        if (mToN->nSteps < mToN->mSteps) {
+        if (steps_.nSteps() < steps_.mSteps()) {
             return Status::SemanticError(
                 "`%s', upper bound steps should be greater than lower bound.",
                 clause->toString().c_str());
         }
-        if (mToN->mSteps == mToN->nSteps) {
-            steps_.steps = mToN->mSteps;
-            return Status::OK();
-        }
-        step.mToN = mToN;
-    } else {
-        auto steps = clause->steps();
-        step.steps = steps;
     }
     return Status::OK();
 }

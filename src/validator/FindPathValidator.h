@@ -55,7 +55,7 @@ private:
     bool noLoop_{false};
     Starts to_;
     Over over_;
-    Steps steps_;
+    StepClause steps_;
 
     // runtime
     PlanNode* loopDepTail_{nullptr};
