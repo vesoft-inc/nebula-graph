@@ -78,6 +78,7 @@ public:
     void visitBinaryExpr(BinaryExpression *expr);
     Expression *fold(Expression *expr) const;
 
+
 private:
     bool canBeFolded_{false};
 };
