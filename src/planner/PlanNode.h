@@ -209,6 +209,10 @@ public:
         outputVars_[0]->colNames = cols;
     }
 
+    const auto& dependencies() const {
+        return dependencies_;
+    }
+
     const PlanNode* dep(size_t index = 0) const {
         DCHECK_LT(index, dependencies_.size());
         return dependencies_.at(index);
