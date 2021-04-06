@@ -23,7 +23,7 @@ folly::Future<Status> TraceProjectExecutor::execute() {
         auto& dst = iter->getEdgeProp("*", kDst);
         traceMap[dst].emplace(src);
     }
-    for (size_t i = 0; i < hist.size() - 1; ++i) {
+    for (size_t i = 1; i < hist.size() - 1; ++i) {
         iter = hist[i].iter();
         for (; iter->valid(); iter->next()) {
             auto& src = iter->getColumn(kVid);
