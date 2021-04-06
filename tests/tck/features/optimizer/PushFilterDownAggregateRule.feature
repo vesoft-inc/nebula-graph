@@ -32,16 +32,16 @@ Feature: Push Filter down Aggregate rule
       | 28  | 1     |
       | 29  | 3     |
     And the execution plan should be:
-      | name        | dependencies | operator info |
-      | DataCollect | 1            |               |
-      | Sort        | 2            |               |
-      | Project     | 3            |               |
-      | Aggregate   | 4            |               |
-      | Filter      | 5            |               |
-      | Filter      | 6            |               |
-      | Project     | 7            |               |
-      | Project     | 8            |               |
-      | Filter      | 9            |               |
-      | GetVertices | 10           |               |
-      | IndexScan   | 11           |               |
-      | Start       |              |               |
+      | id | name        | dependencies | operator info |
+      | 13 | DataCollect | 12           |               |
+      | 12 | Sort        | 11           |               |
+      | 11 | Project     | 18           |               |
+      | 18 | Aggregate   | 17           |               |
+      | 17 | Filter      | 8            |               |
+      | 8  | Filter      | 7            |               |
+      | 7  | Project     | 6            |               |
+      | 6  | Project     | 5            |               |
+      | 5  | Filter      | 16           |               |
+      | 16 | GetVertices | 14           |               |
+      | 14 | IndexScan   | 0            |               |
+      | 0  | Start       |              |               |
