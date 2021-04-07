@@ -179,8 +179,9 @@ public:
                                           Expression::Kind::kReduce});
     }
 
-    // Rewrite relational expression, gather evaluable expression to one side
-    static Expression* rewriteRelExpr(const Expression* expr);
+    // Rewrite relational expression, gather evaluable expressions to one side
+    static Expression* rewriteRelExpr(const RelationalExpression* expr);
+    static Expression* moveEvaluableExprToRight(const Expression* expr);
 
     // Clone and fold constant expression
     static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);

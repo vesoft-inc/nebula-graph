@@ -33,49 +33,54 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
     return visitor.getExpr();
 }
 
-Expression* ExpressionUtils::rewriteRelExpr(const Expression* expr) {
-    auto matcher = [](const Expression* e) -> bool {
+Expression *ExpressionUtils::rewriteRelExpr(const RelationalExpression *expr) {
+    auto rewrittenRelExpr = static_cast<RelationalExpression *>(expr->clone().release());
+
+    while (rewrittenRelExpr->left()->isArithmeticExpr()) {
+        auto leftOperand = static_cast<ArithmeticExpression *>(rewrittenRelExpr->left())->left();
+        auto rightOperand = static_cast<ArithmeticExpression *>(rewrittenRelExpr->left())->right();
+        if (!ExpressionUtils::isEvaluableExpr(leftOperand) &&
+            !ExpressionUtils::isEvaluableExpr(rightOperand)) {
+            break;
+        }
+        rewrittenRelExpr =
+            static_cast<RelationalExpression *>(moveEvaluableExprToRight(rewrittenRelExpr));
+    }
+    return rewrittenRelExpr;
+}
+
+Expression *ExpressionUtils::moveEvaluableExprToRight(const Expression *expr) {
+    auto matcher = [](const Expression *e) -> bool {
         if (e->isRelExpr()) {
-            if (static_cast<const RelationalExpression*>(e)->left()->isArithmeticExpr() ||
-                static_cast<const RelationalExpression*>(e)->right()->isArithmeticExpr()) {
+            if (static_cast<const RelationalExpression *>(e)->left()->isArithmeticExpr() ||
+                static_cast<const RelationalExpression *>(e)->right()->isArithmeticExpr()) {
                 return true;
             }
         }
         return false;
     };
 
-    auto rewriter = [](const Expression* e) -> Expression* {
-        auto relExpr = static_cast<RelationalExpression*>(e->clone().release());
+    auto rewriter = [](const Expression *e) -> Expression * {
+        auto relExpr = static_cast<RelationalExpression *>(e->clone().release());
 
         auto left = relExpr->left();
         auto right = relExpr->right();
 
-        // auto moveEvaluableExprToRight = [](Expression* operand, ) ->RelationalExpression* {
-
-        // };
         // Move evalueable expression to right
         if (left->isArithmeticExpr()) {
-            auto leftOperand = static_cast<ArithmeticExpression*>(left)->left();
-            auto rightOperand = static_cast<ArithmeticExpression*>(left)->right();
-            auto arithmType = static_cast<ArithmeticExpression*>(left)->kind();
+            auto leftOperand = static_cast<ArithmeticExpression *>(left)->left();
+            auto rightOperand = static_cast<ArithmeticExpression *>(left)->right();
+            auto arithmType = static_cast<ArithmeticExpression *>(left)->kind();
             auto negateType = getNegatedArithmeticType(arithmType);
 
-            if (leftOperand->kind() == Expression::Kind::kLabelAttribute ||
-                leftOperand->kind() == Expression::Kind::kAttribute) {
-                // Move evaluableExpr to the other side
-                if (ExpressionUtils::isEvaluableExpr(rightOperand)) {
-                    auto newExpr = new ArithmeticExpression(negateType, right, rightOperand);
-                    return new RelationalExpression(
-                        e->kind(), leftOperand->clone().release(), newExpr);
-                }
-            } else if (rightOperand->kind() == Expression::Kind::kLabelAttribute ||
-                        rightOperand->kind() == Expression::Kind::kAttribute) {
-                // Move evaluableExpr to the other side
-                if (ExpressionUtils::isEvaluableExpr(leftOperand)) {
-                    auto newExpr = new ArithmeticExpression(negateType, right, leftOperand);
-                    return new RelationalExpression(
-                        e->kind(), rightOperand->clone().release(), newExpr);
-                }
+            if (ExpressionUtils::isEvaluableExpr(leftOperand)) {
+                auto newExpr = new ArithmeticExpression(negateType, right, leftOperand);
+                return new RelationalExpression(
+                    e->kind(), rightOperand->clone().release(), newExpr);
+            }
+            if (ExpressionUtils::isEvaluableExpr(rightOperand)) {
+                auto newExpr = new ArithmeticExpression(negateType, right, rightOperand);
+                return new RelationalExpression(e->kind(), leftOperand->clone().release(), newExpr);
             }
         }
         return relExpr;

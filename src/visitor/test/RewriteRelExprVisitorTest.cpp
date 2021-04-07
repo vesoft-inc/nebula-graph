@@ -54,20 +54,33 @@ TEST_F(RewriteRelExprVisitorTest, ArithmeticalExpr) {
     }
 }
 
-// TEST_F(RewriteRelExprVisitorTest, NestedArithmeticalExpr) {
-//     // (label + 1 + 2 < 40)  =>  (label < 40 - 1 - 2)
-//     {
-//         auto expr =
-//             pool.add(ltExpr(addExpr(addExpr(laExpr("v", "age"), constantExpr(1)),
-//             constantExpr(2)),
-//                             constantExpr(40)));
-//         auto res = ExpressionUtils::rewriteRelExpr(expr);
-//         auto expected = pool.add(
-//             ltExpr(laExpr("v", "age"),
-//                    minusExpr(minusExpr(constantExpr(40), constantExpr(1)), constantExpr(2))));
-//         ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
-//     }
-// }
+TEST_F(RewriteRelExprVisitorTest, NestedArithmeticalExpr) {
+    // (label + 1 + 2 < 40)  =>  (label < 40 - 2 - 1)
+    {
+        auto expr =
+            pool.add(ltExpr(addExpr(addExpr(laExpr("v", "age"), constantExpr(1)),
+            constantExpr(2)),
+                            constantExpr(40)));
+        auto res = ExpressionUtils::rewriteRelExpr(expr);
+        auto expected = pool.add(
+            ltExpr(laExpr("v", "age"),
+                   minusExpr(minusExpr(constantExpr(40), constantExpr(2)), constantExpr(1))));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+
+    // (label + 1 - 2 < 40)  =>  (label < 40 + 2 - 1)
+    {
+        auto expr =
+            pool.add(ltExpr(minusExpr(addExpr(laExpr("v", "age"), constantExpr(1)),
+            constantExpr(2)),
+                            constantExpr(40)));
+        auto res = ExpressionUtils::rewriteRelExpr(expr);
+        auto expected = pool.add(
+            ltExpr(laExpr("v", "age"),
+                   minusExpr(addExpr(constantExpr(40), constantExpr(2)), constantExpr(1))));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+}
 
 }   // namespace graph
 }   // namespace nebula
