@@ -15,8 +15,14 @@ jobs:
       - uses: actions/checkout@v2
       - id: tag
         run: |
-          TAG=${{ github.event_name == 'push' }} && $(echo "${{ github.ref }}" | tr / ' ' | cut -d ' ' -f 3) || echo "v2-nightly"
+          TAG="v2-nightly"
+          BRANCH="master"
+          if ${{ github.event_name == 'push' }}; then
+            TAG=$(echo "${{ github.ref }}" | tr / ' ' | cut -d ' ' -f 3)
+            BRANCH=$TAG
+          fi
           echo "::set-output name=TAG::$TAG"
+          echo "::set-output name=BRANCH::$BRANCH"
       - name: Build and push Docker images
         uses: docker/build-push-action@v1
         with:
@@ -26,3 +32,4 @@ jobs:
           tags: ${{ steps.tag.outputs.TAG }}
           cache_froms: vesoft/nebula-dev:centos7
           add_git_labels: true
+          build_args: BRANCH=${{ steps.tag.outputs.BRANCH }}
