@@ -92,15 +92,15 @@ void GetVarStepsNeighborsExecutor::getNeighbors() {
                        std::move(reqDs_.rows),
                        gn_->edgeTypes(),
                        gn_->edgeDirection(),
-                       finalStep ? gn_->statProps() : nullptr,
-                       finalStep ? gn_->vertexProps() : nullptr,
+                       finalStep || gn_->needUnion() ? gn_->statProps() : nullptr,
+                       finalStep || gn_->needUnion() ? gn_->vertexProps() : nullptr,
                        finalStep || gn_->needUnion() ? gn_->edgeProps() : gn_->edgeDst(),
-                       finalStep ? gn_->exprs() : nullptr,
-                       finalStep ? gn_->dedup() : false,
-                       finalStep ? gn_->random() : false,
-                       finalStep ? gn_->orderBy() : nullptr,
-                       finalStep ? gn_->limit() : -1,
-                       finalStep ? gn_->filter() : "")
+                       finalStep || gn_->needUnion() ? gn_->exprs() : nullptr,
+                       finalStep || gn_->needUnion() ? gn_->dedup() : false,
+                       finalStep || gn_->needUnion() ? gn_->random() : false,
+                       finalStep || gn_->needUnion() ? gn_->orderBy() : nullptr,
+                       finalStep || gn_->needUnion() ? gn_->limit() : -1,
+                       finalStep || gn_->needUnion() ? gn_->filter() : "")
         .via(runner())
         .ensure([this, getNbrTime]() {
             SCOPED_TIMER(&execTime_);
@@ -124,6 +124,7 @@ void GetVarStepsNeighborsExecutor::getNeighbors() {
 }
 
 void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
+    SCOPED_TIMER(&execTime_);
     auto result = handleCompleteness(resps, FLAGS_accept_partial_success);
     if (!result.ok()) {
         promise_.setValue(std::move(result).status());
