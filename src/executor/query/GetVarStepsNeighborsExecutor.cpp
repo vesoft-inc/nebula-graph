@@ -44,27 +44,8 @@ Status GetVarStepsNeighborsExecutor::buildRequestDataSet() {
     VLOG(1) << node()->outputVar() << " : " << inputVar;
     auto& inputResult = ectx_->getResult(inputVar);
     auto iter = inputResult.iter();
-    QueryExpressionContext ctx(ectx_);
-    DataSet input;
-    reqDs_.colNames = {kVid};
-    reqDs_.rows.reserve(iter->size());
-    auto* src = DCHECK_NOTNULL(gn_->src());
-    std::unordered_set<Value> uniqueVid;
-    const auto& spaceInfo = qctx()->rctx()->session()->space();
-    for (; iter->valid(); iter->next()) {
-        auto val = Expression::eval(src, ctx(iter.get()));
-        if (!SchemaUtil::isValidVid(val, *(spaceInfo.spaceDesc.vid_type_ref()))) {
-            continue;
-        }
-        if (gn_->dedup()) {
-            auto ret = uniqueVid.emplace(val);
-            if (ret.second) {
-                reqDs_.rows.emplace_back(Row({std::move(val)}));
-            }
-        } else {
-            reqDs_.rows.emplace_back(Row({std::move(val)}));
-        }
-    }
+
+    reqDs_ = buildRequestDataSetByVidType(iter.get(), gn_->src(), gn_->dedup());
     return Status::OK();
 }
 
