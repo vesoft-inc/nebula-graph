@@ -126,6 +126,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
 }
 
 Status GoValidator::toPlan() {
+<<<<<<< HEAD
     if (!steps_.isMToN()) {
         if (steps_.steps() == 0) {
             auto* passThrough = PassThroughNode::make(qctx_, nullptr);
@@ -196,12 +197,16 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
         root_ = dedupNode;
     } else {
         root_ = projectResult;
+=======
+    if (!steps_.isMToN() && steps_.steps() == 0) {
+        auto* passThrough = PassThroughNode::make(qctx_, nullptr);
+        passThrough->setColNames(std::move(colNames_));
+        tail_ = passThrough;
+        root_ = tail_;
+        return Status::OK();
+>>>>>>> Refactor go validator.
     }
-    tail_ = gn;
-    return Status::OK();
-}
 
-Status GoValidator::buildNStepsPlan() {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
     if (!from_.vids.empty() && from_.originalSrc == nullptr) {
@@ -211,6 +216,7 @@ Status GoValidator::buildNStepsPlan() {
         startVidsVar = dedupStartVid->outputVar();
     }
 
+<<<<<<< HEAD
     auto* gn = GetVarStepsNeighbors::make(qctx_, dedupStartVid, space_.id);
     gn->setSrc(from_.src);
     gn->setVertexProps(buildSrcVertexProps());
@@ -336,6 +342,62 @@ Status GoValidator::buildMToNPlan() {
         gn->setSteps(StepClause(steps_.nSteps()));
         gn->setUnion();
         projectSrcEdgeProps = buildTraceProjectForGN(gn->outputVar(), gn);
+=======
+    PlanNode* getNeighbors = nullptr;
+    PlanNode* dependencyForProjectResult = nullptr;
+    PlanNode* projectSrcEdgeProps = nullptr;
+    if (steps_.isMToN()) {
+        auto* gn = GetVarStepsNeighbors::make(qctx_, dedupStartVid, space_.id);
+        gn->setSrc(from_.src);
+        gn->setVertexProps(buildSrcVertexProps());
+        gn->setEdgeDst(buildEdgeDst());
+        gn->setEdgeProps(buildEdgeProps());
+        gn->setInputVar(startVidsVar);
+        gn->setSteps(steps_);
+        VLOG(1) << gn->outputVar();
+
+        getNeighbors = gn;
+        dependencyForProjectResult = gn;
+
+        if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
+            !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
+            gn->setSteps(StepClause(steps_.nSteps()));
+            gn->setUnion();
+            projectSrcEdgeProps = buildTraceProjectForGN(gn->outputVar(), gn);
+        }
+    } else if (steps_.steps() == 1) {
+        auto* gn = GetNeighbors::make(qctx_, dedupStartVid, space_.id);
+        gn->setSrc(from_.src);
+        gn->setVertexProps(buildSrcVertexProps());
+        gn->setEdgeProps(buildEdgeProps());
+        gn->setInputVar(startVidsVar);
+        VLOG(1) << gn->outputVar();
+
+        getNeighbors = gn;
+        dependencyForProjectResult = gn;
+
+        if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
+            !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
+            projectSrcEdgeProps = buildProjectSrcEdgePropsForGN(gn->outputVar(), gn);
+        }
+    } else {
+        auto* gn = GetVarStepsNeighbors::make(qctx_, dedupStartVid, space_.id);
+        gn->setSrc(from_.src);
+        gn->setVertexProps(buildSrcVertexProps());
+        gn->setEdgeDst(buildEdgeDst());
+        gn->setEdgeProps(buildEdgeProps());
+        gn->setInputVar(startVidsVar);
+        gn->setSteps(steps_);
+        VLOG(1) << gn->outputVar();
+
+        getNeighbors = gn;
+        dependencyForProjectResult = gn;
+
+        if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
+            !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
+            projectSrcEdgeProps = buildTraceProjectForGN(gn->outputVar(), gn);
+        }
+>>>>>>> Refactor go validator.
     }
 
     // Join the dst props if $$.tag.prop was declared.
@@ -412,7 +474,7 @@ Status GoValidator::buildMToNPlan() {
     if (projectStartVid_ != nullptr) {
         tail_ = projectStartVid_;
     } else {
-        tail_ = gn;
+        tail_ = getNeighbors;
     }
     return Status::OK();
 }
@@ -546,6 +608,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode* dedupDstVids) {
     DCHECK(projectLeftVarForJoin != nullptr);
     DCHECK(dedupDstVids != nullptr);
@@ -633,6 +696,8 @@ Status GoValidator::buildOneStepPlan() {
     return Status::OK();
 }
 
+=======
+>>>>>>> Refactor go validator.
 GetNeighbors::VertexProps GoValidator::buildSrcVertexProps() {
     GetNeighbors::VertexProps vertexProps;
     if (!exprProps_.srcTagProps().empty()) {
@@ -825,6 +890,7 @@ Status GoValidator::buildColumns() {
     return Status::OK();
 }
 
+<<<<<<< HEAD
 PlanNode* GoValidator::projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn) {
     Project* project = nullptr;
     auto* columns = qctx_->objPool()->add(new YieldColumns());
@@ -850,3 +916,7 @@ PlanNode* GoValidator::projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn) {
 }
 }   // namespace graph
 }   // namespace nebula
+=======
+}  // namespace graph
+}  // namespace nebula
+>>>>>>> Refactor go validator.

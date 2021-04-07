@@ -32,6 +32,7 @@ private:
 
     Status buildColumns();
 
+<<<<<<< HEAD
     Status buildOneStepPlan();
 
     Status buildNStepsPlan();
@@ -42,6 +43,8 @@ private:
                    const std::string& inputVarNameForGN,
                    PlanNode* projectFromJoin);
 
+=======
+>>>>>>> Refactor go validator.
     std::vector<std::string> buildDstVertexColNames();
 
     GetNeighbors::VertexProps buildSrcVertexProps();
@@ -54,18 +57,12 @@ private:
 
     void buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEdge);
 
-    PlanNode* buildLeftVarForTraceJoin(PlanNode* dedupStartVid);
-
-    PlanNode* traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode* dedupDstVids);
-
     PlanNode* buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                            PlanNode* dependencyForJoinInput);
 
     PlanNode* buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode* dependency);
 
     PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
-
-    PlanNode* projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn);
 
     PlanNode* buildTraceProjectForGN(std::string gnVar, PlanNode* dependency);
 
