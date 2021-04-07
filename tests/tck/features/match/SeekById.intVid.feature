@@ -277,14 +277,22 @@ Feature: Match seek by id
       """
       CREATE TAG player(name string, age int);
       """
-    And having executed:
+    When try to execute query:
       """
       INSERT VERTEX player(name, age) VALUES -100:("Tim", 32);
       """
-    And having executed:
+    Then the execution should be successful
+    When executing query:
       """
       CREATE TAG INDEX player_name_index ON player(name(10));
       """
+    Then the execution should be successful
+    And wait 6 seconds
+    When submit a job:
+      """
+      REBUILD TAG INDEX player_name_index;
+      """
+    Then wait the job to finish
     When executing query:
       """
       MATCH (v) WHERE id(v) == -100 RETURN v;
