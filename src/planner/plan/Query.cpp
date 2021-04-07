@@ -655,7 +655,7 @@ std::unique_ptr<PlanNodeDescription> GetVarStepsNeighbors::explain() const {
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("edgeTypes", folly::toJson(util::toJson(edgeTypes_)), desc.get());
     addDescription("edgeDirection",
-                   storage::cpp2::_EdgeDirection_VALUES_TO_NAMES.at(edgeDirection_),
+                   apache::thrift::util::enumNameSafe(edgeDirection_),
                    desc.get());
     addDescription(
         "vertexProps", vertexProps_ ? folly::toJson(util::toJson(*vertexProps_)) : "", desc.get());

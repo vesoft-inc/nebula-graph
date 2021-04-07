@@ -62,8 +62,8 @@ Status FindPathValidator::singlePairPlan() {
     auto* backward = bfs(passThrough, to_, true);
     VLOG(1) << "backward: " << backward->outputVar();
 
-    auto* conjunct =
-        ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kBiBFS, steps_.steps);
+    auto* conjunct = ConjunctPath::make(
+        qctx_, forward, backward, ConjunctPath::PathKind::kBiBFS, steps_.steps());
     conjunct->setColNames({"_path"});
 
     auto* loop = Loop::make(
@@ -205,7 +205,7 @@ Status FindPathValidator::allPairPaths() {
     VLOG(1) << "backward: " << backward->outputVar();
 
     auto* conjunct = ConjunctPath::make(
-        qctx_, forward, backward, ConjunctPath::PathKind::kAllPaths, steps_.steps);
+        qctx_, forward, backward, ConjunctPath::PathKind::kAllPaths, steps_.steps());
     conjunct->setColNames({"_path"});
     conjunct->setNoLoop(noLoop_);
 

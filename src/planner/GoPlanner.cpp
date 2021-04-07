@@ -23,7 +23,7 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
         passThrough->setColNames(std::move(goCtx_->colNames));
         subPlan.tail = passThrough;
         subPlan.root = passThrough;
-        return Status::OK();
+        return subPlan;
     }
 
     std::string startVidsVar;
@@ -138,7 +138,7 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
     } else {
         subPlan.tail = getNeighbors;
     }
-    return Status::OK();
+    return subPlan;
 }
 
 PlanNode* GoPlanner::buildTraceProjectForGN(std::string gnVar, PlanNode* dependency) {
@@ -278,9 +278,9 @@ GetNeighbors::VertexProps GoPlanner::buildSrcVertexProps() {
                        vertexProps->begin(),
                        [](auto& tag) {
                            storage::cpp2::VertexProp vp;
-                           vp.tag = tag.first;
+                           vp.set_tag(tag.first);
                            std::vector<std::string> props(tag.second.begin(), tag.second.end());
-                           vp.props = std::move(props);
+                           vp.set_props(std::move(props));
                            return vp;
                        });
     }
@@ -295,9 +295,9 @@ std::vector<storage::cpp2::VertexProp> GoPlanner::buildDstVertexProps() {
                        vertexProps.begin(),
                        [](auto& tag) {
                            storage::cpp2::VertexProp vp;
-                           vp.tag = tag.first;
+                           vp.set_tag(tag.first);
                            std::vector<std::string> props(tag.second.begin(), tag.second.end());
-                           vp.props = std::move(props);
+                           vp.set_props(std::move(props));
                            return vp;
                        });
     }
@@ -341,7 +341,7 @@ void GoPlanner::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEdge
 
         const auto& propsFound = goCtx_->exprProps.edgeProps().find(e);
         if (propsFound == goCtx_->exprProps.edgeProps().end()) {
-            ep.props = {kDst};
+            ep.set_props({kDst});
         } else {
             std::vector<std::string> props(propsFound->second.begin(), propsFound->second.end());
             if (needJoin && propsFound->second.find(kDst) == propsFound->second.end()) {

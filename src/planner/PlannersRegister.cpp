@@ -20,6 +20,7 @@ namespace graph {
 void PlannersRegister::registPlanners() {
     registSequential();
     registMatch();
+    registGo();
 }
 
 void PlannersRegister::registSequential() {
