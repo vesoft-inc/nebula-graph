@@ -24,7 +24,12 @@ Feature: Insert vertex and edge with if not exists
     Then the execution should be successful
     When executing query:
       """
-      INSERT VERTEX person(name, age) VALUES "Conan":("Conan", 10)
+      INSERT VERTEX IF NOT EXISTS
+        person(name, age)
+      VALUES
+        "Conan":("Conan", 10),
+        "Yao":("Yao", 11),
+        "Conan":("Conan", 11);
       """
     Then the execution should be successful
     # check vertex result with fetch
