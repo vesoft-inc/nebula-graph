@@ -155,6 +155,15 @@ protected:
         expr->setDefault(defaltResult);
         return expr;
     }
+
+    static LabelExpression *labelExpr(const std::string &name) {
+        return new LabelExpression(new std::string(name));
+    }
+
+    static LabelAttributeExpression *laExpr(const std::string &name, Value value) {
+        return new LabelAttributeExpression(new LabelExpression(new std::string(name)),
+                                            new ConstantExpression(std::move(value)));
+    }
 };
 
 }   // namespace graph

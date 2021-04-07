@@ -33,6 +33,56 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
     return visitor.getExpr();
 }
 
+Expression* ExpressionUtils::rewriteRelExpr(const Expression* expr) {
+    auto matcher = [](const Expression* e) -> bool {
+        if (e->isRelExpr()) {
+            if (static_cast<const RelationalExpression*>(e)->left()->isArithmeticExpr() ||
+                static_cast<const RelationalExpression*>(e)->right()->isArithmeticExpr()) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto rewriter = [](const Expression* e) -> Expression* {
+        auto relExpr = static_cast<RelationalExpression*>(e->clone().release());
+
+        auto left = relExpr->left();
+        auto right = relExpr->right();
+
+        // auto moveEvaluableExprToRight = [](Expression* operand, ) ->RelationalExpression* {
+
+        // };
+        // Move evalueable expression to right
+        if (left->isArithmeticExpr()) {
+            auto leftOperand = static_cast<ArithmeticExpression*>(left)->left();
+            auto rightOperand = static_cast<ArithmeticExpression*>(left)->right();
+            auto arithmType = static_cast<ArithmeticExpression*>(left)->kind();
+            auto negateType = getNegatedArithmeticType(arithmType);
+
+            if (leftOperand->kind() == Expression::Kind::kLabelAttribute ||
+                leftOperand->kind() == Expression::Kind::kAttribute) {
+                // Move evaluableExpr to the other side
+                if (ExpressionUtils::isEvaluableExpr(rightOperand)) {
+                    auto newExpr = new ArithmeticExpression(negateType, right, rightOperand);
+                    return new RelationalExpression(
+                        e->kind(), leftOperand->clone().release(), newExpr);
+                }
+            } else if (rightOperand->kind() == Expression::Kind::kLabelAttribute ||
+                        rightOperand->kind() == Expression::Kind::kAttribute) {
+                // Move evaluableExpr to the other side
+                if (ExpressionUtils::isEvaluableExpr(leftOperand)) {
+                    auto newExpr = new ArithmeticExpression(negateType, right, leftOperand);
+                    return new RelationalExpression(
+                        e->kind(), rightOperand->clone().release(), newExpr);
+                }
+            }
+        }
+        return relExpr;
+    };
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
+}
+
 Expression *ExpressionUtils::pullAnds(Expression *expr) {
     DCHECK(expr->kind() == Expression::Kind::kLogicalAnd);
     auto *logic = static_cast<LogicalExpression *>(expr);
@@ -278,6 +328,25 @@ Expression::Kind ExpressionUtils::getNegatedRelExprKind(const Expression::Kind k
             return Expression::Kind::kEndsWith;
         default:
             LOG(FATAL) << "Invalid relational expression kind: " << static_cast<uint8_t>(kind);
+            break;
+    }
+}
+
+Expression::Kind ExpressionUtils::getNegatedArithmeticType(const Expression::Kind kind) {
+    switch (kind) {
+        case Expression::Kind::kAdd:
+            return Expression::Kind::kMinus;
+        case Expression::Kind::kMinus:
+            return Expression::Kind::kAdd;
+        case Expression::Kind::kMultiply:
+            return Expression::Kind::kDivision;
+        case Expression::Kind::kDivision:
+            return Expression::Kind::kMultiply;
+        case Expression::Kind::kMod:
+            LOG(FATAL) << "Unsupported expression kind: " << static_cast<uint8_t>(kind);
+            break;
+        default:
+            LOG(FATAL) << "Invalid arithmetic expression kind: " << static_cast<uint8_t>(kind);
             break;
     }
 }

@@ -115,6 +115,7 @@ public:
                         Expression::Kind::kEdge});
     }
 
+    // **Expression Transformation**
     // rewrite LabelAttr to tagProp  (just for nGql)
     static Expression* rewriteLabelAttr2TagProp(const Expression* expr) {
         auto matcher = [](const Expression* e) -> bool {
@@ -178,7 +179,9 @@ public:
                                           Expression::Kind::kReduce});
     }
 
-    // **Expression Transformation**
+    // Rewrite relational expression, gather evaluable expression to one side
+    static Expression* rewriteRelExpr(const Expression* expr);
+
     // Clone and fold constant expression
     static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
 
@@ -196,6 +199,9 @@ public:
 
     // Return the negation of the given logical kind
     static Expression::Kind getNegatedLogicalExprKind(const Expression::Kind kind);
+
+    // Return the negation of the given arithmetic kind: plus -> minus
+    static Expression::Kind getNegatedArithmeticType(const Expression::Kind kind);
 
     static Expression* pullAnds(Expression* expr);
     static void pullAndsImpl(LogicalExpression* expr,
