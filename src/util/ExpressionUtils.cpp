@@ -237,6 +237,7 @@ Status ExpressionUtils::checkAggExpr(const AggregateExpression* aggExpr) {
     return Status::OK();
 }
 
+// Negate the given relational expr
 std::unique_ptr<RelationalExpression> ExpressionUtils::reverseRelExpr(RelationalExpression *expr) {
     auto left = static_cast<RelationalExpression *>(expr)->left();
     auto right = static_cast<RelationalExpression *>(expr)->right();
@@ -246,6 +247,7 @@ std::unique_ptr<RelationalExpression> ExpressionUtils::reverseRelExpr(Relational
         negatedKind, left->clone().release(), right->clone().release());
 }
 
+// Return the negation of the given relational kind
 Expression::Kind ExpressionUtils::getNegatedRelExprKind(const Expression::Kind kind) {
     switch (kind) {
         case Expression::Kind::kRelEQ:
@@ -307,95 +309,6 @@ std::unique_ptr<LogicalExpression> ExpressionUtils::reverseLogicalExpr(LogicalEx
     return logic;
 }
 
-Expression::Kind ExpressionUtils::getNegatedLogicalExprKind(const Expression::Kind kind) {
-    switch (kind) {
-        case Expression::Kind::kLogicalAnd:
-            return Expression::Kind::kLogicalOr;
-        case Expression::Kind::kLogicalOr:
-            return Expression::Kind::kLogicalAnd;
-        case Expression::Kind::kLogicalXor:
-            LOG(FATAL) << "Unsupported logical expression kind: " << static_cast<uint8_t>(kind);
-            break;
-        default:
-            LOG(FATAL) << "Invalid logical expression kind: " << static_cast<uint8_t>(kind);
-            break;
-    }
-}
-
-// Negate the given relational expr
-std::unique_ptr<Expression> ExpressionUtils::reverseRelExpr(Expression *expr) {
-    auto left = static_cast<RelationalExpression *>(expr)->left();
-    auto right = static_cast<RelationalExpression *>(expr)->right();
-    auto negatedKind = getNegatedRelExprKind(expr->kind());
-
-    return std::make_unique<RelationalExpression>(
-        negatedKind, left->clone().release(), right->clone().release());
-}
-
-// Return the negation of the given relational kind
-Expression::Kind ExpressionUtils::getNegatedRelExprKind(const Expression::Kind kind) {
-    switch (kind) {
-        case Expression::Kind::kRelEQ:
-            return Expression::Kind::kRelNE;
-        case Expression::Kind::kRelNE:
-            return Expression::Kind::kRelEQ;
-        case Expression::Kind::kRelLT:
-            return Expression::Kind::kRelGE;
-        case Expression::Kind::kRelLE:
-            return Expression::Kind::kRelGT;
-        case Expression::Kind::kRelGT:
-            return Expression::Kind::kRelLE;
-        case Expression::Kind::kRelGE:
-            return Expression::Kind::kRelLT;
-        case Expression::Kind::kRelIn:
-            return Expression::Kind::kRelNotIn;
-        case Expression::Kind::kRelNotIn:
-            return Expression::Kind::kRelIn;
-        case Expression::Kind::kContains:
-            return Expression::Kind::kNotContains;
-        case Expression::Kind::kNotContains:
-            return Expression::Kind::kContains;
-        case Expression::Kind::kStartsWith:
-            return Expression::Kind::kNotStartsWith;
-        case Expression::Kind::kNotStartsWith:
-            return Expression::Kind::kStartsWith;
-        case Expression::Kind::kEndsWith:
-            return Expression::Kind::kNotEndsWith;
-        case Expression::Kind::kNotEndsWith:
-            return Expression::Kind::kEndsWith;
-        default:
-            LOG(FATAL) << "Invalid relational expression kind: " << static_cast<uint8_t>(kind);
-            break;
-    }
-}
-
-// Negate the given logical expr
-std::unique_ptr<Expression> ExpressionUtils::reverseLogicalExpr(Expression *expr) {
-    DCHECK(isLogicalExpr(expr));
-
-    std::vector<std::unique_ptr<Expression>> operands;
-    Expression *newExpr;
-    if (expr->kind() == Expression::Kind::kLogicalAnd) {
-        newExpr = ExpressionUtils::pullAnds(expr);
-    } else {
-        newExpr = ExpressionUtils::pullOrs(expr);
-    }
-
-    auto &flattenOperands = static_cast<LogicalExpression *>(newExpr)->operands();
-    auto negatedKind = getNegatedLogicalExprKind(expr->kind());
-    auto logic = std::make_unique<LogicalExpression>(negatedKind);
-
-    // negate each item in the operands list
-    for (auto &operand : flattenOperands) {
-        auto tempExpr =
-            std::make_unique<UnaryExpression>(Expression::Kind::kUnaryNot, operand.release());
-        operands.emplace_back(std::move(tempExpr));
-    }
-    logic->setOperands(std::move(operands));
-    return logic;
-}
-
-// Return the negation of the given logical kind
 Expression::Kind ExpressionUtils::getNegatedLogicalExprKind(const Expression::Kind kind) {
     switch (kind) {
         case Expression::Kind::kLogicalAnd:
