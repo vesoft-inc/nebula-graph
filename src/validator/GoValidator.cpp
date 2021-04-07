@@ -333,6 +333,8 @@ Status GoValidator::buildMToNPlan() {
     PlanNode* projectSrcEdgeProps = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
         !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
+        gn->setSteps(StepClause(steps_.nSteps()));
+        gn->setUnion();
         projectSrcEdgeProps = buildTraceProjectForGN(gn->outputVar(), gn);
     }
 
@@ -433,6 +435,9 @@ PlanNode* GoValidator::buildTraceProjectForGN(std::string gnVar, PlanNode* depen
     auto colNames = deduceColNames(srcAndEdgePropCols_);
     colNames.emplace_back(kVid);
     project->setColNames(std::move(colNames));
+    if (steps_.isMToN()) {
+        project->setMToN();
+    }
     VLOG(1) << project->outputVar();
 
     return project;
@@ -513,41 +518,13 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
 
 PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                                     PlanNode* dependencyForJoinInput) {
-    auto* pool = qctx_->objPool();
-
     UNUSED(projectFromJoin);
-    /*
-    if (steps_.isMToN()) {
-        DCHECK(projectFromJoin != nullptr);
-        auto* joinHashKey = pool->add(new VariablePropertyExpression(
-            new std::string(dependencyForJoinInput->outputVar()), new std::string(kVid)));
-        auto* probeKey = pool->add(new VariablePropertyExpression(
-            new std::string(projectFromJoin->outputVar()), new std::string(dstVidColName_)));
-        auto* join =
-            LeftJoin::make(qctx_,
-                           dependencyForJoinInput,
-                           {dependencyForJoinInput->outputVar(), ExecutionContext::kLatestVersion},
-                           {projectFromJoin->outputVar(),
-                            steps_.isMToN() ? ExecutionContext::kPreviousOneVersion
-                                                   : ExecutionContext::kLatestVersion},
-                           {joinHashKey},
-                           {probeKey});
-        std::vector<std::string> colNames = dependencyForJoinInput->colNames();
-        for (auto& col : projectFromJoin->colNames()) {
-            colNames.emplace_back(col);
-        }
-        join->setColNames(std::move(colNames));
-        VLOG(1) << join->outputVar();
-        dependencyForJoinInput = join;
-    }
-    */
+    auto* pool = qctx_->objPool();
 
     DCHECK(dependencyForJoinInput != nullptr);
     auto* joinHashKey = pool->add(
         new VariablePropertyExpression(new std::string(dependencyForJoinInput->outputVar()),
-                                       new std::string(steps_.isMToN()
-                                                           ? from_.firstBeginningSrcVidColName
-                                                           : kVid)));
+                                       new std::string(kVid)));
     std::string varName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;
     auto* joinInput =
         LeftJoin::make(qctx_,
@@ -568,6 +545,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
     return joinInput;
 }
 
+<<<<<<< HEAD
 PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode* dedupDstVids) {
     DCHECK(projectLeftVarForJoin != nullptr);
     DCHECK(dedupDstVids != nullptr);
@@ -634,6 +612,8 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
     return dedup;
 }
 
+=======
+>>>>>>> Fix m to n and remove unused code.
 Status GoValidator::buildOneStepPlan() {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;

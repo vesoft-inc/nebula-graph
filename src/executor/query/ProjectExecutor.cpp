@@ -22,7 +22,8 @@ folly::Future<Status> ProjectExecutor::execute() {
     DCHECK(!!iter);
     QueryExpressionContext ctx(ectx_);
 
-    VLOG(1) << "input: " << project->inputVar();
+    VLOG(1) << "input: " << project->inputVar()
+        << "\n" << *iter->valuePtr();
     DataSet ds;
     ds.colNames = project->colNames();
     ds.rows.reserve(iter->size());

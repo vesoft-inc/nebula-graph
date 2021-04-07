@@ -54,6 +54,7 @@ private:
     StepClause                          steps_;
     size_t                              currentStep_{0};
     List                                unionAllResult_;
+    bool                                needUnion_{false};
 };
 
 }   // namespace graph

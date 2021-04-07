@@ -94,7 +94,7 @@ void GetVarStepsNeighborsExecutor::getNeighbors() {
                        gn_->edgeDirection(),
                        finalStep ? gn_->statProps() : nullptr,
                        finalStep ? gn_->vertexProps() : nullptr,
-                       finalStep ? gn_->edgeProps() : gn_->edgeDst(),
+                       finalStep || gn_->needUnion() ? gn_->edgeProps() : gn_->edgeDst(),
                        finalStep ? gn_->exprs() : nullptr,
                        finalStep ? gn_->dedup() : false,
                        finalStep ? gn_->random() : false,
@@ -164,11 +164,15 @@ void GetVarStepsNeighborsExecutor::handleResponse(RpcResponse& resps) {
         buildResult(listVal, iter.get(), result.value());
         if (reqDs_.rows.empty()) {
             VLOG(1) << "Empty input.";
-            List emptyResult;
-            promise_.setValue(finish(ResultBuilder()
-                                         .value(Value(std::move(emptyResult)))
-                                         .iter(Iterator::Kind::kGetNeighbors)
-                                         .finish()));
+            if (steps_.isMToN()) {
+                promise_.setValue(Status::OK());
+            } else {
+                List emptyResult;
+                promise_.setValue(finish(ResultBuilder()
+                                            .value(Value(std::move(emptyResult)))
+                                            .iter(Iterator::Kind::kGetNeighbors)
+                                            .finish()));
+            }
         } else {
             getNeighbors();
         }
@@ -187,7 +191,8 @@ void GetVarStepsNeighborsExecutor::buildResult(std::shared_ptr<Value> listVal,
                                       std::make_move_iterator(list.values.begin()),
                                       std::make_move_iterator(list.values.end()));
         VLOG(1) << "result size: " << unionAllResult_.values.size();
-        if (isFinalStep()) {
+        if (isFinalStep() || reqDs_.rows.empty()) {
+            VLOG(1) << "finish." << unionAllResult_;
             finish(ResultBuilder()
                        .value(std::make_shared<Value>(std::move(unionAllResult_)))
                        .iter(Iterator::Kind::kGetNeighbors)

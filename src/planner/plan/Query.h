@@ -1254,6 +1254,10 @@ public:
         return edgeDst_.get();
     }
 
+    bool needUnion() const {
+        return needUnion_;
+    }
+
     void setSrc(Expression* src) {
         src_ = src;
     }
@@ -1294,6 +1298,10 @@ public:
         edgeDst_ = std::move(edgeProps);
     }
 
+    void setUnion() {
+        needUnion_ = true;
+    }
+
 private:
     GetVarStepsNeighbors(QueryContext* qctx, PlanNode* input, GraphSpaceID space)
         : Explore(qctx, Kind::kGetVarStepsNeighbors, input, space) {
@@ -1313,6 +1321,7 @@ private:
     Exprs                                        exprs_;
     bool                                         random_{false};
     StepClause                                   steps_;
+    bool                                         needUnion_{false};
 };
 
 class TraceProject final : public SingleInputNode {
@@ -1331,6 +1340,14 @@ public:
         return cols_;
     }
 
+    void setMToN() {
+        isMToN_ = true;
+    }
+
+    bool mToN() const {
+        return isMToN_;
+    }
+
 private:
     TraceProject(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
       : SingleInputNode(qctx, Kind::kTraceProject, input), cols_(cols) { }
@@ -1339,6 +1356,7 @@ private:
 
 private:
     YieldColumns*               cols_{nullptr};
+    bool                        isMToN_{false};
 };
 }  // namespace graph
 }  // namespace nebula

@@ -18,6 +18,12 @@ class TraceProjectExecutor : public Executor {
          : Executor("TraceProjectExecutor", node, qctx) {}
 
      folly::Future<Status> execute() override;
+
+ private:
+     void project(const std::unordered_map<Value, std::unordered_set<Value>>& traceMap,
+                  const std::vector<YieldColumn*>& columns,
+                  std::unique_ptr<Iterator> iter,
+                  DataSet& ds);
 };
 }   // namespace graph
 }   // namespace nebula
