@@ -8,37 +8,15 @@
 #define VALIDATOR_TRAVERSALVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "context/ast/QueryAstContext.h"
 #include "planner/plan/Query.h"
+#include "validator/Validator.h"
 
 namespace nebula {
 namespace graph {
 
 // some utils for the validator to traverse the graph
 class TraversalValidator : public Validator {
-protected:
-    enum FromType {
-        kInstantExpr,
-        kVariable,
-        kPipe,
-    };
-
-    struct Starts {
-        FromType                fromType{kInstantExpr};
-        Expression*             src{nullptr};
-        Expression*             originalSrc{nullptr};
-        std::string             userDefinedVarName;
-        std::string             firstBeginningSrcVidColName;
-        std::vector<Value>      vids;
-    };
-
-    struct Over {
-        bool                            isOverAll{false};
-        std::vector<EdgeType>           edgeTypes;
-        storage::cpp2::EdgeDirection    direction;
-        std::vector<std::string>        allEdges;
-    };
-
 protected:
     TraversalValidator(Sentence* sentence, QueryContext* qctx) : Validator(sentence, qctx) {
         startVidList_.reset(new ExpressionList());

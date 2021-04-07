@@ -112,6 +112,10 @@ public:
         return sentence_;
     }
 
+    static std::vector<std::string> deduceColNames(const YieldColumns* cols);
+
+    static std::string deduceColName(const YieldColumn* col);
+
 protected:
     Validator(Sentence* sentence, QueryContext* qctx);
 
@@ -139,10 +143,6 @@ protected:
     virtual AstContext* getAstContext() {
         return nullptr;
     }
-
-    std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
-
-    std::string deduceColName(const YieldColumn* col) const;
 
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
 
@@ -173,6 +173,15 @@ protected:
     Status checkDuplicateColName();
 
     Status invalidLabelIdentifiers(const Expression* expr) const;
+
+    template <typename T>
+    std::unique_ptr<T> getContext() const {
+        auto ctx = std::make_unique<T>();
+        ctx->sentence = sentence_;
+        ctx->qctx = qctx_;
+        ctx->space = space_;
+        return ctx;
+    }
 
 protected:
     SpaceInfo                       space_;

@@ -15,12 +15,11 @@ namespace graph {
 class GoValidator final : public TraversalValidator {
 public:
     GoValidator(Sentence* sentence, QueryContext* context)
-        : TraversalValidator(sentence, context) {}
+        : TraversalValidator(sentence, context) {
+    }
 
 private:
     Status validateImpl() override;
-
-    Status toPlan() override;
 
     Status validateWhere(WhereClause* where);
 
@@ -32,6 +31,7 @@ private:
 
     Status buildColumns();
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     Status buildOneStepPlan();
 
@@ -85,6 +85,14 @@ private:
     std::string dstVidColName_;
     // Used for get dst props
     std::string joinDstVidColName_;
+=======
+    AstContext* getAstContext() override {
+        return goCtx_.get();
+    }
+
+private:
+    std::unique_ptr<GoAstContext>   goCtx_;
+>>>>>>> Move toplan part to planner.
 };
 }   // namespace graph
 }   // namespace nebula

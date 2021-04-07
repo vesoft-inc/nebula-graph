@@ -333,7 +333,7 @@ bool Validator::spaceChosen() {
     return vctx_->spaceChosen();
 }
 
-std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) const {
+std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) {
     std::vector<std::string> colNames;
     for (auto col : cols->columns()) {
         colNames.emplace_back(deduceColName(col));
@@ -341,7 +341,7 @@ std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) con
     return colNames;
 }
 
-std::string Validator::deduceColName(const YieldColumn* col) const {
+std::string Validator::deduceColName(const YieldColumn* col) {
     if (col->alias() != nullptr) {
         return *col->alias();
     }
@@ -403,9 +403,8 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
 
 Status Validator::toPlan() {
     auto* astCtx = getAstContext();
-    if (astCtx != nullptr) {
-        astCtx->space = space_;
-    }
+    DCHECK(astCtx != nullptr);
+    astCtx->space = space_;
     auto subPlanStatus = Planner::toPlan(astCtx);
     NG_RETURN_IF_ERROR(subPlanStatus);
     auto subPlan = std::move(subPlanStatus).value();

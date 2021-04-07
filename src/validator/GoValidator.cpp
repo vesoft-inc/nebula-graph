@@ -19,27 +19,29 @@ namespace nebula {
 namespace graph {
 Status GoValidator::validateImpl() {
     auto* goSentence = static_cast<GoSentence*>(sentence_);
-    NG_RETURN_IF_ERROR(validateStep(goSentence->stepClause(), steps_));
-    NG_RETURN_IF_ERROR(validateStarts(goSentence->fromClause(), from_));
-    NG_RETURN_IF_ERROR(validateOver(goSentence->overClause(), over_));
+    NG_RETURN_IF_ERROR(validateStep(goSentence->stepClause(), goCtx_->steps));
+    NG_RETURN_IF_ERROR(validateStarts(goSentence->fromClause(), goCtx_->from));
+    NG_RETURN_IF_ERROR(validateOver(goSentence->overClause(), goCtx_->over));
     NG_RETURN_IF_ERROR(validateWhere(goSentence->whereClause()));
     NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
 
-    if (!exprProps_.inputProps().empty() && from_.fromType != kPipe) {
+    if (!goCtx_->exprProps.inputProps().empty() && goCtx_->from.fromType != kPipe) {
         return Status::SemanticError("$- must be referred in FROM before used in WHERE or YIELD");
     }
 
-    if (!exprProps_.varProps().empty() && from_.fromType != kVariable) {
+    if (!goCtx_->exprProps.varProps().empty() && goCtx_->from.fromType != kVariable) {
         return Status::SemanticError(
             "A variable must be referred in FROM before used in WHERE or YIELD");
     }
 
-    if ((!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) ||
-        exprProps_.varProps().size() > 1) {
+    if ((!goCtx_->exprProps.inputProps().empty() && !goCtx_->exprProps.varProps().empty()) ||
+        goCtx_->exprProps.varProps().size() > 1) {
         return Status::SemanticError("Only support single input in a go sentence.");
     }
 
     NG_RETURN_IF_ERROR(buildColumns());
+
+    goCtx_->inputVarName = inputVarName_;
 
     return Status::OK();
 }
@@ -49,26 +51,45 @@ Status GoValidator::validateWhere(WhereClause* where) {
         return Status::OK();
     }
 
+<<<<<<< HEAD
     filter_ = where->filter();
     if (graph::ExpressionUtils::findAny(filter_, {Expression::Kind::kAggregate})) {
         return Status::SemanticError("`%s', not support aggregate function in where sentence.",
                                      filter_->toString().c_str());
+=======
+    goCtx_->filter = where->filter();
+    if (graph::ExpressionUtils::findAny(goCtx_->filter, {Expression::Kind::kAggregate})) {
+        return Status::SemanticError(
+            "`%s', not support aggregate function in where sentence.",
+            goCtx_->filter->toString().c_str());
+    }
+    if (goCtx_->filter->kind() == Expression::Kind::kLabelAttribute) {
+        auto laExpr = static_cast<LabelAttributeExpression*>(goCtx_->filter);
+        goCtx_->filter = ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr);
+        where->setFilter(goCtx_->filter);
+    } else {
+        ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(goCtx_->filter);
+>>>>>>> Move toplan part to planner.
     }
     where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(filter_));
 
+<<<<<<< HEAD
     filter_ = where->filter();
     auto typeStatus = deduceExprType(filter_);
+=======
+    auto typeStatus = deduceExprType(goCtx_->filter);
+>>>>>>> Move toplan part to planner.
     NG_RETURN_IF_ERROR(typeStatus);
     auto type = typeStatus.value();
     if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE &&
         type != Value::Type::__EMPTY__) {
         std::stringstream ss;
-        ss << "`" << filter_->toString() << "', expected Boolean, "
+        ss << "`" << goCtx_->filter->toString() << "', expected Boolean, "
            << "but was `" << type << "'";
         return Status::SemanticError(ss.str());
     }
 
-    NG_RETURN_IF_ERROR(deduceProps(filter_, exprProps_));
+    NG_RETURN_IF_ERROR(deduceProps(goCtx_->filter, goCtx_->exprProps));
     return Status::OK();
 }
 
@@ -77,23 +98,23 @@ Status GoValidator::validateYield(YieldClause* yield) {
         return Status::SemanticError("Yield clause nullptr.");
     }
 
-    distinct_ = yield->isDistinct();
+    goCtx_->distinct = yield->isDistinct();
     auto cols = yield->columns();
 
-    if (cols.empty() && over_.isOverAll) {
-        DCHECK(!over_.allEdges.empty());
+    if (cols.empty() && goCtx_->over.isOverAll) {
+        DCHECK(!goCtx_->over.allEdges.empty());
         auto* newCols = new YieldColumns();
         qctx_->objPool()->add(newCols);
-        for (auto& e : over_.allEdges) {
+        for (auto& e : goCtx_->over.allEdges) {
             auto* col = new YieldColumn(new EdgeDstIdExpression(new std::string(e)));
             newCols->addColumn(col);
             auto colName = deduceColName(col);
-            colNames_.emplace_back(colName);
+            goCtx_->colNames.emplace_back(colName);
             outputs_.emplace_back(colName, vidType_);
-            NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
+            NG_RETURN_IF_ERROR(deduceProps(col->expr(), goCtx_->exprProps));
         }
 
-        yields_ = newCols;
+        goCtx_->yields = newCols;
     } else {
         for (auto col : cols) {
             col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
@@ -105,26 +126,32 @@ Status GoValidator::validateYield(YieldClause* yield) {
                                              col->toString().c_str());
             }
             auto colName = deduceColName(col);
-            colNames_.emplace_back(colName);
+            goCtx_->colNames.emplace_back(colName);
             // check input var expression
             auto typeStatus = deduceExprType(colExpr);
             NG_RETURN_IF_ERROR(typeStatus);
             auto type = typeStatus.value();
             outputs_.emplace_back(colName, type);
 
+<<<<<<< HEAD
             NG_RETURN_IF_ERROR(deduceProps(colExpr, exprProps_));
+=======
+            NG_RETURN_IF_ERROR(deduceProps(col->expr(), goCtx_->exprProps));
+>>>>>>> Move toplan part to planner.
         }
-        for (auto& e : exprProps_.edgeProps()) {
-            auto found = std::find(over_.edgeTypes.begin(), over_.edgeTypes.end(), e.first);
-            if (found == over_.edgeTypes.end()) {
+        for (auto& e : goCtx_->exprProps.edgeProps()) {
+            auto found =
+                std::find(goCtx_->over.edgeTypes.begin(), goCtx_->over.edgeTypes.end(), e.first);
+            if (found == goCtx_->over.edgeTypes.end()) {
                 return Status::SemanticError("Edges should be declared first in over clause.");
             }
         }
-        yields_ = yield->yields();
+        goCtx_->yields = yield->yields();
     }
     return Status::OK();
 }
 
+<<<<<<< HEAD
 Status GoValidator::toPlan() {
 <<<<<<< HEAD
     if (!steps_.isMToN()) {
@@ -834,12 +861,18 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
     return edgeProps;
 }
 
+=======
+>>>>>>> Move toplan part to planner.
 void GoValidator::extractPropExprs(const Expression* expr) {
-    ExtractPropExprVisitor visitor(
-        vctx_, srcAndEdgePropCols_, dstPropCols_, inputPropCols_, propExprColMap_);
+    ExtractPropExprVisitor visitor(vctx_,
+                                   goCtx_->srcAndEdgePropCols,
+                                   goCtx_->dstPropCols,
+                                   goCtx_->inputPropCols,
+                                   goCtx_->propExprColMap);
     const_cast<Expression*>(expr)->accept(&visitor);
 }
 
+<<<<<<< HEAD
 Expression* GoValidator::rewriteToInputProp(const Expression* expr) {
     auto matcher = [this](const Expression* e) -> bool {
         return propExprColMap_.find(e->toString()) != propExprColMap_.end();
@@ -851,44 +884,77 @@ Expression* GoValidator::rewriteToInputProp(const Expression* expr) {
     };
 
     return RewriteVisitor::transform(expr, matcher, rewriter);
+=======
+std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
+    RewriteInputPropVisitor visitor(goCtx_->propExprColMap);
+    const_cast<Expression*>(expr)->accept(&visitor);
+    return std::move(visitor).result();
+>>>>>>> Move toplan part to planner.
 }
 
 Status GoValidator::buildColumns() {
-    if (exprProps_.dstTagProps().empty() && exprProps_.inputProps().empty() &&
-        exprProps_.varProps().empty() && from_.fromType == FromType::kInstantExpr) {
+    if (goCtx_->exprProps.dstTagProps().empty() && goCtx_->exprProps.inputProps().empty() &&
+        goCtx_->exprProps.varProps().empty() && goCtx_->from.fromType == FromType::kInstantExpr) {
         return Status::OK();
     }
 
     auto pool = qctx_->objPool();
-    if (!exprProps_.isAllPropsEmpty() || from_.fromType != FromType::kInstantExpr) {
-        srcAndEdgePropCols_ = pool->add(new YieldColumns());
+    if (!goCtx_->exprProps.isAllPropsEmpty() || goCtx_->from.fromType != FromType::kInstantExpr) {
+        goCtx_->srcAndEdgePropCols = pool->add(new YieldColumns());
     }
 
-    if (!exprProps_.dstTagProps().empty()) {
-        dstPropCols_ = pool->add(new YieldColumns());
+    if (!goCtx_->exprProps.dstTagProps().empty()) {
+        goCtx_->dstPropCols = pool->add(new YieldColumns());
     }
 
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
-        inputPropCols_ = pool->add(new YieldColumns());
+    if (!goCtx_->exprProps.inputProps().empty() || !goCtx_->exprProps.varProps().empty()) {
+        goCtx_->inputPropCols = pool->add(new YieldColumns());
     }
 
+<<<<<<< HEAD
     if (filter_ != nullptr) {
         extractPropExprs(filter_);
         auto newFilter = filter_->clone();
         DCHECK(!newFilter_);
         newFilter_ = rewriteToInputProp(newFilter.get());
         pool->add(newFilter_);
+=======
+    if (goCtx_->filter != nullptr) {
+        extractPropExprs(goCtx_->filter);
+        auto newFilter = goCtx_->filter->clone();
+        auto rewriteFilter = rewriteToInputProp(newFilter.get());
+        if (rewriteFilter != nullptr) {
+            goCtx_->newFilter = rewriteFilter.release();
+        } else {
+            goCtx_->newFilter = newFilter.release();
+        }
+        pool->add(goCtx_->newFilter);
+>>>>>>> Move toplan part to planner.
     }
 
-    newYieldCols_ = pool->add(new YieldColumns());
-    for (auto* yield : yields_->columns()) {
+    goCtx_->newYieldCols = pool->add(new YieldColumns());
+    for (auto* yield : goCtx_->yields->columns()) {
         extractPropExprs(yield->expr());
+<<<<<<< HEAD
         auto* alias = yield->alias() == nullptr ? nullptr : new std::string(*(yield->alias()));
         newYieldCols_->addColumn(new YieldColumn(rewriteToInputProp(yield->expr()), alias));
+=======
+        auto newCol = yield->expr()->clone();
+        auto rewriteCol = rewriteToInputProp(newCol.get());
+        auto alias = yield->alias() == nullptr
+                         ? nullptr
+                         : new std::string(*(yield->alias()));
+        if (rewriteCol != nullptr) {
+            goCtx_->newYieldCols->addColumn(new YieldColumn(rewriteCol.release(), alias));
+        } else {
+            goCtx_->newYieldCols->addColumn(new YieldColumn(newCol.release(), alias));
+        }
+>>>>>>> Move toplan part to planner.
     }
 
     return Status::OK();
 }
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 PlanNode* GoValidator::projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn) {
@@ -917,6 +983,8 @@ PlanNode* GoValidator::projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn) {
 }   // namespace graph
 }   // namespace nebula
 =======
+=======
+>>>>>>> Move toplan part to planner.
 }  // namespace graph
 }  // namespace nebula
 >>>>>>> Refactor go validator.

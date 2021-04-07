@@ -13,6 +13,7 @@
 #include "planner/match/PropIndexSeek.h"
 #include "planner/match/VertexIdSeek.h"
 #include "planner/match/LabelIndexSeek.h"
+#include "planner/GoPlanner.h"
 
 namespace nebula {
 namespace graph {
@@ -44,6 +45,11 @@ void PlannersRegister::registMatch() {
     // MATCH(n: tag) RETURN n
     // MATCH(s)-[:edge]->(e) RETURN e
     startVidFinders.emplace_back(&LabelIndexSeek::make);
+}
+
+void PlannersRegister::registGo() {
+    auto& planners = Planner::plannersMap()[Sentence::Kind::kGo];
+    planners.emplace_back(&GoPlanner::match, &GoPlanner::make);
 }
 }  // namespace graph
 }  // namespace nebula
