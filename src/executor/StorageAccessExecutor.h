@@ -137,6 +137,8 @@ protected:
     bool isIntVidType(const SpaceInfo &space) const;
 
     DataSet buildRequestDataSetByVidType(Iterator *iter, Expression *expr, bool dedup);
+
+    DataSet buildPathRequestDataSetByVidType(Iterator *iter, Expression *expr);
 };
 
 }   // namespace graph

@@ -81,5 +81,46 @@ DataSet StorageAccessExecutor::buildRequestDataSetByVidType(Iterator *iter,
     return internal::buildRequestDataSet<std::string>(space, exprCtx, iter, expr, dedup);
 }
 
+template <typename VidType>
+DataSet buildPathRequestDataSet(const SpaceInfo &space,
+                                QueryExpressionContext &exprCtx,
+                                Iterator *iter,
+                                Expression *expr) {
+    DCHECK(iter && expr) << "iter=" << iter << ", expr=" << expr;
+    nebula::DataSet vertices({kVid});
+    vertices.rows.reserve(iter->size());
+
+    std::unordered_set<VidType> uniqueSet;
+    uniqueSet.reserve(iter->size());
+
+    const auto &vidType = *(space.spaceDesc.vid_type_ref());
+
+    for (; iter->valid(); iter->next()) {
+        auto path = expr->eval(exprCtx(iter));
+        auto pathVal = path.getPath();
+        auto srcVid = pathVal.src.vid;
+        if (uniqueSet.emplace(Vid<VidType>::value(srcVid)).second) {
+            vertices.rows.emplace_back(Row({std::move(srcVid)}));
+        }
+        for (auto &step : pathVal.steps) {
+            auto dstVid = step.dst.vid;
+            if (uniqueSet.emplace(Vid<VidType>::value(dstVid)).second) {
+                vertices.rows.emplace_back(Row({std::move(dstVid)}));
+            }
+        }
+    }
+    return vertices;
+}
+
+DataSet StorageAccessExecutor::buildPathRequestDataSetByVidType(Iterator* iter, Expression* expr) {
+    const auto& space = qctx()->rctx()->session()->space();
+    QueryExpressionContext exprCtx(qctx()->ectx());
+
+    if (isIntVidType(space)) {
+        return internal::buildPathRequestDataSet<int64_t>(space, exprCtx, iter, expr);
+    }
+    return internal::buildPathRequesetDataSet<std::string>(space, exprCtx, iter, expr);
+}
+
 }   // namespace graph
 }   // namespace nebula

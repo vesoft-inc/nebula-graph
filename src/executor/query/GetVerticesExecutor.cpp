@@ -14,17 +14,13 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetVerticesExecutor::execute() {
-    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
+    SCOPED_TIMER(&execTime_);
     gv_ = asNode<GetVertices>(node());
-    reqDs_.colNames = {kVid};
-    auto status = Status::OK();
-    auto kind = gv_->dataKind();
-    if (kind == GetVertices::DataKind::kVertex) {
-        status = buildVerticesRequestDataSet();
+    if (gv_->dataKind() == GetVertices::DataKind::kVertex) {
+        reqDs_ = buildRequestDataSet();
     } else {
-        status = buildPathRequestDataSet();
+        reqDs_ = buildPathRequestDataSet();
     }
-    NG_RETURN_IF_ERROR(status);
     return getVertices();
 }
 
@@ -32,70 +28,6 @@ Status GetVerticesExecutor::close() {
     // clear the members
     reqDs_.rows.clear();
     return Executor::close();
-}
-
-Status GetVerticesExecutor::buildPathRequestDataSet() {
-    SCOPED_TIMER(&execTime_);
-    auto inputVar = gv_->inputVar();
-    VLOG(1) << "GetVertices Input : " << inputVar;
-    if (gv_->src() == nullptr) {
-        return Status::Error("GetVertices's src is nullptr");
-    }
-    auto iter = ectx_->getResult(inputVar).iter();
-    QueryExpressionContext ctx(ectx_);
-    std::unordered_set<Value> uniqueVid;
-    for (; iter->valid(); iter->next()) {
-        auto path = gv_->src()->eval(ctx(iter.get()));
-        VLOG(1) << "path is :" << path;
-        if (!path.isPath()) {
-            return Status::Error("GetVertices's Type: %s, should be PATH", path.typeName().c_str());
-        }
-        auto pathVal = path.getPath();
-        auto srcVid = pathVal.src.vid;
-        auto ret = uniqueVid.emplace(srcVid);
-        if (ret.second) {
-            reqDs_.rows.emplace_back(Row({std::move(srcVid)}));
-        }
-        for (auto& step : pathVal.steps) {
-            auto vid = step.dst.vid;
-            ret = uniqueVid.emplace(vid);
-            if (ret.second) {
-                reqDs_.rows.emplace_back(Row({std::move(vid)}));
-            }
-        }
-    }
-    return Status::OK();
-}
-
-Status GetVerticesExecutor::buildVerticesRequestDataSet() {
-    SCOPED_TIMER(&execTime_);
-    const auto& spaceInfo = qctx()->rctx()->session()->space();
-    auto inputVar = gv_->inputVar();
-    VLOG(1) << "GetVertices Input : " << inputVar;
-
-    if (gv_->src() == nullptr) {
-        return Status::Error("GetVertices's src is nullptr");
-    }
-    auto iter = ectx_->getResult(inputVar).iter();
-    QueryExpressionContext ctx(qctx()->ectx());
-    std::unordered_set<Value> uniqueSet;
-    for (; iter->valid(); iter->next()) {
-        auto src = gv_->src()->eval(ctx(iter.get()));
-        VLOG(1) << "src is :" << src;
-        if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
-            LOG(WARNING) << "Mismatched vid type: " << src.type();
-            continue;
-        }
-        if (gv_->dedup()) {
-            if (uniqueSet.emplace(src).second) {
-                reqDs_.rows.emplace_back(Row({std::move(src)}));
-            }
-        } else {
-            reqDs_.rows.emplace_back(Row({std::move(src)}));
-        }
-    }
-
-    return Status::OK();
 }
 
 folly::Future<Status> GetVerticesExecutor::getVertices() {
@@ -125,21 +57,31 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
             otherStats_.emplace("total_rpc",
                                  folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
         })
-        .thenValue([this, gv_](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+        .thenValue([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
             return handleResp(std::move(rpcResp), this->gv_->colNamesRef());
         });
 }
 
-DataSet GetVerticesExecutor::buildRequestDataSet(const GetVertices* gv) {
-    if (gv == nullptr) {
+DataSet GetVerticesExecutor::buildRequestDataSet() {
+    if (gv_ == nullptr) {
         return nebula::DataSet({kVid});
     }
     // Accept Table such as | $a | $b | $c |... as input which one column indicate src
-    auto valueIter = ectx_->getResult(gv->inputVar()).iter();
-    VLOG(3) << "GV input var: " << gv->inputVar() << " iter kind: " << valueIter->kind();
-    return buildRequestDataSetByVidType(valueIter.get(), gv->src(), gv->dedup());
+    auto valueIter = ectx_->getResult(gv_->inputVar()).iter();
+    VLOG(3) << "GV input var: " << gv_->inputVar() << " iter kind: " << valueIter->kind();
+    return buildRequestDataSetByVidType(valueIter.get(), gv_->src(), gv_->dedup());
+}
+
+DataSet GetVerticesExecutor::buildPathRequestDataSet() {
+    if (gv_ == nullptr) {
+        return nebula::DataSet({kVid});
+    }
+    // Accept Table such as | $a | $b | $c |... as input which one column indicate src
+    auto valueIter = ectx_->getResult(gv_->inputVar()).iter();
+    VLOG(3) << "GV input var: " << gv_->inputVar() << " iter kind: " << valueIter->kind();
+    return buildRequestPathDataSetByVidType(valueIter.get(), gv_->src());
 }
 
 }   // namespace graph

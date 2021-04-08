@@ -23,10 +23,10 @@ public:
     Status close() override;
 
 private:
-    DataSet buildRequestDataSet(const GetVertices* gv);
+    DataSet buildRequestDataSet();
 
-    Status buildVerticesRequestDataSet();
-    Status buildPathRequestDataSet();
+    DataSet buildPathRequestDataSet();
+
     folly::Future<Status> getVertices();
 
 private:
