@@ -188,6 +188,8 @@ public:
 
     // Clone and reduce constant expression
     static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* objPool);
+    // Filter transformation
+    static Expression* transformFilter(const Expression* expr);
 
     // Negate the given logical expr: (A && B) -> (!A || !B)
     static std::unique_ptr<LogicalExpression> reverseLogicalExpr(LogicalExpression* expr);

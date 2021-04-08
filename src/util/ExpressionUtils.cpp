@@ -35,16 +35,18 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
 
 Expression *ExpressionUtils::rewriteRelExpr(const RelationalExpression *expr) {
     auto rewrittenRelExpr = static_cast<RelationalExpression *>(expr->clone().release());
-
-    while (rewrittenRelExpr->left()->isArithmeticExpr()) {
-        auto leftOperand = static_cast<ArithmeticExpression *>(rewrittenRelExpr->left())->left();
-        auto rightOperand = static_cast<ArithmeticExpression *>(rewrittenRelExpr->left())->right();
+    auto left = rewrittenRelExpr->left();
+    while (left->isArithmeticExpr() &&
+           (left->kind() == Expression::Kind::kAdd || left->kind() == Expression::Kind::kMinus)) {
+        auto leftOperand = static_cast<ArithmeticExpression *>(left)->left();
+        auto rightOperand = static_cast<ArithmeticExpression *>(left)->right();
         if (!ExpressionUtils::isEvaluableExpr(leftOperand) &&
             !ExpressionUtils::isEvaluableExpr(rightOperand)) {
             break;
         }
         rewrittenRelExpr =
             static_cast<RelationalExpression *>(moveEvaluableExprToRight(rewrittenRelExpr));
+        left = rewrittenRelExpr->left();
     }
     return rewrittenRelExpr;
 }
@@ -62,11 +64,11 @@ Expression *ExpressionUtils::moveEvaluableExprToRight(const Expression *expr) {
 
     auto rewriter = [](const Expression *e) -> Expression * {
         auto relExpr = static_cast<RelationalExpression *>(e->clone().release());
-
         auto left = relExpr->left();
         auto right = relExpr->right();
 
         // Move evalueable expression to right
+        // TODO: support multiplication and division
         if (left->isArithmeticExpr()) {
             auto leftOperand = static_cast<ArithmeticExpression *>(left)->left();
             auto rightOperand = static_cast<ArithmeticExpression *>(left)->right();
@@ -75,6 +77,7 @@ Expression *ExpressionUtils::moveEvaluableExprToRight(const Expression *expr) {
 
             if (ExpressionUtils::isEvaluableExpr(leftOperand)) {
                 auto newExpr = new ArithmeticExpression(negateType, right, leftOperand);
+                // TODO: check overflow
                 return new RelationalExpression(
                     e->kind(), rightOperand->clone().release(), newExpr);
             }
