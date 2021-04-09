@@ -296,12 +296,12 @@ Status MatchValidator::validateFilter(const Expression *filter,
     auto foldedExpr = ExpressionUtils::foldConstantExpr(filter);
     // Reduce Unary expr
     auto pool = whereClauseCtx.qctx->objPool();
-    auto reducedExpr = ExpressionUtils::reduceUnaryNotExpr(foldedExpr->clone().release(), pool);
+    auto reducedExpr = ExpressionUtils::reduceUnaryNotExpr(foldedExpr.get(), pool);
     if (reducedExpr->isRelExpr()) {
-        auto rewrittenRelExpr =
-            ExpressionUtils::rewriteRelExpr(static_cast<RelationalExpression *>(reducedExpr));
+        auto rewrittenRelExpr = pool->add(
+            ExpressionUtils::rewriteRelExpr(static_cast<RelationalExpression *>(reducedExpr)));
         whereClauseCtx.filter =
-            ExpressionUtils::foldConstantExpr(rewrittenRelExpr)->clone().release();
+            pool->add(ExpressionUtils::foldConstantExpr(rewrittenRelExpr).release());
     } else {
         whereClauseCtx.filter = reducedExpr;
     }
