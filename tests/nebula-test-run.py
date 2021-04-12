@@ -39,23 +39,6 @@ RESULT_DIR = os.path.join(TEST_LOGS_DIR, 'results')
 LOGGING_ARGS = {'--html': 'TEST-nebula-{0}.html'}
 
 
-<<<<<<< HEAD
-class TestExecutor(object):
-    def __init__(self, exit_on_error=True):
-        self._exit_on_error = exit_on_error
-        self.tests_failed = False
-        self.total_executed = 0
-
-    def run_tests(self, args):
-        error_code = 0
-        try:
-            error_code = pytest.main(args)
-        except Exception:
-            sys.stderr.write(
-                "Unexpected exception with pytest {0}".format(args))
-            error_code = 1
-        return error_code
-=======
 def init_parser():
     from optparse import OptionParser
     opt_parser = OptionParser()
@@ -122,7 +105,6 @@ def stop_nebula(nb):
 
 def opt_is(val, expect):
     return type(val) == str and val.lower() == expect
->>>>>>> d965a363... Fix unstable test cases related to index (#904)
 
 
 if __name__ == "__main__":

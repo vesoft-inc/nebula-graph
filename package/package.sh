@@ -74,26 +74,6 @@ fi
 
 echo "current version is [ $version ], strip enable is [$strip_enable], enablesanitizer is [$enablesanitizer], static_sanitizer is [$static_sanitizer]"
 
-<<<<<<< HEAD
-# args: <version>
-function build {
-    version=$1
-    san=$2
-    ssan=$3
-    build_type=$4
-    branch=$5
-    modules_dir=${project_dir}/modules
-    if [[ -d $build_dir ]]; then
-        rm -rf ${build_dir}/*
-    else
-        mkdir ${build_dir}
-    fi
-
-    if [[ -d $modules_dir ]]; then
-        rm -rf ${modules_dir}/*
-    else
-        mkdir ${modules_dir}
-=======
 function _build_storage {
     if [[ ! -d ${storage_dir} && ! -L ${storage_dir} ]]; then
         git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
@@ -115,7 +95,6 @@ function _build_storage {
     if ! ( cmake --build ${storage_build_dir} -j ${jobs} ); then
         echo ">>> build nebula storage failed <<<"
         exit 1
->>>>>>> d965a363... Fix unstable test cases related to index (#904)
     fi
 
     pushd ${build_dir}
@@ -134,15 +113,9 @@ function _build_storage {
           -DENABLE_PACK_ONE=${package_one} \
           $project_dir
 
-<<<<<<< HEAD
-    if !( make -j$(nproc) ); then
-        echo ">>> build nebula failed <<<"
-        exit -1
-=======
     if ! ( cmake --build ${build_dir} -j ${jobs} ); then
         echo ">>> build nebula graph failed <<<"
         exit 1
->>>>>>> d965a363... Fix unstable test cases related to index (#904)
     fi
 
     popd
