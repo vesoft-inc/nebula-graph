@@ -16,6 +16,7 @@
 #include "planner/Mutate.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
+#include "util/Utils.h"
 
 namespace nebula {
 namespace graph {
@@ -40,28 +41,19 @@ void ValidatorTestBase::bfsTraverse(const PlanNode *root, std::vector<PlanNode::
             ASSERT_TRUE(false) << "Unknown Plan Node.";
         }
 
-        switch (node->dependencies().size()) {
-            case 1: {
-                auto *sNode = static_cast<const SingleDependencyNode *>(node);
-                queue.emplace(sNode->dep());
-                if (node->kind() == PlanNode::Kind::kSelect) {
-                    auto *current = static_cast<const Select *>(node);
-                    queue.emplace(current->then());
-                    if (current->otherwise() != nullptr) {
-                        queue.emplace(current->otherwise());
-                    }
-                } else if (node->kind() == PlanNode::Kind::kLoop) {
-                    auto *current = static_cast<const Loop *>(node);
-                    queue.emplace(current->body());
-                }
-                break;
+        for (size_t i = 0; i < node->numDeps(); ++i) {
+            queue.emplace(node->dep(i));
+        }
+
+        if (node->kind() == PlanNode::Kind::kSelect) {
+            auto *current = static_cast<const Select *>(node);
+            queue.emplace(current->then());
+            if (current->otherwise() != nullptr) {
+                queue.emplace(current->otherwise());
             }
-            case 2: {
-                auto *current = static_cast<const BiInputNode *>(node);
-                queue.emplace(current->left());
-                queue.emplace(current->right());
-                break;
-            }
+        } else if (node->kind() == PlanNode::Kind::kLoop) {
+            auto *current = static_cast<const Loop *>(node);
+            queue.emplace(current->body());
         }
     }
 }
@@ -248,9 +240,8 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
 }
 
 std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
-    std::vector<const char*> kinds(plan.size());
-    std::transform(plan.cbegin(), plan.cend(), kinds.begin(), PlanNode::toString);
-    os << "[" << folly::join(", ", kinds) << "]";
+    auto printPNKind = [](auto k) { return PlanNode::toString(k); };
+    os << "[" << util::join(plan, printPNKind, ", ") << "]";
     return os;
 }
 

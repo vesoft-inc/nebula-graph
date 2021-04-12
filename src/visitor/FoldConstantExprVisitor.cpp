@@ -24,6 +24,9 @@ void FoldConstantExprVisitor::visit(UnaryExpression *expr) {
         if (canBeFolded_) {
             expr->setOperand(fold(expr->operand()));
         }
+    } else {
+        canBeFolded_ = expr->kind() == Expression::Kind::kUnaryNegate ||
+                       expr->kind() == Expression::Kind::kUnaryPlus;
     }
 }
 
@@ -391,12 +394,14 @@ void FoldConstantExprVisitor::visit(PredicateExpression *expr) {
             canBeFolded = false;
         }
     }
-    if (!isConstant(expr->filter())) {
-        expr->filter()->accept(this);
-        if (canBeFolded_) {
-            expr->setFilter(fold(expr->filter()));
-        } else {
-            canBeFolded = false;
+    if (expr->hasFilter()) {
+        if (!isConstant(expr->filter())) {
+            expr->filter()->accept(this);
+            if (canBeFolded_) {
+                expr->setFilter(fold(expr->filter()));
+            } else {
+                canBeFolded = false;
+            }
         }
     }
     canBeFolded_ = canBeFolded;

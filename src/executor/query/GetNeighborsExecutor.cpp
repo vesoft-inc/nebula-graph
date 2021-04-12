@@ -12,7 +12,6 @@
 #include "common/datatypes/List.h"
 #include "common/datatypes/Vertex.h"
 #include "context/QueryContext.h"
-#include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
 #include "service/GraphFlags.h"
 
@@ -23,54 +22,17 @@ using nebula::storage::GraphStorageClient;
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> GetNeighborsExecutor::execute() {
-    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
-    auto status = buildRequestDataSet();
-    if (!status.ok()) {
-        return error(std::move(status));
-    }
-    return getNeighbors();
-}
-
-Status GetNeighborsExecutor::close() {
-    // clear the members
-    reqDs_.rows.clear();
-    return Executor::close();
-}
-
-Status GetNeighborsExecutor::buildRequestDataSet() {
+DataSet GetNeighborsExecutor::buildRequestDataSet() {
     SCOPED_TIMER(&execTime_);
     auto inputVar = gn_->inputVar();
     VLOG(1) << node()->outputVar() << " : " << inputVar;
-    auto& inputResult = ectx_->getResult(inputVar);
-    auto iter = inputResult.iter();
-    QueryExpressionContext ctx(ectx_);
-    DataSet input;
-    reqDs_.colNames = {kVid};
-    reqDs_.rows.reserve(iter->size());
-    auto* src = gn_->src();
-    std::unordered_set<Value> uniqueVid;
-    const auto& spaceInfo = qctx()->rctx()->session()->space();
-    for (; iter->valid(); iter->next()) {
-        auto val = Expression::eval(src, ctx(iter.get()));
-        if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vid_type)) {
-            continue;
-        }
-        if (gn_->dedup()) {
-            auto ret = uniqueVid.emplace(val);
-            if (ret.second) {
-                reqDs_.rows.emplace_back(Row({std::move(val)}));
-            }
-        } else {
-            reqDs_.rows.emplace_back(Row({std::move(val)}));
-        }
-    }
-    return Status::OK();
+    auto iter = ectx_->getResult(inputVar).iter();
+    return buildRequestDataSetByVidType(iter.get(), gn_->src(), gn_->dedup());
 }
 
-folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
-    if (reqDs_.rows.empty()) {
-        VLOG(1) << "Empty input.";
+folly::Future<Status> GetNeighborsExecutor::execute() {
+    DataSet reqDs = buildRequestDataSet();
+    if (reqDs.rows.empty()) {
         List emptyResult;
         return finish(ResultBuilder()
                           .value(Value(std::move(emptyResult)))
@@ -82,8 +44,8 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     return storageClient
         ->getNeighbors(gn_->space(),
-                       std::move(reqDs_.colNames),
-                       std::move(reqDs_.rows),
+                       std::move(reqDs.colNames),
+                       std::move(reqDs.rows),
                        gn_->edgeTypes(),
                        gn_->edgeDirection(),
                        gn_->statProps(),
@@ -97,26 +59,23 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                        gn_->filter())
         .via(runner())
         .ensure([this, getNbrTime]() {
-            if (otherStats_ != nullptr) {
-                otherStats_->emplace("total_rpc_time",
-                                     folly::stringPrintf("%lu(us)", getNbrTime.elapsedInUSec()));
-            }
-            VLOG(1) << "Get neighbors time: " << getNbrTime.elapsedInUSec() << "us";
-        })
-        .then([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
-            if (otherStats_ != nullptr) {
-                auto& hostLatency = resp.hostLatency();
-                for (size_t i = 0; i < hostLatency.size(); ++i) {
-                    auto& info = hostLatency[i];
-                    otherStats_->emplace(folly::stringPrintf("%s exec/total/vertices",
-                                                             std::get<0>(info).toString().c_str()),
-                                         folly::stringPrintf("%d(us)/%d(us)/%lu,",
-                                                             std::get<1>(info),
-                                                             std::get<2>(info),
-                                                             resp.responses()[i].vertices.size()));
-                }
-            }
             SCOPED_TIMER(&execTime_);
+            otherStats_.emplace("total_rpc_time",
+                                folly::stringPrintf("%lu(us)", getNbrTime.elapsedInUSec()));
+        })
+        .thenValue([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
+            SCOPED_TIMER(&execTime_);
+            auto& hostLatency = resp.hostLatency();
+            for (size_t i = 0; i < hostLatency.size(); ++i) {
+                auto& info = hostLatency[i];
+                otherStats_.emplace(
+                        folly::stringPrintf("%s exec/total/vertices",
+                                            std::get<0>(info).toString().c_str()),
+                        folly::stringPrintf("%d(us)/%d(us)/%lu,",
+                                            std::get<1>(info),
+                                            std::get<2>(info),
+                                            (*resp.responses()[i].vertices_ref()).size()));
+            }
             return handleResponse(resp);
         });
 }

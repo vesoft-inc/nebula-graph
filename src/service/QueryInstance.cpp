@@ -14,13 +14,14 @@
 #include "planner/ExecutionPlan.h"
 #include "planner/PlanNode.h"
 #include "scheduler/Scheduler.h"
-#include "validator/Validator.h"
 #include "stats/StatsDef.h"
+#include "util/AstUtils.h"
+#include "util/ScopedTimer.h"
+#include "validator/Validator.h"
 
 using nebula::opt::Optimizer;
 using nebula::opt::OptRule;
 using nebula::opt::RuleSet;
-
 
 namespace nebula {
 namespace graph {
@@ -30,7 +31,6 @@ QueryInstance::QueryInstance(std::unique_ptr<QueryContext> qctx, Optimizer *opti
     optimizer_ = DCHECK_NOTNULL(optimizer);
     scheduler_ = std::make_unique<Scheduler>(qctx_.get());
 }
-
 
 void QueryInstance::execute() {
     Status status = validateAndOptimize();
@@ -45,17 +45,20 @@ void QueryInstance::execute() {
     }
 
     scheduler_->schedule()
-        .then([this](Status s) {
+        .thenValue([this](Status s) {
             if (s.ok()) {
                 this->onFinish();
             } else {
                 this->onError(std::move(s));
             }
         })
-        .onError([this](const ExecutionError &e) { onError(e.status()); })
-        .onError([this](const std::exception &e) { onError(Status::Error("%s", e.what())); });
+        .thenError(folly::tag_t<ExecutionError>{}, [this](const ExecutionError &e) {
+            onError(e.status());
+        })
+        .thenError(folly::tag_t<std::exception>{}, [this](const std::exception &e) {
+            onError(Status::Error("%s", e.what()));
+        });
 }
-
 
 Status QueryInstance::validateAndOptimize() {
     auto *rctx = qctx()->rctx();
@@ -65,59 +68,32 @@ Status QueryInstance::validateAndOptimize() {
     sentence_ = std::move(result).value();
 
     NG_RETURN_IF_ERROR(Validator::validate(sentence_.get(), qctx()));
-
-    auto rootStatus = optimizer_->findBestPlan(qctx_.get());
-    NG_RETURN_IF_ERROR(rootStatus);
-    auto newRoot = std::move(rootStatus).value();
-    qctx_->setPlan(std::make_unique<ExecutionPlan>(const_cast<PlanNode *>(newRoot)));
+    NG_RETURN_IF_ERROR(findBestPlan());
 
     return Status::OK();
 }
-
 
 bool QueryInstance::explainOrContinue() {
     if (sentence_->kind() != Sentence::Kind::kExplain) {
         return true;
     }
-    qctx_->fillPlanDescription();
+    auto &resp = qctx_->rctx()->resp();
+    resp.planDesc = std::make_unique<PlanDescription>();
+    DCHECK_NOTNULL(qctx_->plan())->describe(resp.planDesc.get());
     return static_cast<const ExplainSentence *>(sentence_.get())->isProfile();
 }
-
 
 void QueryInstance::onFinish() {
     auto rctx = qctx()->rctx();
     VLOG(1) << "Finish query: " << rctx->query();
-    auto ectx = qctx()->ectx();
     auto &spaceName = rctx->session()->space().name;
     rctx->resp().spaceName = std::make_unique<std::string>(spaceName);
-    auto name = qctx()->plan()->root()->outputVar();
-    if (ectx->exist(name)) {
-        auto &&value = ectx->moveValue(name);
-        if (value.type() == Value::Type::DATASET) {
-            auto result = value.moveDataSet();
-            if (!result.colNames.empty()) {
-                rctx->resp().data = std::make_unique<DataSet>(std::move(result));
-            } else {
-                LOG(ERROR) << "Empty column name list";
-                rctx->resp().errorCode = ErrorCode::E_EXECUTION_ERROR;
-                rctx->resp().errorMsg = std::make_unique<std::string>(
-                    "Internal error: empty column name list");
-            }
-        }
-    }
 
-    if (qctx()->planDescription() != nullptr) {
-        rctx->resp().planDesc = std::make_unique<PlanDescription>(
-            std::move(*qctx()->planDescription()));
-    }
+    fillRespData(&rctx->resp());
 
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().latencyInUs = latency;
-    stats::StatsManager::addValue(kQueryLatencyUs, latency);
-    if (latency > static_cast<uint64_t>(FLAGS_slow_query_threshold_us)) {
-        stats::StatsManager::addValue(kNumSlowQueries);
-        stats::StatsManager::addValue(kSlowQueryLatencyUs, latency);
-    }
+    addSlowQueryStats(latency);
     rctx->finish();
 
     // The `QueryInstance' is the root node holding all resources during the execution.
@@ -126,7 +102,6 @@ void QueryInstance::onFinish() {
     // e.g. previously launched uncompleted async sub-tasks, EVEN on failures.
     delete this;
 }
-
 
 void QueryInstance::onError(Status status) {
     LOG(ERROR) << status;
@@ -173,14 +148,48 @@ void QueryInstance::onError(Status status) {
     rctx->resp().errorMsg = std::make_unique<std::string>(status.toString());
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().latencyInUs = latency;
-    stats::StatsManager::addValue(kQueryLatencyUs, latency);
     stats::StatsManager::addValue(kNumQueryErrors);
+    addSlowQueryStats(latency);
+    rctx->finish();
+    delete this;
+}
+
+void QueryInstance::addSlowQueryStats(uint64_t latency) const {
+    stats::StatsManager::addValue(kQueryLatencyUs, latency);
     if (latency > static_cast<uint64_t>(FLAGS_slow_query_threshold_us)) {
         stats::StatsManager::addValue(kNumSlowQueries);
         stats::StatsManager::addValue(kSlowQueryLatencyUs, latency);
     }
-    rctx->finish();
-    delete this;
+}
+
+void QueryInstance::fillRespData(ExecutionResponse *resp) {
+    auto ectx = DCHECK_NOTNULL(qctx_->ectx());
+    auto plan = DCHECK_NOTNULL(qctx_->plan());
+    const auto &name = plan->root()->outputVar();
+    if (!ectx->exist(name)) return;
+
+    auto &&value = ectx->moveValue(name);
+    if (!value.isDataSet()) return;
+
+    // fill dataset
+    auto result = value.moveDataSet();
+    if (!result.colNames.empty()) {
+        resp->data = std::make_unique<DataSet>(std::move(result));
+    } else {
+        resp->errorCode = ErrorCode::E_EXECUTION_ERROR;
+        resp->errorMsg = std::make_unique<std::string>("Internal error: empty column name list");
+        LOG(ERROR) << "Empty column name list";
+    }
+}
+
+Status QueryInstance::findBestPlan() {
+    auto plan = qctx_->plan();
+    SCOPED_TIMER(plan->optimizeTimeInUs());
+    auto rootStatus = optimizer_->findBestPlan(qctx_.get());
+    NG_RETURN_IF_ERROR(rootStatus);
+    auto root = std::move(rootStatus).value();
+    plan->setRoot(const_cast<PlanNode *>(root));
+    return Status::OK();
 }
 
 }   // namespace graph

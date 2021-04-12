@@ -18,7 +18,6 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetEdgesExecutor::execute() {
-    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     return getEdges();
 }
 
@@ -42,8 +41,8 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             auto type = ge->type()->eval(expCtx(valueIter.get()));
             auto ranking = ge->ranking()->eval(expCtx(valueIter.get()));
             auto dst = ge->dst()->eval(expCtx(valueIter.get()));
-            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)
-                    || !SchemaUtil::isValidVid(dst, spaceInfo.spaceDesc.vid_type)
+            if (!SchemaUtil::isValidVid(src, *spaceInfo.spaceDesc.vid_type_ref())
+                    || !SchemaUtil::isValidVid(dst, *spaceInfo.spaceDesc.vid_type_ref())
                     || !type.isInt() || !ranking.isInt()) {
                 LOG(WARNING) << "Mismatched edge key type";
                 continue;
@@ -75,17 +74,13 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                    ge->filter())
         .via(runner())
         .ensure([this, getPropsTime]() {
-            if (otherStats_ != nullptr) {
-                otherStats_->emplace("total_rpc",
-                                     folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
-            }
-            VLOG(1) << "Get Props Time: " << getPropsTime.elapsedInUSec() << "us";
-        })
-        .then([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
-            if (otherStats_ != nullptr) {
-                addStats(rpcResp, *otherStats_);
-            }
             SCOPED_TIMER(&execTime_);
+            otherStats_.emplace("total_rpc",
+                                folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
+        })
+        .thenValue([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+            SCOPED_TIMER(&execTime_);
+            addStats(rpcResp, otherStats_);
             return handleResp(std::move(rpcResp), ge->colNamesRef());
         });
 }

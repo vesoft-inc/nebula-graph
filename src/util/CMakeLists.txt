@@ -10,9 +10,8 @@ nebula_add_library(
     SchemaUtil.cpp
     IndexUtil.cpp
     ZoneUtil.cpp
-    
-    GroupUtil.cpp
     ToJson.cpp
+    ParserUtil.cpp
 )
 
 nebula_add_library(

@@ -30,6 +30,10 @@ STARTS_WITH                 (STARTS{blanks}WITH)
 NOT_STARTS_WITH             (NOT{blanks}STARTS{blanks}WITH)
 ENDS_WITH                   (ENDS{blanks}WITH)
 NOT_ENDS_WITH               (NOT{blanks}ENDS{blanks}WITH)
+IS_NULL                     (IS{blanks}NULL)
+IS_NOT_NULL                 (IS{blanks}NOT{blanks}NULL)
+IS_EMPTY                    (IS{blanks}EMPTY)
+IS_NOT_EMPTY                (IS{blanks}NOT{blanks}EMPTY)
 
 LABEL                       ([a-zA-Z][_a-zA-Z0-9]*)
 DEC                         ([0-9])
@@ -181,18 +185,6 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "ACCOUNT"                   { return TokenType::KW_ACCOUNT; }
 "JOBS"                      { return TokenType::KW_JOBS; }
 "JOB"                       { return TokenType::KW_JOB; }
-"COUNT"                     { return TokenType::KW_COUNT; }
-"COUNT_DISTINCT"            { return TokenType::KW_COUNT_DISTINCT; }
-"SUM"                       { return TokenType::KW_SUM; }
-"AVG"                       { return TokenType::KW_AVG; }
-"MAX"                       { return TokenType::KW_MAX; }
-"MIN"                       { return TokenType::KW_MIN; }
-"STD"                       { return TokenType::KW_STD; }
-"BIT_AND"                   { return TokenType::KW_BIT_AND; }
-"BIT_OR"                    { return TokenType::KW_BIT_OR; }
-"BIT_XOR"                   { return TokenType::KW_BIT_XOR; }
-"COLLECT"                   { return TokenType::KW_COLLECT; }
-"COLLECT_SET"               { return TokenType::KW_COLLECT_SET; }
 "PATH"                      { return TokenType::KW_PATH; }
 "BIDIRECT"                  { return TokenType::KW_BIDIRECT; }
 "STATS"                     { return TokenType::KW_STATS; }
@@ -221,6 +213,10 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "ENDS"                      { return TokenType::KW_ENDS;}
 {ENDS_WITH}                 { return TokenType::KW_ENDS_WITH;}
 {NOT_ENDS_WITH}             { return TokenType::KW_NOT_ENDS_WITH;}
+{IS_NULL}                   { return TokenType::KW_IS_NULL;}
+{IS_NOT_NULL}               { return TokenType::KW_IS_NOT_NULL;}
+{IS_EMPTY}                  { return TokenType::KW_IS_EMPTY;}
+{IS_NOT_EMPTY}              { return TokenType::KW_IS_NOT_EMPTY;}
 "UNWIND"                    { return TokenType::KW_UNWIND;}
 "SKIP"                      { return TokenType::KW_SKIP;}
 "OPTIONAL"                  { return TokenType::KW_OPTIONAL;}

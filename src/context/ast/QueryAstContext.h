@@ -76,7 +76,7 @@ struct CypherClauseContextBase : AstContext {
 struct WhereClauseContext final : CypherClauseContextBase {
     WhereClauseContext() : CypherClauseContextBase(CypherClauseKind::kWhere) {}
 
-    std::unique_ptr<Expression>                  filter;
+    Expression* filter;
     std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
 };
 
@@ -120,14 +120,11 @@ struct ReturnClauseContext final : CypherClauseContextBase {
 struct WithClauseContext final : CypherClauseContextBase {
     WithClauseContext() : CypherClauseContextBase(CypherClauseKind::kWith) {}
 
-    bool                                        distinct{false};
-    const YieldColumns*                         yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>       order;
     std::unique_ptr<PaginationContext>          pagination;
     std::unique_ptr<WhereClauseContext>         where;
-    std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
+    std::unique_ptr<YieldClauseContext>         yield;
     std::unordered_map<std::string, AliasType>  aliasesGenerated;
-    // TODO: grouping columns
 };
 
 struct MatchClauseContext final : CypherClauseContextBase {
@@ -168,7 +165,7 @@ struct NodeContext final : PatternContext {
 
     // Output fields
     ScanInfo                    scanInfo;
-    const Expression*           ids{nullptr};
+    List                        ids;
     // initialize start expression in project node
     std::unique_ptr<Expression> initialExpr;
 };

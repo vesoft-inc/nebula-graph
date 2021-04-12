@@ -9,6 +9,7 @@
 #include <limits>
 
 #include "context/QueryContext.h"
+#include "optimizer/OptContext.h"
 #include "optimizer/OptRule.h"
 #include "planner/Logic.h"
 #include "planner/PlanNode.h"
@@ -23,12 +24,12 @@ using nebula::graph::SingleDependencyNode;
 namespace nebula {
 namespace opt {
 
-OptGroup *OptGroup::create(QueryContext *qctx) {
-    return qctx->objPool()->add(new OptGroup(qctx));
+OptGroup *OptGroup::create(OptContext *ctx) {
+    return ctx->objPool()->add(new OptGroup(ctx));
 }
 
-OptGroup::OptGroup(QueryContext *qctx) noexcept : qctx_(qctx) {
-    DCHECK(qctx != nullptr);
+OptGroup::OptGroup(OptContext *ctx) noexcept : ctx_(ctx) {
+    DCHECK(ctx != nullptr);
 }
 
 void OptGroup::addGroupNode(OptGroupNode *groupNode) {
@@ -37,8 +38,8 @@ void OptGroup::addGroupNode(OptGroupNode *groupNode) {
     groupNodes_.emplace_back(groupNode);
 }
 
-OptGroupNode *OptGroup::makeGroupNode(QueryContext *qctx, PlanNode *node) {
-    groupNodes_.emplace_back(OptGroupNode::create(qctx, node, this));
+OptGroupNode *OptGroup::makeGroupNode(PlanNode *node) {
+    groupNodes_.emplace_back(OptGroupNode::create(ctx_, node, this));
     return groupNodes_.back();
 }
 
@@ -59,16 +60,19 @@ Status OptGroup::explore(const OptRule *rule) {
         NG_RETURN_IF_ERROR(groupNode->explore(rule));
 
         // Find more equivalents
-        auto status = rule->match(groupNode);
+        auto status = rule->match(ctx_, groupNode);
         if (!status.ok()) {
             ++iter;
             continue;
         }
         auto matched = std::move(status).value();
-        auto resStatus = rule->transform(qctx_, matched);
+        auto resStatus = rule->transform(ctx_, matched);
         NG_RETURN_IF_ERROR(resStatus);
         auto result = std::move(resStatus).value();
         if (result.eraseAll) {
+            for (auto gnode : groupNodes_) {
+                gnode->node()->releaseSymbols();
+            }
             groupNodes_.clear();
             for (auto ngn : result.newGroupNodes) {
                 addGroupNode(ngn);
@@ -85,6 +89,7 @@ Status OptGroup::explore(const OptRule *rule) {
         }
 
         if (result.eraseCurr) {
+            (*iter)->node()->releaseSymbols();
             iter = groupNodes_.erase(iter);
         } else {
             ++iter;
@@ -130,8 +135,10 @@ const PlanNode *OptGroup::getPlan() const {
     return minGroupNode->getPlan();
 }
 
-OptGroupNode *OptGroupNode::create(QueryContext *qctx, PlanNode *node, const OptGroup *group) {
-    return qctx->objPool()->add(new OptGroupNode(node, group));
+OptGroupNode *OptGroupNode::create(OptContext *ctx, PlanNode *node, const OptGroup *group) {
+    auto optGNode = ctx->objPool()->add(new OptGroupNode(node, group));
+    ctx->addPlanNodeAndOptGroupNode(node->id(), optGNode);
+    return optGNode;
 }
 
 OptGroupNode::OptGroupNode(PlanNode *node, const OptGroup *group) noexcept
@@ -163,34 +170,19 @@ double OptGroupNode::getCost() const {
 }
 
 const PlanNode *OptGroupNode::getPlan() const {
-    switch (node_->dependencies().size()) {
-        case 0: {
-            DCHECK(dependencies_.empty());
-            break;
-        }
-        case 1: {
-            DCHECK_EQ(dependencies_.size(), 1U);
-            if (node_->kind() == PlanNode::Kind::kSelect) {
-                DCHECK_EQ(bodies_.size(), 2U);
-                auto select = static_cast<Select *>(node_);
-                select->setIf(const_cast<PlanNode *>(bodies_[0]->getPlan()));
-                select->setElse(const_cast<PlanNode *>(bodies_[1]->getPlan()));
-            } else if (node_->kind() == PlanNode::Kind::kLoop) {
-                DCHECK_EQ(bodies_.size(), 1U);
-                auto loop = static_cast<Loop *>(node_);
-                loop->setBody(const_cast<PlanNode *>(bodies_[0]->getPlan()));
-            }
-            auto singleDepNode = static_cast<SingleDependencyNode *>(node_);
-            singleDepNode->dependsOn(dependencies_[0]->getPlan());
-            break;
-        }
-        case 2: {
-            DCHECK_EQ(dependencies_.size(), 2U);
-            auto bNode = static_cast<BiInputNode *>(node_);
-            bNode->setLeftDep(dependencies_[0]->getPlan());
-            bNode->setRightDep(dependencies_[1]->getPlan());
-            break;
-        }
+    if (node_->kind() == PlanNode::Kind::kSelect) {
+        DCHECK_EQ(bodies_.size(), 2U);
+        auto select = static_cast<Select *>(node_);
+        select->setIf(const_cast<PlanNode *>(bodies_[0]->getPlan()));
+        select->setElse(const_cast<PlanNode *>(bodies_[1]->getPlan()));
+    } else if (node_->kind() == PlanNode::Kind::kLoop) {
+        DCHECK_EQ(bodies_.size(), 1U);
+        auto loop = static_cast<Loop *>(node_);
+        loop->setBody(const_cast<PlanNode *>(bodies_[0]->getPlan()));
+    }
+    DCHECK_EQ(node_->numDeps(), dependencies_.size());
+    for (size_t i = 0; i < node_->numDeps(); ++i) {
+        node_->setDep(i, dependencies_[i]->getPlan());
     }
     return node_;
 }

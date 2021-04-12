@@ -5,7 +5,6 @@
  */
 
 #include "executor/query/GetVerticesExecutor.h"
-#include "planner/Query.h"
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
@@ -18,7 +17,6 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetVerticesExecutor::execute() {
-    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     return getVertices();
 }
 
@@ -26,26 +24,10 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     SCOPED_TIMER(&execTime_);
 
     auto *gv = asNode<GetVertices>(node());
-
     GraphStorageClient *storageClient = qctx()->getStorageClient();
-    nebula::DataSet vertices({kVid});
-    const auto& spaceInfo = qctx()->rctx()->session()->space();
-    if (gv->src() != nullptr) {
-        // Accept Table such as | $a | $b | $c |... as input which one column indicate src
-        auto valueIter = ectx_->getResult(gv->inputVar()).iter();
-        VLOG(1) << "GV input var: " << gv->inputVar() << " iter kind: " << valueIter->kind();
-        auto expCtx = QueryExpressionContext(qctx()->ectx());
-        for (; valueIter->valid(); valueIter->next()) {
-            auto src = gv->src()->eval(expCtx(valueIter.get()));
-            VLOG(1) << "src vid: " << src;
-            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
-                LOG(WARNING) << "Mismatched vid type: " << src.type();
-                continue;
-            }
-            vertices.emplace_back(Row({std::move(src)}));
-        }
-    }
 
+    DataSet vertices = buildRequestDataSet(gv);
+    VLOG(1) << "vertices: " << vertices;
     if (vertices.rows.empty()) {
         // TODO: add test for empty input.
         return finish(ResultBuilder()
@@ -67,19 +49,25 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                    gv->filter())
         .via(runner())
         .ensure([this, getPropsTime]() {
-            if (otherStats_ != nullptr) {
-                otherStats_->emplace("total_rpc",
-                                     folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
-            }
-            VLOG(1) << "Get props time: " << getPropsTime.elapsedInUSec() << "us";
-        })
-        .then([this, gv](StorageRpcResponse<GetPropResponse> &&rpcResp) {
-            if (otherStats_ != nullptr) {
-                addStats(rpcResp, *otherStats_);
-            }
             SCOPED_TIMER(&execTime_);
+            otherStats_.emplace("total_rpc",
+                                 folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
+        })
+        .thenValue([this, gv](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+            SCOPED_TIMER(&execTime_);
+            addStats(rpcResp, otherStats_);
             return handleResp(std::move(rpcResp), gv->colNamesRef());
         });
+}
+
+DataSet GetVerticesExecutor::buildRequestDataSet(const GetVertices* gv) {
+    if (gv == nullptr) {
+        return nebula::DataSet({kVid});
+    }
+    // Accept Table such as | $a | $b | $c |... as input which one column indicate src
+    auto valueIter = ectx_->getResult(gv->inputVar()).iter();
+    VLOG(3) << "GV input var: " << gv->inputVar() << " iter kind: " << valueIter->kind();
+    return buildRequestDataSetByVidType(valueIter.get(), gv->src(), gv->dedup());
 }
 
 }   // namespace graph

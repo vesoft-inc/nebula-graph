@@ -1,0 +1,66 @@
+name: package
+
+on:
+  schedule:
+    - cron: '0 18 * * *'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  package:
+    name: build package
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu1604
+          - ubuntu1804
+          - ubuntu2004
+          # - centos6
+          - centos7
+          - centos8
+    container:
+      image: vesoft/nebula-dev:${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: package
+        run: ./package/package.sh
+      - name: output some vars
+        id: vars
+        env:
+          SHA_EXT: sha256sum.txt
+        run: |
+          filename=$(find pkg-build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
+          sha256sum $filename > $filename.$SHA_EXT
+          subdir=$(date -u +%Y.%m.%d)
+          echo "::set-output name=subdir::$subdir"
+      - uses: actions/upload-artifact@v1
+        with:
+          name: ${{ matrix.os }}-v2-nightly
+          path: pkg-build/cpack_output
+      - uses: ./.github/actions/upload-to-oss-action
+        with:
+          key-id: ${{ secrets.OSS_ID }}
+          key-secret: ${{ secrets.OSS_SECRET }}
+          endpoint: ${{ secrets.OSS_ENDPOINT }}
+          bucket: nebula-graph
+          asset-path: pkg-build/cpack_output
+          target-path: package/v2-nightly/${{ steps.vars.outputs.subdir }}
+
+  docker:
+    name: build docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: vesoft/nebula-graphd
+          tags: v2-nightly
+          cache_froms: vesoft/nebula-dev:centos7
+          add_git_labels: true

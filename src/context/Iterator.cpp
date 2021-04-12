@@ -10,40 +10,6 @@
 #include "common/datatypes/Vertex.h"
 #include "common/interface/gen-cpp2/common_types.h"
 #include "util/SchemaUtil.h"
-
-namespace std {
-
-bool equal_to<const nebula::graph::LogicalRow*>::operator()(
-    const nebula::graph::LogicalRow* lhs,
-    const nebula::graph::LogicalRow* rhs) const {
-    DCHECK_EQ(lhs->kind(), rhs->kind()) << lhs->kind() << " vs. " << rhs->kind();
-    switch (lhs->kind()) {
-        case nebula::graph::LogicalRow::Kind::kSequential:
-        case nebula::graph::LogicalRow::Kind::kJoin: {
-            auto& lhsValues = lhs->segments();
-            auto& rhsValues = rhs->segments();
-            if (lhsValues.size() != rhsValues.size()) {
-                return false;
-            }
-            for (size_t i = 0; i < lhsValues.size(); ++i) {
-                const auto* l = lhsValues[i];
-                const auto* r = rhsValues[i];
-                auto equal =
-                    l == r ? true : (l != nullptr) && (r != nullptr) && (*l == *r);
-                if (!equal) {
-                    return false;
-                }
-            }
-            break;
-        }
-        default:
-            LOG(FATAL) << "Not support equal_to for " << lhs->kind();
-            return false;
-    }
-    return true;
-}
-}  // namespace std
-
 namespace nebula {
 namespace graph {
 GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
@@ -64,6 +30,11 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
 void GetNeighborsIter::goToFirstEdge() {
     // Go to first edge
     for (currentDs_ = dsIndices_.begin(); currentDs_ < dsIndices_.end(); ++currentDs_) {
+        if (noEdge_) {
+            currentRow_ = currentDs_->ds->rows.begin();
+            valid_ = true;
+            break;
+        }
         for (currentRow_ = currentDs_->ds->rows.begin();
             currentRow_ < currentDs_->ds->rows.end(); ++currentRow_) {
             colIdx_ = currentDs_->colLowerBound + 1;
@@ -86,6 +57,9 @@ void GetNeighborsIter::goToFirstEdge() {
                     currentEdge_ = &currentEdge.getList();
                     valid_ = true;
                 }  // `edgeIdx_'
+                if (!valid_) {
+                    ++colIdx_;
+                }
             }  // `colIdx_'
             if (valid_) {
                 break;
@@ -157,7 +131,9 @@ StatusOr<int64_t> GetNeighborsIter::buildIndex(DataSetIndex* dsIndex) {
             // It is "_vid", "_stats", "_expr" in this situation.
         }
     }
-
+    if (edgeStartIndex == -1) {
+        noEdge_ = true;
+    }
     dsIndex->colLowerBound = edgeStartIndex - 1;
     dsIndex->colUpperBound = colNames.size() - 1;
     return edgeStartIndex;
@@ -209,6 +185,19 @@ bool GetNeighborsIter::valid() const {
 
 void GetNeighborsIter::next() {
     if (!valid()) {
+        return;
+    }
+
+    if (noEdge_) {
+        if (++currentRow_ < rowsUpperBound_) {
+            return;
+        }
+
+        // go to next dataset
+        if (++currentDs_ < dsIndices_.end()) {
+            currentRow_ = currentDs_->ds->begin();
+            rowsUpperBound_ = currentDs_->ds->end();
+        }
         return;
     }
 
@@ -460,11 +449,9 @@ List GetNeighborsIter::getEdges() {
 
 SequentialIter::SequentialIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kSequential) {
     DCHECK(value->isDataSet());
-    auto& ds = value->getDataSet();
-    for (auto& row : ds.rows) {
-        rows_.emplace_back(&row);
-    }
-    iter_ = rows_.begin();
+    auto& ds = value->mutableDataSet();
+    iter_ = ds.rows.begin();
+    rows_ = &ds.rows;
     for (size_t i = 0; i < ds.colNames.size(); ++i) {
         colIndices_.emplace(ds.colNames[i], i);
     }
@@ -488,115 +475,60 @@ void SequentialIter::init(std::vector<std::unique_ptr<Iterator>>&& iterators) {
     const auto& firstIter = iterators.front();
     DCHECK(firstIter->isSequentialIter());
     colIndices_ = static_cast<const SequentialIter*>(firstIter.get())->getColIndices();
+    DataSet ds;
     for (auto& iter : iterators) {
         DCHECK(iter->isSequentialIter());
         auto inputIter = static_cast<SequentialIter*>(iter.get());
-        rows_.insert(rows_.end(),
+        ds.rows.insert(ds.rows.end(),
                      std::make_move_iterator(inputIter->begin()),
                      std::make_move_iterator(inputIter->end()));
     }
-    iter_ = rows_.begin();
+    value_ = std::make_shared<Value>(std::move(ds));
+    rows_ = &value_->mutableDataSet().rows;
+    iter_ = rows_->begin();
+}
+
+bool SequentialIter::valid() const {
+    return iter_ < rows_->end();
+}
+
+void SequentialIter::next() {
+    if (valid()) {
+        ++iter_;
+    }
+}
+
+void SequentialIter::erase() {
+    iter_ = rows_->erase(iter_);
+}
+
+void SequentialIter::unstableErase() {
+    std::swap(rows_->back(), *iter_);
+    rows_->pop_back();
+}
+
+void SequentialIter::eraseRange(size_t first, size_t last) {
+    if (first >= last || first >= size()) {
+        return;
+    }
+    if (last > size()) {
+        rows_->erase(rows_->begin() + first, rows_->end());
+    } else {
+        rows_->erase(rows_->begin() + first, rows_->begin() + last);
+    }
+    reset();
+}
+
+void SequentialIter::doReset(size_t pos) {
+    DCHECK((pos == 0 && size() == 0) || (pos < size()));
+    iter_ = rows_->begin() + pos;
 }
 
 const Value& SequentialIter::getColumn(int32_t index) const {
     return getColumnByIndex(index, iter_);
 }
 
-void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
-    size_t nextSeg = 0;
-    if (lhs != nullptr) {
-        switch (lhs->kind()) {
-            case Iterator::Kind::kSequential: {
-                nextSeg = buildIndexFromSeqIter(static_cast<const SequentialIter*>(lhs), 0);
-                break;
-            }
-            case Iterator::Kind::kJoin: {
-                nextSeg = buildIndexFromJoinIter(static_cast<const JoinIter*>(lhs), 0);
-                break;
-            }
-            case Iterator::Kind::kProp: {
-                nextSeg = buildIndexFromPropIter(static_cast<const PropIter*>(lhs), 0);
-                break;
-            }
-            case Iterator::Kind::kDefault:
-            case Iterator::Kind::kGetNeighbors: {
-                LOG(FATAL) << "Join Not Support " << lhs->kind();
-                break;
-            }
-        }
-    }
-    if (rhs == nullptr) {
-        return;
-    }
-    switch (rhs->kind()) {
-        case Iterator::Kind::kSequential: {
-            buildIndexFromSeqIter(static_cast<const SequentialIter*>(rhs), nextSeg);
-            break;
-        }
-        case Iterator::Kind::kJoin: {
-            buildIndexFromJoinIter(static_cast<const JoinIter*>(rhs), nextSeg);
-            break;
-        }
-        case Iterator::Kind::kProp: {
-            buildIndexFromPropIter(static_cast<const PropIter*>(rhs), nextSeg);
-            break;
-        }
-        case Iterator::Kind::kDefault:
-        case Iterator::Kind::kGetNeighbors: {
-            LOG(FATAL) << "Join Not Support " << lhs->kind();
-            break;
-        }
-    }
-}
-
-size_t JoinIter::buildIndexFromPropIter(const PropIter* iter, size_t segIdx) {
-    auto colIdxStart = colIdxIndices_.size();
-    for (auto& col : iter->getColIndices()) {
-        DCHECK_LT(col.second + colIdxStart, colNames_.size());
-        auto& colName = colNames_[col.second + colIdxStart];
-        colIndices_.emplace(colName, std::make_pair(segIdx, col.second));
-        colIdxIndices_.emplace(col.second + colIdxStart, std::make_pair(segIdx, col.second));
-    }
-    return segIdx + 1;
-}
-
-size_t JoinIter::buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx) {
-    auto colIdxStart = colIdxIndices_.size();
-    for (auto& col : iter->getColIndices()) {
-        DCHECK_LT(col.second + colIdxStart, colNames_.size());
-        auto& colName = colNames_[col.second + colIdxStart];
-        colIndices_.emplace(colName, std::make_pair(segIdx, col.second));
-        colIdxIndices_.emplace(col.second + colIdxStart, std::make_pair(segIdx, col.second));
-    }
-    return segIdx + 1;
-}
-
-size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
-    auto colIdxStart = colIdxIndices_.size();
-    size_t nextSeg = 0;
-    if (iter->getColIndices().empty()) {
-        return nextSeg;
-    }
-
-    for (auto& col : iter->getColIdxIndices()) {
-        auto oldSeg = col.second.first;
-        size_t newSeg = oldSeg + segIdx;
-        if (newSeg > nextSeg) {
-            nextSeg = newSeg;
-        }
-        DCHECK_LT(col.first + colIdxStart, colNames_.size());
-        auto& colName = colNames_[col.first + colIdxStart];
-        colIndices_.emplace(colName, std::make_pair(newSeg, col.second.second));
-        colIdxIndices_.emplace(col.first + colIdxStart, std::make_pair(newSeg, col.second.second));
-    }
-    return nextSeg + 1;
-}
-
-const Value& JoinIter::getColumn(int32_t index) const {
-    return getColumnByIndex(index, iter_);
-}
-
-PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) {
+PropIter::PropIter(std::shared_ptr<Value> value) : SequentialIter(value) {
     DCHECK(value->isDataSet());
     auto& ds = value->getDataSet();
     auto status = makeDataSetIndex(ds);
@@ -605,10 +537,7 @@ PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) 
         clear();
         return;
     }
-    for (auto& row : ds.rows) {
-        rows_.emplace_back(&row);
-    }
-    iter_ = rows_.begin();
+    kind_ = Kind::kProp;
 }
 
 Status PropIter::makeDataSetIndex(const DataSet& ds) {
@@ -647,23 +576,19 @@ const Value& PropIter::getColumn(const std::string& col) const {
         return Value::kNullValue;
     }
 
-    auto& logicalRow = *iter_;
     auto index = dsIndex_.colIndices.find(col);
     if (index == dsIndex_.colIndices.end()) {
         return Value::kNullValue;
     }
-    DCHECK_EQ(logicalRow.segments_.size(), 1);
-    auto* row = logicalRow.segments_[0];
-    DCHECK_LT(index->second, row->values.size());
-    return row->values[index->second];
+    auto& row = *iter_;
+    DCHECK_LT(index->second, row.values.size());
+    return row.values[index->second];
 }
 
 const Value& PropIter::getProp(const std::string& name, const std::string& prop) const {
     if (!valid()) {
         return Value::kNullValue;
     }
-    DCHECK_EQ(iter_->segments_.size(), 1);
-    auto& row = *(iter_->segments_[0]);
     auto& propsMap = dsIndex_.propsMap;
     auto index = propsMap.find(name);
     if (index == propsMap.end()) {
@@ -676,6 +601,7 @@ const Value& PropIter::getProp(const std::string& name, const std::string& prop)
         return Value::kNullValue;
     }
     auto colId = propIndex->second;
+    auto& row = *iter_;
     DCHECK_GT(row.size(), colId);
     return row[colId];
 }
@@ -693,8 +619,7 @@ Value PropIter::getVertex() const {
     vertex.vid = vidVal;
     auto& tagPropsMap = dsIndex_.propsMap;
     bool isVertexProps = true;
-    DCHECK_EQ(iter_->segments_.size(), 1);
-    auto& row = *(iter_->segments_[0]);
+    auto& row = *iter_;
     // tagPropsMap -> <std::string, std::unordered_map<std::string, size_t> >
     for (auto& tagProp : tagPropsMap) {
         // propIndex -> std::unordered_map<std::string, size_t>
@@ -730,8 +655,7 @@ Value PropIter::getEdge() const {
     Edge edge;
     auto& edgePropsMap = dsIndex_.propsMap;
     bool isEdgeProps = true;
-    DCHECK_EQ(iter_->segments_.size(), 1);
-    auto& row = *(iter_->segments_[0]);
+    auto& row = *iter_;
     for (auto& edgeProp : edgePropsMap) {
         for (auto& propIndex : edgeProp.second) {
             if (row[propIndex.second].empty()) {
@@ -784,7 +708,7 @@ Value PropIter::getEdge() const {
 }
 
 List PropIter::getVertices() {
-    DCHECK(iter_ == rows_.begin());
+    DCHECK(iter_ == rows_->begin());
     List vertices;
     vertices.values.reserve(size());
     for (; valid(); next()) {
@@ -795,7 +719,7 @@ List PropIter::getVertices() {
 }
 
 List PropIter::getEdges() {
-    DCHECK(iter_ == rows_.begin());
+    DCHECK(iter_ == rows_->begin());
     List edges;
     edges.values.reserve(size());
     for (; valid(); next()) {
@@ -832,42 +756,6 @@ std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
             break;
     }
     os << " iterator";
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, LogicalRow::Kind kind) {
-    switch (kind) {
-        case LogicalRow::Kind::kGetNeighbors:
-            os << "get neighbors row";
-            break;
-        case LogicalRow::Kind::kSequential:
-            os << "sequential row";
-            break;
-        case LogicalRow::Kind::kJoin:
-            os << "join row";
-            break;
-        case LogicalRow::Kind::kProp:
-            os << "prop row";
-            break;
-    }
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const LogicalRow& row) {
-    std::stringstream ss;
-    size_t cnt = 0;
-    for (auto* seg : row.segments()) {
-        if (seg == nullptr) {
-            ss << "nullptr";
-        } else {
-            ss << *seg;
-        }
-        if (cnt < row.size() - 1) {
-            ss << ",";
-        }
-        ++cnt;
-    }
-    os << ss.str();
     return os;
 }
 }  // namespace graph

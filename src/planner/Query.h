@@ -272,6 +272,10 @@ public:
         return src_;
     }
 
+    void setSrc(Expression* src) {
+        src_ = src;
+    }
+
     const std::vector<storage::cpp2::VertexProp>& props() const {
         return props_;
     }
@@ -280,7 +284,11 @@ public:
         return exprs_;
     }
 
+    GetVertices* clone() const;
+
 private:
+    using Explore::clone;
+
     GetVertices(QueryContext* qctx,
                 PlanNode* input,
                 GraphSpaceID space,
@@ -532,25 +540,40 @@ class Filter final : public SingleInputNode {
 public:
     static Filter* make(QueryContext* qctx,
                         PlanNode* input,
-                        Expression* condition) {
-        return qctx->objPool()->add(new Filter(qctx, input, condition));
+                        Expression* condition,
+                        bool      needStableFilter = false) {
+        return qctx->objPool()->add(new Filter(qctx, input, condition, needStableFilter));
     }
 
     Expression* condition() const {
         return condition_;
     }
 
+    void setCondition(Expression* condition) {
+        condition_ = condition;
+    }
+
+    bool needStableFilter() const {
+        return needStableFilter_;
+    }
+
+    Filter* clone(QueryContext* qctx) const;
+
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
-    Filter(QueryContext* qctx, PlanNode* input, Expression* condition)
+    Filter(QueryContext* qctx, PlanNode* input, Expression* condition, bool needStableFilter)
       : SingleInputNode(qctx, Kind::kFilter, input) {
         condition_ = condition;
+        needStableFilter_ = needStableFilter;
     }
+
+    void clone(const Filter& f);
 
 private:
     // Remain result when true
     Expression*                 condition_{nullptr};
+    bool                        needStableFilter_;
 };
 
 /**
@@ -822,6 +845,8 @@ public:
         return groupItems_;
     }
 
+    Aggregate* clone(QueryContext* qctx) const;
+
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -833,6 +858,8 @@ private:
         groupKeys_ = std::move(groupKeys);
         groupItems_ = std::move(groupItems);
     }
+
+    void clone(const Aggregate&);
 
 private:
     std::vector<Expression*>    groupKeys_;
@@ -933,10 +960,7 @@ private:
         collectKind_ = collectKind;
         inputVars_.clear();
         for (auto& var : vars) {
-            auto* inputVarPtr = qctx_->symTable()->getVar(var);
-            DCHECK(inputVarPtr != nullptr);
-            inputVars_.emplace_back(inputVarPtr);
-            qctx_->symTable()->readBy(inputVarPtr->name, this);
+            readVariable(var);
         }
     }
 
@@ -947,25 +971,8 @@ private:
     bool                        distinct_{false};
 };
 
-/**
- * An implementation of inner join which join two given variable.
- */
-class DataJoin final : public SingleDependencyNode {
+class Join : public SingleDependencyNode {
 public:
-    static DataJoin* make(QueryContext* qctx,
-                          PlanNode* input,
-                          std::pair<std::string, int64_t> leftVar,
-                          std::pair<std::string, int64_t> rightVar,
-                          std::vector<Expression*> hashKeys,
-                          std::vector<Expression*> probeKeys) {
-        return qctx->objPool()->add(new DataJoin(qctx,
-                                                 input,
-                                                 std::move(leftVar),
-                                                 std::move(rightVar),
-                                                 std::move(hashKeys),
-                                                 std::move(probeKeys)));
-    }
-
     const std::pair<std::string, int64_t>& leftVar() const {
         return leftVar_;
     }
@@ -984,37 +991,94 @@ public:
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
-private:
-    DataJoin(QueryContext* qctx,
-             PlanNode* input,
-             std::pair<std::string, int64_t> leftVar,
-             std::pair<std::string, int64_t> rightVar,
-             std::vector<Expression*> hashKeys,
-             std::vector<Expression*> probeKeys)
-        : SingleDependencyNode(qctx, Kind::kDataJoin, input),
-          leftVar_(std::move(leftVar)),
-          rightVar_(std::move(rightVar)),
-          hashKeys_(std::move(hashKeys)),
-          probeKeys_(std::move(probeKeys)) {
-        inputVars_.clear();
+protected:
+    Join(QueryContext* qctx,
+         Kind kind,
+         PlanNode* input,
+         std::pair<std::string, int64_t> leftVar,
+         std::pair<std::string, int64_t> rightVar,
+         std::vector<Expression*> hashKeys,
+         std::vector<Expression*> probeKeys);
 
-        auto* leftVarPtr = qctx_->symTable()->getVar(leftVar_.first);
-        DCHECK(leftVarPtr != nullptr);
-        inputVars_.emplace_back(leftVarPtr);
-        qctx_->symTable()->readBy(leftVarPtr->name, this);
-
-        auto* rightVarPtr = qctx_->symTable()->getVar(rightVar_.first);
-        DCHECK(rightVarPtr != nullptr);
-        inputVars_.emplace_back(rightVarPtr);
-        qctx_->symTable()->readBy(rightVarPtr->name, this);
-    }
-
-private:
     // var name, var version
     std::pair<std::string, int64_t>         leftVar_;
     std::pair<std::string, int64_t>         rightVar_;
     std::vector<Expression*>                hashKeys_;
     std::vector<Expression*>                probeKeys_;
+};
+
+/*
+ *  left join
+ */
+class LeftJoin final : public Join {
+public:
+    static LeftJoin* make(QueryContext* qctx,
+                          PlanNode* input,
+                          std::pair<std::string, int64_t> leftVar,
+                          std::pair<std::string, int64_t> rightVar,
+                          std::vector<Expression*> hashKeys,
+                          std::vector<Expression*> probeKeys) {
+        return qctx->objPool()->add(new LeftJoin(qctx,
+                                                 input,
+                                                 std::move(leftVar),
+                                                 std::move(rightVar),
+                                                 std::move(hashKeys),
+                                                 std::move(probeKeys)));
+    }
+
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+private:
+    LeftJoin(QueryContext* qctx,
+             PlanNode* input,
+             std::pair<std::string, int64_t> leftVar,
+             std::pair<std::string, int64_t> rightVar,
+             std::vector<Expression*> hashKeys,
+             std::vector<Expression*> probeKeys)
+        : Join(qctx,
+               Kind::kLeftJoin,
+               input,
+               std::move(leftVar),
+               std::move(rightVar),
+               std::move(hashKeys),
+               std::move(probeKeys)) {}
+};
+
+/*
+ *  inner join
+ */
+class InnerJoin final : public Join {
+public:
+    static InnerJoin* make(QueryContext* qctx,
+                           PlanNode* input,
+                           std::pair<std::string, int64_t> leftVar,
+                           std::pair<std::string, int64_t> rightVar,
+                           std::vector<Expression*> hashKeys,
+                           std::vector<Expression*> probeKeys) {
+        return qctx->objPool()->add(new InnerJoin(qctx,
+                                                  input,
+                                                  std::move(leftVar),
+                                                  std::move(rightVar),
+                                                  std::move(hashKeys),
+                                                  std::move(probeKeys)));
+    }
+
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+private:
+    InnerJoin(QueryContext* qctx,
+              PlanNode* input,
+              std::pair<std::string, int64_t> leftVar,
+              std::pair<std::string, int64_t> rightVar,
+              std::vector<Expression*> hashKeys,
+              std::vector<Expression*> probeKeys)
+        : Join(qctx,
+               Kind::kInnerJoin,
+               input,
+               std::move(leftVar),
+               std::move(rightVar),
+               std::move(hashKeys),
+               std::move(probeKeys)) {}
 };
 
 /*

@@ -147,7 +147,9 @@ Status InsertEdgesValidator::validateImpl() {
 }
 
 Status InsertEdgesValidator::toPlan() {
-    auto useChainInsert = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useChainInsert = isoLevel == IsoLevel::TOSS;
     auto doNode = InsertEdges::make(qctx_,
                                     nullptr,
                                     spaceId_,
@@ -188,7 +190,9 @@ Status InsertEdgesValidator::check() {
 }
 
 Status InsertEdgesValidator::prepareEdges() {
-    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useToss = isoLevel == IsoLevel::TOSS;
     auto size = useToss ? rows_.size() : rows_.size() * 2;
     edges_.reserve(size);
     for (auto i = 0u; i < rows_.size(); i++) {
@@ -229,22 +233,22 @@ Status InsertEdgesValidator::prepareEdges() {
         auto valsRet = SchemaUtil::toValueVec(row->values());
         NG_RETURN_IF_ERROR(valsRet);
         auto props = std::move(valsRet).value();
-        // outbound
         storage::cpp2::NewEdge edge;
-        edge.key.set_src(srcId);
-        edge.key.set_dst(dstId);
-        edge.key.set_ranking(rank);
-        edge.key.set_edge_type(edgeType_);
-        edge.set_props(std::move(props));
-        edge.__isset.key = true;
-        edge.__isset.props = true;
-        edges_.emplace_back(edge);
+        storage::cpp2::EdgeKey key;
 
+        key.set_src(srcId);
+        key.set_dst(dstId);
+        key.set_edge_type(edgeType_);
+        key.set_ranking(rank);
+        edge.set_key(key);
+        edge.set_props(std::move(props));
+        edges_.emplace_back(edge);
         if (!useToss) {
             // inbound
-            edge.key.set_src(dstId);
-            edge.key.set_dst(srcId);
-            edge.key.set_edge_type(-edgeType_);
+            key.set_src(dstId);
+            key.set_dst(srcId);
+            key.set_edge_type(-edgeType_);
+            edge.set_key(key);
             edges_.emplace_back(std::move(edge));
         }
     }
@@ -255,18 +259,18 @@ Status InsertEdgesValidator::prepareEdges() {
 Status DeleteVerticesValidator::validateImpl() {
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
-    if (sentence->isRef()) {
-        vidRef_ = sentence->vidRef();
+    if (sentence->vertices()->isRef()) {
+        vidRef_ = sentence->vertices()->ref();
         auto type = deduceExprType(vidRef_);
         NG_RETURN_IF_ERROR(type);
-        if (type.value() != Value::Type::STRING) {
+        if (type.value() != vidType_) {
             std::stringstream ss;
-            ss << "The vid should be string type, "
-               << "but input is `" << type.value() << "'";
+            ss << "The vid `" << vidRef_->toString() << "' should be type of `" << vidType_
+               << "', but was`" << type.value() << "'";
             return Status::SemanticError(ss.str());
         }
     } else {
-        auto vIds = sentence->vidList()->vidList();
+        auto vIds = sentence->vertices()->vidList();
         for (auto vId : vIds) {
             auto idStatus = SchemaUtil::toVertexID(vId, vidType_);
             NG_RETURN_IF_ERROR(idStatus);
@@ -330,10 +334,10 @@ Status DeleteVerticesValidator::toPlan() {
 
         storage::cpp2::EdgeProp edgeProp;
         edgeProp.set_type(edgeTypes_[index]);
-        edgeProp.props.emplace_back(kSrc);
-        edgeProp.props.emplace_back(kDst);
-        edgeProp.props.emplace_back(kType);
-        edgeProp.props.emplace_back(kRank);
+        edgeProp.props_ref().value().emplace_back(kSrc);
+        edgeProp.props_ref().value().emplace_back(kDst);
+        edgeProp.props_ref().value().emplace_back(kType);
+        edgeProp.props_ref().value().emplace_back(kRank);
         edgeProps.emplace_back(edgeProp);
 
         edgeProp.set_type(-edgeTypes_[index]);
@@ -489,15 +493,28 @@ Status UpdateValidator::initProps() {
 
 Status UpdateValidator::getCondition() {
     auto *clause = sentence_->whenClause();
-    if (clause != nullptr) {
-        auto filter = clause->filter();
-        if (filter != nullptr) {
-            std::string encodeStr;
-            auto copyFilterExpr = filter->clone();
-            NG_LOG_AND_RETURN_IF_ERROR(
-                checkAndResetSymExpr(copyFilterExpr.get(), name_, encodeStr));
-            condition_ = std::move(encodeStr);
+    if (clause && clause->filter()) {
+        auto filter = clause->filter()->clone();
+        bool hasWrongType = false;
+        auto symExpr = rewriteSymExpr(filter.get(), name_, hasWrongType, isEdge_);
+        if (hasWrongType) {
+            return Status::SemanticError("Has wrong expr in `%s'",
+                                         filter->toString().c_str());
         }
+        if (symExpr != nullptr) {
+            filter.reset(symExpr.release());
+        }
+        auto typeStatus = deduceExprType(filter.get());
+        NG_RETURN_IF_ERROR(typeStatus);
+        auto type = typeStatus.value();
+        if (type != Value::Type::BOOL
+            && type != Value::Type::NULLVALUE
+            && type != Value::Type::__EMPTY__) {
+            std::stringstream ss;
+            ss << "`" << filter->toString() << "', expected Boolean, but was `" << type << "'";
+            return Status::SemanticError(ss.str());
+        }
+        condition_ = filter->encode();
     }
     return Status::OK();
 }
@@ -670,7 +687,9 @@ Status UpdateEdgeValidator::toPlan() {
                                      {},
                                      condition_,
                                      {});
-    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useToss = isoLevel == IsoLevel::TOSS;
     if (useToss) {
         root_ = outNode;
         tail_ = root_;

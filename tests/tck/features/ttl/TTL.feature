@@ -12,7 +12,6 @@ Feature: TTLTest
       """
       CREATE TAG person(name string, email string, age int, gender string, row_timestamp timestamp);
       """
-    And wait 6 seconds
     When executing query:
       """
       DESCRIBE TAG person;
@@ -98,7 +97,6 @@ Feature: TTLTest
       """
       ALTER TAG woman Drop (name) ttl_duration = 200;
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -121,7 +119,6 @@ Feature: TTLTest
       """
       ALTER TAG woman Drop (row_timestamp);
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -134,7 +131,6 @@ Feature: TTLTest
       """
       ALTER TAG woman ttl_duration = 100, ttl_col = "age";
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -196,7 +192,6 @@ Feature: TTLTest
       """
       CREATE EDGE work1(name string, email string, age int, gender string, row_timestamp timestamp) ttl_duration = 100, ttl_col = "row_timestamp";
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -331,6 +326,7 @@ Feature: TTLTest
     Then the result should be, in any order:
       | Edge    | Create Edge                                                                                                                  |
       | "work2" | 'CREATE EDGE `work2` (\n `email` string NULL,\n `age` string NULL,\n `gender` string NULL\n) ttl_duration = 0, ttl_col = ""' |
+    And drop the used space
 
   Scenario: TTLTest Datatest
     Given having executed:
@@ -340,15 +336,13 @@ Feature: TTLTest
       CREATE Edge like(id int) ttl_col="id", ttl_duration=100;
       CREATE Edge friend(id int);
       """
-    And wait 6 seconds
-    When executing query:
+    When try to execute query:
       """
       INSERT VERTEX person(id) VALUES "1":(100), "2":(200);
       INSERT VERTEX career(id) VALUES "2":(200);
       INSERT EDGE like(id) VALUES "100"->"1":(100), "100"->"2":(200);
       INSERT EDGE friend(id) VALUES "100"->"1":(100), "100"->"2":(200);
       """
-    And wait 6 seconds
     Then the execution should be successful
     When executing query:
       """
@@ -356,42 +350,30 @@ Feature: TTLTest
       """
     Then the result should be, in any order, with relax comparison:
       | vertices_ |
-      | ("1")     |
     When executing query:
       """
       FETCH PROP ON person "1" YIELD person.id as id
       """
     Then the result should be, in any order:
-      | VertexID | id    |
-      | "1"      | EMPTY |
+      | VertexID | id |
     When executing query:
       """
       FETCH PROP ON * "1" YIELD person.id, career.id
       """
     Then the result should be, in any order:
       | VertexID | person.id | career.id |
-      | "1"      | EMPTY     | EMPTY     |
     When executing query:
       """
       FETCH PROP ON person "2" YIELD person.id
       """
     Then the result should be, in any order:
       | VertexID | person.id |
-      | "2"      | EMPTY     |
     When executing query:
       """
       FETCH PROP ON person "2" YIELD person.id as id
       """
     Then the result should be, in any order:
-      | VertexID | id    |
-      | "2"      | EMPTY |
-    When executing query:
-      """
-      FETCH PROP ON career "2" YIELD career.id
-      """
-    Then the result should be, in any order:
-      | VertexID | career.id |
-      | "2"      | 200       |
+      | VertexID | id |
     When executing query:
       """
       FETCH PROP ON career "2" YIELD career.id;
@@ -434,3 +416,31 @@ Feature: TTLTest
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | id |
+    And drop the used space
+
+  Scenario: TTLTest expire time
+    Given having executed:
+      """
+      CREATE TAG person(id timestamp, age int) ttl_col="id", ttl_duration=5;
+      """
+    When try to execute query:
+      """
+      INSERT VERTEX person(id, age) VALUES "1":(now(), 20);
+      """
+    Then the execution should be successful
+    And wait 1 seconds
+    When executing query:
+      """
+      FETCH PROP ON person "1" YIELD person.age as age;
+      """
+    Then the result should be, in any order, with relax comparison:
+      | VertexID | age |
+      | "1"      | 20  |
+    And wait 7 seconds
+    When executing query:
+      """
+      FETCH PROP ON person "1" YIELD person.age as age;
+      """
+    Then the result should be, in any order:
+      | VertexID | age |
+    And drop the used space

@@ -14,10 +14,7 @@
 namespace nebula {
 namespace graph {
 bool SequentialPlanner::match(AstContext* astCtx) {
-    if (astCtx->sentence->kind() == Sentence::Kind::kSequential) {
-        return true;
-    }
-    return false;
+    return astCtx->sentence->kind() == Sentence::Kind::kSequential;
 }
 
 StatusOr<SubPlan> SequentialPlanner::transform(AstContext* astCtx) {
@@ -30,9 +27,9 @@ StatusOr<SubPlan> SequentialPlanner::transform(AstContext* astCtx) {
     for (auto iter = validators.begin(); iter < validators.end() - 1; ++iter) {
         NG_RETURN_IF_ERROR((iter + 1)->get()->appendPlan(iter->get()->root()));
     }
-    subPlan.tail = StartNode::make(qctx);
+    subPlan.tail = seqCtx->startNode;
     NG_RETURN_IF_ERROR(validators.front()->appendPlan(subPlan.tail));
-    VLOG(1) << "root: " << subPlan.root->kind() << " tail: " << subPlan.tail->kind();
+    VLOG(1) << subPlan;
     return subPlan;
 }
 

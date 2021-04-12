@@ -17,6 +17,21 @@ Feature: IntegerVid Go  Sentence
       | "Spurs"    |
     When executing query:
       """
+      GO FROM hash("Tim Duncan") OVER like YIELD $^.player.name as name, $^.player.age as age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name         | age |
+      | "Tim Duncan" | 42  |
+    When executing query:
+      """
+      GO FROM hash("Tim Duncan"), hash("Tony Parker") OVER like YIELD $^.player.name as name, $^.player.age as age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name          | age |
+      | "Tim Duncan"  | 42  |
+      | "Tony Parker" | 36  |
+    When executing query:
+      """
       GO FROM hash("Tim Duncan"), hash("Tim Duncan") OVER serve
       """
     Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
@@ -328,17 +343,12 @@ Feature: IntegerVid Go  Sentence
       | "Hornets"       |
       | "Trail Blazers" |
 
-  @skip
   Scenario: Integer Vid edge type
     When executing query:
       """
       YIELD serve.start_year, like.likeness, serve._type, like._type
       """
-    Then the result should be, in any order, with relax comparison:
-      | serve.start_year | like.likeness | serve._type | like._type |
-      | 2008             | EMPTY         | 6           | EMPTY      |
-      | EMPTY            | 90            | EMPTY       | 5          |
-      | EMPTY            | 90            | EMPTY       | 5          |
+    Then a SemanticError should be raised at runtime: Not supported expression `serve.start_year' for props deduction.
     When executing query:
       """
       GO FROM hash("Russell Westbrook") OVER serve, like REVERSELY
@@ -346,9 +356,9 @@ Feature: IntegerVid Go  Sentence
       """
     Then the result should be, in any order, with relax comparison, and the columns 0,1 should be hashed:
       | serve._dst | like._dst         | serve._type | like._type |
-      | EMPTY      | "James Harden"    | EMPTY       | -5         |
-      | EMPTY      | "Dejounte Murray" | EMPTY       | -5         |
-      | EMPTY      | "Paul George"     | EMPTY       | -5         |
+      | EMPTY      | "James Harden"    | EMPTY       | /-?\d+/    |
+      | EMPTY      | "Dejounte Murray" | EMPTY       | /-?\d+/    |
+      | EMPTY      | "Paul George"     | EMPTY       | /-?\d+/    |
 
   Scenario: Integer Vid multi edges
     When executing query:
@@ -587,11 +597,10 @@ Feature: IntegerVid Go  Sentence
       """
     Then a SemanticError should be raised at runtime: `serve.test', not found the property `test'.
 
-  @skip
-  Scenario: Integer Vid udf call (reason = "not support udf_is_in now")
+  Scenario: Integer Vid udf call
     When executing query:
       """
-      GO FROM hash('Boris Diaw') OVER serve WHERE udf_is_in($$.team.name, 'Hawks', 'Suns')
+      GO FROM hash('Boris Diaw') OVER serve WHERE $$.team.name IN ['Hawks', 'Suns']
       YIELD $^.player.name, serve.start_year, serve.end_year, $$.team.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -600,8 +609,8 @@ Feature: IntegerVid Go  Sentence
       | "Boris Diaw"   | 2005             | 2008           | "Suns"       |
     When executing query:
       """
-      GO FROM hash('Tim Duncan') OVER like YIELD like._dst AS id
-      | GO FROM  $-.id OVER serve WHERE udf_is_in($-.id, 'Tony Parker', 123)
+      GO FROM hash('Tim Duncan') OVER like YIELD like._dst AS id |
+      GO FROM  $-.id OVER serve WHERE $-.id IN [hash('Tony Parker'), 123]
       """
     Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
       | serve._dst |
@@ -609,8 +618,8 @@ Feature: IntegerVid Go  Sentence
       | "Hornets"  |
     When executing query:
       """
-      GO FROM hash('Tim Duncan') OVER like YIELD like._dst AS id
-      | GO FROM  $-.id OVER serve WHERE udf_is_in($-.id, 'Tony Parker', 123) AND 1 == 1
+      GO FROM hash('Tim Duncan') OVER like YIELD like._dst AS id |
+      GO FROM  $-.id OVER serve WHERE $-.id IN [hash('Tony Parker'), 123] AND 1 == 1
       """
     Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
       | serve._dst |

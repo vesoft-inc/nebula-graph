@@ -21,8 +21,8 @@ void ExtractFilterExprVisitor::visit(UUIDExpression *) {
     canBePushed_ = false;
 }
 
-void ExtractFilterExprVisitor::visit(VariableExpression *) {
-    canBePushed_ = false;
+void ExtractFilterExprVisitor::visit(VariableExpression *expr) {
+    canBePushed_ = static_cast<VariableExpression *>(expr)->isInner();
 }
 
 void ExtractFilterExprVisitor::visit(VersionedVariableExpression *) {
@@ -101,7 +101,9 @@ void ExtractFilterExprVisitor::visit(LogicalExpression *expr) {
                 remainedExpr->addOperand(operands[i]->clone().release());
                 expr->setOperand(i, new ConstantExpression(true));
             }
-            remainedExpr_ = std::move(remainedExpr);
+            if (remainedExpr->operands().size() > 0) {
+                remainedExpr_ = std::move(remainedExpr);
+            }
         }
     } else {
         ExprVisitorImpl::visit(expr);

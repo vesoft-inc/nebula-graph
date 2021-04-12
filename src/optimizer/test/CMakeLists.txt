@@ -10,6 +10,7 @@ set(OPTIMIZER_TEST_LIB
     $<TARGET_OBJECTS:common_datatypes_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
+    $<TARGET_OBJECTS:common_agg_function_manager_obj>
     $<TARGET_OBJECTS:common_time_obj>
     $<TARGET_OBJECTS:common_meta_thrift_obj>
     $<TARGET_OBJECTS:common_meta_client_obj>
@@ -51,10 +52,8 @@ nebula_add_test(
     OBJECTS
         ${OPTIMIZER_TEST_LIB}
     LIBRARIES
-        proxygenhttpserver
-        proxygenlib
+        ${PROXYGEN_LIBRARIES}
         ${THRIFT_LIBRARIES}
-        wangle
         gtest
         gtest_main
 )
@@ -67,10 +66,8 @@ nebula_add_test(
     OBJECTS
         ${OPTIMIZER_TEST_LIB}
     LIBRARIES
-        proxygenhttpserver
-        proxygenlib
-    ${THRIFT_LIBRARIES}
-        wangle
+        ${PROXYGEN_LIBRARIES}
+        ${THRIFT_LIBRARIES}
         gtest
         gtest_main
 )

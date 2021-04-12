@@ -3,6 +3,7 @@
 *.DS_Store
 
 # build
+pkg-build
 build
 _build
 _build.log
@@ -47,6 +48,7 @@ nebula-python
 .classpath
 cmake-build*/
 .vscode/
+.cache/
 core.*
 workspace.*
 
@@ -56,3 +58,6 @@ workspace.*
 *.py[co]
 __pycache__
 venv/
+
+#lock
+*.lock

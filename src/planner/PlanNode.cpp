@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 
+#include <folly/String.h>
 #include <folly/json.h>
 
 #include "common/graph/Response.h"
@@ -153,13 +154,13 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
         case Kind::kShowEdges:
             return "ShowEdges";
         case Kind::kShowTagIndexes:
-            return "kShowTagIndexes";
+            return "ShowTagIndexes";
         case Kind::kShowEdgeIndexes:
-            return "kShowEdgeIndexes";
+            return "ShowEdgeIndexes";
         case Kind::kShowTagIndexStatus:
-            return "kShowTagIndexStatus";
+            return "ShowTagIndexStatus";
         case Kind::kShowEdgeIndexStatus:
-            return "kShowEdgeIndexStatus";
+            return "ShowEdgeIndexStatus";
         case Kind::kCreateSnapshot:
             return "CreateSnapshot";
         case Kind::kDropSnapshot:
@@ -178,8 +179,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowBalance";
         case Kind::kSubmitJob:
             return "SubmitJob";
-        case Kind::kDataJoin:
-            return "DataJoin";
+        case Kind::kLeftJoin:
+            return "LeftJoin";
+        case Kind::kInnerJoin:
+            return "InnerJoin";
         case Kind::kDeleteVertices:
             return "DeleteVertices";
         case Kind::kDeleteEdges:
@@ -263,6 +266,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
 
+std::string PlanNode::toString() const {
+    return folly::stringPrintf("%s_%ld", toString(kind_), id_);
+}
+
 // static
 void PlanNode::addDescription(std::string key, std::string value, PlanNodeDescription* desc) {
     if (desc->description == nullptr) {
@@ -271,8 +278,41 @@ void PlanNode::addDescription(std::string key, std::string value, PlanNodeDescri
     desc->description->emplace_back(Pair{std::move(key), std::move(value)});
 }
 
+void PlanNode::readVariable(const std::string& varname) {
+    auto varPtr = qctx_->symTable()->getVar(varname);
+    readVariable(varPtr);
+}
+
+void PlanNode::readVariable(Variable* varPtr) {
+    DCHECK(varPtr != nullptr);
+    inputVars_.emplace_back(varPtr);
+    qctx_->symTable()->readBy(varPtr->name, this);
+}
+
 void PlanNode::calcCost() {
     VLOG(1) << "unimplemented cost calculation.";
+}
+
+void PlanNode::setOutputVar(const std::string& var) {
+    DCHECK_EQ(1, outputVars_.size());
+    auto* outputVarPtr = qctx_->symTable()->getVar(var);
+    DCHECK(outputVarPtr != nullptr);
+    auto oldVar = outputVars_[0]->name;
+    outputVars_[0] = outputVarPtr;
+    qctx_->symTable()->updateWrittenBy(oldVar, var, this);
+}
+
+void PlanNode::setInputVar(const std::string& varname, size_t idx) {
+    std::string oldVar = inputVar(idx);
+    auto symTable = qctx_->symTable();
+    auto varPtr = symTable->getVar(varname);
+    DCHECK(varPtr != nullptr);
+    inputVars_[idx] = varPtr;
+    if (!oldVar.empty()) {
+        symTable->updateReadBy(oldVar, varname, this);
+    } else {
+        symTable->readBy(varname, this);
+    }
 }
 
 std::unique_ptr<PlanNodeDescription> PlanNode::explain() const {
@@ -281,6 +321,16 @@ std::unique_ptr<PlanNodeDescription> PlanNode::explain() const {
     desc->name = toString(kind_);
     desc->outputVar = folly::toJson(util::toJson(outputVars_));
     return desc;
+}
+
+void PlanNode::releaseSymbols() {
+    auto symTbl = qctx_->symTable();
+    for (auto in : inputVars_) {
+        in && symTbl->deleteReadBy(in->name, this);
+    }
+    for (auto out : outputVars_) {
+        out && symTbl->deleteWrittenBy(out->name, this);
+    }
 }
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {
@@ -299,6 +349,15 @@ std::unique_ptr<PlanNodeDescription> SingleInputNode::explain() const {
     auto desc = SingleDependencyNode::explain();
     addDescription("inputVar", inputVar(), desc.get());
     return desc;
+}
+
+BiInputNode::BiInputNode(QueryContext* qctx, Kind kind, const PlanNode* left, const PlanNode* right)
+    : PlanNode(qctx, kind) {
+    addDep(left);
+    readVariable(left->outputVarPtr());
+
+    addDep(right);
+    readVariable(right->outputVarPtr());
 }
 
 std::unique_ptr<PlanNodeDescription> BiInputNode::explain() const {

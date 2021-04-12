@@ -128,14 +128,15 @@ std::string OrderBySentence::toString() const {
 std::string FetchVerticesSentence::toString() const {
     std::string buf;
     buf.reserve(256);
-    buf += "FETCH PROP ON ";
-    buf += tags_->toString();
+    buf += "FETCH PROP ON";
     buf += " ";
-    if (isRef()) {
-        buf += vidRef_->toString();
+    if (tags_->empty()) {
+        buf += "*";
     } else {
-        buf += vidList_->toString();
+        buf += tags_->toString();
     }
+    buf += " ";
+    buf += vertices_->toString();
     if (yieldClause_ != nullptr) {
         buf += " ";
         buf += yieldClause_->toString();
@@ -197,6 +198,7 @@ std::string FindPathSentence::toString() const {
         buf += " ";
     }
     if (step_ != nullptr) {
+        buf += "UPTO ";
         buf += step_->toString();
         buf += " ";
     }

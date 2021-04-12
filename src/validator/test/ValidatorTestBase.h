@@ -22,6 +22,7 @@
 #include "validator/Validator.h"
 #include "validator/test/MockSchemaManager.h"
 #include "validator/test/MockIndexManager.h"
+#include "util/AstUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -33,7 +34,7 @@ protected:
         SpaceInfo spaceInfo;
         spaceInfo.name = "test_space";
         spaceInfo.id = 1;
-        spaceInfo.spaceDesc.space_name = "test_space";
+        spaceInfo.spaceDesc.set_space_name("test_space");
         session_->setSpace(std::move(spaceInfo));
         schemaMng_ = CHECK_NOTNULL(MockSchemaManager::makeUnique());
         indexMng_ = CHECK_NOTNULL(MockIndexManager::makeUnique());
@@ -47,6 +48,7 @@ protected:
         if (!result.ok()) {
             return std::move(result).status();
         }
+        NG_RETURN_IF_ERROR(AstUtils::reprAstCheck(*result.value()));
         auto sentences = pool_->add(std::move(result).value().release());
         auto qctx = buildContext();
         NG_RETURN_IF_ERROR(Validator::validate(sentences, qctx));

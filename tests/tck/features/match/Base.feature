@@ -17,6 +17,16 @@ Feature: Basic match
       | ("Yao Ming") |
     When executing query:
       """
+      MATCH (v:player) WHERE v.age < 0 RETURN v
+      """
+    Then the result should be, in any order, with relax comparison:
+      | v                                      |
+      | ("Null1" :player{age: -1, name: NULL}) |
+      | ("Null2" :player{age: -2, name: NULL}) |
+      | ("Null3" :player{age: -3, name: NULL}) |
+      | ("Null4" :player{age: -4, name: NULL}) |
+    When executing query:
+      """
       MATCH (v:player) WHERE v.name == "Yao Ming" RETURN v.age AS Age
       """
     Then the result should be, in any order:
@@ -367,46 +377,119 @@ Feature: Basic match
       | p                                                                      |
       | <("LeBron James")-[:like@0]->("Ray Allen")-[:like@0]->("Rajon Rondo")> |
 
+  Scenario: Unsupported combination of some cypher clauses
+    When executing query:
+      """
+      MATCH (v:player) MATCH (t:team) RETURN v, t
+      """
+    Then a SemanticError should be raised at runtime: Match clause is not supported to be followed by other cypher clauses
+    When executing query:
+      """
+      UNWIND ["Tony Parker", "Tim Duncan", "Yao Ming"] AS a MATCH (v:player) RETURN a, v
+      """
+    Then a SemanticError should be raised at runtime: Match clause is not supported to be followed by other cypher clauses
+    When executing query:
+      """
+      WITH "Tony Parker" AS a MATCH (v:player) RETURN a, v
+      """
+    Then a SemanticError should be raised at runtime: Match clause is not supported to be followed by other cypher clauses
+
+  Scenario: exists
+    When executing query:
+      """
+      match (:player{name:"Tony Parker"})-[r]->() where exists(r.likeness) return r, exists({a:12}.a)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | r                                                            | exists({a:12}.a) |
+      | [:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}] | true             |
+      | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]     | true             |
+      | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]        | true             |
+    When executing query:
+      """
+      match (:player{name:"Tony Parker"})-[r]->(m) where exists(m.likeness) return r, exists({a:12}.a)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | r | exists({a:12}.a) |
+    When executing query:
+      """
+      match (:player{name:"Tony Parker"})-[r]->(m) where exists({abc:123}.abc) return r
+      """
+    Then the result should be, in any order, with relax comparison:
+      | r                                                                                    |
+      | [:teammate "Tony Parker"->"Kyle Anderson" @0 {end_year: 2016, start_year: 2014}]     |
+      | [:teammate "Tony Parker"->"LaMarcus Aldridge" @0 {end_year: 2018, start_year: 2015}] |
+      | [:teammate "Tony Parker"->"Manu Ginobili" @0 {end_year: 2018, start_year: 2002}]     |
+      | [:teammate "Tony Parker"->"Tim Duncan" @0 {end_year: 2016, start_year: 2001}]        |
+      | [:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]                         |
+      | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]                             |
+      | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]                                |
+      | [:serve "Tony Parker"->"Hornets" @0 {end_year: 2019, start_year: 2018}]              |
+      | [:serve "Tony Parker"->"Spurs" @0 {end_year: 2018, start_year: 1999}]                |
+    When executing query:
+      """
+      match (:player{name:"Tony Parker"})-[r]->(m) where exists({abc:123}.ab) return r
+      """
+    Then the result should be, in any order, with relax comparison:
+      | r |
+    When executing query:
+      """
+      match (:player{name:"Tony Parker"})-[r]->(m) where exists(m.age) return r
+      """
+    Then the result should be, in any order, with relax comparison:
+      | r                                                                                    |
+      | [:teammate "Tony Parker"->"Kyle Anderson" @0 {end_year: 2016, start_year: 2014}]     |
+      | [:teammate "Tony Parker"->"LaMarcus Aldridge" @0 {end_year: 2018, start_year: 2015}] |
+      | [:teammate "Tony Parker"->"Manu Ginobili" @0 {end_year: 2018, start_year: 2002}]     |
+      | [:teammate "Tony Parker"->"Tim Duncan" @0 {end_year: 2016, start_year: 2001}]        |
+      | [:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]                         |
+      | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]                             |
+      | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]                                |
+
   Scenario: No return
     When executing query:
       """
       MATCH (v:player{name:"abc"})
       """
     Then a SyntaxError should be raised at runtime: syntax error near `)'
+    When executing query:
+      """
+      MATCH (v:player) where v.name return v
+      """
+    Then a ExecutionError should be raised at runtime: Internal Error: Wrong type result, the type should be NULL,EMPTY or BOOL
 
   Scenario: Unimplemented features
     When executing query:
       """
       MATCH (v) return v
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v) RETURN v
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v) RETURN v
     When executing query:
       """
       MATCH (v{name: "Tim Duncan"}) return v
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v{name:Tim Duncan}) RETURN v
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v{name:"Tim Duncan"}) RETURN v
     When executing query:
       """
       MATCH (v:player:bachelor) RETURN v
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player:bachelor) RETURN v
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player:bachelor) RETURN v
     When executing query:
       """
       MATCH (v:player{age:23}:bachelor) RETURN v
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player{age:23}:bachelor) RETURN v
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player{age:23}:bachelor) RETURN v
     When executing query:
       """
       MATCH () -[r:serve]-> () return *
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-[r:serve]->() RETURN *
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-[r:serve]->() RETURN *
     When executing query:
       """
       MATCH () -[]-> (v) return *
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v) RETURN *
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v) RETURN *
     When executing query:
       """
       MATCH () --> (v) --> () return *
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *

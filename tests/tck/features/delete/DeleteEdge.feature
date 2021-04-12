@@ -17,26 +17,32 @@ Feature: Delete string vid of edge
       CREATE EDGE IF NOT EXISTS schoolmate(likeness int);
       CREATE EDGE IF NOT EXISTS transfer(money int);
       """
-    And wait 3 seconds
-    When executing query:
+    And having executed:
       """
-      INSERT VERTEX person(name, age) VALUES
-      "Zhangsan":("Zhangsan", 22),
-      "Lisi":("Lisi", 23),
-      "Jack":("Jack", 18),
-      "Rose":("Rose", 19);
-      INSERT EDGE friend(intimacy) VALUES
-      "Zhangsan"->"Lisi"@15:(90),
-      "Zhangsan"->"Jack"@12:(50),
-      "Jack"->"Rose"@13:(100);
-      INSERT EDGE schoolmate(likeness) VALUES
-      "Zhangsan"->"Jack":(60),
-      "Lisi"->"Rose":(70);
-      INSERT EDGE transfer(money) VALUES
-      "Zhangsan"->"Lisi"@1561013236:(33),
-      "Zhangsan"->"Lisi"@1561013237:(77);
+      INSERT VERTEX
+        person(name, age)
+      VALUES
+        "Zhangsan":("Zhangsan", 22),
+        "Lisi":("Lisi", 23),
+        "Jack":("Jack", 18),
+        "Rose":("Rose", 19);
+      INSERT EDGE
+        friend(intimacy)
+      VALUES
+        "Zhangsan"->"Lisi"@15:(90),
+        "Zhangsan"->"Jack"@12:(50),
+        "Jack"->"Rose"@13:(100);
+      INSERT EDGE
+        schoolmate(likeness)
+      VALUES
+        "Zhangsan"->"Jack":(60),
+        "Lisi"->"Rose":(70);
+      INSERT EDGE
+        transfer(money)
+      VALUES
+        "Zhangsan"->"Lisi"@1561013236:(33),
+        "Zhangsan"->"Lisi"@1561013237:(77);
       """
-    Then the execution should be successful
     # before get result by go
     When executing query:
       """
@@ -130,7 +136,7 @@ Feature: Delete string vid of edge
       | "Zhangsan"     | 50              | "Jack"      |
     Then drop the used space
 
-  Scenario: delete edges for 2.0 syntax
+  Scenario: delete edges use pipe
     Given load "nba" csv data to a new space
     # test delete with pipe wrong vid type
     When executing query:

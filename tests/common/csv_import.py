@@ -111,6 +111,8 @@ class CSVImporter:
         return f'{self._insert_stmt} {src_vid}->{dst_vid}@{rank}:({",".join(props)});'
 
     def value(self, ptype: str, col):
+        if type(col) == str and col.lower() in ["__null__", "null"]:
+            return "NULL"
         return f'"{col}"' if ptype == 'string' else f'{col}'
 
     def vid_str(self, vid: VID, col: str):

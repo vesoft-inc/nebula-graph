@@ -8,10 +8,14 @@
 #define PLANNER_EXECUTIONPLAN_H_
 
 #include <cstdint>
+#include <memory>
+#include <string>
 
 namespace nebula {
 
+struct ProfilingStats;
 struct PlanDescription;
+struct PlanNodeDescription;
 
 namespace graph {
 
@@ -22,23 +26,41 @@ public:
     explicit ExecutionPlan(PlanNode* root = nullptr);
     ~ExecutionPlan();
 
-    void setRoot(PlanNode* root) {
-        root_ = root;
-    }
-
     int64_t id() const {
         return id_;
+    }
+
+    void setRoot(PlanNode* root) {
+        root_ = root;
     }
 
     PlanNode* root() const {
         return root_;
     }
 
-    void fillPlanDescription(PlanDescription* planDesc) const;
+    int32_t* optimizeTimeInUs() {
+        return &optimizeTimeInUs_;
+    }
+
+    void addProfileStats(int64_t planNodeId, ProfilingStats&& profilingStats);
+
+    void describe(PlanDescription* planDesc);
+
+    void setExplainFormat(const std::string& format) {
+        explainFormat_ = format;
+    }
 
 private:
+    uint64_t makePlanNodeDesc(const PlanNode* node);
+    void descBranchInfo(const PlanNode* node, bool isDoBranch, int64_t id);
+    void setPlanNodeDeps(const PlanNode* dep, PlanNodeDescription* planNodeDesc) const;
+
+    int32_t optimizeTimeInUs_{0};
     int64_t id_{-1};
     PlanNode* root_{nullptr};
+    // plan description for explain and profile query
+    PlanDescription* planDescription_{nullptr};
+    std::string explainFormat_;
 };
 
 }   // namespace graph

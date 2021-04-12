@@ -15,32 +15,44 @@ Feature: Update string vid of vertex and edge
       CREATE TAG IF NOT EXISTS course(name string, credits int);
       CREATE TAG IF NOT EXISTS building(name string);
       CREATE TAG IF NOT EXISTS student(name string, age int, gender string);
-      CREATE TAG IF NOT EXISTS student_default(name string NOT NULL,
-      age int NOT NULL,gender string DEFAULT "one", birthday int DEFAULT 2010);
+      CREATE TAG IF NOT EXISTS student_default(
+        name string NOT NULL,
+        age int NOT NULL,
+        gender string DEFAULT "one",
+        birthday int DEFAULT 2010
+      );
       CREATE EDGE IF NOT EXISTS like(likeness double);
       CREATE EDGE IF NOT EXISTS select(grade int, year int);
       CREATE EDGE IF NOT EXISTS select_default(grade int NOT NULL,year TIMESTAMP DEFAULT 1546308000);
       """
-    And wait 3 seconds
     And having executed:
       """
-      INSERT VERTEX student(name, age, gender) VALUES
-      "200":("Monica", 16, "female"),
-      "201":("Mike", 18, "male"),
-      "202":("Jane", 17, "female");
-      INSERT VERTEX course(name, credits),building(name) VALUES
-      "101":("Math", 3, "No5"),
-      "102":("English", 6, "No11");
+      INSERT VERTEX
+        student(name, age, gender)
+      VALUES
+        "200":("Monica", 16, "female"),
+        "201":("Mike", 18, "male"),
+        "202":("Jane", 17, "female");
+      INSERT VERTEX
+        course(name, credits),
+        building(name)
+      VALUES
+        "101":("Math", 3, "No5"),
+        "102":("English", 6, "No11");
       INSERT VERTEX course(name, credits) VALUES "103":("CS", 5);
-      INSERT EDGE select(grade, year) VALUES
-      "200"->"101"@0:(5, 2018),
-      "200" -> "102"@0:(3, 2018),
-      "201" -> "102"@0:(3, 2019),
-      "202" -> "102"@0:(3, 2019);
-      INSERT EDGE like(likeness) VALUES
-      "200" -> "201"@0:(92.5),
-      "201" -> "200"@0:(85.6),
-      "201" -> "202"@0:(93.2);
+      INSERT EDGE
+        select(grade, year)
+      VALUES
+        "200"->"101"@0:(5, 2018),
+        "200" -> "102"@0:(3, 2018),
+        "201" -> "102"@0:(3, 2019),
+        "202" -> "102"@0:(3, 2019);
+      INSERT EDGE
+        like(likeness)
+      VALUES
+        "200" -> "201"@0:(92.5),
+        "201" -> "200"@0:(85.6),
+        "201" -> "202"@0:(93.2);
       """
 
   Scenario: update and upsert test with 1.0 syntax
@@ -226,6 +238,54 @@ Feature: Update string vid of vertex and edge
       YIELD $^.course.name AS Name, $^.course.credits AS Credits, $$.building.name
       """
     Then a SemanticError should be raised at runtime: Has wrong expr in `($$.course.credits+1)'
+    When executing query:
+      """
+      UPDATE VERTEX "101"
+      SET course.credits = 1
+      WHEN 123
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `123', expected Boolean, but was `INT'
+    When executing query:
+      """
+      UPDATE VERTEX "101"
+      SET course.credits = 1
+      WHEN credits
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `$^.course.credits', expected Boolean, but was `INT'
+    When executing query:
+      """
+      UPSERT VERTEX "101"
+      SET course.credits = 1
+      WHEN credits
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `$^.course.credits', expected Boolean, but was `INT'
+    When executing query:
+      """
+      UPSERT VERTEX "101"
+      SET course.credits = 1
+      WHEN "xyz"
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `"xyz"', expected Boolean, but was `STRING'
+    When executing query:
+      """
+      UPDATE VERTEX ON course "101"
+      SET credits = 1
+      WHEN credits
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `$^.course.credits', expected Boolean, but was `INT'
+    When executing query:
+      """
+      UPSERT VERTEX ON course "101"
+      SET credits = 1
+      WHEN "xyz"
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `"xyz"', expected Boolean, but was `STRING'
     # make sure TagName and PropertyName must exist in all clauses
     When executing query:
       """
@@ -384,7 +444,7 @@ Feature: Update string vid of vertex and edge
       WHEN $^.student.age > 15 AND $^.student.gender == "male"
       YIELD select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `(($^.student.age>15) AND ($^.student.gender==male))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `(($^.student.age>15) AND ($^.student.gender=="male"))'
     When executing query:
       """
       UPSERT EDGE "201" -> "101"@0 OF select
@@ -552,7 +612,7 @@ Feature: Update string vid of vertex and edge
       ALTER TAG building ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # upsert after alter schema
     When executing query:
       """
@@ -599,7 +659,7 @@ Feature: Update string vid of vertex and edge
       ALTER EDGE like ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     When executing query:
       """
       UPSERT EDGE "1"->"100" OF like SET likeness = 2.0;
@@ -986,7 +1046,7 @@ Feature: Update string vid of vertex and edge
       WHEN grade > 4 AND age > 15
       YIELD grade AS Grade, year AS Year
       """
-    Then a ExecutionError should be raised at runtime: Storage Error: Edge prop not found
+    Then a SemanticError should be raised at runtime: `select.age', not found the property `age'.
     # make sure the edge(src, ranking, dst) must not exist
     When executing query:
       """
@@ -1054,7 +1114,7 @@ Feature: Update string vid of vertex and edge
       ALTER TAG building ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # upsert after alter schema
     When executing query:
       """
@@ -1101,7 +1161,7 @@ Feature: Update string vid of vertex and edge
       ALTER EDGE like ADD (new_field string default "123");
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     When executing query:
       """
       UPSERT EDGE ON like "1"->"100" SET likeness = 2.0;

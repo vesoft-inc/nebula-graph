@@ -105,7 +105,7 @@ DeduceTypeVisitor::DeduceTypeVisitor(QueryContext *qctx,
     if (!vctx->spaceChosen()) {
         vidType_ = Value::Type::__EMPTY__;
     } else {
-        auto vidType = vctx_->whichSpace().spaceDesc.vid_type.get_type();
+        auto vidType = vctx_->whichSpace().spaceDesc.vid_type_ref().value().get_type();
         vidType_ = SchemaUtil::propTypeToValueType(vidType);
     }
 }
@@ -127,6 +127,22 @@ void DeduceTypeVisitor::visit(UnaryExpression *expr) {
         }
         case Expression::Kind::kUnaryNot: {
             DETECT_UNARYEXPR_TYPE(!);
+            break;
+        }
+        case Expression::Kind::kIsNull: {
+            type_ = Value::Type::BOOL;
+            break;
+        }
+        case Expression::Kind::kIsNotNull: {
+            type_ = Value::Type::BOOL;
+            break;
+        }
+        case Expression::Kind::kIsEmpty: {
+            type_ = Value::Type::BOOL;
+            break;
+        }
+        case Expression::Kind::kIsNotEmpty: {
+            type_ = Value::Type::BOOL;
             break;
         }
         case Expression::Kind::kUnaryIncr: {
@@ -164,6 +180,12 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
     expr->operand()->accept(this);
     if (!ok()) return;
 
+    // if can't deduce the type of expr's operand, ignore it
+    if (type_ == Value::Type::NULLVALUE || type_ == Value::Type::__EMPTY__) {
+        type_ = expr->type();
+        return;
+    }
+
     EvaluableExprVisitor visitor;
     expr->operand()->accept(&visitor);
 
@@ -173,7 +195,7 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
             return;
         }
         std::stringstream out;
-        out << "Can not convert " << expr->operand() << " 's type : " << type_ << " to "
+        out << "Can not convert " << expr->operand()->toString() << " 's type : " << type_ << " to "
             << expr->type();
         status_ = Status::SemanticError(out.str());
         return;
@@ -231,10 +253,13 @@ void DeduceTypeVisitor::visit(RelationalExpression *expr) {
 
     if (expr->kind() == Expression::Kind::kRelIn || expr->kind() == Expression::Kind::kRelNotIn) {
         auto right = type_;
-        if (right != Value::Type::LIST && right != Value::Type::SET && right != Value::Type::MAP) {
-            status_ = Status::SemanticError(
-                "`%s': Invalid expression for IN operator, expecting List/Set/Map",
-                expr->toString().c_str());
+        if (right != Value::Type::LIST && right != Value::Type::SET && right != Value::Type::MAP &&
+            !isSuperiorType(right)) {
+            std::stringstream ss;
+            ss << "`" << expr->right()->toString()
+               << "', expected List/Set/Map, but was "
+               << type_;
+            status_ = Status::SemanticError(ss.str());
             return;
         }
     }
@@ -397,60 +422,7 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
 void DeduceTypeVisitor::visit(AggregateExpression *expr) {
     expr->arg()->accept(this);
     if (!ok()) return;
-    auto arg_type = type_;
-
-    auto func = AggregateExpression::NAME_ID_MAP[expr->name()->c_str()];
-    switch (func) {
-        case AggregateExpression::Function::kCount: {
-            type_ = Value::Type::INT;
-            break;
-        }
-        case AggregateExpression::Function::kSum: {
-            type_ = arg_type;
-            break;
-        }
-        case AggregateExpression::Function::kAvg: {
-            type_ = Value::Type::FLOAT;
-            break;
-        }
-        case AggregateExpression::Function::kMax: {
-            type_ = arg_type;
-            break;
-        }
-        case AggregateExpression::Function::kMin: {
-            type_ = arg_type;
-            break;
-        }
-        case AggregateExpression::Function::kStdev: {
-            type_ = Value::Type::FLOAT;
-            break;
-        }
-        case AggregateExpression::Function::kBitAnd: {
-            type_ = Value::Type::INT;
-            break;
-        }
-        case AggregateExpression::Function::kBitOr: {
-            type_ = Value::Type::INT;
-            break;
-        }
-        case AggregateExpression::Function::kBitXor: {
-            type_ = Value::Type::INT;
-            break;
-        }
-        case AggregateExpression::Function::kCollect: {
-            type_ = Value::Type::LIST;
-            break;
-        }
-        case AggregateExpression::Function::kCollectSet: {
-            type_ = Value::Type::SET;
-            break;
-        }
-        default: {
-            LOG(FATAL) << "Invalid Aggregate expression kind: "
-                       << expr->name()->c_str();
-            break;
-        }
-    }
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(UUIDExpression *) {
@@ -587,10 +559,10 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
     for (const auto &whenThen : expr->cases()) {
         whenThen.when->accept(this);
         if (!ok()) return;
-        if (!expr->hasCondition() && type_ != Value::Type::BOOL) {
-            status_ = Status::SemanticError(
-                "`%s': Invalid expression type, expecting expression of type BOOL",
-                expr->toString().c_str());
+        if (!expr->hasCondition() && type_ != Value::Type::BOOL && !isSuperiorType(type_)) {
+            std::stringstream ss;
+            ss << "`" << whenThen.when->toString() << "', expected BOOL, but was " << type_;
+            status_ = Status::SemanticError(ss.str());
             return;
         }
         whenThen.then->accept(this);
@@ -602,8 +574,12 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(PredicateExpression *expr) {
-    expr->filter()->accept(this);
-    if (!ok()) return;
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (!ok()) {
+            return;
+        }
+    }
 
     expr->collection()->accept(this);
     if (!ok()) return;
@@ -612,8 +588,8 @@ void DeduceTypeVisitor::visit(PredicateExpression *expr) {
     }
     if (type_ != Value::Type::LIST) {
         std::stringstream ss;
-        ss << "`" << expr->toString().c_str()
-           << "': Invalid colletion type, expected type of LIST, but was: " << type_;
+        ss << "`" << expr->collection()->toString()
+           << "', expected LIST, but was " << type_;
         status_ = Status::SemanticError(ss.str());
         return;
     }
@@ -646,8 +622,8 @@ void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
 
     if (type_ != Value::Type::LIST) {
         std::stringstream ss;
-        ss << "`" << expr->toString().c_str()
-           << "': Invalid colletion type, expected type of LIST, but was: " << type_;
+        ss << "`" << expr->collection()->toString()
+           << "', expected LIST, but was " << type_;
         status_ = Status::SemanticError(ss.str());
         return;
     }
@@ -670,8 +646,8 @@ void DeduceTypeVisitor::visit(ReduceExpression *expr) {
 
     if (type_ != Value::Type::LIST) {
         std::stringstream ss;
-        ss << "`" << expr->toString().c_str()
-           << "': Invalid colletion type, expected type of LIST, but was: " << type_;
+        ss << "`" << expr->collection()->toString()
+           << "', expected LIST, but was " << type_;
         status_ = Status::SemanticError(ss.str());
         return;
     }
