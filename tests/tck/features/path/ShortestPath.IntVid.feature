@@ -468,8 +468,9 @@ Feature: Integer Vid Shortest Path
       FIND SHORTEST PATH WITH PROP FROM hash("Tony Parker"), hash("Yao Ming") TO hash("Manu Ginobili"), hash("Spurs"), hash("Lakers") OVER * BIDIRECT UPTO 2 STEPS
       """
     Then the result should be, in any order, with relax comparison:
-      | path                                                                                                                                                                |
-      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:serve@0 {end_year: 2018, start_year: 1999}]->("Spurs" :team{name: "Spurs"})>                               |
-      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})<-[:teammate@0 {end_year: 2016, start_year: 2002}]-("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})> |
-      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:like@0 {likeness: 95}]->("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})>                         |
-      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:teammate@0 {end_year: 2018, start_year: 2002}]->("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})> |
+      | path                                                                                                                                                                                                |
+      | <("Yao Ming":player{age:38,name:Yao Ming})-[:like@0{likeness:90}]->("Shaquile O'Neal":player{age:47,name:Shaquile O'Neal})-[:serve@0{end_year:2004,start_year:1996}]->("Lakers":team{name:Lakers})> |
+      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:serve@0 {end_year: 2018, start_year: 1999}]->("Spurs" :team{name: "Spurs"})>                                                               |
+      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})<-[:teammate@0 {end_year: 2016, start_year: 2002}]-("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})>                                 |
+      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:like@0 {likeness: 95}]->("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})>                                                         |
+      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:teammate@0 {end_year: 2018, start_year: 2002}]->("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})>                                 |

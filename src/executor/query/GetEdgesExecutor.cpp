@@ -15,12 +15,10 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetEdgesExecutor::execute() {
-    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     ge_ = asNode<GetEdges>(node());
     reqDs_.colNames = {kSrc, kType, kRank, kDst};
     auto status = Status::OK();
-    auto kind = ge_->dataKind();
-    if (kind == GetEdges::DataKind::kEdge) {
+    if (ge_->dataKind() == GetEdges::DataKind::kEdge) {
         status = buildEdgeRequestDataSet();
     } else {
         status = buildPathRequestDataSet();
@@ -50,9 +48,9 @@ Status GetEdgesExecutor::buildEdgeRequestDataSet() {
             auto type = ge_->type()->eval(ctx(iter.get()));
             auto ranking = ge_->ranking()->eval(ctx(iter.get()));
             auto dst = ge_->dst()->eval(ctx(iter.get()));
-            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type) ||
-                !SchemaUtil::isValidVid(dst, spaceInfo.spaceDesc.vid_type) || !type.isInt() ||
-                !ranking.isInt()) {
+            if (!SchemaUtil::isValidVid(src, *spaceInfo.spaceDesc.vid_type_ref()) ||
+                !SchemaUtil::isValidVid(dst, *spaceInfo.spaceDesc.vid_type_ref()) ||
+                !type.isInt() || !ranking.isInt()) {
                 LOG(WARNING) << "Mismatched edge key type";
                 continue;
             }
@@ -71,13 +69,10 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
     }
     auto iter = ectx_->getResult(inputVar).iter();
     QueryExpressionContext ctx(ectx_);
-    std::unordered_set<std::string> uniqueEdge;
+    std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdge;
     for (; iter->valid(); iter->next()) {
         auto path = ge_->src()->eval(ctx(iter.get()));
         VLOG(1) << "path is :" << path;
-        if (!path.isPath()) {
-            return Status::Error("GetEdges's Type : %s, should be PATH", path.typeName().c_str());
-        }
         auto pathVal = path.getPath();
         auto src = pathVal.src.vid;
         for (auto &step : pathVal.steps) {
@@ -89,10 +84,8 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
                 src = step.dst.vid;
                 type = -type;
             }
-            auto edgeKey = folly::stringPrintf(
-                "%s%s%d%ld", src.toString().c_str(), dst.toString().c_str(), type, ranking);
-            auto ret = uniqueEdge.emplace(edgeKey);
-            if (ret.second) {
+            auto edgeKey = std::make_tuple(src, type, ranking, dst);
+            if (uniqueEdge.emplace(std::move(edgeKey)).second) {
                 reqDs_.emplace_back(Row({src, type, ranking, dst}));
             }
             src = step.dst.vid;

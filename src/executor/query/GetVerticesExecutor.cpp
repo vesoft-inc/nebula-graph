@@ -81,7 +81,7 @@ DataSet GetVerticesExecutor::buildPathRequestDataSet() {
     // Accept Table such as | $a | $b | $c |... as input which one column indicate src
     auto valueIter = ectx_->getResult(gv_->inputVar()).iter();
     VLOG(3) << "GV input var: " << gv_->inputVar() << " iter kind: " << valueIter->kind();
-    return buildRequestPathDataSetByVidType(valueIter.get(), gv_->src());
+    return buildPathRequestDataSetByVidType(valueIter.get(), gv_->src());
 }
 
 }   // namespace graph

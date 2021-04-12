@@ -63,37 +63,14 @@ DataSet buildRequestDataSet(const SpaceInfo &space,
     return vertices;
 }
 
-}   // namespace internal
-
-bool StorageAccessExecutor::isIntVidType(const SpaceInfo &space) const {
-    return (*space.spaceDesc.vid_type_ref()).type == meta::cpp2::PropertyType::INT64;
-}
-
-DataSet StorageAccessExecutor::buildRequestDataSetByVidType(Iterator *iter,
-                                                            Expression *expr,
-                                                            bool dedup) {
-    const auto &space = qctx()->rctx()->session()->space();
-    QueryExpressionContext exprCtx(qctx()->ectx());
-
-    if (isIntVidType(space)) {
-        return internal::buildRequestDataSet<int64_t>(space, exprCtx, iter, expr, dedup);
-    }
-    return internal::buildRequestDataSet<std::string>(space, exprCtx, iter, expr, dedup);
-}
-
 template <typename VidType>
-DataSet buildPathRequestDataSet(const SpaceInfo &space,
-                                QueryExpressionContext &exprCtx,
-                                Iterator *iter,
-                                Expression *expr) {
+DataSet buildPathRequestDataSet(QueryExpressionContext &exprCtx, Iterator *iter, Expression *expr) {
     DCHECK(iter && expr) << "iter=" << iter << ", expr=" << expr;
     nebula::DataSet vertices({kVid});
     vertices.rows.reserve(iter->size());
 
     std::unordered_set<VidType> uniqueSet;
     uniqueSet.reserve(iter->size());
-
-    const auto &vidType = *(space.spaceDesc.vid_type_ref());
 
     for (; iter->valid(); iter->next()) {
         auto path = expr->eval(exprCtx(iter));
@@ -112,14 +89,32 @@ DataSet buildPathRequestDataSet(const SpaceInfo &space,
     return vertices;
 }
 
+}   // namespace internal
+
+DataSet StorageAccessExecutor::buildRequestDataSetByVidType(Iterator *iter,
+                                                            Expression *expr,
+                                                            bool dedup) {
+    const auto &space = qctx()->rctx()->session()->space();
+    QueryExpressionContext exprCtx(qctx()->ectx());
+
+    if (isIntVidType(space)) {
+        return internal::buildRequestDataSet<int64_t>(space, exprCtx, iter, expr, dedup);
+    }
+    return internal::buildRequestDataSet<std::string>(space, exprCtx, iter, expr, dedup);
+}
+
 DataSet StorageAccessExecutor::buildPathRequestDataSetByVidType(Iterator* iter, Expression* expr) {
     const auto& space = qctx()->rctx()->session()->space();
     QueryExpressionContext exprCtx(qctx()->ectx());
 
     if (isIntVidType(space)) {
-        return internal::buildPathRequestDataSet<int64_t>(space, exprCtx, iter, expr);
+        return internal::buildPathRequestDataSet<int64_t>(exprCtx, iter, expr);
     }
-    return internal::buildPathRequesetDataSet<std::string>(space, exprCtx, iter, expr);
+    return internal::buildPathRequestDataSet<std::string>(exprCtx, iter, expr);
+}
+
+bool StorageAccessExecutor::isIntVidType(const SpaceInfo &space) const {
+    return (*space.spaceDesc.vid_type_ref()).type == meta::cpp2::PropertyType::INT64;
 }
 
 }   // namespace graph
