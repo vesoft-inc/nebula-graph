@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-
 Feature: Multi language label
 
   Scenario: Schema Label
@@ -22,8 +21,8 @@ Feature: Multi language label
       SHOW CREATE TAG `中文`;
       """
     Then the result should be, in any order:
-      | Tag    | Create Tag                                            |
-      | "中文" | 'CREATE TAG `中文` (\n) ttl_duration = 0, ttl_col = ""'|
+      | Tag    | Create Tag                                              |
+      | "中文" | 'CREATE TAG `中文` (\n) ttl_duration = 0, ttl_col = ""' |
     When executing query:
       """
       CREATE TAG ` 中文 `();
@@ -34,5 +33,5 @@ Feature: Multi language label
       SHOW CREATE TAG ` 中文 `;
       """
     Then the result should be, in any order:
-      | Tag     | Create Tag                                               |
-      | " 中文 " | 'CREATE TAG ` 中文 ` (\n) ttl_duration = 0, ttl_col = ""'|
+      | Tag      | Create Tag                                                |
+      | " 中文 " | 'CREATE TAG ` 中文 ` (\n) ttl_duration = 0, ttl_col = ""' |
