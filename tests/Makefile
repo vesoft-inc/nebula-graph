@@ -52,7 +52,7 @@ test:
 	cd $(CURR_DIR) && python3 -m pytest -n$(J) --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" -k "not tck" $(TEST_DIR)
 
 tck:
-	cd $(CURR_DIR) && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/ -k test_schema_label
+	cd $(CURR_DIR) && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/
 
 report:
 	@mv $(CURR_DIR)/tck-report.json $(CURR_DIR)/tck-report-bak.json
