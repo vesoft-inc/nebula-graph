@@ -182,8 +182,9 @@ public:
     // Clone and fold constant expression
     static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
 
-    // Clone and reduce constant expression
-    static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* objPool);
+    // Clone and reduce unaryNot expression
+    static Expression* reduceUnaryNotExprWrapper(const Expression* expr);
+    static Expression* reduceUnaryNotExpr(const Expression* expr);
 
     // Negate the given logical expr: (A && B) -> (!A || !B)
     static std::unique_ptr<LogicalExpression> reverseLogicalExpr(LogicalExpression* expr);
