@@ -26,9 +26,9 @@ void initCounters() {
     kNumSlowQueries = stats::StatsManager::registerStats("num_slow_queries", "rate, sum");
     kNumQueryErrors = stats::StatsManager::registerStats("num_query_errors", "rate, sum");
     kQueryLatencyUs = stats::StatsManager::registerHisto(
-        "query_latency_us", 1000, 0, 2000, "avg, p75, p95, p99, p999");
+        "query_latency_us", 1000, 2000, 2000000, "avg, p75, p95, p99, p999");
     kSlowQueryLatencyUs = stats::StatsManager::registerHisto(
-        "slow_query_latency_us", 1000, 0, 2000, "avg, p75, p95, p99, p999");
+        "slow_query_latency_us", 1000, 2000, 2000000, "avg, p75, p95, p99, p999");
 }
 
 }  // namespace nebula
