@@ -16,3 +16,10 @@ Feature: Function Call Expression
     Then the result should be, in any order:
       | a | b  | c | d  | e | f |
       | 1 | -1 | 1 | -1 | 0 | 1 |
+
+  Scenario: date related
+    When executing query:
+      """
+      YIELD timestamp("2000-10-10T10:00:00") AS a, date() AS b, time() AS c,
+            datetime() AS d
+      """
