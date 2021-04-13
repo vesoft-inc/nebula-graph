@@ -35,7 +35,7 @@ protected:
         SpaceInfo spaceInfo;
         spaceInfo.name = "test_space";
         spaceInfo.id = 1;
-        spaceInfo.spaceDesc.space_name = "test_space";
+        spaceInfo.spaceDesc.set_space_name("test_space");
         session->setSpace(std::move(spaceInfo));
         auto rctx = std::make_unique<RequestContext<ExecutionResponse>>();
         rctx->setSession(std::move(session));
@@ -69,8 +69,7 @@ TEST_F(GetNeighborsTest, BuildRequestDataSet) {
     gn->setInputVar("input_gn");
 
     auto gnExe = std::make_unique<GetNeighborsExecutor>(gn, qctx_.get());
-    auto status = gnExe->buildRequestDataSet();
-    EXPECT_TRUE(status.ok());
+    auto reqDs = gnExe->buildRequestDataSet();
 
     DataSet expected;
     expected.colNames = {kVid};
@@ -79,7 +78,6 @@ TEST_F(GetNeighborsTest, BuildRequestDataSet) {
         row.values.emplace_back(folly::to<std::string>(i));
         expected.rows.emplace_back(std::move(row));
     }
-    auto& reqDs = gnExe->reqDs_;
     EXPECT_EQ(reqDs, expected);
 }
 }  // namespace graph

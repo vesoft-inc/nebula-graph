@@ -10,6 +10,7 @@ nebula_add_test(
         TestMain.cpp
         FoldConstantExprVisitorTest.cpp
         DeduceTypeVisitorTest.cpp
+        RewriteUnaryNotExprVisitorTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:mock_schema_obj>
         $<TARGET_OBJECTS:util_obj>
@@ -54,7 +55,5 @@ nebula_add_test(
     LIBRARIES
         gtest
         ${THRIFT_LIBRARIES}
-        wangle
-        proxygenhttpserver
-        proxygenlib
+        ${PROXYGEN_LIBRARIES}
 )

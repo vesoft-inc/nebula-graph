@@ -128,9 +128,9 @@ Status LookupValidator::prepareYield() {
         // TODO(shylock) support more expr
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
             auto la = static_cast<LabelAttributeExpression*>(col->expr());
-            const std::string &schemaName = *la->left()->name();
+            const std::string& schemaName = *la->left()->name();
             const auto& value = la->right()->value();
-            const std::string &colName = value.getStr();
+            const std::string& colName = value.getStr();
             if (isEdge_) {
                 newYieldColumns_->addColumn(new YieldColumn(new EdgePropertyExpression(
                     new std::string(schemaName), new std::string(colName))));
@@ -233,7 +233,7 @@ StatusOr<std::vector<std::string>> LookupValidator::textSearch(TextSearchExpress
     if (*expr->arg()->from() != from_) {
         return Status::SemanticError("Schema name error : %s", expr->arg()->from()->c_str());
     }
-    auto index = nebula::plugin::IndexTraits::indexName(space_.spaceDesc.space_name, isEdge_);
+    auto index = plugin::IndexTraits::indexName(*space_.spaceDesc.space_name_ref(), isEdge_);
     nebula::plugin::DocItem doc(index, *expr->arg()->prop(), schemaId_, *expr->arg()->val());
     nebula::plugin::LimitItem limit(expr->arg()->timeout(), expr->arg()->limit());
     std::vector<std::string> result;
@@ -375,15 +375,15 @@ Status LookupValidator::rewriteRelExpr(RelationalExpression* expr) {
     // rewrite PropertyExpression
     if (leftIsAE) {
         if (isEdge_) {
-            expr->setLeft(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(la));
+            expr->setLeft(ExpressionUtils::rewriteLabelAttr2EdgeProp(la));
         } else {
-            expr->setLeft(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(la));
+            expr->setLeft(ExpressionUtils::rewriteLabelAttr2TagProp(la));
         }
     } else {
         if (isEdge_) {
-            expr->setRight(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(la));
+            expr->setRight(ExpressionUtils::rewriteLabelAttr2EdgeProp(la));
         } else {
-            expr->setRight(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(la));
+            expr->setRight(ExpressionUtils::rewriteLabelAttr2TagProp(la));
         }
     }
     return Status::OK();
@@ -442,9 +442,9 @@ Status LookupValidator::checkTSService() {
     for (const auto& c : tcs.value()) {
         nebula::plugin::HttpClient hc;
         hc.host = c.host;
-        if (c.__isset.user && c.__isset.pwd) {
-            hc.user = c.user;
-            hc.password = c.pwd;
+        if (c.user_ref().has_value() && c.pwd_ref().has_value()) {
+            hc.user = *c.user_ref();
+            hc.password = *c.pwd_ref();
         }
         esClients_.emplace_back(std::move(hc));
     }

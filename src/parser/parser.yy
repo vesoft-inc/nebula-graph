@@ -30,6 +30,7 @@
 
 #include "common/expression/ReduceExpression.h"
 #include "util/ParserUtil.h"
+#include "util/ExpressionUtils.h"
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 
@@ -367,7 +368,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %left KW_OR KW_XOR
 %left KW_AND
 %right KW_NOT
-%left EQ NE LT LE GT GE REG KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH KW_IS_NULL KW_IS_NOT_NULL
+%left EQ NE LT LE GT GE REG KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH KW_IS_NULL KW_IS_NOT_NULL KW_IS_EMPTY KW_IS_NOT_EMPTY
 %left PLUS MINUS
 %left STAR DIV MOD
 %right NOT
@@ -585,6 +586,12 @@ expression
     }
     | expression KW_IS_NOT_NULL {
         $$ = new UnaryExpression(Expression::Kind::kIsNotNull, $1);
+    }
+    | expression KW_IS_EMPTY {
+        $$ = new UnaryExpression(Expression::Kind::kIsEmpty, $1);
+    }
+    | expression KW_IS_NOT_EMPTY {
+        $$ = new UnaryExpression(Expression::Kind::kIsNotEmpty, $1);
     }
     | expression EQ expression {
         $$ = new RelationalExpression(Expression::Kind::kRelEQ, $1, $3);
@@ -864,7 +871,7 @@ function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
         if (!$3) {
             if (FunctionManager::find(*$1, 0).ok()) {
-                $$ = new FunctionCallExpression($1, $3);
+                $$ = new FunctionCallExpression($1);
             } else {
                 throw nebula::GraphParser::syntax_error(@1, "Unknown function ");
             }
@@ -1286,10 +1293,22 @@ with_clause
 
 match_clause
     : KW_MATCH match_path where_clause {
-        $$ = new MatchClause($2, $3, false/*optinal*/);
+        if ($3 && graph::ExpressionUtils::findAny($3->filter(),{Expression::Kind::kAggregate})) {
+            delete($2);
+            delete($3);
+            throw nebula::GraphParser::syntax_error(@3, "Invalid use of aggregating function in this context.");
+        } else {
+            $$ = new MatchClause($2, $3, false/*optinal*/);
+        }
     }
     | KW_OPTIONAL KW_MATCH match_path where_clause {
-        $$ = new MatchClause($3, $4, true);
+        if ($4 && graph::ExpressionUtils::findAny($4->filter(),{Expression::Kind::kAggregate})) {
+            delete($3);
+            delete($4);
+            throw nebula::GraphParser::syntax_error(@4, "Invalid use of aggregating function in this context.");
+        } else {
+            $$ = new MatchClause($3, $4, true);
+        }
     }
     ;
 
@@ -2092,35 +2111,35 @@ column_spec_list
 
 column_spec
     : name_label type_spec {
-        $$ = new ColumnSpecification($1, $2->type, true, nullptr, $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, true, nullptr, $2->type_length_ref().value_or(0));
         delete $2;
     }
     | name_label type_spec KW_DEFAULT expression {
-        $$ = new ColumnSpecification($1, $2->type, true, $4, $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, true, $4, $2->type_length_ref().value_or(0));
         delete $2;
     }
     | name_label type_spec KW_NOT KW_NULL {
-        $$ = new ColumnSpecification($1, $2->type, false, nullptr, $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, false, nullptr, $2->type_length_ref().value_or(0));
         delete $2;
     }
     | name_label type_spec KW_NULL {
-        $$ = new ColumnSpecification($1, $2->type, true, nullptr, $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, true, nullptr, $2->type_length_ref().value_or(0));
         delete $2;
     }
     | name_label type_spec KW_NOT KW_NULL KW_DEFAULT expression {
-        $$ = new ColumnSpecification($1, $2->type, false, $6, $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, false, $6, $2->type_length_ref().value_or(0));
         delete $2;
     }
     | name_label type_spec KW_DEFAULT expression KW_NOT KW_NULL {
-        $$ = new ColumnSpecification($1, $2->type, false, $4, $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, false, $4, $2->type_length_ref().value_or(0));
         delete $2;
     }
     | name_label type_spec KW_NULL KW_DEFAULT expression {
-        $$ = new ColumnSpecification($1, $2->type, true, $5 , $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, true, $5 , $2->type_length_ref().value_or(0));
         delete $2;
     }
     | name_label type_spec KW_DEFAULT expression KW_NULL {
-        $$ = new ColumnSpecification($1, $2->type, true, $4 , $2->type_length);
+        $$ = new ColumnSpecification($1, $2->type, true, $4 , $2->type_length_ref().value_or(0));
         delete $2;
     }
     ;

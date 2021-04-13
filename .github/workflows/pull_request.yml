@@ -72,11 +72,13 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/nebula-common
           path: modules/common
+          ref: ${{ github.base_ref }}
       - name: Checkout storage
         uses: actions/checkout@v2
         with:
           repository: ${{ github.repository_owner }}/nebula-storage
           path: modules/storage
+          ref: ${{ github.base_ref }}
       - name: CMake
         id: cmake
         run: |
@@ -102,6 +104,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=Debug \
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
+                  -DNEBULA_USE_LINKER=lld \
                   -B build
               echo "::set-output name=j::10"
               ;;
@@ -116,6 +119,7 @@ jobs:
                 -DENABLE_ASAN=on \
                 -DENABLE_TESTING=on \
                 -DENABLE_BUILD_STORAGE=on \
+                -DNEBULA_USE_LINKER=lld \
                 -B build
             echo "::set-output name=j::6"
             ;;
@@ -130,19 +134,21 @@ jobs:
           ASAN_OPTIONS: fast_unwind_on_malloc=1
         run: ctest -j $(($(nproc)/2+1)) --timeout 400 --output-on-failure
         working-directory: build/
-        timeout-minutes: 15
+        timeout-minutes: 20
       - name: Pytest
-        env:
-          NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: make RM_DIR=false J=${{ steps.cmake.outputs.j }} test
+        run: |
+          make up
+          make RM_DIR=false J=${{ steps.cmake.outputs.j }} test
+          make down
         working-directory: tests/
         timeout-minutes: 15
       - name: TCK
-        env:
-          NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: make RM_DIR=false J=${{ steps.cmake.outputs.j }} tck
+        run: |
+          make up
+          make RM_DIR=false J=${{ steps.cmake.outputs.j }} tck
+          make down
         working-directory: tests/
-        timeout-minutes: 15
+        timeout-minutes: 20
       - name: Sanitizer
         if: ${{ always() }}
         run: |
