@@ -184,15 +184,13 @@ public:
     static Expression* rewriteRelExprHelper(const Expression* expr,
                                             std::unique_ptr<Expression>& relRightOperandExpr);
 
-    static Expression* moveEvaluableExprToRight(const Expression* expr);
-
     // Clone and fold constant expression
     static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
 
     // Clone and reduce constant expression
     static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* objPool);
-    // Filter transformation
-    static Expression* transformFilter(const Expression* expr);
+    // TODO: Filter transformation
+    // static Expression* transformFilter(const Expression* expr);
 
     // Negate the given logical expr: (A && B) -> (!A || !B)
     static std::unique_ptr<LogicalExpression> reverseLogicalExpr(LogicalExpression* expr);
