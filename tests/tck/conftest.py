@@ -155,7 +155,6 @@ def new_space(request, options, session, graph_spaces):
 def import_csv_data(request, data, graph_spaces, session, pytestconfig):
     data_dir = os.path.join(DATA_DIR, normalize_outline_scenario(request, data))
     space_desc = load_csv_data(
-        pytestconfig,
         session,
         data_dir,
         "I" + space_generator(),
@@ -238,6 +237,7 @@ def parse_list(s: str):
     return [int(num) for num in s.split(',')]
 
 
+
 def hash_columns(ds, hashed_columns):
     if len(hashed_columns) == 0:
         return ds
@@ -281,7 +281,7 @@ def cmp_dataset(
 
     def rowp(ds, i):
         if i is None or i < 0:
-            return ""
+            return "" if i != -2 else "Invalid column names"
         assert i < len(ds.rows), f"{i} out of range {len(ds.rows)}"
         row = ds.rows[i].values
         printer = DataSetPrinter(rs._decode_type, vid_fn=vid_fn)
@@ -401,8 +401,8 @@ def execution_should_be_succ(graph_spaces):
     check_resp(rs, stmt)
 
 
-@then(rparse(r"a (?P<err_type>\w+) should be raised at (?P<time>runtime|compile time)(?P<sym>:|.)(?P<msg>.*)"))
-def raised_type_error(err_type, time, sym, msg, graph_spaces):
+@then(rparse(r"(?P<unit>a|an) (?P<err_type>\w+) should be raised at (?P<time>runtime|compile time)(?P<sym>:|.)(?P<msg>.*)"))
+def raised_type_error(unit, err_type, time, sym, msg, graph_spaces):
     res = graph_spaces["result_set"]
     ngql = graph_spaces['ngql']
     assert not res.is_succeeded(), f"Response should be failed: ngql:{ngql}"

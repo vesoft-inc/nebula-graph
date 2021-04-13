@@ -19,11 +19,15 @@ package_one=ON
 strip_enable="FALSE"
 usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF>"
 project_dir="$(cd "$(dirname "$0")" && pwd)/.."
-build_dir=${project_dir}/build
+build_dir=${project_dir}/pkg-build
+modules_dir=${project_dir}/modules
+storage_dir=${modules_dir}/storage
+storage_build_dir=${build_dir}/modules/storage
 enablesanitizer="OFF"
 static_sanitizer="OFF"
 build_type="Release"
 branch="master"
+jobs=$(nproc)
 
 while getopts v:n:s:b:d:t:g: opt;
 do
@@ -60,42 +64,29 @@ do
 done
 
 # version is null, get from tag name
-[[ -z $version ]] && version=`git describe --exact-match --abbrev=0 --tags | sed 's/^v//'`
+[[ -z $version ]] && version=$(git describe --exact-match --abbrev=0 --tags | sed 's/^v//')
 # version is null, use UTC date as version
 [[ -z $version ]] && version=$(date -u +%Y.%m.%d)-nightly
 
 if [[ -z $version ]]; then
     echo "version is null, exit"
     echo ${usage}
-    exit -1
+    exit 1
 fi
 
 
 if [[ $strip_enable != TRUE ]] && [[ $strip_enable != FALSE ]]; then
     echo "strip enable is wrong, exit"
     echo ${usage}
-    exit -1
+    exit 1
 fi
 
 echo "current version is [ $version ], strip enable is [$strip_enable], enablesanitizer is [$enablesanitizer], static_sanitizer is [$static_sanitizer]"
 
-# args: <version>
-function build {
-    version=$1
-    san=$2
-    ssan=$3
-    build_type=$4
-    branch=$5
-    modules_dir=${project_dir}/modules
-    if [[ -d $build_dir ]]; then
-        rm -rf ${build_dir}/*
-    else
-        mkdir ${build_dir}
+function _build_storage {
+    if [[ ! -d ${storage_dir} && ! -L ${storage_dir} ]]; then
+        git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
     fi
-
-    mkdir -p ${build_dir}
-
-    pushd ${build_dir}
 
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
@@ -105,18 +96,55 @@ function build {
           -DENABLE_STATIC_UBSAN=${ssan} \
           -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
           -DNEBULA_COMMON_REPO_TAG=${branch} \
-          -DNEBULA_STORAGE_REPO_TAG=${branch} \
           -DENABLE_TESTING=OFF \
-          -DENABLE_BUILD_STORAGE=${build_storage} \
           -DENABLE_PACK_ONE=${package_one} \
-          $project_dir
+          -S ${storage_dir} \
+          -B ${storage_build_dir}
 
-    if !( make -j$(nproc) ); then
-        echo ">>> build nebula failed <<<"
-        exit -1
+    if ! ( cmake --build ${storage_build_dir} -j ${jobs} ); then
+        echo ">>> build nebula storage failed <<<"
+        exit 1
     fi
+    echo ">>> build nebula storage successfully <<<"
+}
 
-    popd
+function _build_graph {
+    cmake -DCMAKE_BUILD_TYPE=${build_type} \
+          -DNEBULA_BUILD_VERSION=${version} \
+          -DENABLE_ASAN=${san} \
+          -DENABLE_UBSAN=${san} \
+          -DENABLE_STATIC_ASAN=${ssan} \
+          -DENABLE_STATIC_UBSAN=${ssan} \
+          -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+          -DNEBULA_COMMON_REPO_TAG=${branch} \
+          -DENABLE_TESTING=OFF \
+          -DENABLE_BUILD_STORAGE=OFF \
+          -DENABLE_PACK_ONE=${package_one} \
+          -S ${project_dir} \
+          -B ${build_dir}
+
+    if ! ( cmake --build ${build_dir} -j ${jobs} ); then
+        echo ">>> build nebula graph failed <<<"
+        exit 1
+    fi
+    echo ">>> build nebula graph successfully <<<"
+}
+
+# args: <version>
+function build {
+    version=$1
+    san=$2
+    ssan=$3
+    build_type=$4
+    branch=$5
+
+    rm -rf ${build_dir} && mkdir -p ${build_dir}
+
+    if [[ "$build_storage" == "ON" ]]; then
+        mkdir -p ${storage_build_dir}
+        _build_storage
+    fi
+    _build_graph
 }
 
 # args: <strip_enable>
@@ -124,7 +152,7 @@ function package {
     # The package CMakeLists.txt in ${project_dir}/package/build
     package_dir=${build_dir}/package/
     if [[ -d $package_dir ]]; then
-        rm -rf ${package_dir}/*
+        rm -rf ${package_dir:?}/*
     else
         mkdir ${package_dir}
     fi
@@ -134,6 +162,8 @@ function package {
         -DENABLE_PACK_ONE=${package_one} \
         -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
         -DENABLE_PACKAGE_STORAGE=${build_storage} \
+        -DNEBULA_STORAGE_SOURCE_DIR=${storage_dir} \
+        -DNEBULA_STORAGE_BINARY_DIR=${storage_build_dir} \
         ${project_dir}/package/
 
     strip_enable=$1
@@ -144,31 +174,29 @@ function package {
     sys_ver=""
     pType="RPM"
     if [[ -f "/etc/redhat-release" ]]; then
-        sys_name=`cat /etc/redhat-release | cut -d ' ' -f1`
+        sys_name=$(< /etc/redhat-release cut -d ' ' -f1)
         if [[ ${sys_name} == "CentOS" ]]; then
-            sys_ver=`cat /etc/redhat-release | tr -dc '0-9.' | cut -d \. -f1`
+            sys_ver=$(< /etc/redhat-release tr -dc '0-9.' | cut -d \. -f1)
             sys_ver=.el${sys_ver}.x86_64
         elif [[ ${sys_name} == "Fedora" ]]; then
-            sys_ver=`cat /etc/redhat-release | cut -d ' ' -f3`
+            sys_ver=$(< /etc/redhat-release cut -d ' ' -f3)
             sys_ver=.fc${sys_ver}.x86_64
         fi
         pType="RPM"
     elif [[ -f "/etc/lsb-release" ]]; then
-        sys_ver=`cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d "=" -f 2 | sed 's/\.//'`
+        sys_ver=$(< /etc/lsb-release grep DISTRIB_RELEASE | cut -d "=" -f 2 | sed 's/\.//')
         sys_ver=.ubuntu${sys_ver}.amd64
         pType="DEB"
     fi
 
-    if !( cpack -G ${pType} --verbose $args ); then
+    if ! ( cpack -G ${pType} --verbose $args ); then
         echo ">>> package nebula failed <<<"
-        exit -1
+        exit 1
     else
         # rename package file
-        pkg_names=`ls | grep nebula | grep ${version}`
         outputDir=$build_dir/cpack_output
         mkdir -p ${outputDir}
-        for pkg_name in ${pkg_names[@]};
-        do
+        for pkg_name in $(ls ./*nebula*-${version}*); do
             new_pkg_name=${pkg_name/\-Linux/${sys_ver}}
             mv ${pkg_name} ${outputDir}/${new_pkg_name}
             echo "####### taget package file is ${outputDir}/${new_pkg_name}"

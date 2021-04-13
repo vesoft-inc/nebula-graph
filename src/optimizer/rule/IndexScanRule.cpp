@@ -49,7 +49,9 @@ StatusOr<OptRule::TransformResult> IndexScanRule::transform(OptContext* ctx,
         NG_RETURN_IF_ERROR(createIndexQueryCtx(iqctx, kind, items, qctx, groupNode));
     }
 
-    auto newIN = static_cast<const IndexScan*>(groupNode->node())->clone(qctx);
+    const auto* oldIN = groupNode->node();
+    DCHECK_EQ(oldIN->kind(), graph::PlanNode::Kind::kIndexScan);
+    auto* newIN = static_cast<IndexScan*>(oldIN->clone());
     newIN->setIndexQueryContext(std::move(iqctx));
     auto newGroupNode = OptGroupNode::create(ctx, newIN, groupNode->group());
     if (groupNode->dependencies().size() != 1) {
@@ -129,7 +131,7 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
     auto hc = hintCount(items);
     auto fields = index->get_fields();
     IndexQueryContext ctx;
-    decltype(ctx.column_hints) hints;
+    std::vector<nebula::storage::cpp2::IndexColumnHint> hints;
     for (const auto& field : fields) {
         bool found = false;
         FilterItems filterItems;

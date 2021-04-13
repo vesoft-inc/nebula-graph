@@ -62,8 +62,7 @@ nebula_add_executable(
         $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
         $<TARGET_OBJECTS:common_version_obj>
     LIBRARIES
-        proxygenhttpserver
-        proxygenlib
+        ${PROXYGEN_LIBRARIES}
         ${THRIFT_LIBRARIES}
         wangle
 )
