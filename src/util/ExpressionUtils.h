@@ -180,7 +180,10 @@ public:
     }
 
     // Rewrite relational expression, gather evaluable expressions to one side
-    static Expression* rewriteRelExpr(const RelationalExpression* expr);
+    static Expression* rewriteRelExpr(const Expression* expr, ObjectPool* pool);
+    static Expression* rewriteRelExprHelper(const Expression* expr,
+                                            std::unique_ptr<Expression>& relRightOperandExpr);
+
     static Expression* moveEvaluableExprToRight(const Expression* expr);
 
     // Clone and fold constant expression

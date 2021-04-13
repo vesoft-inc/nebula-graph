@@ -298,8 +298,8 @@ Status MatchValidator::validateFilter(const Expression *filter,
     auto pool = whereClauseCtx.qctx->objPool();
     auto reducedExpr = ExpressionUtils::reduceUnaryNotExpr(foldedExpr.get(), pool);
     if (reducedExpr->isRelExpr()) {
-        auto rewrittenRelExpr = pool->add(
-            ExpressionUtils::rewriteRelExpr(static_cast<RelationalExpression *>(reducedExpr)));
+        auto rewrittenRelExpr =
+            ExpressionUtils::rewriteRelExpr(static_cast<RelationalExpression *>(reducedExpr), pool);
         whereClauseCtx.filter =
             pool->add(ExpressionUtils::foldConstantExpr(rewrittenRelExpr).release());
     } else {

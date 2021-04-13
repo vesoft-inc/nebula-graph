@@ -33,67 +33,51 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
     return visitor.getExpr();
 }
 
-Expression *ExpressionUtils::rewriteRelExpr(const RelationalExpression *expr) {
-    auto rewrittenRelExpr = expr->clone();
-    auto left = static_cast<const RelationalExpression *>(rewrittenRelExpr.get())->left();
-
-    while (left->isArithmeticExpr() &&
-           (left->kind() == Expression::Kind::kAdd || left->kind() == Expression::Kind::kMinus)) {
-        auto leftOperand = static_cast<const ArithmeticExpression *>(left)->left();
-        auto rightOperand = static_cast<const ArithmeticExpression *>(left)->right();
-        if (!ExpressionUtils::isEvaluableExpr(leftOperand) &&
-            !ExpressionUtils::isEvaluableExpr(rightOperand)) {
-            break;
-        }
-        rewrittenRelExpr.reset(
-            static_cast<RelationalExpression *>(moveEvaluableExprToRight(rewrittenRelExpr.get())));
-
-        left = static_cast<const RelationalExpression *>(rewrittenRelExpr.get())->left();
+Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *pool) {
+    if (!expr->isRelExpr()) {
+        // TODO: Use set instead of list in objectpool to avoid copy
+        return pool->add(expr->clone().release());
     }
-    return rewrittenRelExpr.release();
+    auto relExpr = static_cast<const RelationalExpression *>(expr);
+    auto relRightOperandExpr = relExpr->right()->clone();
+    auto relLeftOperandExpr = rewriteRelExprHelper(relExpr->left(), relRightOperandExpr);
+
+    return pool->add(new RelationalExpression(relExpr->kind(),
+                                              relLeftOperandExpr->clone().release(),
+                                              relRightOperandExpr->clone().release()));
 }
 
-Expression *ExpressionUtils::moveEvaluableExprToRight(const Expression *expr) {
+Expression *ExpressionUtils::rewriteRelExprHelper(
+    const Expression *expr,
+    std::unique_ptr<Expression> &relRightOperandExpr) {
     auto matcher = [](const Expression *e) -> bool {
-        if (e->isRelExpr()) {
-            if (static_cast<const RelationalExpression *>(e)->left()->isArithmeticExpr() ||
-                static_cast<const RelationalExpression *>(e)->right()->isArithmeticExpr()) {
-                return true;
-            }
-        }
-        return false;
+        if (!e->isArithmeticExpr()) return false;
+        auto arithExpr = static_cast<const ArithmeticExpression *>(e);
+        return ExpressionUtils::isEvaluableExpr(arithExpr->left()) ||
+               ExpressionUtils::isEvaluableExpr(arithExpr->right());
     };
 
-    auto rewriter = [](const Expression *e) -> Expression * {
-        auto relExpr = static_cast<const RelationalExpression *>(e);
-        auto left = relExpr->left();
-        auto right = relExpr->right();
+    if (!matcher(expr)) {
+        return const_cast<Expression *>(expr);
+    }
 
-        // Move evaluable expression to right
-        // TODO: support multiplication and division
-        if (left->isArithmeticExpr()) {
-            auto leftOperand = static_cast<const ArithmeticExpression *>(left)->left();
-            auto rightOperand = static_cast<const ArithmeticExpression *>(left)->right();
-            auto arithmType = static_cast<const ArithmeticExpression *>(left)->kind();
-            auto negateType = getNegatedArithmeticType(arithmType);
+    auto arithExpr = static_cast<const ArithmeticExpression *>(expr);
+    auto kind = getNegatedArithmeticType(arithExpr->kind());
+    auto lexpr = relRightOperandExpr->clone().release();
+    const Expression *root = nullptr;
+    Expression *rexpr = nullptr;
 
-            if (ExpressionUtils::isEvaluableExpr(leftOperand)) {
-                auto newExpr = new ArithmeticExpression(
-                    negateType, right->clone().release(), leftOperand->clone().release());
-                // TODO: check overflow
-                return new RelationalExpression(
-                    e->kind(), rightOperand->clone().release(), newExpr);
-            }
-            if (ExpressionUtils::isEvaluableExpr(rightOperand)) {
-                auto newExpr = new ArithmeticExpression(
-                    negateType, right->clone().release(), rightOperand->clone().release());
-                return new RelationalExpression(e->kind(), leftOperand->clone().release(), newExpr);
-            }
-        }
-        // TODO: replace list with set in object pool and avoid copy here
-        return relExpr->clone().release();
-    };
-    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
+    // Use left operand as root
+    if (ExpressionUtils::isEvaluableExpr(arithExpr->right())) {
+        rexpr = arithExpr->right()->clone().release();
+        root = arithExpr->left();
+    } else {
+        rexpr = arithExpr->left()->clone().release();
+        root = arithExpr->right();
+    }
+
+    relRightOperandExpr.reset(new ArithmeticExpression(kind, lexpr, rexpr));
+    return rewriteRelExprHelper(root, relRightOperandExpr);
 }
 
 Expression *ExpressionUtils::pullAnds(Expression *expr) {
