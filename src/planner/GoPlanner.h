@@ -40,11 +40,17 @@ public:
     PlanNode* buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                            PlanNode* dependencyForJoinInput);
 
-    PlanNode* buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode* dependency);
+    PlanNode* buildProjectSrcEdgePropsForGN(std::string gnVar,
+                                            PlanNode* dependency,
+                                            bool needJoinInput,
+                                            bool needJoinDst);
 
     PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
 
-    PlanNode* buildTraceProjectForGN(std::string gnVar, PlanNode* dependency);
+    PlanNode* buildTraceProjectForGN(std::string gnVar,
+                                     PlanNode* dependency,
+                                     bool needJoinInput,
+                                     bool needJoinDst);
 
     void buildConstantInput(Starts& starts, std::string& startVidsVar);
 

@@ -27,6 +27,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     GraphStorageClient *storageClient = qctx()->getStorageClient();
 
     DataSet vertices = buildRequestDataSet(gv);
+    otherStats_.emplace("handle vertices", folly::stringPrintf("%lu", vertices.size()));
     VLOG(1) << "vertices: " << vertices;
     if (vertices.rows.empty()) {
         // TODO: add test for empty input.

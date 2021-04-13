@@ -38,27 +38,12 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
     PlanNode* getNeighbors = nullptr;
     PlanNode* dependencyForProjectResult = nullptr;
     PlanNode* projectSrcEdgeProps = nullptr;
-    if (goCtx_->steps.isMToN()) {
-        auto* gn = GetVarStepsNeighbors::make(goCtx_->qctx, dedupStartVid, goCtx_->space.id);
-        gn->setSrc(goCtx_->from.src);
-        gn->setVertexProps(buildSrcVertexProps());
-        gn->setEdgeDst(buildEdgeDst());
-        gn->setEdgeProps(buildEdgeProps());
-        gn->setInputVar(startVidsVar);
-        gn->setSteps(goCtx_->steps);
-        VLOG(1) << gn->outputVar();
 
-        getNeighbors = gn;
-        dependencyForProjectResult = gn;
-
-        if (!goCtx_->exprProps.inputProps().empty() || !goCtx_->exprProps.varProps().empty() ||
-            !goCtx_->exprProps.dstTagProps().empty() ||
-            goCtx_->from.fromType != FromType::kInstantExpr) {
-            gn->setSteps(StepClause(goCtx_->steps.nSteps()));
-            gn->setUnion();
-            projectSrcEdgeProps = buildTraceProjectForGN(gn->outputVar(), gn);
-        }
-    } else if (goCtx_->steps.steps() == 1) {
+    bool needJoinInput = !goCtx_->exprProps.inputProps().empty() ||
+                            !goCtx_->exprProps.varProps().empty() ||
+                            goCtx_->from.fromType != FromType::kInstantExpr;
+    bool needJoinDst = !goCtx_->exprProps.dstTagProps().empty();
+    if (!goCtx_->steps.isMToN() && goCtx_->steps.steps() == 1) {
         auto* gn = GetNeighbors::make(goCtx_->qctx, dedupStartVid, goCtx_->space.id);
         gn->setSrc(goCtx_->from.src);
         gn->setVertexProps(buildSrcVertexProps());
@@ -69,10 +54,9 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
         getNeighbors = gn;
         dependencyForProjectResult = gn;
 
-        if (!goCtx_->exprProps.inputProps().empty() || !goCtx_->exprProps.varProps().empty() ||
-            !goCtx_->exprProps.dstTagProps().empty() ||
-            goCtx_->from.fromType != FromType::kInstantExpr) {
-            projectSrcEdgeProps = buildProjectSrcEdgePropsForGN(gn->outputVar(), gn);
+        if (needJoinInput || needJoinDst) {
+            projectSrcEdgeProps =
+                buildProjectSrcEdgePropsForGN(gn->outputVar(), gn, needJoinInput, needJoinDst);
         }
     } else {
         auto* gn = GetVarStepsNeighbors::make(goCtx_->qctx, dedupStartVid, goCtx_->space.id);
@@ -87,16 +71,21 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
         getNeighbors = gn;
         dependencyForProjectResult = gn;
 
-        if (!goCtx_->exprProps.inputProps().empty() || !goCtx_->exprProps.varProps().empty() ||
-            !goCtx_->exprProps.dstTagProps().empty() ||
-            goCtx_->from.fromType != FromType::kInstantExpr) {
-            projectSrcEdgeProps = buildTraceProjectForGN(gn->outputVar(), gn);
+        if (needJoinInput || needJoinDst) {
+            if (needJoinInput && goCtx_->steps.isMToN()) {
+                gn->setSteps(StepClause(goCtx_->steps.nSteps()));
+            }
+            if (goCtx_->steps.isMToN()) {
+                gn->setUnion();
+            }
+            projectSrcEdgeProps =
+                buildTraceProjectForGN(gn->outputVar(), gn, needJoinInput, needJoinDst);
         }
     }
 
     // Join the dst props if $$.tag.prop was declared.
     PlanNode* joinDstProps = nullptr;
-    if (!goCtx_->exprProps.dstTagProps().empty() && projectSrcEdgeProps != nullptr) {
+    if (needJoinDst && projectSrcEdgeProps != nullptr) {
         joinDstProps = buildJoinDstProps(projectSrcEdgeProps);
     }
     if (joinDstProps != nullptr) {
@@ -104,7 +93,7 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
     }
 
     PlanNode* joinInput = nullptr;
-    if (goCtx_->from.fromType != FromType::kInstantExpr) {
+    if (needJoinInput && (projectSrcEdgeProps != nullptr || joinDstProps != nullptr)) {
         joinInput = buildJoinPipeOrVariableInput(
             nullptr, joinDstProps == nullptr ? projectSrcEdgeProps : joinDstProps);
     }
@@ -141,12 +130,15 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
     return subPlan;
 }
 
-PlanNode* GoPlanner::buildTraceProjectForGN(std::string gnVar, PlanNode* dependency) {
+PlanNode* GoPlanner::buildTraceProjectForGN(std::string gnVar,
+                                            PlanNode* dependency,
+                                            bool needJoinInput,
+                                            bool needJoinDst) {
     DCHECK(dependency != nullptr);
     DCHECK(dependency->kind() == PlanNode::Kind::kGetVarStepsNeighbors);
 
     // Get all _dst to a single column which used for join the dst vertices.
-    if (!goCtx_->exprProps.dstTagProps().empty()) {
+    if (needJoinDst) {
         goCtx_->joinDstVidColName = goCtx_->qctx->vctx()->anonColGen()->getCol();
         auto* dstVidCol =
             new YieldColumn(new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
@@ -154,24 +146,36 @@ PlanNode* GoPlanner::buildTraceProjectForGN(std::string gnVar, PlanNode* depende
         goCtx_->srcAndEdgePropCols->addColumn(dstVidCol);
     }
 
-    auto* project = TraceProject::make(goCtx_->qctx, dependency, goCtx_->srcAndEdgePropCols);
-    project->setInputVar(gnVar);
-    auto colNames = Validator::deduceColNames(goCtx_->srcAndEdgePropCols);
-    colNames.emplace_back(kVid);
-    project->setColNames(std::move(colNames));
-    if (goCtx_->steps.isMToN()) {
-        project->setMToN();
+    PlanNode* pro = nullptr;
+    if (needJoinInput) {
+        auto* project = TraceProject::make(goCtx_->qctx, dependency, goCtx_->srcAndEdgePropCols);
+        project->setInputVar(gnVar);
+        auto colNames = Validator::deduceColNames(goCtx_->srcAndEdgePropCols);
+        colNames.emplace_back(kVid);
+        project->setColNames(std::move(colNames));
+        if (goCtx_->steps.isMToN()) {
+            project->setMToN();
+        }
+        pro = project;
+    } else {
+        auto* project = Project::make(goCtx_->qctx, dependency, goCtx_->srcAndEdgePropCols);
+        project->setInputVar(gnVar);
+        project->setColNames(Validator::deduceColNames(goCtx_->srcAndEdgePropCols));
+        pro = project;
     }
-    VLOG(1) << project->outputVar();
+    VLOG(1) << pro->outputVar();
 
-    return project;
+    return pro;
 }
 
-PlanNode* GoPlanner::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode* dependency) {
+PlanNode* GoPlanner::buildProjectSrcEdgePropsForGN(std::string gnVar,
+                                                   PlanNode* dependency,
+                                                   bool needJoinInput,
+                                                   bool needJoinDst) {
     DCHECK(dependency != nullptr);
 
     // Get _vid for join if $-/$var were declared.
-    if (goCtx_->from.fromType != FromType::kInstantExpr) {
+    if (needJoinInput) {
         auto* srcVidCol = new YieldColumn(
             new VariablePropertyExpression(new std::string(gnVar), new std::string(kVid)),
             new std::string(kVid));
@@ -179,7 +183,7 @@ PlanNode* GoPlanner::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode* 
     }
 
     // Get all _dst to a single column.
-    if (!goCtx_->exprProps.dstTagProps().empty()) {
+    if (needJoinDst) {
         goCtx_->joinDstVidColName = goCtx_->qctx->vctx()->anonColGen()->getCol();
         auto* dstVidCol =
             new YieldColumn(new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
