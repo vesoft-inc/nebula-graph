@@ -73,7 +73,7 @@ void TraceProjectExecutor::project(
             continue;
         }
         auto& startVids = found->second;
-        ds.rows.reserve(ds.rows.size() + startVids.size());
+        // ds.rows.reserve(ds.rows.size() + startVids.size());
         for (auto& startVid : startVids) {
             Row row;
             row.values.reserve(vals.size() + 1);

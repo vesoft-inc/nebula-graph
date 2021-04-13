@@ -91,16 +91,15 @@ void GetVarStepsNeighborsExecutor::getNeighbors() {
         .thenValue([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
             SCOPED_TIMER(&execTime_);
             auto& hostLatency = resp.hostLatency();
+            std::stringstream ss;
             for (size_t i = 0; i < hostLatency.size(); ++i) {
                 auto& info = hostLatency[i];
-                otherStats_.emplace(
-                    folly::stringPrintf("%s exec/total/vertices",
-                                        std::get<0>(info).toString().c_str()),
-                    folly::stringPrintf("%d(us)/%d(us)/%lu,",
-                                        std::get<1>(info),
-                                        std::get<2>(info),
-                                        (*resp.responses()[i].vertices_ref()).size()));
+                ss << std::get<0>(info).toString() << " exec/total/vertices: "
+                    << std::get<1>(info) << "(us)/"
+                    << std::get<2>(info) << "(us)/"
+                    << (*resp.responses()[i].vertices_ref()).size() << "\n";
             }
+            otherStats_.emplace(folly::stringPrintf("step %lu ", currentStep_), ss.str());
             handleResponse(resp);
         });
 }
