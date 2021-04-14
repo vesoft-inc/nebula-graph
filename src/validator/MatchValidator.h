@@ -35,8 +35,8 @@ private:
                           const CypherClauseContextBase *cypherClauseCtx,
                           ReturnClauseContext &retClauseCtx) const;
 
-    Status validateAliases(const std::vector<const Expression *> &exprs,
-                           const std::unordered_map<std::string, AliasType> *aliases) const;
+    Status validateAliasesSchema(const std::vector<const Expression *> &exprs,
+                                 const std::unordered_map<std::string, AliasSchema> *aliases) const;
 
     Status validateStepRange(const MatchStepRange *range) const;
 
@@ -72,16 +72,16 @@ private:
 
     Status buildNodeInfo(const MatchPath *path,
                          std::vector<NodeInfo> &edgeInfos,
-                         std::unordered_map<std::string, AliasType> &aliases) const;
+                         std::unordered_map<std::string, AliasSchema> &aliases) const;
 
     Status buildEdgeInfo(const MatchPath *path,
                          std::vector<EdgeInfo> &nodeInfos,
-                         std::unordered_map<std::string, AliasType> &aliases) const;
+                         std::unordered_map<std::string, AliasSchema> &aliases) const;
 
     Status buildPathExpr(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
 
-    Status combineAliases(std::unordered_map<std::string, AliasType> &curAliases,
-                          const std::unordered_map<std::string, AliasType> &lastAliases) const;
+    Status combineAliases(std::unordered_map<std::string, AliasSchema> &curAliases,
+                          const std::unordered_map<std::string, AliasSchema> &lastAliases) const;
 
     Status combineYieldColumns(YieldColumns *yieldColumns, YieldColumns *prevYieldColumns) const;
 

@@ -299,7 +299,7 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
 
     const auto& aliases = matchClauseCtx->aliasesGenerated;
     auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto& alias) {
-        return alias.second == AliasType::kPath;
+        return alias.second.type == AliasType::kPath;
     });
     std::string alias = iter != aliases.end() ? iter->first : qctx->vctx()->anonColGen()->getCol();
     columns->addColumn(buildPathColumn(alias, startIndex, inColNames, nodeInfos.size()));

@@ -448,6 +448,38 @@ Feature: Basic match
   Scenario: No return
     When executing query:
       """
+      MATCH (a:player)-[b:like]-> (c) where a.abc > 10 return a
+      """
+    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    When executing query:
+      """
+      MATCH (a:player)-[b:like]-> (c) where b.like > 20 return a
+      """
+    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    When executing query:
+      """
+      MATCH (a:player)-[b:like|:teammate]-> (c) where b.start_ya == 1996 return a
+      """
+    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    When executing query:
+      """
+      MATCH (a:player:team)-[b:like]-> (c) where a.namg == "Lakers" return a
+      """
+    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    When executing query:
+      """
+      MATCH (a:player)-[b:like]-> (c) where c.namg == "Yao Ming" return a
+      """
+    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    When executing query:
+      """
+      MATCH p = (a:player)-[b:like*1..2]-> (c) where p.likeness > 90 return a
+      """
+    Then a SyntaxError should be raised at runtime: syntax error near `)'
+
+  Scenario: No return
+    When executing query:
+      """
       MATCH (v:player{name:"abc"})
       """
     Then a SyntaxError should be raised at runtime: syntax error near `)'

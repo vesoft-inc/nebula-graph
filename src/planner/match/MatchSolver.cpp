@@ -73,7 +73,7 @@ Expression* MatchSolver::rewriteLabel2VarProp(const Expression* expr) {
     return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
 }
 
-Expression* MatchSolver::doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
+Expression* MatchSolver::doRewrite(const std::unordered_map<std::string, AliasSchema>& aliases,
                                    const Expression* expr) {
     if (expr->kind() == Expression::Kind::kLabel) {
         auto* labelExpr = static_cast<const LabelExpression*>(expr);
