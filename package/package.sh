@@ -84,30 +84,10 @@ fi
 echo "current version is [ $version ], strip enable is [$strip_enable], enablesanitizer is [$enablesanitizer], static_sanitizer is [$static_sanitizer]"
 
 function _build_storage {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
     if [[ ! -d ${storage_dir} && ! -L ${storage_dir} ]]; then
         git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
     fi
 
-<<<<<<< HEAD
-=======
-    if [ ! -d ${storage_dir} ]; then
-        git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
-    fi
-
-    rm -rf ${storage_dir}/build && mkdir -p ${storage_dir}/build
->>>>>>> 5bd53981... Fix version bug when packaging (#893)
-=======
-    if [ ! -d ${storage_dir} && ! -L ${storage_dir} ]; then
-=======
-    if [[ ! -d ${storage_dir} && ! -L ${storage_dir} ]]; then
->>>>>>> d965a363... Fix unstable test cases related to index (#904)
-        git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
-    fi
-
->>>>>>> ca21bad9... Rename build directory of packaging to pkg-build (#896)
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
           -DENABLE_ASAN=${san} \
@@ -119,28 +99,9 @@ function _build_storage {
           -DENABLE_TESTING=OFF \
           -DENABLE_PACK_ONE=${package_one} \
           -S ${storage_dir} \
-<<<<<<< HEAD
-<<<<<<< HEAD
           -B ${storage_build_dir}
 
     if ! ( cmake --build ${storage_build_dir} -j ${jobs} ); then
-<<<<<<< HEAD
-        echo ">>> build nebula storage failed <<<"
-        exit 1
-    fi
-=======
-    mkdir -p ${build_dir}
->>>>>>> 055c5b71... Avoid build storage for graphd image and try the local modules firstly (#855)
-=======
-          -B ${storage_dir}/build
->>>>>>> 5bd53981... Fix version bug when packaging (#893)
-=======
-          -B ${storage_build_dir}
->>>>>>> ca21bad9... Rename build directory of packaging to pkg-build (#896)
-
-    if !( cmake --build ${storage_build_dir} -j ${jobs} ); then
-=======
->>>>>>> d965a363... Fix unstable test cases related to index (#904)
         echo ">>> build nebula storage failed <<<"
         exit 1
     fi
@@ -162,21 +123,24 @@ function _build_graph {
           -S ${project_dir} \
           -B ${build_dir}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+function _build_graph {
+    cmake -DCMAKE_BUILD_TYPE=${build_type} \
+          -DNEBULA_BUILD_VERSION=${version} \
+          -DENABLE_ASAN=${san} \
+          -DENABLE_UBSAN=${san} \
+          -DENABLE_STATIC_ASAN=${ssan} \
+          -DENABLE_STATIC_UBSAN=${ssan} \
+          -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+          -DNEBULA_COMMON_REPO_TAG=${branch} \
+          -DENABLE_TESTING=OFF \
+          -DENABLE_BUILD_STORAGE=OFF \
+          -DENABLE_PACK_ONE=${package_one} \
+          -S ${project_dir} \
+          -B ${build_dir}
+
     if ! ( cmake --build ${build_dir} -j ${jobs} ); then
         echo ">>> build nebula graph failed <<<"
         exit 1
-=======
-    if !( cmake --build ${build_dir} -j ${jobs} ); then
-        echo ">>> build nebula graph failed <<<"
-        exit -1
->>>>>>> 5bd53981... Fix version bug when packaging (#893)
-=======
-    if ! ( cmake --build ${build_dir} -j ${jobs} ); then
-        echo ">>> build nebula graph failed <<<"
-        exit 1
->>>>>>> d965a363... Fix unstable test cases related to index (#904)
     fi
     echo ">>> build nebula graph successfully <<<"
 }
