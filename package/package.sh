@@ -123,21 +123,6 @@ function _build_graph {
           -S ${project_dir} \
           -B ${build_dir}
 
-function _build_graph {
-    cmake -DCMAKE_BUILD_TYPE=${build_type} \
-          -DNEBULA_BUILD_VERSION=${version} \
-          -DENABLE_ASAN=${san} \
-          -DENABLE_UBSAN=${san} \
-          -DENABLE_STATIC_ASAN=${ssan} \
-          -DENABLE_STATIC_UBSAN=${ssan} \
-          -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
-          -DNEBULA_COMMON_REPO_TAG=${branch} \
-          -DENABLE_TESTING=OFF \
-          -DENABLE_BUILD_STORAGE=OFF \
-          -DENABLE_PACK_ONE=${package_one} \
-          -S ${project_dir} \
-          -B ${build_dir}
-
     if ! ( cmake --build ${build_dir} -j ${jobs} ); then
         echo ">>> build nebula graph failed <<<"
         exit 1
