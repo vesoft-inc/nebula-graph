@@ -85,7 +85,16 @@ private:
 
     Status combineYieldColumns(YieldColumns *yieldColumns, YieldColumns *prevYieldColumns) const;
 
-    Status buildOutputs(const YieldColumns* yields);
+    Status isAliasDefined(const std::unordered_map<std::string, AliasType> *aliasesUsed,
+                          const std::string *name) const;
+
+    StatusOr<AliasType> getAliasType(const std::unordered_map<std::string, AliasType> *aliasesUsed,
+                                     const std::string *name) const;
+
+    Status checkAlias(const Expression *refExpr,
+                      const std::unordered_map<std::string, AliasType> *aliasesUsed) const;
+
+    Status buildOutputs(const YieldColumns *yields);
 
     template <typename T>
     std::unique_ptr<T> getContext() const {

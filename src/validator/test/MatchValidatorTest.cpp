@@ -516,5 +516,34 @@ TEST_F(MatchValidatorTest, with) {
     }
 }
 
+TEST_F(MatchValidatorTest, validateAlias) {
+    // validate undefined alias in filter
+    {
+        std::string query = "MATCH (v :person{name:\"Tim Duncan\"})-[e]-(v2) "
+                            "WHERE abc._src>0"
+                            "RETURN e";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "SemanticError: Alias used but not defined: `abc'");
+    }
+    // validate undefined alias in return clause
+    {
+        std::string query = "MATCH (v :person{name:\"Tim Duncan\"})-[e]-(v2) "
+                            "RETURN abc";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "SemanticError: Alias used but not defined: `abc'");
+    }
+    // validate invalid alias type in filter clause
+    {
+        std::string query = "MATCH (v :person{name:\"Tim Duncan\"})-[e]-(v2) "
+                            "WHERE v._src>0"
+                            "RETURN e";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "SemanticError: Vertex `v' does not have the src attribute");
+    }
+}
+
 }   // namespace graph
 }   // namespace nebula
