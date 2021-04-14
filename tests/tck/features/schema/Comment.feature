@@ -70,7 +70,7 @@ Feature: Schema Comment
       SHOW CREATE SPACE test_comment_empty;
       """
     Then the result should be, in any order:
-      | Space                | Create Space                                                                                                                                                                                |
+      | Space                | Create Space                                                                                                                                                                               |
       | "test_comment_empty" | "CREATE SPACE `test_comment_empty` (partition_num = 100, replica_factor = 1, charset = utf8, collate = utf8_bin, vid_type = FIXED_STRING(8), atomic_edge = false) ON default comment = ''" |
     When executing query:
       """
