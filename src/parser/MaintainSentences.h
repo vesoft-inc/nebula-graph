@@ -6,6 +6,7 @@
 #ifndef PARSER_MAINTAINSENTENCES_H_
 #define PARSER_MAINTAINSENTENCES_H_
 
+#include <string>
 #include "common/interface/gen-cpp2/common_types.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/base/Base.h"
@@ -20,42 +21,42 @@ std::ostream& operator<<(std::ostream& os, meta::cpp2::PropertyType type);
 
 class ColumnProperty final {
 public:
-    using Value = boost::variant<bool, Expression*, std::string*>;
+    using Value = std::variant<bool, std::unique_ptr<Expression>, std::unique_ptr<std::string>>;
 
     explicit ColumnProperty(bool isNull = true)
         : v_(isNull) {}
 
-    explicit ColumnProperty(Expression *defaultVaule = nullptr)
-        : v_(defaultVaule) {}
+    explicit ColumnProperty(Expression *defaultValue = nullptr)
+        : v_(std::unique_ptr<Expression>(defaultValue)) {}
 
     explicit ColumnProperty(std::string *comment = nullptr)
-        : v_(comment) {}
+        : v_(std::unique_ptr<std::string>(comment)) {}
 
     bool isIsNull() const {
-        return v_.which() == 0;
+        return std::holds_alternative<bool>(v_);
     }
 
     bool isNull() const {
         DCHECK(isIsNull());
-        return boost::get<bool>(v_);
+        return std::get<bool>(v_);
     }
 
     bool isDefaultValue() const {
-        return v_.which() == 1;
+        return std::holds_alternative<std::unique_ptr<Expression>>(v_);
     }
 
-    auto* defaultValue() const {
+    const auto* defaultValue() const {
         DCHECK(isDefaultValue());
-        return boost::get<Expression*>(v_);
+        return std::get<std::unique_ptr<Expression>>(v_).get();
     }
 
     bool isComment() const {
-        return v_.which() == 2;
+        return std::holds_alternative<std::unique_ptr<std::string>>(v_);
     }
 
-    auto* comment() const {
+    const auto* comment() const {
         DCHECK(isComment());
-        return boost::get<std::string*>(v_);
+        return std::get<std::unique_ptr<std::string>>(v_).get();
     }
 
     std::string toString() const;
