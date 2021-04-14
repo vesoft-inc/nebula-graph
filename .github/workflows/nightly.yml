@@ -19,7 +19,7 @@ jobs:
           - ubuntu1604
           - ubuntu1804
           - ubuntu2004
-          - centos6
+          # - centos6
           - centos7
           - centos8
     container:
@@ -40,18 +40,13 @@ jobs:
       - uses: actions/upload-artifact@v1
         with:
           name: ${{ matrix.os }}-v2-nightly
-<<<<<<< HEAD:.github/workflows/nightly.yml
           path: pkg-build/cpack_output
-=======
-          path: build/cpack_output
->>>>>>> 5c14e0f6... Fix action can't run on centos6 (#874):.github/workflows/package.yml
       - uses: ./.github/actions/upload-to-oss-action
         with:
           key-id: ${{ secrets.OSS_ID }}
           key-secret: ${{ secrets.OSS_SECRET }}
           endpoint: ${{ secrets.OSS_ENDPOINT }}
           bucket: nebula-graph
-<<<<<<< HEAD:.github/workflows/nightly.yml
           asset-path: pkg-build/cpack_output
           target-path: package/v2-nightly/${{ steps.vars.outputs.subdir }}
 
@@ -69,7 +64,3 @@ jobs:
           tags: v2-nightly
           cache_froms: vesoft/nebula-dev:centos7
           add_git_labels: true
-=======
-          asset-path: build/cpack_output
-          target-path: package/v2-nightly/${{ steps.vars.outputs.subdir }}
->>>>>>> 5c14e0f6... Fix action can't run on centos6 (#874):.github/workflows/package.yml
