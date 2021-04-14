@@ -6,24 +6,30 @@
 #   -v: The version of package, the version should be match tag name, default value is the `commitId`
 #   -n: Package to one or multi packages, `ON` means one package, `OFF` means multi packages, default value is `ON`
 #   -s: Whether to strip the package, default value is `FALSE`
+#   -g: Whether build storage, default is ON
 #
-# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH>
+# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF>
 #
 
 set -e
 
 version=""
+build_storage=ON
 package_one=ON
 strip_enable="FALSE"
-usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH>"
+usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF>"
 project_dir="$(cd "$(dirname "$0")" && pwd)/.."
-build_dir=${project_dir}/build
+build_dir=${project_dir}/pkg-build
+modules_dir=${project_dir}/modules
+storage_dir=${modules_dir}/storage
+storage_build_dir=${build_dir}/modules/storage
 enablesanitizer="OFF"
 static_sanitizer="OFF"
 build_type="Release"
 branch="master"
+jobs=$(nproc)
 
-while getopts v:n:s:b:d:t: opt;
+while getopts v:n:s:b:d:t:g: opt;
 do
     case $opt in
         v)
@@ -47,6 +53,9 @@ do
             ;;
         t)
             build_type=$OPTARG
+            ;;
+        g)
+            build_storage=$OPTARG
             ;;
         ?)
             echo "Invalid option, use default arguments"
@@ -96,9 +105,10 @@ function _build_storage {
         echo ">>> build nebula storage failed <<<"
         exit 1
     fi
+    echo ">>> build nebula storage successfully <<<"
+}
 
-    pushd ${build_dir}
-
+function _build_graph {
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
           -DENABLE_ASAN=${san} \
@@ -107,18 +117,49 @@ function _build_storage {
           -DENABLE_STATIC_UBSAN=${ssan} \
           -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
           -DNEBULA_COMMON_REPO_TAG=${branch} \
-          -DNEBULA_STORAGE_REPO_TAG=${branch} \
           -DENABLE_TESTING=OFF \
-          -DENABLE_BUILD_STORAGE=ON \
+          -DENABLE_BUILD_STORAGE=OFF \
           -DENABLE_PACK_ONE=${package_one} \
-          $project_dir
+          -S ${project_dir} \
+          -B ${build_dir}
+
+function _build_graph {
+    cmake -DCMAKE_BUILD_TYPE=${build_type} \
+          -DNEBULA_BUILD_VERSION=${version} \
+          -DENABLE_ASAN=${san} \
+          -DENABLE_UBSAN=${san} \
+          -DENABLE_STATIC_ASAN=${ssan} \
+          -DENABLE_STATIC_UBSAN=${ssan} \
+          -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+          -DNEBULA_COMMON_REPO_TAG=${branch} \
+          -DENABLE_TESTING=OFF \
+          -DENABLE_BUILD_STORAGE=OFF \
+          -DENABLE_PACK_ONE=${package_one} \
+          -S ${project_dir} \
+          -B ${build_dir}
 
     if ! ( cmake --build ${build_dir} -j ${jobs} ); then
         echo ">>> build nebula graph failed <<<"
         exit 1
     fi
+    echo ">>> build nebula graph successfully <<<"
+}
 
-    popd
+# args: <version>
+function build {
+    version=$1
+    san=$2
+    ssan=$3
+    build_type=$4
+    branch=$5
+
+    rm -rf ${build_dir} && mkdir -p ${build_dir}
+
+    if [[ "$build_storage" == "ON" ]]; then
+        mkdir -p ${storage_build_dir}
+        _build_storage
+    fi
+    _build_graph
 }
 
 # args: <strip_enable>
@@ -135,6 +176,9 @@ function package {
         -DNEBULA_BUILD_VERSION=${version} \
         -DENABLE_PACK_ONE=${package_one} \
         -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+        -DENABLE_PACKAGE_STORAGE=${build_storage} \
+        -DNEBULA_STORAGE_SOURCE_DIR=${storage_dir} \
+        -DNEBULA_STORAGE_BINARY_DIR=${storage_build_dir} \
         ${project_dir}/package/
 
     strip_enable=$1
@@ -165,11 +209,9 @@ function package {
         exit 1
     else
         # rename package file
-        pkg_names=$(ls ./*nebula*-${version}*)
         outputDir=$build_dir/cpack_output
         mkdir -p ${outputDir}
-        for pkg_name in "${pkg_names[@]}";
-        do
+        for pkg_name in $(ls ./*nebula*-${version}*); do
             new_pkg_name=${pkg_name/\-Linux/${sys_ver}}
             mv ${pkg_name} ${outputDir}/${new_pkg_name}
             echo "####### taget package file is ${outputDir}/${new_pkg_name}"

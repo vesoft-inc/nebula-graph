@@ -5,12 +5,12 @@ COPY . /home/nebula/BUILD
 ARG BRANCH=master
 
 RUN cd /home/nebula/BUILD/package \
-  && ./package.sh -v $(git rev-parse --short HEAD) -n OFF -b ${BRANCH}
+  && ./package.sh -v $(git rev-parse --short HEAD) -n OFF -b ${BRANCH} -g OFF
 
 FROM centos:7
 
-COPY --from=builder /home/nebula/BUILD/build/cpack_output/nebula-*-common.rpm /usr/local/nebula/nebula-common.rpm
-COPY --from=builder /home/nebula/BUILD/build/cpack_output/nebula-*-graph.rpm /usr/local/nebula/nebula-graphd.rpm
+COPY --from=builder /home/nebula/BUILD/pkg-build/cpack_output/nebula-*-common.rpm /usr/local/nebula/nebula-common.rpm
+COPY --from=builder /home/nebula/BUILD/pkg-build/cpack_output/nebula-*-graph.rpm /usr/local/nebula/nebula-graphd.rpm
 
 WORKDIR /usr/local/nebula
 
