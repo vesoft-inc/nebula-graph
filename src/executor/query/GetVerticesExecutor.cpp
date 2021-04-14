@@ -61,8 +61,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
 }
 
 DataSet GetVerticesExecutor::buildRequestDataSet(const GetVertices* gv) {
+    nebula::DataSet vertices({kVid});
     if (gv == nullptr) {
-        return nebula::DataSet({kVid});
+        return vertices;
     }
     // Accept Table such as | $a | $b | $c |... as input which one column indicate src
     auto valueIter = ectx_->getResult(gv->inputVar()).iter();
