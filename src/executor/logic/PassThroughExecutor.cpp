@@ -15,11 +15,10 @@ namespace graph {
 folly::Future<Status> PassThroughExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
-    const auto &result = ectx_->getResult(node()->outputVar());
+    auto &result = const_cast<Result&>(ectx_->getResult(node()->inputVar()));
     auto iter = result.iter();
     if (!iter->isDefaultIter() && !iter->empty()) {
-        // Return directly if this pass through output result is not empty
-        return Status::OK();
+        return finish(std::move(result));
     }
 
     DataSet ds;
