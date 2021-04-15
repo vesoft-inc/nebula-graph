@@ -549,7 +549,7 @@ TEST_F(MatchValidatorTest, validateAlias) {
                             "RETURN p._rank";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Vertex `p' does not have the ranking attribute");
+                  "SemanticError: Path `p' does not have the ranking attribute");
     }
 }
 
