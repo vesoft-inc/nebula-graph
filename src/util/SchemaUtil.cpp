@@ -120,7 +120,8 @@ Status SchemaUtil::setComment(SchemaPropItem* schemaProp, meta::cpp2::Schema& sc
     auto ret = schemaProp->getComment();
     if (ret.ok()) {
         if (ret.value().size() > kCommentLengthLimit) {
-            return Status::Error("Too long comment reach %ld bytes limit.", kCommentLengthLimit);
+            return Status::SemanticError("Too long comment reach %ld bytes limit.",
+                                         kCommentLengthLimit);
         }
         schema.schema_prop_ref()->set_comment(std::move(ret).value());
     }

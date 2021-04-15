@@ -51,8 +51,8 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification *>
                     ExpressionUtils::foldConstantExpr(defaultValueExpr)->encode());
             } else if (property->isComment()) {
                 if (property->comment()->size() > SchemaUtil::kCommentLengthLimit) {
-                    return Status::Error("Too long comment reach %ld bytes limit.",
-                                         SchemaUtil::kCommentLengthLimit);
+                    return Status::SemanticError("Too long comment reach %ld bytes limit.",
+                                                 SchemaUtil::kCommentLengthLimit);
                 }
                 column.set_comment(*DCHECK_NOTNULL(property->comment()));
             }
@@ -194,8 +194,8 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem *> &sche
                 retStr = schemaProp->getComment();
                 NG_RETURN_IF_ERROR(retStr);
                 if (retStr.value().size() > SchemaUtil::kCommentLengthLimit) {
-                    return Status::Error("Too long comment reach %ld bytes limit.",
-                                         SchemaUtil::kCommentLengthLimit);
+                    return Status::SemanticError("Too long comment reach %ld bytes limit.",
+                                                 SchemaUtil::kCommentLengthLimit);
                 }
                 schemaProp_.set_comment(retStr.value());
                 break;
@@ -320,8 +320,8 @@ Status CreateTagIndexValidator::validateImpl() {
     ifNotExist_ = sentence->isIfNotExist();
     if (sentence->comment() != nullptr) {
         if (sentence->comment()->size() > SchemaUtil::kCommentLengthLimit) {
-            return Status::Error("Too long comment reach %ld bytes limit.",
-                                 SchemaUtil::kCommentLengthLimit);
+            return Status::SemanticError("Too long comment reach %ld bytes limit.",
+                                         SchemaUtil::kCommentLengthLimit);
         }
     }
     // TODO(darion) Save the index
@@ -350,8 +350,8 @@ Status CreateEdgeIndexValidator::validateImpl() {
     ifNotExist_ = sentence->isIfNotExist();
     if (sentence->comment() != nullptr) {
         if (sentence->comment()->size() > SchemaUtil::kCommentLengthLimit) {
-            return Status::Error("Too long comment reach %ld bytes limit.",
-                                 SchemaUtil::kCommentLengthLimit);
+            return Status::SemanticError("Too long comment reach %ld bytes limit.",
+                                         SchemaUtil::kCommentLengthLimit);
         }
     }
     // TODO(darion) Save the index

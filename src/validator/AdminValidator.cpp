@@ -101,8 +101,8 @@ Status CreateSpaceValidator::validateImpl() {
     // check comment
     if (sentence->comment() != nullptr) {
         if (sentence->comment()->size() > SchemaUtil::kCommentLengthLimit) {
-            return Status::Error("Too long comment reach %ld bytes limit.",
-                                    SchemaUtil::kCommentLengthLimit);
+            return Status::SemanticError("Too long comment reach %ld bytes limit.",
+                                         SchemaUtil::kCommentLengthLimit);
         }
         spaceDesc_.set_comment(*sentence->comment());
     }
