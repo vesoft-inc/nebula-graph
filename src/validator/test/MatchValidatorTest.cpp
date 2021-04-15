@@ -534,7 +534,7 @@ TEST_F(MatchValidatorTest, validateAlias) {
         EXPECT_EQ(std::string(result.message()),
                   "SemanticError: Alias used but not defined: `abc'");
     }
-    // validate invalid alias type in filter clause
+    // incorrect alias type in filter
     {
         std::string query = "MATCH (v :person{name:\"Tim Duncan\"})-[e]-(v2) "
                             "WHERE v._src>0"
@@ -542,6 +542,14 @@ TEST_F(MatchValidatorTest, validateAlias) {
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
                   "SemanticError: Vertex `v' does not have the src attribute");
+    }
+    // incorrect alias type in return clause
+    {
+        std::string query = "MATCH p = (v :person{name:\"Tim Duncan\"})-[e]-(v2) "
+                            "RETURN p._rank";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "SemanticError: Vertex `p' does not have the ranking attribute");
     }
 }
 

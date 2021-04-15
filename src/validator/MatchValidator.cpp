@@ -820,7 +820,7 @@ Status MatchValidator::checkAlias(
                 return Status::SemanticError("To get the ranking of the edge, use rank(%s)",
                                              name->c_str());
             } else if (aliasType == AliasType::kPath) {
-                return Status::SemanticError("Path `%s' does not have the rank attribute",
+                return Status::SemanticError("Path `%s' does not have the ranking attribute",
                                              name->c_str());
             }
             break;
