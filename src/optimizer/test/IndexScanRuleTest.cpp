@@ -404,8 +404,8 @@ TEST(IndexScanRuleTest, BoundValueRangeTest) {
             const auto& hint = hints[0];
             EXPECT_EQ("col_double", *hint.column_name_ref());
             EXPECT_EQ(storage::cpp2::ScanType::RANGE, *hint.scan_type_ref());
-            EXPECT_EQ(1 + OptimizerUtils::kEpsilon, *hint.begin_value_ref());
-            EXPECT_EQ(5 - OptimizerUtils::kEpsilon, *hint.end_value_ref());
+            EXPECT_EQ(1 + kEpsilon, *hint.begin_value_ref());
+            EXPECT_EQ(5 - kEpsilon, *hint.end_value_ref());
         }
     }
     {

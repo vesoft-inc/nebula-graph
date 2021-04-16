@@ -270,14 +270,12 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | VertexID |
-    # FIXME(aiee): should not contains vid 220
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 > 100.5
       """
     Then the result should be, in any order:
       | VertexID |
-      | "220"    |
       | "221"    |
       | "222"    |
       | "223"    |
@@ -296,7 +294,6 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | VertexID |
-    # FIXME(aiee): should contain vid 222
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 >= 100.5 AND lookup_tag_2.col3 <= 300.5
@@ -305,6 +302,7 @@ Feature: LookUpTest_Vid_String
       | VertexID |
       | "220"    |
       | "221"    |
+      | "222"    |
     Then drop the used space
 
   Scenario: LookupTest EdgeConditionScan
@@ -413,14 +411,12 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
-    # FIXME(aiee): shouble not contain first line
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 > 100.5
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
-      | "220"  | "221"  | 0       |
       | "220"  | "222"  | 0       |
       | "220"  | "223"  | 0       |
       | "220"  | "224"  | 0       |
@@ -438,7 +434,6 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
-    # FIXME(aiee): should contain edge 200->223
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 >= 100.5
@@ -448,6 +443,7 @@ Feature: LookUpTest_Vid_String
       | SrcVID | DstVID | Ranking |
       | "220"  | "221"  | 0       |
       | "220"  | "222"  | 0       |
+      | "220"  | "223"  | 0       |
     Then drop the used space
 
   Scenario: LookupTest FunctionExprTest
@@ -462,14 +458,14 @@ Feature: LookUpTest_Vid_String
     When executing query:
       """
       INSERT VERTEX
-        lookup_tag_2(col1, col2, col3, col4)
+      lookup_tag_2(col1, col2, col3, col4)
       VALUES
-        "220":(true, 100, 100.5, true),
-        "221":(true, 200, 200.5, true),
-        "222":(true, 300, 300.5, true),
-        "223":(true, 400, 400.5, true),
-        "224":(true, 500, 500.5, true),
-        "225":(true, 600, 600.5, true)
+      "220":(true, 100, 100.5, true),
+      "221":(true, 200, 200.5, true),
+      "222":(true, 300, 300.5, true),
+      "223":(true, 400, 400.5, true),
+      "224":(true, 500, 500.5, true),
+      "225":(true, 600, 600.5, true)
       """
     Then the execution should be successful
     When executing query:
@@ -557,12 +553,6 @@ Feature: LookUpTest_Vid_String
     # When executing query:
     # """
     # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "HelLo")
-    # """
-    # Then the result should be, in any order:
-    # | VertexID |
-    # When executing query:
-    # """
-    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "hello")
     # """
     # Then the result should be, in any order:
     # | VertexID |
