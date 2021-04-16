@@ -869,13 +869,7 @@ edge_prop_expression
 
 function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
-        if (!$3) {
-            if (FunctionManager::find(*$1, 0).ok()) {
-                $$ = new FunctionCallExpression($1);
-            } else {
-                throw nebula::GraphParser::syntax_error(@1, "Unknown function ");
-            }
-        } else if ($3->numArgs() == 1 && AggFunctionManager::find(*$1).ok()) {
+        if ($3->numArgs() == 1 && AggFunctionManager::find(*$1).ok()) {
             $$ = new AggregateExpression($1, $3->args()[0].release(), false);
             delete($3);
         } else if (FunctionManager::find(*$1, $3->numArgs()).ok()) {
@@ -896,8 +890,9 @@ function_call_expression
         }
     }
     | LABEL L_PAREN STAR R_PAREN {
-        std::transform($1->begin(), $1->end(), $1->begin(), ::toupper);
-        if (!$1->compare("COUNT")) {
+        auto func = *$1;
+        std::transform(func.begin(), func.end(), func.begin(), ::toupper);
+        if (!func.compare("COUNT")) {
             auto star = new ConstantExpression(std::string("*"));
             $$ = new AggregateExpression($1, star, false);
         } else {
@@ -906,8 +901,9 @@ function_call_expression
         }
     }
     | LABEL L_PAREN KW_DISTINCT STAR R_PAREN {
-        std::transform($1->begin(), $1->end(), $1->begin(), ::toupper);
-        if (!$1->compare("COUNT")) {
+        auto func = *$1;
+        std::transform(func.begin(), func.end(), func.begin(), ::toupper);
+        if (!func.compare("COUNT")) {
             auto star = new ConstantExpression(std::string("*"));
             $$ = new AggregateExpression($1, star, true);
         } else {
@@ -943,7 +939,7 @@ uuid_expression
 
 opt_argument_list
     : %empty {
-        $$ = nullptr;
+        $$ = new ArgumentList();
     }
     | argument_list {
         $$ = $1;
@@ -2396,11 +2392,8 @@ assignment_sentence
     ;
 
 insert_vertex_sentence
-    : KW_INSERT KW_VERTEX vertex_tag_list KW_VALUES vertex_row_list {
-        $$ = new InsertVerticesSentence($3, $5);
-    }
-    | KW_INSERT KW_VERTEX KW_NO KW_OVERWRITE vertex_tag_list KW_VALUES vertex_row_list {
-        $$ = new InsertVerticesSentence($5, $7, false /* not overwritable */);
+    : KW_INSERT KW_VERTEX opt_if_not_exists vertex_tag_list KW_VALUES vertex_row_list {
+        $$ = new InsertVerticesSentence($4, $6, $3);
     }
     ;
 
@@ -2473,34 +2466,18 @@ value_list
     ;
 
 insert_edge_sentence
-    : KW_INSERT KW_EDGE name_label L_PAREN R_PAREN KW_VALUES edge_row_list {
-        auto sentence = new InsertEdgesSentence();
-        sentence->setEdge($3);
+    : KW_INSERT KW_EDGE opt_if_not_exists name_label L_PAREN R_PAREN KW_VALUES edge_row_list {
+        auto sentence = new InsertEdgesSentence($3);
+        sentence->setEdge($4);
         sentence->setProps(new PropertyList());
-        sentence->setRows($7);
-        $$ = sentence;
-    }
-    | KW_INSERT KW_EDGE name_label L_PAREN prop_list R_PAREN KW_VALUES edge_row_list {
-        auto sentence = new InsertEdgesSentence();
-        sentence->setEdge($3);
-        sentence->setProps($5);
         sentence->setRows($8);
         $$ = sentence;
     }
-    | KW_INSERT KW_EDGE KW_NO KW_OVERWRITE name_label L_PAREN R_PAREN KW_VALUES edge_row_list {
-        auto sentence = new InsertEdgesSentence();
-        sentence->setOverwrite(false);
-        sentence->setEdge($5);
-        sentence->setProps(new PropertyList());
+    | KW_INSERT KW_EDGE opt_if_not_exists name_label L_PAREN prop_list R_PAREN KW_VALUES edge_row_list {
+        auto sentence = new InsertEdgesSentence($3);
+        sentence->setEdge($4);
+        sentence->setProps($6);
         sentence->setRows($9);
-        $$ = sentence;
-    }
-    | KW_INSERT KW_EDGE KW_NO KW_OVERWRITE name_label L_PAREN prop_list R_PAREN KW_VALUES edge_row_list {
-        auto sentence = new InsertEdgesSentence();
-        sentence->setOverwrite(false);
-        sentence->setEdge($5);
-        sentence->setProps($7);
-        sentence->setRows($10);
         $$ = sentence;
     }
     ;
