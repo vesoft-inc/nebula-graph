@@ -1,16 +1,20 @@
 Feature: Match seek by edge
+  Examples:
+    | space_name  |
+    | nba         |
+    | nba_int_vid |
 
   Background: Prepare space
-    Given a graph with space named "nba"
+    Given a graph with space named "<space_name>"
 
   Scenario: seek by edge index
     When executing query:
       """
       MATCH (player)-[:serve]->(team)
-      RETURN id(player), team.name
+      RETURN player.name, team.name
       """
     Then the result should be, in any order:
-      | id(player)              | team.name       |
+      | player.name             | team.name       |
       | "Amar'e Stoudemire"     | "Suns"          |
       | "Amar'e Stoudemire"     | "Knicks"        |
       | "Amar'e Stoudemire"     | "Heat"          |
@@ -166,10 +170,10 @@ Feature: Match seek by edge
     When executing query:
       """
       MATCH (team)<-[:serve]-(player)
-      RETURN id(player), team.name
+      RETURN player.name, team.name
       """
     Then the result should be, in any order:
-      | id(player)              | team.name       |
+      | player.name             | team.name       |
       | "Amar'e Stoudemire"     | "Suns"          |
       | "Amar'e Stoudemire"     | "Knicks"        |
       | "Amar'e Stoudemire"     | "Heat"          |
@@ -325,10 +329,10 @@ Feature: Match seek by edge
     When executing query:
       """
       MATCH (team)-[:serve]-(player)
-      RETURN id(player), team.name
+      RETURN player.name, team.name
       """
     Then the result should be, in any order:
-      | id(player)              | team.name               |
+      | player.name             | team.name               |
       | "Heat"                  | "Amar'e Stoudemire"     |
       | "Suns"                  | "Amar'e Stoudemire"     |
       | "Knicks"                | "Amar'e Stoudemire"     |
@@ -636,10 +640,10 @@ Feature: Match seek by edge
     When executing query:
       """
       MATCH (p1)-[:like]->(player)-[:serve]->(team)
-      RETURN p1.name, id(player), team.name
+      RETURN p1.name, player.name, team.name
       """
     Then the result should be, in any order:
-      | p1.name              | id(player)           | team.name       |
+      | p1.name              | player.name          | team.name       |
       | "Amar'e Stoudemire"  | "Steve Nash"         | "Suns"          |
       | "Amar'e Stoudemire"  | "Steve Nash"         | "Lakers"        |
       | "Amar'e Stoudemire"  | "Steve Nash"         | "Mavericks"     |
