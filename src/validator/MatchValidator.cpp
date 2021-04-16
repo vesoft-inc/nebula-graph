@@ -419,37 +419,38 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     return Status::OK();
 }
 
-Status MatchValidator::checkAliasesSchema(const std::string &name,
+Status MatchValidator::checkAliasesSchema(const std::string &aliasName,
                                           const std::string &prop,
                                           const AliasSchemaMap *aliases) const {
-    if (!aliases || aliases->count(*name) != 1) {
-        return Status::SemanticError("Alias used but not defined: `%s'", name->c_str());
+    auto res = aliases->find(aliasName);
+    if (!aliases || res == aliases->end()) {
+        return Status::SemanticError("Alias used but not defined: `%s'", aliasName.c_str());
     }
     if (prop.empty()) {
         return Status::OK();
     }
-    const auto& aliasSchema = aliases[name];
+    const auto& aliasSchema = res->second;
     auto kind = aliasSchema.type;
     const auto& schemaIds = aliasSchema.schemaIds;
     switch (kind) {
-        case AliasType::Kind::kNode: {
+        case AliasType::kNode: {
             for (const auto& tagId : schemaIds) {
-                auto& schema = qctx_->schemaMng()->getTagSchema(space_, tagId);
+                const auto& schema = qctx_->schemaMng()->getTagSchema(space_.id, tagId);
                 if (!schema) {
-                    return Status::SemanticError("Alias `%s' has wrong tag", name->c_str());
+                    return Status::SemanticError("Alias `%s' has wrong tag", aliasName.c_str());
                 }
                 auto* field = schema->field(prop);
-                if (field != nullptr) {
+                if (field == nullptr) {
                     return Status::SemanticError("Not found prop `%s'", prop.c_str());
                 }
             }
             return Status::OK();
         }
-        case AliasType::Kind::kEdge: {
+        case AliasType::kEdge: {
             for (const auto& edgeType : schemaIds) {
-                auto& schema = qctx_->schemaMng()->getEdgeSchema(space_, edgeType);
+                const auto& schema = qctx_->schemaMng()->getEdgeSchema(space_.id, edgeType);
                 if (!schema) {
-                    return Status::SemanticError("Alias `%s' has wrong edge", name.c_str());
+                    return Status::SemanticError("Alias `%s' has wrong edge", aliasName.c_str());
                 }
                 auto* field = schema->field(prop);
                 if (field != nullptr) {
@@ -459,7 +460,7 @@ Status MatchValidator::checkAliasesSchema(const std::string &name,
             return Status::SemanticError("Not found prop `%s'", prop.c_str());
         }
         default: {
-            return Status::SemanticError("Alias `%s' has no attribute", name->c_str());
+            return Status::SemanticError("Alias `%s' has no attribute", aliasName.c_str());
         }
     }
 }
@@ -483,7 +484,7 @@ Status MatchValidator::validateAliasesSchema(const std::vector<const Expression 
             NG_RETURN_IF_ERROR(checkAlias(refExpr, aliasesUsed));
             auto kind = refExpr->kind();
             const std::string *name = nullptr;
-            const std::string prop;
+            std::string prop;
             if (kind == Expression::Kind::kLabel) {
                 name = static_cast<const LabelExpression *>(refExpr)->name();
             } else {
