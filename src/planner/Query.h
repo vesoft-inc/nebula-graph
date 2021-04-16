@@ -1166,43 +1166,6 @@ private:
     void cloneMembers(const UnionAllVersionVar&);
 };
 
-// merge columns to one
-// require the type of columns are same
-class ColumnsMerge final : public SingleInputNode {
-public:
-    static ColumnsMerge* make(QueryContext* qctx,
-                              PlanNode* input,
-                              std::string columnName,
-                              std::vector<std::string> columns) {
-        return qctx->objPool()->add(new ColumnsMerge(qctx,
-                                                     input,
-                                                     std::move(columnName),
-                                                     std::move(columns)));
-    }
-
-    const auto& columnName() const {
-        return columnName_;
-    }
-
-    const auto& columns() const {
-        return columns_;
-    }
-
-private:
-    ColumnsMerge(QueryContext* qctx,
-                 PlanNode* input,
-                 std::string &&columnName,
-                 std::vector<std::string> &&columns)
-        : SingleInputNode(qctx, Kind::kColumnsMerge, input),
-          columnName_(std::move(columnName)),
-          columns_(std::move(columns)) {}
-
-    // the new column name
-    std::string columnName_;
-    // the columns to merge
-    std::vector<std::string> columns_;
-};
-
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_QUERY_H_

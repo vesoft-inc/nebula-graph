@@ -89,11 +89,21 @@ StatusOr<SubPlan> PropIndexSeek::transformEdge(EdgeContext* edgeCtx) {
     plan.root = scan;
 
     if (edgeCtx->scanInfo.direction == MatchEdge::Direction::BOTH) {
-        auto cm = ColumnsMerge::make(matchClauseCtx->qctx,
-                                     scan,
-                                     kVid,
-                                     std::move(columnsName));
-        plan.root = cm;
+        // merge the src,dst to one column
+        auto *yieldColumns = matchClauseCtx->qctx->objPool()->makeAndAdd<YieldColumns>();
+        auto *exprList = new ExpressionList();
+        exprList->add(new ColumnExpression(0));  // src
+        exprList->add(new ColumnExpression(1));  // dst
+        yieldColumns->addColumn(new YieldColumn(new ListExpression(exprList)));
+        auto *project = Project::make(matchClauseCtx->qctx,
+                                      scan,
+                                      yieldColumns);
+        project->setColNames({kVid});
+        auto *unwindColumns = matchClauseCtx->qctx->objPool()->makeAndAdd<YieldColumns>();
+        unwindColumns->addColumn(new YieldColumn(new ColumnExpression(0)));
+        auto *unwind = Unwind::make(matchClauseCtx->qctx, project, unwindColumns);
+        unwind->setColNames({kVid});
+        plan.root = unwind;
     }
 
     // initialize start expression in project edge
