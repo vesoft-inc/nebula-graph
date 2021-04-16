@@ -27,7 +27,7 @@ Status MatchValidator::validateImpl() {
     auto *sentence = static_cast<MatchSentence *>(sentence_);
     auto &clauses = sentence->clauses();
 
-    std::unordered_map<std::string, AliasSchema> *aliasesUsed = nullptr;
+    AliasSchemaMap *aliasesUsed = nullptr;
     YieldColumns *prevYieldColumns = nullptr;
     auto retClauseCtx = getContext<ReturnClauseContext>();
     auto retYieldCtx = getContext<YieldClauseContext>();
@@ -174,7 +174,7 @@ Status MatchValidator::buildPathExpr(const MatchPath *path,
 
 Status MatchValidator::buildNodeInfo(const MatchPath *path,
                                      std::vector<NodeInfo> &nodeInfos,
-                                     std::unordered_map<std::string, AliasSchema> &aliases) const {
+                                     AliasSchemaMap &aliases) const {
     auto *sm = qctx_->schemaMng();
     auto steps = path->steps();
     nodeInfos.resize(steps + 1);
@@ -240,7 +240,7 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
 
 Status MatchValidator::buildEdgeInfo(const MatchPath *path,
                                      std::vector<EdgeInfo> &edgeInfos,
-                                     std::unordered_map<std::string, AliasSchema> &aliases) const {
+                                     AliasSchemaMap &aliases) const {
     auto *sm = qctx_->schemaMng();
     auto steps = path->steps();
     edgeInfos.resize(steps);
@@ -419,9 +419,53 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     return Status::OK();
 }
 
-Status MatchValidator::validateAliasesSchema(
-    const std::vector<const Expression *> &exprs,
-    const std::unordered_map<std::string, AliasSchema> *aliasesUsed) const {
+Status MatchValidator::checkAliasesSchema(const std::string &name,
+                                          const std::string &prop,
+                                          const AliasSchemaMap *aliases) const {
+    if (!aliases || aliases->count(*name) != 1) {
+        return Status::SemanticError("Alias used but not defined: `%s'", name->c_str());
+    }
+    if (prop.empty()) {
+        return Status::OK();
+    }
+    const auto& aliasSchema = aliases[name];
+    auto kind = aliasSchema.type;
+    const auto& schemaIds = aliasSchema.schemaIds;
+    switch (kind) {
+        case AliasType::Kind::kNode: {
+            for (const auto& tagId : schemaIds) {
+                auto& schema = qctx_->schemaMng()->getTagSchema(space_, tagId);
+                if (!schema) {
+                    return Status::SemanticError("Alias `%s' has wrong tag", name->c_str());
+                }
+                auto* field = schema->field(prop);
+                if (field != nullptr) {
+                    return Status::SemanticError("Not found prop `%s'", prop.c_str());
+                }
+            }
+            return Status::OK();
+        }
+        case AliasType::Kind::kEdge: {
+            for (const auto& edgeType : schemaIds) {
+                auto& schema = qctx_->schemaMng()->getEdgeSchema(space_, edgeType);
+                if (!schema) {
+                    return Status::SemanticError("Alias `%s' has wrong edge", name.c_str());
+                }
+                auto* field = schema->field(prop);
+                if (field != nullptr) {
+                    return Status::OK();
+                }
+            }
+            return Status::SemanticError("Not found prop `%s'", prop.c_str());
+        }
+        default: {
+            return Status::SemanticError("Alias `%s' has no attribute", name->c_str());
+        }
+    }
+}
+
+Status MatchValidator::validateAliasesSchema(const std::vector<const Expression *> &exprs,
+                                             const AliasSchemaMap *aliasesUsed) const {
     static const std::unordered_set<Expression::Kind> kinds = {Expression::Kind::kLabel,
                                                                Expression::Kind::kLabelAttribute,
                                                                // primitive props
@@ -437,6 +481,21 @@ Status MatchValidator::validateAliasesSchema(
         }
         for (auto *refExpr : refExprs) {
             NG_RETURN_IF_ERROR(checkAlias(refExpr, aliasesUsed));
+            auto kind = refExpr->kind();
+            const std::string *name = nullptr;
+            const std::string prop;
+            if (kind == Expression::Kind::kLabel) {
+                name = static_cast<const LabelExpression *>(refExpr)->name();
+            } else {
+                DCHECK(kind == Expression::Kind::kLabelAttribute);
+                name = static_cast<const LabelAttributeExpression *>(refExpr)->left()->name();
+                prop = static_cast<const LabelAttributeExpression *>(refExpr)
+                           ->right()
+                           ->value()
+                           .getStr();
+            }
+            DCHECK(name != nullptr);
+            NG_RETURN_IF_ERROR(checkAliasesSchema(*name, prop, aliasesUsed));
         }
     }
     return Status::OK();
@@ -585,9 +644,8 @@ StatusOr<Expression *> MatchValidator::makeSubFilterWithoutSave(const std::strin
     return new LogicalExpression(Expression::Kind::kLogicalAnd, left, right);
 }
 
-Status MatchValidator::combineAliases(
-    std::unordered_map<std::string, AliasSchema> &curAliases,
-    const std::unordered_map<std::string, AliasSchema> &lastAliases) const {
+Status MatchValidator::combineAliases(AliasSchemaMap &curAliases,
+                                      const AliasSchemaMap &lastAliases) const {
     for (auto &aliasPair : lastAliases) {
         if (!curAliases.emplace(aliasPair).second) {
             return Status::SemanticError("`%s': Redefined alias", aliasPair.first.c_str());
