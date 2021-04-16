@@ -85,9 +85,6 @@ private:
 
     Status combineYieldColumns(YieldColumns *yieldColumns, YieldColumns *prevYieldColumns) const;
 
-    Status isAliasDefined(const std::unordered_map<std::string, AliasType> *aliasesUsed,
-                          const std::string *name) const;
-
     StatusOr<AliasType> getAliasType(const std::unordered_map<std::string, AliasType> *aliasesUsed,
                                      const std::string *name) const;
 
