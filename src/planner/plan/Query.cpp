@@ -95,37 +95,6 @@ void GetNeighbors::cloneMembers(const GetNeighbors& g) {
     }
 }
 
-void GetVarStepsNeighbors::clone(const GetVarStepsNeighbors& g) {
-    Explore::clone(g);
-    setSrc(qctx_->objPool()->add(g.src_->clone().release()));
-    setEdgeTypes(g.edgeTypes_);
-    setEdgeDirection(g.edgeDirection_);
-    setRandom(g.random_);
-    if (g.vertexProps_) {
-        auto vertexProps = *g.vertexProps_;
-        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(vertexProps);
-        setVertexProps(std::move(vertexPropsPtr));
-    }
-
-    if (g.edgeProps_) {
-        auto edgeProps = *g.edgeProps_;
-        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(std::move(edgeProps));
-        setEdgeProps(std::move(edgePropsPtr));
-    }
-
-    if (g.statProps_) {
-        auto statProps = *g.statProps_;
-        auto statPropsPtr = std::make_unique<decltype(statProps)>(std::move(statProps));
-        setStatProps(std::move(statPropsPtr));
-    }
-
-    if (g.exprs_) {
-        auto exprs = *g.exprs_;
-        auto exprsPtr = std::make_unique<decltype(exprs)>(exprs);
-        setExprs(std::move(exprsPtr));
-    }
-}
-
 std::unique_ptr<PlanNodeDescription> GetVertices::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
@@ -520,7 +489,6 @@ PlanNode* DataCollect::clone() const {
 void DataCollect::cloneMembers(const DataCollect &l) {
     SingleDependencyNode::cloneMembers(l);
 
-    mToN_ = l.mToN();
     distinct_ = l.distinct();
 }
 
@@ -644,10 +612,42 @@ void UnionAllVersionVar::cloneMembers(const UnionAllVersionVar& f) {
     SingleInputNode::cloneMembers(f);
 }
 
-GetVarStepsNeighbors* GetVarStepsNeighbors::clone(QueryContext* qctx) const {
-    auto newGN = GetVarStepsNeighbors::make(qctx, nullptr, space_);
-    newGN->clone(*this);
+GetVarStepsNeighbors* GetVarStepsNeighbors::clone() const {
+    auto newGN = GetVarStepsNeighbors::make(qctx_, nullptr, space_);
+    newGN->cloneMembers(*this);
     return newGN;
+}
+
+void GetVarStepsNeighbors::cloneMembers(const GetVarStepsNeighbors& g) {
+    Explore::cloneMembers(g);
+
+    setSrc(qctx_->objPool()->add(g.src_->clone().release()));
+    setEdgeTypes(g.edgeTypes_);
+    setEdgeDirection(g.edgeDirection_);
+    setRandom(g.random_);
+    if (g.vertexProps_) {
+        auto vertexProps = *g.vertexProps_;
+        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(vertexProps);
+        setVertexProps(std::move(vertexPropsPtr));
+    }
+
+    if (g.edgeProps_) {
+        auto edgeProps = *g.edgeProps_;
+        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(std::move(edgeProps));
+        setEdgeProps(std::move(edgePropsPtr));
+    }
+
+    if (g.statProps_) {
+        auto statProps = *g.statProps_;
+        auto statPropsPtr = std::make_unique<decltype(statProps)>(std::move(statProps));
+        setStatProps(std::move(statPropsPtr));
+    }
+
+    if (g.exprs_) {
+        auto exprs = *g.exprs_;
+        auto exprsPtr = std::make_unique<decltype(exprs)>(exprs);
+        setExprs(std::move(exprsPtr));
+    }
 }
 
 std::unique_ptr<PlanNodeDescription> GetVarStepsNeighbors::explain() const {
@@ -668,15 +668,14 @@ std::unique_ptr<PlanNodeDescription> GetVarStepsNeighbors::explain() const {
     return desc;
 }
 
-
-TraceProject* TraceProject::clone(QueryContext* qctx) const {
-    auto newProj = TraceProject::make(qctx, nullptr, nullptr);
-    newProj->clone(*this);
+TraceProject* TraceProject::clone() const {
+    auto newProj = TraceProject::make(qctx_, nullptr, nullptr);
+    newProj->cloneMembers(*this);
     return newProj;
 }
 
-void TraceProject::clone(const TraceProject &p) {
-    SingleInputNode::clone(p);
+void TraceProject::cloneMembers(const TraceProject &p) {
+    SingleInputNode::cloneMembers(p);
     cols_ = qctx_->objPool()->makeAndAdd<YieldColumns>();
     for (const auto &col : p.columns()->columns()) {
         cols_->addColumn(col->clone().release());

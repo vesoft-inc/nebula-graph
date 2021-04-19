@@ -1212,7 +1212,7 @@ public:
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
-    GetVarStepsNeighbors* clone(QueryContext* qctx) const;
+    GetVarStepsNeighbors* clone() const;
 
     Expression* src() const {
         return src_;
@@ -1309,7 +1309,7 @@ private:
     }
 
 private:
-    void clone(const GetVarStepsNeighbors& g);
+    void cloneMembers(const GetVarStepsNeighbors& g);
 
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
@@ -1334,7 +1334,7 @@ public:
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
-    TraceProject* clone(QueryContext* qctx) const;
+    TraceProject* clone() const;
 
     const YieldColumns* columns() const {
         return cols_;
@@ -1352,7 +1352,7 @@ private:
     TraceProject(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
       : SingleInputNode(qctx, Kind::kTraceProject, input), cols_(cols) { }
 
-    void clone(const TraceProject &p);
+    void cloneMembers(const TraceProject &p);
 
 private:
     YieldColumns*               cols_{nullptr};
