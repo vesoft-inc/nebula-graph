@@ -17,7 +17,7 @@ bool LabelIndexSeek::matchNode(NodeContext* nodeCtx) {
     // only require the tag
     if (node.tids.size() != 1) {
         // TODO multiple tag index seek need the IndexScan support
-        VLOG(2) << "Multple tag index seek is not supported now."
+        VLOG(2) << "Multple tag index seek is not supported now.";
         return false;
     }
 
@@ -39,7 +39,7 @@ bool LabelIndexSeek::matchEdge(EdgeContext* edgeCtx) {
     // require one edge at least
     if (edge.edgeTypes.size() != 1 || edge.range != nullptr) {
         // TODO multiple edge index seek need the IndexScan support
-        VLOG(2) << "Multiple edge index seek and variable length edge seek are not supported now. "
+        VLOG(2) << "Multiple edge index seek and variable length edge seek are not supported now.";
         return false;
     }
 
