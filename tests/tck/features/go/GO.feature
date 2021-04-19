@@ -1460,6 +1460,41 @@ Feature: Go Sentence
       | EMPTY      | "Russell Westbrook" |
       | EMPTY      | "Luka Doncic"       |
       | EMPTY      | "Russell Westbrook" |
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like YIELD like._dst AS id |GO 1 TO 2 STEPS FROM $-.id OVER like
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst           |
+      | "Tim Duncan"        |
+      | "LaMarcus Aldridge" |
+      | "Manu Ginobili"     |
+      | "Tim Duncan"        |
+      | "Manu Ginobili"     |
+      | "Manu Ginobili"     |
+      | "Tony Parker"       |
+      | "Tony Parker"       |
+      | "Tim Duncan"        |
+      | "Tony Parker"       |
+      | "Tim Duncan"        |
+    When executing query:
+      """
+      $var = GO FROM "Tim Duncan" OVER like YIELD like._dst AS id;
+      GO 1 TO 2 STEPS FROM $var.id OVER like
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst           |
+      | "Tim Duncan"        |
+      | "LaMarcus Aldridge" |
+      | "Manu Ginobili"     |
+      | "Tim Duncan"        |
+      | "Manu Ginobili"     |
+      | "Manu Ginobili"     |
+      | "Tony Parker"       |
+      | "Tony Parker"       |
+      | "Tim Duncan"        |
+      | "Tony Parker"       |
+      | "Tim Duncan"        |
 
   Scenario: error message
     When executing query:
