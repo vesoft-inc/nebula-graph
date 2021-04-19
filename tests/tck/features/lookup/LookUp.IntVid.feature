@@ -304,15 +304,17 @@ Feature: LookUpTest_Vid_Int
       | VertexID |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 > 100.5
+      LOOKUP ON lookup_tag_2
+      WHERE lookup_tag_2.col3 > 100.5
+      YIELD lookup_tag_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | VertexID |
-      | 221      |
-      | 222      |
-      | 223      |
-      | 224      |
-      | 225      |
+      | VertexID | col3  |
+      | 221      | 200.5 |
+      | 222      | 300.5 |
+      | 223      | 400.5 |
+      | 224      | 500.5 |
+      | 225      | 600.5 |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5
@@ -328,13 +330,15 @@ Feature: LookUpTest_Vid_Int
       | VertexID |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 >= 100.5 AND lookup_tag_2.col3 <= 300.5
+      LOOKUP ON lookup_tag_2
+      WHERE lookup_tag_2.col3 >= 100.5 AND lookup_tag_2.col3 <= 300.5
+      YIELD lookup_tag_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | VertexID |
-      | 220      |
-      | 221      |
-      | 222      |
+      | VertexID | col3  |
+      | 220      | 100.5 |
+      | 221      | 200.5 |
+      | 222      | 300.5 |
     Then drop the used space
 
   Scenario: LookupTest IntVid EdgeConditionScan
@@ -452,14 +456,16 @@ Feature: LookUpTest_Vid_Int
       | SrcVID | DstVID | Ranking |
     When executing query:
       """
-      LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 > 100.5
+      LOOKUP ON lookup_edge_2
+      WHERE lookup_edge_2.col3 > 100.5
+      YIELD lookup_edge_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-      | 220    | 222    | 0       |
-      | 220    | 223    | 0       |
-      | 220    | 224    | 0       |
-      | 220    | 225    | 0       |
+      | SrcVID | DstVID | Ranking | col3  |
+      | 220    | 222    | 0       | 200.5 |
+      | 220    | 223    | 0       | 300.5 |
+      | 220    | 224    | 0       | 400.5 |
+      | 220    | 225    | 0       | 500.5 |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5
@@ -475,14 +481,15 @@ Feature: LookUpTest_Vid_Int
       | SrcVID | DstVID | Ranking |
     When executing query:
       """
-      LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 >= 100.5
-      AND lookup_edge_2.col3 <= 300.5
+      LOOKUP ON lookup_edge_2
+      WHERE lookup_edge_2.col3 >= 100.5 AND lookup_edge_2.col3 <= 300.5
+      YIELD lookup_edge_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-      | 220    | 221    | 0       |
-      | 220    | 222    | 0       |
-      | 220    | 223    | 0       |
+      | SrcVID | DstVID | Ranking | col3  |
+      | 220    | 221    | 0       | 100.5 |
+      | 220    | 222    | 0       | 200.5 |
+      | 220    | 223    | 0       | 300.5 |
     Then drop the used space
 
   Scenario: LookupTest IntVid FunctionExprTest
