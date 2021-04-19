@@ -17,6 +17,7 @@ bool LabelIndexSeek::matchNode(NodeContext* nodeCtx) {
     // only require the tag
     if (node.tids.size() != 1) {
         // TODO multiple tag index seek need the IndexScan support
+        VLOG(2) << "Multple tag index seek is not supported now."
         return false;
     }
 
@@ -38,6 +39,7 @@ bool LabelIndexSeek::matchEdge(EdgeContext* edgeCtx) {
     // require one edge at least
     if (edge.edgeTypes.size() != 1 || edge.range != nullptr) {
         // TODO multiple edge index seek need the IndexScan support
+        VLOG(2) << "Multiple edge index seek and variable length edge seek are not supported now. "
         return false;
     }
 
@@ -86,7 +88,7 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
 StatusOr<SubPlan> LabelIndexSeek::transformEdge(EdgeContext* edgeCtx) {
     SubPlan plan;
     auto* matchClauseCtx = edgeCtx->matchClauseCtx;
-    DCHECK_EQ(edgeCtx->scanInfo.indexIds.size(), 1) << "Not supported multiple tag indices seek.";
+    DCHECK_EQ(edgeCtx->scanInfo.indexIds.size(), 1) << "Not supported multiple edge indices seek.";
     using IQC = nebula::storage::cpp2::IndexQueryContext;
     IQC iqctx;
     iqctx.set_index_id(edgeCtx->scanInfo.indexIds.back());

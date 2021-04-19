@@ -16,6 +16,7 @@ bool PropIndexSeek::matchEdge(EdgeContext* edgeCtx) {
     auto& edge = *edgeCtx->info;
     if (edge.types.size() != 1 || edge.range != nullptr) {
         // TODO multiple edge index seek need the IndexScan support
+        VLOG(2) << "Multiple edge index seek and variable length edge seek are not supported now. "
         return false;
     }
 
@@ -115,6 +116,7 @@ bool PropIndexSeek::matchNode(NodeContext* nodeCtx) {
     auto& node = *nodeCtx->info;
     if (node.labels.size() != 1) {
         // TODO multiple tag index seek need the IndexScan support
+        VLOG(2) << "Multple tag index seek is not supported now."
         return false;
     }
 
