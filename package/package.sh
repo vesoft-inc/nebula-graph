@@ -31,7 +31,6 @@ static_sanitizer="OFF"
 build_type="Release"
 branch="master"
 jobs=$(nproc)
-jobs=20
 package_type="auto"
 install_dir="/usr/local/nebula"
 
