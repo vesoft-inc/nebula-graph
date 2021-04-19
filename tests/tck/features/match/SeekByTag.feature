@@ -18,9 +18,7 @@ Feature: Match seek by tag
       MATCH (v:bachelor)
       RETURN id(v) AS vid, v.age AS age
       """
-    Then the result should be, in any order:
-      | vid          | age |
-      | 'Tim Duncan' | 42  |
+    Then a SemanticError should be raised at runtime: Not found prop `age'
     And no side effects
 
   Scenario: seek by tag index

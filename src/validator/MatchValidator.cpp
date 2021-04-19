@@ -437,20 +437,23 @@ Status MatchValidator::checkAliasesSchema(const std::string &aliasName,
             for (const auto& tagId : schemaIds) {
                 const auto& schema = qctx_->schemaMng()->getTagSchema(space_.id, tagId);
                 if (!schema) {
-                    return Status::SemanticError("Alias `%s' has wrong tag", aliasName.c_str());
+                    return Status::SemanticError("Alias `%s' Tag Error", aliasName.c_str());
                 }
                 auto* field = schema->field(prop);
-                if (field == nullptr) {
-                    return Status::SemanticError("Not found prop `%s'", prop.c_str());
+                // (TODO) handle below cases
+                // case1 match(a:player:team)-[b:like]->(c) where a.age > 20 return b
+                // case2 match (a:player)-[b:like]->(c) where c.age > 20 return b
+                if (field != nullptr) {
+                    return Status::OK();
                 }
             }
-            return Status::OK();
+            return Status::SemanticError("Not found prop `%s'", prop.c_str());
         }
         case AliasType::kEdge: {
             for (const auto& edgeType : schemaIds) {
                 const auto& schema = qctx_->schemaMng()->getEdgeSchema(space_.id, edgeType);
                 if (!schema) {
-                    return Status::SemanticError("Alias `%s' has wrong edge", aliasName.c_str());
+                    return Status::SemanticError("Alias `%s' Edge Error", aliasName.c_str());
                 }
                 auto* field = schema->field(prop);
                 if (field != nullptr) {
@@ -459,8 +462,11 @@ Status MatchValidator::checkAliasesSchema(const std::string &aliasName,
             }
             return Status::SemanticError("Not found prop `%s'", prop.c_str());
         }
-        default: {
-            return Status::SemanticError("Alias `%s' has no attribute", aliasName.c_str());
+        case AliasType::kPath: {
+            return Status::SemanticError("Alias `%s' does not exist attribute", aliasName.c_str());
+        }
+        case AliasType::kDefault: {
+            return Status::OK();
         }
     }
 }

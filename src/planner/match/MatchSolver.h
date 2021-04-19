@@ -30,8 +30,7 @@ public:
 
     static Expression* rewriteLabel2VarProp(const Expression* expr);
 
-    static Expression* doRewrite(const std::unordered_map<std::string, AliasSchema>& aliases,
-                                 const Expression* expr);
+    static Expression* doRewrite(const AliasSchemaMap& aliases, const Expression* expr);
 
     static Expression* makeIndexFilter(const std::string& label,
                                        const MapExpression* map,

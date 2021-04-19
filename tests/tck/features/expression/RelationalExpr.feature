@@ -124,44 +124,7 @@ Feature: RelationalExpression
       RETURN DISTINCT m.name AS player, m.age AS age
              ORDER BY player, age
       """
-    Then the result should be, in any order, with relax comparison:
-      | player              | age |
-      | "Amar'e Stoudemire" | 36  |
-      | "Aron Baynes"       | 32  |
-      | "Ben Simmons"       | 22  |
-      | "Blake Griffin"     | 30  |
-      | "Boris Diaw"        | 36  |
-      | "Carmelo Anthony"   | 34  |
-      | "Chris Paul"        | 33  |
-      | "Damian Lillard"    | 28  |
-      | "Danny Green"       | 31  |
-      | "Dejounte Murray"   | 29  |
-      | "Dirk Nowitzki"     | 40  |
-      | "Dwyane Wade"       | 37  |
-      | "Grant Hill"        | 46  |
-      | "James Harden"      | 29  |
-      | "Jason Kidd"        | 45  |
-      | "Joel Embiid"       | 25  |
-      | "Kyrie Irving"      | 26  |
-      | "LaMarcus Aldridge" | 33  |
-      | "LeBron James"      | 34  |
-      | "Luka Doncic"       | 20  |
-      | "Manu Ginobili"     | 41  |
-      | "Marc Gasol"        | 34  |
-      | "Marco Belinelli"   | 32  |
-      | "Paul Gasol"        | 38  |
-      | "Paul George"       | 28  |
-      | "Rajon Rondo"       | 33  |
-      | "Ray Allen"         | 43  |
-      | "Rudy Gay"          | 32  |
-      | "Shaquile O'Neal"   | 47  |
-      | "Steve Nash"        | 45  |
-      | "Tiago Splitter"    | 34  |
-      | "Tim Duncan"        | 42  |
-      | "Tony Parker"       | 36  |
-      | "Tracy McGrady"     | 39  |
-      | "Vince Carter"      | 42  |
-      | "Yao Ming"          | 38  |
+    Then a SemanticError should be raised at runtime: Not found prop `start_year'
     When executing query:
       """
       MATCH p = (n:player)<-[e:like]-(m)
@@ -171,40 +134,7 @@ Feature: RelationalExpression
       RETURN DISTINCT m.name AS player, m.age AS age
              ORDER BY player, age
       """
-    Then the result should be, in any order, with relax comparison:
-      | player              | age |
-      | "Amar'e Stoudemire" | 36  |
-      | "Aron Baynes"       | 32  |
-      | "Blake Griffin"     | 30  |
-      | "Boris Diaw"        | 36  |
-      | "Carmelo Anthony"   | 34  |
-      | "Chris Paul"        | 33  |
-      | "Damian Lillard"    | 28  |
-      | "Danny Green"       | 31  |
-      | "Dejounte Murray"   | 29  |
-      | "Dirk Nowitzki"     | 40  |
-      | "Dwyane Wade"       | 37  |
-      | "Grant Hill"        | 46  |
-      | "Jason Kidd"        | 45  |
-      | "Kyrie Irving"      | 26  |
-      | "LaMarcus Aldridge" | 33  |
-      | "LeBron James"      | 34  |
-      | "Luka Doncic"       | 20  |
-      | "Manu Ginobili"     | 41  |
-      | "Marc Gasol"        | 34  |
-      | "Marco Belinelli"   | 32  |
-      | "Paul Gasol"        | 38  |
-      | "Rajon Rondo"       | 33  |
-      | "Ray Allen"         | 43  |
-      | "Rudy Gay"          | 32  |
-      | "Shaquile O'Neal"   | 47  |
-      | "Steve Nash"        | 45  |
-      | "Tiago Splitter"    | 34  |
-      | "Tim Duncan"        | 42  |
-      | "Tony Parker"       | 36  |
-      | "Tracy McGrady"     | 39  |
-      | "Vince Carter"      | 42  |
-      | "Yao Ming"          | 38  |
+    Then a SemanticError should be raised at runtime: Not found prop `nonExistTag'
     When executing query:
       """
       MATCH p = (n:player)<-[e:like]-(m)
@@ -213,5 +143,4 @@ Feature: RelationalExpression
             AND e.likeness >= "12"
       RETURN n.name AS player, n.age AS age
       """
-    Then the result should be, in any order, with relax comparison:
-      | player | age |
+    Then a SemanticError should be raised at runtime: Not found prop `nonExistTag'

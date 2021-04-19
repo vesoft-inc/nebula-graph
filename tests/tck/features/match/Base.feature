@@ -1,4 +1,4 @@
-# Copyright (c) 2020 vesoft inc. All rights reserved.
+# Copyright (c) 2021 vesoft inc. All rights reserved.
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -408,8 +408,7 @@ Feature: Basic match
       """
       match (:player{name:"Tony Parker"})-[r]->(m) where exists(m.likeness) return r, exists({a:12}.a)
       """
-    Then the result should be, in any order, with relax comparison:
-      | r | exists({a:12}.a) |
+    Then a SemanticError should be raised at runtime: Not found prop `likeness'
     When executing query:
       """
       match (:player{name:"Tony Parker"})-[r]->(m) where exists({abc:123}.abc) return r
@@ -445,37 +444,37 @@ Feature: Basic match
       | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]                             |
       | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]                                |
 
-  Scenario: No return
+  Scenario: check Alias attribute
     When executing query:
       """
       MATCH (a:player)-[b:like]-> (c) where a.abc > 10 return a
       """
-    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    Then a SemanticError should be raised at runtime: Not found prop `abc'
     When executing query:
       """
       MATCH (a:player)-[b:like]-> (c) where b.like > 20 return a
       """
-    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    Then a SemanticError should be raised at runtime: Not found prop `like'
     When executing query:
       """
       MATCH (a:player)-[b:like|:teammate]-> (c) where b.start_ya == 1996 return a
       """
-    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    Then a SemanticError should be raised at runtime: Not found prop `start_ya'
     When executing query:
       """
       MATCH (a:player:team)-[b:like]-> (c) where a.namg == "Lakers" return a
       """
-    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    Then a SemanticError should be raised at runtime: Not found prop `namg'
     When executing query:
       """
       MATCH (a:player)-[b:like]-> (c) where c.namg == "Yao Ming" return a
       """
-    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    Then a SemanticError should be raised at runtime: Not found prop `namg'
     When executing query:
       """
       MATCH p = (a:player)-[b:like*1..2]-> (c) where p.likeness > 90 return a
       """
-    Then a SyntaxError should be raised at runtime: syntax error near `)'
+    Then a SemanticError should be raised at runtime: Alias `p' does not exist attribute
 
   Scenario: No return
     When executing query:
