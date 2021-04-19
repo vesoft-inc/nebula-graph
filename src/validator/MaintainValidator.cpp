@@ -38,8 +38,8 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification *>
             column.type.set_type_length(spec->typeLen());
         }
         for (const auto &property : spec->properties()->properties()) {
-            if (property->isIsNull()) {
-                column.set_nullable(property->isNull());
+            if (property->isNullable()) {
+                column.set_nullable(property->nullable());
             } else if (property->isDefaultValue()) {
                 if (!evaluableExpr(property->defaultValue())) {
                     return Status::SemanticError("Wrong default value experssion `%s'",

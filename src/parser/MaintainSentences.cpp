@@ -49,8 +49,8 @@ std::string SchemaPropItem::toString() const {
 
 std::string ColumnProperty::toString() const {
     std::stringstream str;
-    if (isIsNull()) {
-        if (isNull()) {
+    if (isNullable()) {
+        if (nullable()) {
             str << "NULL";
         } else {
             str << "NOT NULL";

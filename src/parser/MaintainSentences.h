@@ -23,8 +23,8 @@ class ColumnProperty final {
 public:
     using Value = std::variant<bool, std::unique_ptr<Expression>, std::unique_ptr<std::string>>;
 
-    explicit ColumnProperty(bool isNull = true)
-        : v_(isNull) {}
+    explicit ColumnProperty(bool nullable = true)
+        : v_(nullable) {}
 
     explicit ColumnProperty(Expression *defaultValue = nullptr)
         : v_(std::unique_ptr<Expression>(defaultValue)) {}
@@ -32,12 +32,12 @@ public:
     explicit ColumnProperty(std::string *comment = nullptr)
         : v_(std::unique_ptr<std::string>(comment)) {}
 
-    bool isIsNull() const {
+    bool isNullable() const {
         return std::holds_alternative<bool>(v_);
     }
 
-    bool isNull() const {
-        DCHECK(isIsNull());
+    bool nullable() const {
+        DCHECK(isNullable());
         return std::get<bool>(v_);
     }
 
