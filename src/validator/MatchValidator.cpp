@@ -469,6 +469,7 @@ Status MatchValidator::checkAliasesSchema(const std::string &aliasName,
             return Status::OK();
         }
     }
+    return Status::OK();
 }
 
 Status MatchValidator::validateAliasesSchema(const std::vector<const Expression *> &exprs,
