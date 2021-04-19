@@ -32,8 +32,8 @@ protected:
         }
 
         meta::cpp2::Session session;
-        session.session_id = 0;
-        session.user_name = "root";
+        session.set_session_id(0);
+        session.set_user_name("root");
         auto clientSession = ClientSession::create(std::move(session), nullptr);
         SpaceInfo spaceInfo;
         spaceInfo.name = "test_space";

@@ -57,7 +57,7 @@ void SessionManager::findSessionFromMetad(
                     "Session `%ld' not found: %s", id, resp.status().toString().c_str());
         }
         auto session = resp.value().get_session();
-        auto spaceName = session.space_name;
+        auto spaceName = session.get_space_name();
         SpaceInfo spaceInfo;
         if (!spaceName.empty()) {
             VLOG(2) << "Get session with spaceName: " << spaceName;
@@ -115,7 +115,7 @@ void SessionManager::findSessionFromMetad(
         return execInstance->finish();
     };
 
-    metaClient_->getSession(id).via(runner).then(addSession).then(doFinish);
+    metaClient_->getSession(id).via(runner).thenValue(addSession).thenValue(doFinish);
 }
 
 void SessionManager::createSession(const std::string &userName,
@@ -136,7 +136,7 @@ void SessionManager::createSession(const std::string &userName,
             return Status::Error("Create session failed: %s", resp.status().toString().c_str());
         }
         auto session = resp.value().get_session();
-        auto sid = session.session_id;
+        auto sid = session.get_session_id();
         DCHECK_NE(sid, 0L);
         {
             folly::RWSpinLock::WriteHolder wHolder(rwlock_);
@@ -191,7 +191,7 @@ void SessionManager::createSession(const std::string &userName,
 
     metaClient_->createSession(userName, myAddr_, clientIp)
         .via(runner)
-        .then(createCB)
+        .thenValue(createCB)
         .then(doFinish);
 }
 
@@ -261,8 +261,8 @@ void SessionManager::UpdateSessionsToMeta() {
         }
 
         for (auto &ses : activeSessions_) {
-            if (ses.second->getSession().graph_addr == myAddr_) {
-                VLOG(3) << "Add Update session id: " << ses.second->getSession().session_id;
+            if (ses.second->getSession().get_graph_addr() == myAddr_) {
+                VLOG(3) << "Add Update session id: " << ses.second->getSession().get_session_id();
                 sessions.emplace_back(ses.second->getSession());
             }
         }

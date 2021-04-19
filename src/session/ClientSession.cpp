@@ -24,7 +24,7 @@ std::shared_ptr<ClientSession> ClientSession::create(meta::cpp2::Session &&sessi
 void ClientSession::charge() {
     folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
     idleDuration_.reset();
-    session_.update_time = time::WallClock::fastNowInMicroSec();
+    session_.set_update_time(time::WallClock::fastNowInMicroSec());
 }
 
 uint64_t ClientSession::idleSeconds() {

@@ -29,7 +29,7 @@ public:
 
     int64_t id() {
         folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
-        return session_.session_id;
+        return session_.get_session_id();
     }
 
     const SpaceInfo space() {
@@ -41,18 +41,18 @@ public:
         {
             folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
             space_ = std::move(space);
-            session_.space_name = space_.name;
+            session_.set_space_name(space_.name);
         }
     }
 
     const std::string spaceName() {
         folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
-        return session_.space_name;
+        return session_.get_space_name();
     }
 
     const std::string user() {
         folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
-        return session_.user_name;
+        return session_.get_user_name();
     }
 
     std::unordered_map<GraphSpaceID, meta::cpp2::RoleType> roles() {
@@ -91,13 +91,13 @@ public:
 
     int32_t getTimezone() {
         folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
-        return session_.timezone;
+        return session_.get_timezone();
     }
 
     void setTimezone(int32_t timezone) {
         {
             folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
-            session_.timezone = timezone;
+            session_.set_timezone(timezone);
             // TODO: if support ngql to set client's timezone,
             //  need to update the timezone config to metad when timezone executor
         }
@@ -106,10 +106,10 @@ public:
     void updateGraphAddr(const HostAddr &hostAddr) {
         {
             folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
-            if (session_.graph_addr == hostAddr) {
+            if (session_.get_graph_addr() == hostAddr) {
                 return;
             }
-            session_.graph_addr = hostAddr;
+            session_.set_graph_addr(hostAddr);
         }
     }
 
@@ -120,7 +120,7 @@ public:
 
     void updateSpaceName(const std::string &spaceName) {
         folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
-        session_.space_name = spaceName;
+        session_.set_space_name(spaceName);
     }
 
 private:

@@ -27,7 +27,7 @@ folly::Future<Status> ShowSessionsExecutor::execute() {
 folly::Future<Status> ShowSessionsExecutor::listSessions() {
     return qctx()->getMetaClient()->listSessions()
             .via(runner())
-            .then([this](StatusOr<meta::cpp2::ListSessionsResp> resp) {
+            .thenValue([this](StatusOr<meta::cpp2::ListSessionsResp> resp) {
                 SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     return Status::Error("Show sessions failed: %s.",
@@ -44,15 +44,15 @@ folly::Future<Status> ShowSessionsExecutor::listSessions() {
                                 "ClientIp"});
                 for (auto &session : sessions) {
                     Row row;
-                    row.emplace_back(session.session_id);
-                    row.emplace_back(session.user_name);
-                    row.emplace_back(session.space_name);
+                    row.emplace_back(session.get_session_id());
+                    row.emplace_back(session.get_user_name());
+                    row.emplace_back(session.get_space_name());
                     // TODO(laura) format time to local time
-                    row.emplace_back(session.create_time);
-                    row.emplace_back(session.update_time);
-                    row.emplace_back(network::NetworkUtils::toHostsStr({session.graph_addr}));
-                    row.emplace_back(session.timezone);
-                    row.emplace_back(session.client_ip);
+                    row.emplace_back(session.get_create_time());
+                    row.emplace_back(session.get_update_time());
+                    row.emplace_back(network::NetworkUtils::toHostsStr({session.get_graph_addr()}));
+                    row.emplace_back(session.get_timezone());
+                    row.emplace_back(session.get_client_ip());
                     result.emplace_back(std::move(row));
                 }
                 return finish(ResultBuilder().value(Value(std::move(result))).finish());
@@ -62,7 +62,7 @@ folly::Future<Status> ShowSessionsExecutor::listSessions() {
 folly::Future<Status> ShowSessionsExecutor::getSession(SessionID sessionId) {
     return qctx()->getMetaClient()->getSession(sessionId)
             .via(runner())
-            .then([this, sessionId](StatusOr<meta::cpp2::GetSessionResp> resp) {
+            .thenValue([this, sessionId](StatusOr<meta::cpp2::GetSessionResp> resp) {
                 SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     return Status::Error("Get session `%ld' failed: %s.",
@@ -71,15 +71,16 @@ folly::Future<Status> ShowSessionsExecutor::getSession(SessionID sessionId) {
                 }
                 auto session = resp.value().get_session();
                 DataSet result({"VariableName", "Value"});
-                result.emplace_back(Row({"SessionID", session.session_id}));
-                result.emplace_back(Row({"UserName", session.user_name}));
-                result.emplace_back(Row({"SpaceName", session.space_name}));
-                result.emplace_back(Row({"CreateTime", session.create_time}));
-                result.emplace_back(Row({"UpdateTime", session.update_time}));
+                result.emplace_back(Row({"SessionID", session.get_session_id()}));
+                result.emplace_back(Row({"UserName", session.get_user_name()}));
+                result.emplace_back(Row({"SpaceName", session.get_space_name()}));
+                result.emplace_back(Row({"CreateTime", session.get_create_time()}));
+                result.emplace_back(Row({"UpdateTime", session.get_update_time()}));
                 result.emplace_back(Row({"GraphAddr",
-                                         network::NetworkUtils::toHostsStr({session.graph_addr})}));
-                result.emplace_back(Row({"Timezone", session.timezone}));
-                result.emplace_back(Row({"ClientIp", session.client_ip}));
+                                         network::NetworkUtils::toHostsStr(
+                                             {session.get_graph_addr()})}));
+                result.emplace_back(Row({"Timezone", session.get_timezone()}));
+                result.emplace_back(Row({"ClientIp", session.get_client_ip()}));
                 return finish(ResultBuilder().value(Value(std::move(result))).finish());
             });
 }
@@ -92,7 +93,7 @@ folly::Future<Status> UpdateSessionExecutor::execute() {
     sessions.emplace_back(updateNode->getSession());
     return qctx()->getMetaClient()->updateSessions(sessions)
             .via(runner())
-            .then([this, updateNode](auto&& resp) {
+            .thenValue([this, updateNode](auto&& resp) {
                 SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
