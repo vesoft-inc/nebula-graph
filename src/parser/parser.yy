@@ -2409,7 +2409,11 @@ vertex_tag_list
     ;
 
 vertex_tag_item
-    : name_label L_PAREN R_PAREN{
+    : name_label {
+        $$ = new VertexTagItem($1);
+        $$->setDefaultPropNames();
+    }
+    | name_label L_PAREN R_PAREN {
         $$ = new VertexTagItem($1);
     }
     | name_label L_PAREN prop_list R_PAREN {

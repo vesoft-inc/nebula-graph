@@ -37,49 +37,58 @@ private:
 
 class VertexTagItem final {
  public:
-     explicit VertexTagItem(std::string *tagName, PropertyList *properties = nullptr) {
-         tagName_.reset(tagName);
-         properties_.reset(properties);
-     }
+    explicit VertexTagItem(std::string *tagName, PropertyList *properties = nullptr) {
+        tagName_.reset(tagName);
+        properties_.reset(properties);
+    }
 
-     std::string toString() const;
+    std::string toString() const;
 
-     const std::string* tagName() const {
-         return tagName_.get();
-     }
+    const std::string* tagName() const {
+        return tagName_.get();
+    }
 
-     std::vector<std::string*> properties() const {
-         if (nullptr == properties_) {
-             return {};
-         }
-         return properties_->properties();
-     }
+    const bool isDefaultPropNames() const {
+        return defaultPropNames_;
+    }
+
+    void setDefaultPropNames() {
+        defaultPropNames_ = true;
+    }
+
+    std::vector<std::string*> properties() const {
+        if (nullptr == properties_) {
+            return {};
+        }
+        return properties_->properties();
+    }
 
  private:
-     std::unique_ptr<std::string>               tagName_;
-     std::unique_ptr<PropertyList>              properties_;
+    bool                                       defaultPropNames_{false};
+    std::unique_ptr<std::string>               tagName_;
+    std::unique_ptr<PropertyList>              properties_;
 };
 
 
 class VertexTagList final {
  public:
-     void addTagItem(VertexTagItem *tagItem) {
-         tagItems_.emplace_back(tagItem);
-     }
+    void addTagItem(VertexTagItem *tagItem) {
+        tagItems_.emplace_back(tagItem);
+    }
 
-     std::string toString() const;
+    std::string toString() const;
 
-     std::vector<VertexTagItem*> tagItems() const {
-         std::vector<VertexTagItem*> result;
-         result.reserve(tagItems_.size());
-         for (auto &item : tagItems_) {
-             result.emplace_back(item.get());
-         }
-         return result;
-     }
+    std::vector<VertexTagItem*> tagItems() const {
+        std::vector<VertexTagItem*> result;
+        result.reserve(tagItems_.size());
+        for (auto &item : tagItems_) {
+            result.emplace_back(item.get());
+        }
+        return result;
+    }
 
  private:
-     std::vector<std::unique_ptr<VertexTagItem>>    tagItems_;
+    std::vector<std::unique_ptr<VertexTagItem>>    tagItems_;
 };
 
 
