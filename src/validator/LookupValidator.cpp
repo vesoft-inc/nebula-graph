@@ -307,8 +307,7 @@ StatusOr<Expression*> LookupValidator::checkFilter(Expression* expr) {
             for (auto i = 0u; i < operands.size(); i++) {
                 auto ret = checkFilter(lExpr->operand(i));
                 NG_RETURN_IF_ERROR(ret);
-                static_cast<LogicalExpression*>(expr)->setOperand(i,
-                                                                  ret.value()->clone().release());
+                lExpr->setOperand(i, ret.value()->clone().release());
             }
             break;
         }
