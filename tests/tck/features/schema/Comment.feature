@@ -4,34 +4,38 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: Schema Comment
 
-  Scenario: Space Comment
+  Scenario Outline: Space Comment
+    Examples:
+      | space_name      | space_comment               |
+      | test_comment_en | This is a comment of space. |
+      | test_comment_zh | 这是一个图空间注释。           |
     Given an empty graph
     When executing query:
       """
-      CREATE SPACE test_comment comment = 'This is a comment of space.';
+      CREATE SPACE <space_name> comment = '<space_comment>';
       """
     Then the execution should be successful
     When try to execute query:
       """
-      SHOW CREATE SPACE test_comment;
+      SHOW CREATE SPACE <space_name>;
       """
     Then the result should be, in any order:
-      | Space          | Create Space                                                                                                                                                                                                    |
-      | "test_comment" | "CREATE SPACE `test_comment` (partition_num = 100, replica_factor = 1, charset = utf8, collate = utf8_bin, vid_type = FIXED_STRING(8), atomic_edge = false) ON default comment = 'This is a comment of space.'" |
+      | Space          | Create Space                                                                                                                                                                                        |
+      | "<space_name>" | "CREATE SPACE `<space_name>` (partition_num = 100, replica_factor = 1, charset = utf8, collate = utf8_bin, vid_type = FIXED_STRING(8), atomic_edge = false) ON default comment = '<space_comment>'" |
     When executing query:
       """
-      DESC SPACE test_comment;
+      DESC SPACE <space_name>;
       """
     Then the result should be, in any order:
-      | ID    | Name           | Partition Number | Replica Factor | Charset | Collate    | Vid Type          | Atomic Edge | Group     | Comment                       |
-      | /\d+/ | "test_comment" | 100              | 1              | "utf8"  | "utf8_bin" | "FIXED_STRING(8)" | false       | "default" | "This is a comment of space." |
+      | ID    | Name           | Partition Number | Replica Factor | Charset | Collate    | Vid Type          | Atomic Edge | Group     | Comment           |
+      | /\d+/ | "<space_name>" | 100              | 1              | "utf8"  | "utf8_bin" | "FIXED_STRING(8)" | false       | "default" | "<space_comment>" |
     When executing query:
       """
-      DROP SPACE test_comment;
+      DROP SPACE <space_name>;
       """
     Then the execution should be successful
 
-  Scenario: Space Comment Not set
+  Scenario Outline: Space Comment Not set
     Given an empty graph
     When executing query:
       """
@@ -58,7 +62,7 @@ Feature: Schema Comment
       """
     Then the execution should be successful
 
-  Scenario: Space Comment Empty String
+  Scenario Outline: Space Comment Empty String
     Given an empty graph
     When executing query:
       """
@@ -85,7 +89,11 @@ Feature: Schema Comment
       """
     Then the execution should be successful
 
-  Scenario: schema comment
+  Scenario Outline: schema comment
+    Examples:
+      | tag_of_person_comment           | tag_of_person_comment_modified           | edge_of_person_comment            | edge_of_person_comment_modified           |
+      | "The tag of person infomation." | "The tag of person infomation modified." | "The edge of person information." | "The edge of person infomation modified." |
+      | "个人信息标签。"                   | "修改过的个人信息标签。"                    | "个人信息边。"                      | "修改过的个人信息边。"                        |
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9                |
@@ -96,7 +104,7 @@ Feature: Schema Comment
       CREATE tag test_comment_tag(
           name string COMMENT 'The name.' NULL,
           age int DEFAULT 233 NULL)
-      comment = 'The tag of person infomation.';
+      comment = <tag_of_person_comment>;
       """
     Then the execution should be successful
     # show
@@ -105,8 +113,8 @@ Feature: Schema Comment
       SHOW CREATE tag test_comment_tag;
       """
     Then the result should be, in any order:
-      | Tag                | Create Tag                                                                                                                                                                              |
-      | "test_comment_tag" | 'CREATE TAG `test_comment_tag` (\n `name` string NULL COMMENT "The name.",\n `age` int64 NULL DEFAULT 233\n) ttl_duration = 0, ttl_col = "", comment = "The tag of person infomation."' |
+      | Tag                | Create Tag                                                                                                                                                                      |
+      | "test_comment_tag" | 'CREATE TAG `test_comment_tag` (\n `name` string NULL COMMENT "The name.",\n `age` int64 NULL DEFAULT 233\n) ttl_duration = 0, ttl_col = "", comment = <tag_of_person_comment>' |
     When executing query:
       """
       DESC tag test_comment_tag;
@@ -118,7 +126,7 @@ Feature: Schema Comment
     # alter
     When executing query:
       """
-      ALTER TAG test_comment_tag comment = 'The tag of person infomation modified.';
+      ALTER TAG test_comment_tag comment = <tag_of_person_comment_modified>;
       ALTER TAG test_comment_tag ADD (gender string COMMENT 'The gender.');
       ALTER TAG test_comment_tag CHANGE (name string NOT NULL);
       ALTER TAG test_comment_tag DROP (age);
@@ -130,8 +138,8 @@ Feature: Schema Comment
       SHOW CREATE tag test_comment_tag;
       """
     Then the result should be, in any order:
-      | Tag                | Create Tag                                                                                                                                                                                     |
-      | "test_comment_tag" | 'CREATE TAG `test_comment_tag` (\n `name` string NOT NULL,\n `gender` string NULL COMMENT "The gender."\n) ttl_duration = 0, ttl_col = "", comment = "The tag of person infomation modified."' |
+      | Tag                | Create Tag                                                                                                                                                                             |
+      | "test_comment_tag" | 'CREATE TAG `test_comment_tag` (\n `name` string NOT NULL,\n `gender` string NULL COMMENT "The gender."\n) ttl_duration = 0, ttl_col = "", comment = <tag_of_person_comment_modified>' |
     When executing query:
       """
       DESC tag test_comment_tag;
@@ -160,7 +168,7 @@ Feature: Schema Comment
       CREATE edge test_comment_edge(
           name string COMMENT 'The name.' NULL,
           age int DEFAULT 233 NULL)
-      comment = 'The edge of person infomation.';
+      comment = <edge_of_person_comment>;
       """
     Then the execution should be successful
     # show
@@ -169,8 +177,8 @@ Feature: Schema Comment
       SHOW CREATE edge test_comment_edge;
       """
     Then the result should be, in any order:
-      | Edge                | Create Edge                                                                                                                                                                                |
-      | "test_comment_edge" | 'CREATE EDGE `test_comment_edge` (\n `name` string NULL COMMENT "The name.",\n `age` int64 NULL DEFAULT 233\n) ttl_duration = 0, ttl_col = "", comment = "The edge of person infomation."' |
+      | Edge                | Create Edge                                                                                                                                                                        |
+      | "test_comment_edge" | 'CREATE EDGE `test_comment_edge` (\n `name` string NULL COMMENT "The name.",\n `age` int64 NULL DEFAULT 233\n) ttl_duration = 0, ttl_col = "", comment = <edge_of_person_comment>' |
     When executing query:
       """
       DESC edge test_comment_edge;
@@ -182,7 +190,7 @@ Feature: Schema Comment
     # alter
     When executing query:
       """
-      ALTER EDGE test_comment_edge comment = 'The edge of person infomation modified.';
+      ALTER EDGE test_comment_edge comment = <edge_of_person_comment_modified>;
       ALTER EDGE test_comment_edge ADD (gender string COMMENT 'The gender.');
       ALTER EDGE test_comment_edge CHANGE (name string NOT NULL);
       ALTER EDGE test_comment_edge DROP (age);
@@ -194,8 +202,8 @@ Feature: Schema Comment
       SHOW CREATE edge test_comment_edge;
       """
     Then the result should be, in any order:
-      | Edge                | Create Edge                                                                                                                                                                                       |
-      | "test_comment_edge" | 'CREATE EDGE `test_comment_edge` (\n `name` string NOT NULL,\n `gender` string NULL COMMENT "The gender."\n) ttl_duration = 0, ttl_col = "", comment = "The edge of person infomation modified."' |
+      | Edge                | Create Edge                                                                                                                                                                               |
+      | "test_comment_edge" | 'CREATE EDGE `test_comment_edge` (\n `name` string NOT NULL,\n `gender` string NULL COMMENT "The gender."\n) ttl_duration = 0, ttl_col = "", comment = <edge_of_person_comment_modified>' |
     When executing query:
       """
       DESC edge test_comment_edge;
