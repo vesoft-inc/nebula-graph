@@ -261,11 +261,11 @@ private:
 
 class InsertEdgesSentence final : public Sentence {
 public:
-    explicit InsertEdgesSentence(bool ifNotExists)
-        : Sentence(Kind::kInsertEdges), ifNotExists_(ifNotExists) {}
-
-    void setEdge(std::string *edge) {
+    explicit InsertEdgesSentence(std::string* edge, EdgeRowList* rows, bool ifNotExists)
+        : Sentence(Kind::kInsertEdges) {
         edge_.reset(edge);
+        rows_.reset(rows);
+        ifNotExists_ = ifNotExists;
     }
 
     const std::string* edge() const {
@@ -283,10 +283,6 @@ public:
         return properties_->properties();
     }
 
-    void setRows(EdgeRowList *rows) {
-        rows_.reset(rows);
-    }
-
     std::vector<EdgeRowItem*> rows() const {
         return rows_->rows();
     }
@@ -295,9 +291,18 @@ public:
         return ifNotExists_;
     }
 
+    void setDefaultPropNames() {
+        isDefaultPropNames_ = true;
+    }
+
+    bool isDefaultPropNames() const {
+        return isDefaultPropNames_;
+    }
+
     std::string toString() const override;
 
 private:
+    bool                                        isDefaultPropNames_{false};
     bool                                        ifNotExists_{false};
     std::unique_ptr<std::string>                edge_;
     std::unique_ptr<PropertyList>               properties_;

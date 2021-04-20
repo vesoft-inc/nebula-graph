@@ -176,15 +176,22 @@ Status InsertEdgesValidator::check() {
         return Status::SemanticError("No schema found for `%s'", sentence->edge()->c_str());
     }
 
-    // Check prop name is in schema
-    for (auto *it : props) {
-        if (schema_->getFieldIndex(*it) < 0) {
-            LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-            return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+    if (sentence->isDefaultPropNames()) {
+        size_t propNums = schema_->getNumFields();
+        for (size_t i = 0; i < propNums; ++i) {
+            const char* propName = schema_->getFieldName(i);
+            propNames_.emplace_back(propName);
         }
-        propNames_.emplace_back(*it);
+    } else {
+        // Check prop name is in schema
+        for (auto *it : props) {
+            if (schema_->getFieldIndex(*it) < 0) {
+                LOG(ERROR) << "Unknown column `" << *it << "' in schema";
+                return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+            }
+            propNames_.emplace_back(*it);
+        }
     }
-
     return Status::OK();
 }
 
