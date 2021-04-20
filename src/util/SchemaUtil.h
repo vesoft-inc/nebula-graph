@@ -24,9 +24,6 @@ public:
     SchemaUtil() = delete;
 
 public:
-    // The length limitation of schema comment field.
-    static constexpr std::size_t kCommentLengthLimit = 256;
-
     static Status validateProps(const std::vector<SchemaPropItem*> &schemaProps,
                                 meta::cpp2::Schema &schema);
 

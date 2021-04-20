@@ -13,8 +13,6 @@
 namespace nebula {
 namespace graph {
 
-/*static*/ constexpr std::size_t SchemaUtil::kCommentLengthLimit;
-
 // static
 Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
                                  meta::cpp2::Schema &schema) {
@@ -119,10 +117,6 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 Status SchemaUtil::setComment(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
     auto ret = schemaProp->getComment();
     if (ret.ok()) {
-        if (ret.value().size() > kCommentLengthLimit) {
-            return Status::SemanticError("Too long comment reach %ld bytes limit.",
-                                         kCommentLengthLimit);
-        }
         schema.schema_prop_ref()->set_comment(std::move(ret).value());
     }
     return Status::OK();
