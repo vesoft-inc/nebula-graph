@@ -48,7 +48,7 @@ class VertexTagItem final {
         return tagName_.get();
     }
 
-    const bool isDefaultPropNames() const {
+    bool isDefaultPropNames() const {
         return defaultPropNames_;
     }
 

@@ -61,7 +61,6 @@ Status InsertVerticesValidator::check() {
         }
 
         std::vector<std::string> names;
-        auto props = item->properties();
         if (item->isDefaultPropNames()) {
             propSize_ = schema->getNumFields();
             for (size_t i = 0; i < propSize_; ++i) {
