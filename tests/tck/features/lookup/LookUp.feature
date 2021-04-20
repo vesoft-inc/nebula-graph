@@ -465,14 +465,14 @@ Feature: LookUpTest_Vid_String
     When executing query:
       """
       INSERT VERTEX
-      lookup_tag_2(col1, col2, col3, col4)
+        lookup_tag_2(col1, col2, col3, col4)
       VALUES
-      "220":(true, 100, 100.5, true),
-      "221":(true, 200, 200.5, true),
-      "222":(true, 300, 300.5, true),
-      "223":(true, 400, 400.5, true),
-      "224":(true, 500, 500.5, true),
-      "225":(true, 600, 600.5, true)
+        "220":(true, 100, 100.5, true),
+        "221":(true, 200, 200.5, true),
+        "222":(true, 300, 300.5, true),
+        "223":(true, 400, 400.5, true),
+        "224":(true, 500, 500.5, true),
+        "225":(true, 600, 600.5, true)
       """
     Then the execution should be successful
     When executing query:
