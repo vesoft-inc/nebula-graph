@@ -49,6 +49,26 @@ Feature: Predicate
       | "Manu Ginobili"     | 95       |
       | "Tim Duncan"        | 95       |
 
+  Scenario: exists with dynamic map in MATCH
+    Given a graph with space named "nba"
+    When executing query:
+      """
+      MATCH(n:player) WHERE EXISTS(n['name'])
+      RETURN n.name AS name ORDER BY name LIMIT 10
+      """
+    Then the result should be, in order:
+      | name                |
+      | "Amar'e Stoudemire" |
+      | "Aron Baynes"       |
+      | "Ben Simmons"       |
+      | "Blake Griffin"     |
+      | "Boris Diaw"        |
+      | "Carmelo Anthony"   |
+      | "Chris Paul"        |
+      | "Cory Joseph"       |
+      | "Damian Lillard"    |
+      | "Danny Green"       |
+
   Scenario: use a predicate in MATCH
     Given a graph with space named "nba"
     When executing query:
