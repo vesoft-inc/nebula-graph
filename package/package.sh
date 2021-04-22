@@ -103,6 +103,7 @@ static_sanitizer : [$static_sanitizer]
 build_type       : [$build_type]
 branch           : [$branch]
 package_one      : [$package_one]
+build_storage    : [$build_storage]
 package_type     : [$package_type]
 >>>>>>>> option <<<<<<<<"
 
@@ -274,8 +275,11 @@ if [[ $package_type == "auto" ]]; then
 else
     install_dir=${build_dir}/install
     build $version $enablesanitizer $static_sanitizer $buildtype
+    pushd ${storage_build_dir}
+        make install -j$(nproc)
+    popd
     pushd ${build_dir}
-        make install-all -j$(nproc)
+        make install -j$(nproc)
     popd
     package_tar_sh
 fi
