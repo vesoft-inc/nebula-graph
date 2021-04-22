@@ -168,6 +168,7 @@ Feature: Insert vertex and edge with if not exists
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
       | 'Tom'     | 'Peter'   | 0          | 83            |
+    And drop the used space
 
   Scenario: insert vertex and edge with default propNames
     Given an empty graph
@@ -187,32 +188,32 @@ Feature: Insert vertex and edge with if not exists
       INSERT VERTEX person(name, age) VALUES "Tom":("Tom", 1)
       """
     Then the execution should be successful
-    When try to execute query:
+    When executing query:
       """
       INSERT VERTEX person VALUES "Tom":("Tom", 2)
       """
     Then the execution should be successful
-    When try to execute query:
+    When executing query:
       """
       INSERT VERTEX person() VALUES "Tom":("Tom", 2)
       """
     Then a SemanticError should be raised at runtime: Column count doesn't match value count.
-    When try to execute query:
+    When executing query:
       """
       INSERT VERTEX person VALUES "Tom":("Tom")
       """
     Then a SemanticError should be raised at runtime: Column count doesn't match value count.
-    When try to execute query:
+    When executing query:
       """
       INSERT VERTEX person VALUES "Tom":(2, "Tom")
       """
     Then a ExecutionError should be raised at runtime: Storage Error: The data type does not meet the requirements. Use the correct type of data.
-    When try to execute query:
+    When executing query:
       """
       INSERT VERTEX person VALUES "Tom":("Tom", "2")
       """
     Then a ExecutionError should be raised at runtime: Storage Error: The data type does not meet the requirements. Use the correct type of data.
-    When try to execute query:
+    When executing query:
       """
       INSERT VERTEX person VALUES "Tom":("Tom", 2, "3")
       """
@@ -275,3 +276,4 @@ Feature: Insert vertex and edge with if not exists
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
       | 'Tom'     | 'Conan'   | 0          | 200           |
+    And drop the used space
