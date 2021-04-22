@@ -5,10 +5,6 @@
 Feature: Schema Comment
 
   Scenario Outline: Space Comment
-    Examples:
-      | space_name      | space_comment               |
-      | test_comment_en | This is a comment of space. |
-      | test_comment_zh | 这是一个图空间注释。           |
     Given an empty graph
     When executing query:
       """
@@ -34,6 +30,11 @@ Feature: Schema Comment
       DROP SPACE <space_name>;
       """
     Then the execution should be successful
+
+    Examples:
+      | space_name      | space_comment               |
+      | test_comment_en | This is a comment of space. |
+      | test_comment_zh | 这是一个图空间注释。        |
 
   Scenario Outline: Space Comment Not set
     Given an empty graph
@@ -90,10 +91,6 @@ Feature: Schema Comment
     Then the execution should be successful
 
   Scenario Outline: schema comment
-    Examples:
-      | tag_of_person_comment           | tag_of_person_comment_modified           | edge_of_person_comment            | edge_of_person_comment_modified           |
-      | "The tag of person infomation." | "The tag of person infomation modified." | "The edge of person information." | "The edge of person infomation modified." |
-      | "个人信息标签。"                   | "修改过的个人信息标签。"                    | "个人信息边。"                      | "修改过的个人信息边。"                        |
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9                |
@@ -226,3 +223,8 @@ Feature: Schema Comment
     Then the result should be, in any order:
       | Edge Index Name           | Create Edge Index                                                                                                                |
       | "test_comment_edge_index" | 'CREATE EDGE INDEX `test_comment_edge_index` ON `test_comment_edge` (\n `name`(8)\n) comment = "The edge index of person name."' |
+
+    Examples:
+      | tag_of_person_comment           | tag_of_person_comment_modified           | edge_of_person_comment            | edge_of_person_comment_modified           |
+      | "The tag of person infomation." | "The tag of person infomation modified." | "The edge of person information." | "The edge of person infomation modified." |
+      | "个人信息标签。"                | "修改过的个人信息标签。"                 | "个人信息边。"                    | "修改过的个人信息边。"                    |

@@ -39,7 +39,7 @@ fmt:
 	@find $(CURR_DIR)/tck/ -type f -iname '*.feature' -print | xargs $(gherkin_fmt)
 
 check:
-	@find $(CURR_DIR)/tck/ -type f \( -iname "*.feature" ! -iname "Comment.feature" \) -print | xargs $(gherkin_fmt) --check
+	@find $(CURR_DIR)/tck/ -type f -iname "*.feature" -print | xargs $(gherkin_fmt) --check
 
 up:
 	@mkdir -p $(CURR_DIR)/.pytest
