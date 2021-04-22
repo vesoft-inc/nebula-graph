@@ -144,6 +144,23 @@ Feature: Predicate
     Then a SyntaxError should be raised at runtime: The exists only accept LabelAttribe, Attribute and Subscript
     Then drop the used space
 
+  Scenario: exists with dynamic map in variable length MATCH
+    Given a graph with space named "nba"
+    When executing query:
+      """
+      MATCH(v:player{name:"Tim Duncan"})-[e:like|serve*2]->(v2)
+      RETURN DISTINCT e, ALL(e IN e WHERE EXISTS(e['likeness']))
+      """
+    Then the result should be, in any order:
+      | e                                                                                                                                  | all(e IN e WHERE exists(e["likeness"])) |
+      | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:serve "Tony Parker"->"Spurs" @0 {end_year: 2018, start_year: 1999}]]     | false                                   |
+      | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:serve "Tony Parker"->"Hornets" @0 {end_year: 2019, start_year: 2018}]]   | false                                   |
+      | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]]                     | true                                    |
+      | [[:like "Tim Duncan"->"Manu Ginobili" @0 {likeness: 95}], [:like "Manu Ginobili"->"Tim Duncan" @0 {likeness: 90}]]                 | true                                    |
+      | [[:like "Tim Duncan"->"Manu Ginobili" @0 {likeness: 95}], [:serve "Manu Ginobili"->"Spurs" @0 {end_year: 2018, start_year: 2002}]] | false                                   |
+      | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]]              | true                                    |
+      | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]]                  | true                                    |
+
   Scenario: use a predicate in MATCH
     Given a graph with space named "nba"
     When executing query:
