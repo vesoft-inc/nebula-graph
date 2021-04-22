@@ -34,9 +34,8 @@ private:
     std::vector<std::unique_ptr<std::string>>   properties_;
 };
 
-
 class VertexTagItem final {
- public:
+public:
     explicit VertexTagItem(std::string *tagName, PropertyList *properties = nullptr) {
         tagName_.reset(tagName);
         properties_.reset(properties);
@@ -63,7 +62,7 @@ class VertexTagItem final {
         return properties_->properties();
     }
 
- private:
+private:
     bool                                       defaultPropNames_{false};
     std::unique_ptr<std::string>               tagName_;
     std::unique_ptr<PropertyList>              properties_;
@@ -71,7 +70,7 @@ class VertexTagItem final {
 
 
 class VertexTagList final {
- public:
+public:
     void addTagItem(VertexTagItem *tagItem) {
         tagItems_.emplace_back(tagItem);
     }
@@ -87,7 +86,7 @@ class VertexTagList final {
         return result;
     }
 
- private:
+private:
     std::vector<std::unique_ptr<VertexTagItem>>    tagItems_;
 };
 
