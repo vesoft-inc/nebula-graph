@@ -205,6 +205,12 @@ public:
     static void pullOrsImpl(LogicalExpression* expr,
                             std::vector<std::unique_ptr<Expression>>& operands);
 
+    static Expression* pickLogicalOperandsWithLabel(const std::string targetLabel,
+                                                    const Expression* filter,
+                                                    bool pickSwitch = true);
+
+    static Expression* flattenInnerLogicalExpr(const Expression* expr);
+
     static VariablePropertyExpression* newVarPropExpr(const std::string& prop,
                                                       const std::string& var = "");
 

@@ -80,6 +80,24 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
     plan.tail = scan;
     plan.root = scan;
 
+    const auto& whereCtx = matchClauseCtx->where;
+    if (whereCtx && whereCtx->filter) {
+        auto* oldFilter = whereCtx->filter;
+        auto startPointAlias = *nodeCtx->info->alias;
+        auto* objPool = matchClauseCtx->qctx->objPool();
+
+        // Extract the subfilters related to start-point
+        auto* startPointFilter = objPool->add(
+            ExpressionUtils::pickLogicalOperandsWithLabel(startPointAlias, oldFilter));
+        auto* otherFilter = objPool->add(
+            ExpressionUtils::pickLogicalOperandsWithLabel(startPointAlias, oldFilter, false));
+        oldFilter = otherFilter;
+
+        // Embed startPointFilter into Filter node
+        auto* filter = Filter::make(matchClauseCtx->qctx, scan, startPointFilter);
+        plan.root = filter;
+    }
+
     // initialize start expression in project node
     nodeCtx->initialExpr.reset(ExpressionUtils::newVarPropExpr(kVid));
     return plan;

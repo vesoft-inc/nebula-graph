@@ -33,6 +33,19 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
     return visitor.getExpr();
 }
 
+Expression *ExpressionUtils::flattenInnerLogicalExpr(const Expression *expr) {
+    auto matcher = [](const Expression *e) -> bool {
+        auto kind = e->kind();
+        return kind == Expression::Kind::kLogicalAnd || kind == Expression::Kind::kLogicalOr;
+    };
+    auto rewriter = [](const Expression *e) -> Expression * {
+        return e->kind() == Expression::Kind::kLogicalAnd ? pullAnds(const_cast<Expression *>(e))
+                                                          : pullOrs(const_cast<Expression *>(e));
+    };
+
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
+}
+
 Expression *ExpressionUtils::pullAnds(Expression *expr) {
     DCHECK(expr->kind() == Expression::Kind::kLogicalAnd);
     auto *logic = static_cast<LogicalExpression *>(expr);
@@ -73,6 +86,61 @@ ExpressionUtils::pullOrsImpl(LogicalExpression *expr,
         }
         pullOrsImpl(static_cast<LogicalExpression*>(operand.get()), operands);
     }
+}
+
+Expression *ExpressionUtils::pickLogicalOperandsWithLabel(const std::string targetLabel,
+                                                          const Expression *oldExpr,
+                                                          bool pickSwitch) {
+    auto *flattenExpr = ExpressionUtils::flattenInnerLogicalExpr(oldExpr);
+
+    auto matcher = [](const Expression *e) -> bool {
+        auto kind = e->kind();
+        if (kind == Expression::Kind::kLogicalAnd || kind == Expression::Kind::kLogicalOr) {
+            return true;
+        }
+        return false;
+    };
+    auto rewriter = [pickSwitch, targetLabel](const Expression *e) -> Expression * {
+        auto kind = e->kind();
+        DCHECK(kind == Expression::Kind::kLogicalAnd || kind == Expression::Kind::kLogicalOr);
+        auto *logicExpr = static_cast<LogicalExpression *>(e->clone().release());
+
+        auto checkExistTargetLabel = [pickSwitch](const Expression *self,
+                                                  std::string target) -> bool {
+            auto finder = [pickSwitch](const Expression *expr,
+                                       const std::unordered_set<std::string> &targets) -> bool {
+                if (expr->kind() != Expression::Kind::kLabel) {
+                    return !pickSwitch;
+                }
+                auto label = *static_cast<const LabelExpression *>(expr)->name();
+                if (targets.find(label) != targets.end()) {
+                    return pickSwitch;
+                }
+                return !pickSwitch;
+            };
+            std::unordered_set<std::string> targets;
+            targets.insert(target);
+            FindVisitor<std::string> visitor(finder, targets);
+            const_cast<Expression *>(self)->accept(&visitor);
+            return visitor.found();
+        };
+
+        std::vector<std::unique_ptr<Expression>>& operands = logicExpr->operands();
+        for (auto iter = operands.begin(); iter != operands.end();) {
+            if (checkExistTargetLabel((*iter).get(), targetLabel)) {
+                (*iter).reset();
+                iter = operands.erase(iter);
+            } else {
+                ++iter;
+            }
+        }
+        return logicExpr;
+    };
+
+    auto newExpr = RewriteVisitor::transform(flattenExpr, std::move(matcher), std::move(rewriter));
+    delete (flattenExpr);
+
+    return newExpr;
 }
 
 VariablePropertyExpression *ExpressionUtils::newVarPropExpr(const std::string &prop,
