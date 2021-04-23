@@ -88,7 +88,7 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
                                          const MapExpression* map,
                                          QueryContext* qctx,
                                          bool isEdgeProperties) {
-    auto makePropExpr = [=](const std::string& prop) -> Expression* {
+    auto makePropExpr = [=, &label](const std::string& prop) -> Expression* {
         if (isEdgeProperties) {
             return new EdgePropertyExpression(new std::string(label), new std::string(prop));
         }
