@@ -36,6 +36,8 @@ folly::Future<Status> UnionAllVersionVarExecutor::execute() {
             ss << "Invalid data types of dependencies: " << inputData->type() << ".";
             return Status::Error(ss.str());
         }
+        DLOG(ERROR) << "Union var: " << *inputData;
+        DLOG(ERROR) << "";
         inputList.emplace_back(std::move(iter));
     }
 
