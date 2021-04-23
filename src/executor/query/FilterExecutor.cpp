@@ -31,7 +31,6 @@ folly::Future<Status> FilterExecutor::execute() {
     builder.value(iter->valuePtr());
     QueryExpressionContext ctx(ectx_);
     auto condition = filter->condition();
-    DLOG(ERROR) << "DEBUG POINT condition: " << condition->toString();
     while (iter->valid()) {
         auto val = condition->eval(ctx(iter.get()));
         if (val.isBadNull() || (!val.empty() && !val.isBool() && !val.isNull())) {
