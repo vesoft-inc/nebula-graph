@@ -56,7 +56,7 @@ Feature: Function Call Expression
       match (a:player)-[b:serve]-(c:team{name: "Lakers"}) where a.age > 45   return  concat(a.name, "hello")
       """
     Then the result should be, in any order:
-      | concat(a.name, "hello")  |
+      | concat(a.name,"hello") |
       | "Shaquile O'Nealhello" |
 
   Scenario: concat_ws
@@ -80,5 +80,5 @@ Feature: Function Call Expression
       match (a:player)-[b:serve]-(c:team{name: "Lakers"}) where a.age > 45   return  concat_ws("@",a.name, NULL, "hello", b.likeness, c.name)
       """
     Then the result should be, in any order:
-      | concat_ws("@",a.name,"hello",b.likeness,c.name) |
-      | "Shaquile O'Neal@hello@Lakers"                  |
+      | concat_ws("@",a.name,NULL,"hello",b.likeness,c.name) |
+      | "Shaquile O'Neal@hello@Lakers"                       |
