@@ -10,9 +10,10 @@
 
 #include "common/expression/PropertyExpression.h"
 #include "common/function/AggFunctionManager.h"
+#include "context/QueryExpressionContext.h"
 #include "visitor/FoldConstantExprVisitor.h"
 #include "visitor/RewriteUnaryNotExprVisitor.h"
-
+#include "visitor/DeduceTypeVisitor.h"
 namespace nebula {
 namespace graph {
 
@@ -34,11 +35,35 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
 }
 
 Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *pool) {
+    auto exprCopy = pool->add(expr->clone().release());
     if (!expr->isRelExpr()) {
         // TODO: Use set instead of list in objectpool to avoid copy
-        return pool->add(expr->clone().release());
+        return exprCopy;
     }
-    auto relExpr = static_cast<const RelationalExpression *>(expr);
+    auto relExpr = static_cast<RelationalExpression *>(exprCopy);
+    auto lExpr = relExpr->left();
+    auto rExpr = relExpr->right();
+    // Simplify relational expressions involving boolean literals
+    QueryExpressionContext ctx(nullptr);
+    if (rExpr->kind() == Expression::Kind::kConstant) {
+        auto conExpr = static_cast<ConstantExpression *>(rExpr);
+        auto val = conExpr->eval(ctx(nullptr));
+        auto type = val.type();
+        // if contains any operand that is null , rewrite to null
+        if (type == Value::Type::NULLVALUE) {
+            return pool->add(rExpr->clone().release());
+        } else if (relExpr->kind() == Expression::Kind::kRelEQ) {
+            if (type == Value::Type::BOOL) {
+                if (val.toBool() == true) {
+                    return pool->add(lExpr->clone().release());
+                } else {
+                    return pool->add(
+                        new UnaryExpression(Expression::Kind::kUnaryNot, lExpr->clone().release()));
+                }
+            }
+        }
+    }
+    // Move all evaluable expression to the right side
     auto relRightOperandExpr = relExpr->right()->clone();
     auto relLeftOperandExpr = rewriteRelExprHelper(relExpr->left(), relRightOperandExpr);
 

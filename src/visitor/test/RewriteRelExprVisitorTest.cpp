@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2021 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
@@ -97,6 +96,49 @@ TEST_F(RewriteRelExprVisitorTest, NestedArithmeticalExpr) {
             ltExpr(laExpr("v", "age"),
                    minusExpr(addExpr(minusExpr(constantExpr(40), constantExpr(3)), constantExpr(2)),
                              constantExpr(1))));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+}
+
+TEST_F(RewriteRelExprVisitorTest, ReduceBoolNullExpr) {
+    // (v.age > 40 == true)  => (v.age > 40)
+    {
+        auto expr =
+            pool.add(eqExpr(gtExpr(laExpr("v", "age"), constantExpr(40)), constantExpr(true)));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = pool.add(gtExpr(laExpr("v", "age"), constantExpr(40)));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+    // (v.age > 40 == false)  => !(v.age > 40)
+    {
+        auto expr =
+            pool.add(eqExpr(gtExpr(laExpr("v", "age"), constantExpr(40)), constantExpr(false)));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = pool.add(notExpr(gtExpr(laExpr("v", "age"), constantExpr(40))));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+    // (v.age > 40 == null)  => (null)
+    {
+        auto expr = pool.add(eqExpr(gtExpr(laExpr("v", "age"), constantExpr(40)),
+                                    constantExpr(Value(NullType::__NULL__))));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = pool.add(constantExpr(Value(NullType::__NULL__)));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+    // (v.age <= null)  =>  (null)
+    {
+        auto expr = pool.add(leExpr(laExpr("v", "age"), constantExpr(Value(NullType::__NULL__))));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = pool.add(constantExpr(Value(NullType::__NULL__)));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+    // (v.age + 10 > null)  =>  (null)
+    {
+        auto expr =
+            pool.add(gtExpr(addExpr(laExpr("v", "age"), constantExpr(10)),
+                     constantExpr(Value(NullType::__NULL__))));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = pool.add(constantExpr(Value(NullType::__NULL__)));
         ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
     }
 }
