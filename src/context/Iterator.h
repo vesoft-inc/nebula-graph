@@ -248,7 +248,11 @@ public:
     }
 
     size_t size() const override {
-        return 0;
+        size_t sz = 0;
+        for (const auto& idx : dsIndices_) {
+            sz += idx.ds->size();
+        }
+        return sz;
     }
 
     const Value& getColumn(const std::string& col) const override;
