@@ -52,11 +52,11 @@ Feature: Predicate
   Scenario: exists with dynamic map in MATCH
     Given an empty graph
     And load "nba" csv data to a new space
-    When executing query:
+    Given having executed:
       """
       CREATE TAG INDEX bachelor_name_index ON bachelor(name(20));
       """
-    Then the execution should be successful
+    And wait 6 seconds
     When submit a job:
       """
       REBUILD TAG INDEX bachelor_name_index
