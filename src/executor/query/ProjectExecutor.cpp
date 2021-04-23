@@ -35,7 +35,6 @@ folly::Future<Status> ProjectExecutor::execute() {
         ds.rows.emplace_back(std::move(row));
     }
     VLOG(1) << node()->outputVar() << ":" << ds;
-    DLOG(ERROR) << "DEBUG POINT project: " << ds;
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
