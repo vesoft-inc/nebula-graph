@@ -173,14 +173,7 @@ function package {
     args=""
     [[ $strip_enable == TRUE ]] && args="-D CPACK_STRIP_FILES=TRUE -D CPACK_RPM_SPEC_MORE_DEFINE="
 
-    pType="RPM"
-    if [[ -f "/etc/redhat-release" ]]; then
-        pType="RPM"
-    elif [[ -f "/etc/lsb-release" ]]; then
-        pType="DEB"
-    fi
-
-    if ! ( cpack -G ${pType} --verbose $args ); then
+    if ! ( cpack --verbose $args ); then
         echo ">>> package nebula failed <<<"
         exit 1
     else
@@ -198,5 +191,5 @@ function package {
 
 
 # The main
-#build $version $enablesanitizer $static_sanitizer $build_type $branch
+build $version $enablesanitizer $static_sanitizer $build_type $branch
 package $strip_enable
