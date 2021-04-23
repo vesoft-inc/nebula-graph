@@ -56,7 +56,7 @@ Feature: Function Call Expression
       match (a:player)-[b:serve]-(c:team{name: "Lakers"}) where a.age > 45   return  concat(a.name, "hello")
       """
     Then the result should be, in any order:
-      | concat(a.name,c.name)  |
+      | concat(a.name, "hello")  |
       | "Shaquile O'Nealhello" |
 
   Scenario: concat_ws
