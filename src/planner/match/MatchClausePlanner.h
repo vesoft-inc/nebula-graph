@@ -7,6 +7,7 @@
 #ifndef PLANNER_MATCH_MATCHCLAUSEPLANNER_H_
 #define PLANNER_MATCH_MATCHCLAUSEPLANNER_H_
 
+#include "context/ast/QueryAstContext.h"
 #include "planner/match/CypherClausePlanner.h"
 
 namespace nebula {
@@ -74,6 +75,7 @@ private:
                                  size_t nodeInfoSize) const;
 
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
+    PlanNode* passThrough(MatchClauseContext* ctx, PlanNode* input) const;
 
 private:
     std::unique_ptr<Expression> initialExpr_;

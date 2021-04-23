@@ -999,14 +999,14 @@ private:
     bool            distinct_{false};
 };
 
-class Join : public SingleDependencyNode {
+class Join : public BinaryInputNode {
 public:
-    const std::pair<std::string, int64_t>& leftVar() const {
-        return leftVar_;
+    int64_t leftVarVersion() const {
+        return leftVarVersion_;
     }
 
-    const std::pair<std::string, int64_t>& rightVar() const {
-        return rightVar_;
+    int64_t rightVarVersion() const {
+        return rightVarVersion_;
     }
 
     void setLeftVar(std::pair<std::string, int64_t> lvar) {
@@ -1040,9 +1040,10 @@ public:
 protected:
     Join(QueryContext* qctx,
          Kind kind,
-         PlanNode* input,
-         std::pair<std::string, int64_t> leftVar,
-         std::pair<std::string, int64_t> rightVar,
+         const PlanNode* left,
+         const PlanNode* right,
+         int64_t leftVarVersion,
+         int64_t rightVarVersion,
          std::vector<Expression*> hashKeys,
          std::vector<Expression*> probeKeys);
 
@@ -1050,10 +1051,10 @@ protected:
 
 protected:
     // var name, var version
-    std::pair<std::string, int64_t>         leftVar_;
-    std::pair<std::string, int64_t>         rightVar_;
-    std::vector<Expression*>                hashKeys_;
-    std::vector<Expression*>                probeKeys_;
+    int64_t leftVarVersion_;
+    int64_t rightVarVersion_;
+    std::vector<Expression*> hashKeys_;
+    std::vector<Expression*> probeKeys_;
 };
 
 /*
@@ -1062,15 +1063,17 @@ protected:
 class LeftJoin final : public Join {
 public:
     static LeftJoin* make(QueryContext* qctx,
-                          PlanNode* input,
-                          std::pair<std::string, int64_t> leftVar,
-                          std::pair<std::string, int64_t> rightVar,
+                          const PlanNode* left,
+                          const PlanNode* right,
+                          int64_t leftVarVersion,
+                          int64_t rightVarVersion,
                           std::vector<Expression*> hashKeys = {},
                           std::vector<Expression*> probeKeys = {}) {
         return qctx->objPool()->add(new LeftJoin(qctx,
-                                                 input,
-                                                 std::move(leftVar),
-                                                 std::move(rightVar),
+                                                 left,
+                                                 right,
+                                                 leftVarVersion,
+                                                 rightVarVersion,
                                                  std::move(hashKeys),
                                                  std::move(probeKeys)));
     }
@@ -1080,16 +1083,18 @@ public:
 
 private:
     LeftJoin(QueryContext* qctx,
-             PlanNode* input,
-             std::pair<std::string, int64_t> leftVar,
-             std::pair<std::string, int64_t> rightVar,
+             const PlanNode* left,
+             const PlanNode* right,
+             int64_t leftVarVersion,
+             int64_t rightVarVersion,
              std::vector<Expression*> hashKeys,
              std::vector<Expression*> probeKeys)
         : Join(qctx,
                Kind::kLeftJoin,
-               input,
-               std::move(leftVar),
-               std::move(rightVar),
+               left,
+               right,
+               leftVarVersion,
+               rightVarVersion,
                std::move(hashKeys),
                std::move(probeKeys)) {}
 
@@ -1102,15 +1107,17 @@ private:
 class InnerJoin final : public Join {
 public:
     static InnerJoin* make(QueryContext* qctx,
-                           PlanNode* input,
-                           std::pair<std::string, int64_t> leftVar,
-                           std::pair<std::string, int64_t> rightVar,
+                           const PlanNode* left,
+                           const PlanNode* right,
+                           int64_t leftVarVersion,
+                           int64_t rightVarVersion,
                            std::vector<Expression*> hashKeys = {},
                            std::vector<Expression*> probeKeys = {}) {
         return qctx->objPool()->add(new InnerJoin(qctx,
-                                                  input,
-                                                  std::move(leftVar),
-                                                  std::move(rightVar),
+                                                  left,
+                                                  right,
+                                                  leftVarVersion,
+                                                  rightVarVersion,
                                                   std::move(hashKeys),
                                                   std::move(probeKeys)));
     }
@@ -1120,16 +1127,18 @@ public:
 
 private:
     InnerJoin(QueryContext* qctx,
-              PlanNode* input,
-              std::pair<std::string, int64_t> leftVar,
-              std::pair<std::string, int64_t> rightVar,
+              const PlanNode* left,
+              const PlanNode* right,
+              int64_t leftVarVersion,
+              int64_t rightVarVersion,
               std::vector<Expression*> hashKeys,
               std::vector<Expression*> probeKeys)
         : Join(qctx,
                Kind::kInnerJoin,
-               input,
-               std::move(leftVar),
-               std::move(rightVar),
+               left,
+               right,
+               leftVarVersion,
+               rightVarVersion,
                std::move(hashKeys),
                std::move(probeKeys)) {}
 

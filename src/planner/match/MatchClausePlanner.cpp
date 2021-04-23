@@ -16,7 +16,7 @@
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteVisitor.h"
 
-using JoinStrategyPos = nebula::graph::InnerJoinStrategy::JoinPos;
+using JoinPosStrategy = nebula::graph::InnerJoinStrategy::JoinPos;
 
 namespace nebula {
 namespace graph {
@@ -129,16 +129,16 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
     }
 
     // Pattern: ()-[]-...-(start)-...-[]-()
+    auto pt = passThrough(matchClauseCtx, subplan.root);
+    SubPlan lp(pt, pt), rp(pt, pt);
+
+    NG_RETURN_IF_ERROR(rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, lp));
     NG_RETURN_IF_ERROR(
-        rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, subplan));
-    auto left = subplan.root;
-    NG_RETURN_IF_ERROR(
-        leftExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, var, subplan));
+        leftExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, var, rp));
 
     // Connect the left expand and right expand part.
-    auto right = subplan.root;
     subplan.root = SegmentsConnector::innerJoinSegments(
-        matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart);
+        matchClauseCtx->qctx, lp.root, rp.root, JoinPosStrategy::kStart, JoinPosStrategy::kStart);
     return Status::OK();
 }
 
@@ -151,6 +151,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
     std::vector<std::string> joinColNames = {
         folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size())};
     for (size_t i = startIndex; i > 0; --i) {
+        subplan.root = passThrough(matchClauseCtx, subplan.root);
         auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx,
                                                i == startIndex ? initialExpr_->clone() : nullptr)
@@ -158,9 +159,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                           ->inputVar(inputVar)
                           ->reversely()
                           ->doExpand(nodeInfos[i], edgeInfos[i - 1], &subplan);
-        if (!status.ok()) {
-            return status;
-        }
+        NG_RETURN_IF_ERROR(status);
         if (i < startIndex) {
             auto right = subplan.root;
             VLOG(1) << "left: " << folly::join(",", left->colNames())
@@ -174,7 +173,9 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
     }
 
     VLOG(1) << subplan;
+    subplan.root = passThrough(matchClauseCtx, subplan.root);
     auto left = subplan.root;
+
     NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(
         nodeInfos.front().filter,
         matchClauseCtx->space,
@@ -202,15 +203,14 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
                                                SubPlan& subplan) {
     std::vector<std::string> joinColNames = {folly::stringPrintf("%s_%lu", kPathStr, startIndex)};
     for (size_t i = startIndex; i < edgeInfos.size(); ++i) {
+        subplan.root = passThrough(matchClauseCtx, subplan.root);
         auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx,
                                                i == startIndex ? initialExpr_->clone() : nullptr)
                           ->depends(subplan.root)
                           ->inputVar(subplan.root->outputVar())
                           ->doExpand(nodeInfos[i], edgeInfos[i], &subplan);
-        if (!status.ok()) {
-            return status;
-        }
+        NG_RETURN_IF_ERROR(status);
         if (i > startIndex) {
             auto right = subplan.root;
             VLOG(1) << "left: " << folly::join(",", left->colNames())
@@ -222,6 +222,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
     }
 
     VLOG(1) << subplan;
+    subplan.root = passThrough(matchClauseCtx, subplan.root);
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(
         nodeInfos.back().filter,
@@ -395,5 +396,13 @@ Status MatchClausePlanner::appendFilterPlan(MatchClauseContext* matchClauseCtx, 
     VLOG(1) << subplan;
     return Status::OK();
 }
+
+PlanNode* MatchClausePlanner::passThrough(MatchClauseContext* ctx, PlanNode* input) const {
+    auto pt = PassThroughNode::make(ctx->qctx, input);
+    pt->setOutputVar(input->outputVar());
+    pt->setColNames(input->colNames());
+    return pt;
+}
+
 }   // namespace graph
 }   // namespace nebula
