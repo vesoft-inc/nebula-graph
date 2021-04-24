@@ -458,11 +458,11 @@ void ExpressionUtils::splitFilter(const Expression *expr,
 
 VariablePropertyExpression *ExpressionUtils::newVarPropExpr(const std::string &prop,
                                                             const std::string &var) {
-    return new VariablePropertyExpression(new std::string(var), new std::string(prop));
+    return new VariablePropertyExpression(var, prop);
 }
 
 std::unique_ptr<InputPropertyExpression> ExpressionUtils::inputPropExpr(const std::string &prop) {
-    return std::make_unique<InputPropertyExpression>(new std::string(prop));
+    return std::make_unique<InputPropertyExpression>(prop);
 }
 
 std::unique_ptr<Expression> ExpressionUtils::pushOrs(
@@ -605,7 +605,7 @@ Status ExpressionUtils::checkAggExpr(const AggregateExpression *aggExpr) {
     if (func.compare("COUNT") && (aggArg->kind() == Expression::Kind::kInputProperty ||
                                   aggArg->kind() == Expression::Kind::kVarProperty)) {
         auto propExpr = static_cast<const PropertyExpression *>(aggArg);
-        if (*propExpr->prop() == "*") {
+        if (propExpr->prop() == "*") {
             return Status::SemanticError("Could not apply aggregation function `%s' on `%s'",
                                          aggExpr->toString().c_str(),
                                          propExpr->toString().c_str());
