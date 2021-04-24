@@ -256,7 +256,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     auto left = expr->left();
     auto* la = static_cast<LabelAttributeExpression*>(left);
     if (la->left()->name() != from_) {
-        return Status::SemanticError("Schema name error : %s", la->left()->name()->c_str());
+        return Status::SemanticError("Schema name error : %s", la->left()->name().c_str());
     }
 
     // fold constant expression
@@ -333,7 +333,7 @@ StatusOr<std::string> LookupValidator::checkTSExpr(Expression* expr) {
         return Status::SemanticError("text search index not found : %s", tsName.c_str());
     }
     auto ftFields = tsi.value().second.get_fields();
-    auto prop = *tsExpr->arg()->prop();
+    auto prop = tsExpr->arg()->prop();
 
     auto iter = std::find(ftFields.begin(), ftFields.end(), prop);
     if (iter == ftFields.end()) {

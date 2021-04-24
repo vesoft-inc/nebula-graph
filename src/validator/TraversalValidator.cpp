@@ -194,7 +194,7 @@ Expression* TraversalValidator::buildExpandEndCondition(const std::string &lastS
                                         new ConstantExpression(Value()));
 
     auto* args = new ArgumentList();
-    args->addArgument(std::make_unique<VariableExpression>(new std::string(lastStepResult)));
+    args->addArgument(std::make_unique<VariableExpression>(lastStepResult));
     auto* neZero = new RelationalExpression(Expression::Kind::kRelNE,
                                             new FunctionCallExpression("size", args),
                                             new ConstantExpression(0));

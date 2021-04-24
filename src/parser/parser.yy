@@ -836,7 +836,7 @@ predicate_expression
             $3->kind() != Expression::Kind::kSubscript) {
             throw nebula::GraphParser::syntax_error(@3, "The exists only accept LabelAttribe, Attribute and Subscript");
         }
-        $$ = new PredicateExpression("exists", nullptr, $3, nullptr);
+        $$ = new PredicateExpression("exists", "", $3, nullptr);
     }
     ;
 
@@ -1505,7 +1505,7 @@ match_node_label_list
 
 match_alias
     : %empty {
-        $$ = nullptr;
+        $$ = new std::string();
     }
     | name_label {
         $$ = $1;

@@ -54,7 +54,7 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
             }
             if (!aggs.empty()) {
                 auto* colRewrited = ExpressionUtils::rewriteAgg2VarProp(colExpr);
-                projCols_->addColumn(new YieldColumn(colRewrited, new std::string(colOldName)));
+                projCols_->addColumn(new YieldColumn(colRewrited, colOldName));
                 projOutputColumnNames_.emplace_back(colOldName);
                 continue;
             }

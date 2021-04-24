@@ -165,11 +165,11 @@ protected:
     }
 
     static LabelExpression *labelExpr(const std::string &name) {
-        return new LabelExpression(new std::string(name));
+        return new LabelExpression(name);
     }
 
     static LabelAttributeExpression *laExpr(const std::string &name, Value value) {
-        return new LabelAttributeExpression(new LabelExpression(new std::string(name)),
+        return new LabelAttributeExpression(new LabelExpression(name),
                                             new ConstantExpression(std::move(value)));
     }
 };
