@@ -35,11 +35,11 @@ Feature: Insert vertex and edge with if not exists
     # check vertex result with fetch
     When executing query:
       """
-      FETCH PROP ON person "Conan" YIELD person.age as age
+      FETCH PROP ON person "Conan" YIELD _vid, person.age as age
       """
     Then the result should be, in any order, with relax comparison:
-      | VertexID | age |
-      | "Conan"  | 10  |
+      | _vid    | age |
+      | "Conan" | 10  |
     # insert vertex if not exists
     When executing query:
       """
@@ -48,11 +48,11 @@ Feature: Insert vertex and edge with if not exists
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON person "Conan" YIELD person.age as age
+      FETCH PROP ON person "Conan" YIELD _vid, person.age as age
       """
     Then the result should be, in any order, with relax comparison:
-      | VertexID | age |
-      | "Conan"  | 10  |
+      | _vid    | age |
+      | "Conan" | 10  |
     # insert same vertex
     When executing query:
       """
@@ -61,11 +61,11 @@ Feature: Insert vertex and edge with if not exists
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON person "Conan" YIELD person.age as age
+      FETCH PROP ON person "Conan" YIELD _vid, person.age as age
       """
     Then the result should be, in any order, with relax comparison:
-      | VertexID | age |
-      | "Conan"  | 40  |
+      | _vid    | age |
+      | "Conan" | 40  |
     # insert edge
     When try to execute query:
       """
@@ -75,7 +75,7 @@ Feature: Insert vertex and edge with if not exists
     # check edge result with fetch
     When executing query:
       """
-      FETCH PROP ON like "Tom"->"Conan" YIELD like.likeness
+      FETCH PROP ON like "Tom"->"Conan" YIELD like._src, like._dst, like._rank, like.likeness
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
@@ -89,7 +89,7 @@ Feature: Insert vertex and edge with if not exists
     # check edge result with fetch
     When executing query:
       """
-      FETCH PROP ON like "Tom"->"Conan" YIELD like.likeness
+      FETCH PROP ON like "Tom"->"Conan" YIELD like._src, like._dst, like._rank, like.likeness
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
@@ -103,7 +103,7 @@ Feature: Insert vertex and edge with if not exists
     # check edge result with fetch
     When executing query:
       """
-      FETCH PROP ON like "Tom"->"Conan" YIELD like.likeness
+      FETCH PROP ON like "Tom"->"Conan" YIELD like._src, like._dst, like._rank, like.likeness
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
@@ -131,18 +131,18 @@ Feature: Insert vertex and edge with if not exists
     # check same vertex different tag
     When executing query:
       """
-      FETCH PROP ON person "Conan" YIELD person.age as age
+      FETCH PROP ON person "Conan" YIELD _vid, person.age as age
       """
     Then the result should be, in any order, with relax comparison:
-      | VertexID | age |
-      | "Conan"  | 40  |
+      | _vid    | age |
+      | "Conan" | 40  |
     When executing query:
       """
-      FETCH PROP ON student "Conan" YIELD student.number as number
+      FETCH PROP ON student "Conan" YIELD _vid, student.number as number
       """
     Then the result should be, in any order, with relax comparison:
-      | VertexID | number      |
-      | "Conan"  | 20180901003 |
+      | _vid    | number      |
+      | "Conan" | 20180901003 |
     # insert multi edges if not exists
     When executing query:
       """
@@ -156,14 +156,14 @@ Feature: Insert vertex and edge with if not exists
     # check edge result with fetch
     When executing query:
       """
-      FETCH PROP ON like "Tom"->"Conan" YIELD like.likeness
+      FETCH PROP ON like "Tom"->"Conan" YIELD like._src, like._dst, like._rank, like.likeness
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |
       | 'Tom'     | 'Conan'   | 0          | 100           |
     When executing query:
       """
-      FETCH PROP ON like "Tom"->"Peter" YIELD like.likeness
+      FETCH PROP ON like "Tom"->"Peter" YIELD like._src, like._dst, like._rank, like.likeness
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |

@@ -197,6 +197,10 @@ void FindVisitor::visit(EdgeExpression* expr) {
     findInCurrentExpr(expr);
 }
 
+void FindVisitor::visitVidExpr(VidExpression* expr) {
+    findInCurrentExpr(expr);
+}
+
 void FindVisitor::visit(ColumnExpression* expr) {
     findInCurrentExpr(expr);
 }
