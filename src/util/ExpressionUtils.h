@@ -209,6 +209,8 @@ public:
                                                     const Expression* filter,
                                                     bool pickSwitch = true);
 
+    static Expression* flattenInnerLogicalAndExpr(const Expression* expr);
+    static Expression* flattenInnerLogicalOrExpr(const Expression* expr);
     static Expression* flattenInnerLogicalExpr(const Expression* expr);
 
     static VariablePropertyExpression* newVarPropExpr(const std::string& prop,

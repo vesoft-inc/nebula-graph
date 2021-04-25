@@ -33,17 +33,34 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
     return visitor.getExpr();
 }
 
-Expression *ExpressionUtils::flattenInnerLogicalExpr(const Expression *expr) {
+Expression *ExpressionUtils::flattenInnerLogicalAndExpr(const Expression *expr) {
     auto matcher = [](const Expression *e) -> bool {
-        auto kind = e->kind();
-        return kind == Expression::Kind::kLogicalAnd || kind == Expression::Kind::kLogicalOr;
+        return e->kind() == Expression::Kind::kLogicalAnd;
     };
     auto rewriter = [](const Expression *e) -> Expression * {
-        return e->kind() == Expression::Kind::kLogicalAnd ? pullAnds(const_cast<Expression *>(e))
-                                                          : pullOrs(const_cast<Expression *>(e));
+        return pullAnds(const_cast<Expression *>(e));
     };
 
     return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
+}
+
+Expression *ExpressionUtils::flattenInnerLogicalOrExpr(const Expression *expr) {
+    auto matcher = [](const Expression *e) -> bool {
+        return e->kind() == Expression::Kind::kLogicalOr;
+    };
+    auto rewriter = [](const Expression *e) -> Expression * {
+        return pullOrs(const_cast<Expression *>(e));
+    };
+
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
+}
+
+Expression *ExpressionUtils::flattenInnerLogicalExpr(const Expression *expr) {
+    auto* andFlattenExpr = flattenInnerLogicalAndExpr(expr);
+    auto* allFlattenExpr = flattenInnerLogicalOrExpr(andFlattenExpr);
+    delete(andFlattenExpr);
+
+    return allFlattenExpr;
 }
 
 Expression *ExpressionUtils::pullAnds(Expression *expr) {
@@ -94,23 +111,24 @@ Expression *ExpressionUtils::pickLogicalOperandsWithLabel(const std::string targ
     auto *flattenExpr = ExpressionUtils::flattenInnerLogicalExpr(oldExpr);
 
     auto matcher = [](const Expression *e) -> bool {
-        auto kind = e->kind();
-        if (kind == Expression::Kind::kLogicalAnd || kind == Expression::Kind::kLogicalOr) {
+        if (e->kind() == Expression::Kind::kLogicalOr) {
             return true;
         }
         return false;
     };
     auto rewriter = [pickSwitch, targetLabel](const Expression *e) -> Expression * {
-        auto kind = e->kind();
-        DCHECK(kind == Expression::Kind::kLogicalAnd || kind == Expression::Kind::kLogicalOr);
+        DCHECK(e->kind() == Expression::Kind::kLogicalOr);
         auto *logicExpr = static_cast<LogicalExpression *>(e->clone().release());
 
+        // 1. ignore operand without LabelExpr
+        // 2. pick operand which contains subExprs with LabelExpr whose name is `target` string
+        // 3. when pickSwitch is false, just the opposite of B
         auto checkExistTargetLabel = [pickSwitch](const Expression *self,
                                                   std::string target) -> bool {
             auto finder = [pickSwitch](const Expression *expr,
                                        const std::unordered_set<std::string> &targets) -> bool {
                 if (expr->kind() != Expression::Kind::kLabel) {
-                    return !pickSwitch;
+                    return false;
                 }
                 auto label = *static_cast<const LabelExpression *>(expr)->name();
                 if (targets.find(label) != targets.end()) {
@@ -127,7 +145,7 @@ Expression *ExpressionUtils::pickLogicalOperandsWithLabel(const std::string targ
 
         std::vector<std::unique_ptr<Expression>>& operands = logicExpr->operands();
         for (auto iter = operands.begin(); iter != operands.end();) {
-            if (checkExistTargetLabel((*iter).get(), targetLabel)) {
+            if (!checkExistTargetLabel((*iter).get(), targetLabel)) {
                 (*iter).reset();
                 iter = operands.erase(iter);
             } else {
