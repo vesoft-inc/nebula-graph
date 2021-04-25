@@ -1289,7 +1289,7 @@ Feature: Match seek by edge
       match (p1)-[:serve*2]->(p2) return p1.name, p2.name
       """
     Then the result should be, in any order:
-      | p1.name              | p2.name              |
+      | p1.name | p2.name |
 
   Scenario: Seek by edge with properties
     When executing query:
