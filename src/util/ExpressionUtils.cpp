@@ -38,7 +38,8 @@ Expression *ExpressionUtils::flattenInnerLogicalAndExpr(const Expression *expr) 
         return e->kind() == Expression::Kind::kLogicalAnd;
     };
     auto rewriter = [](const Expression *e) -> Expression * {
-        return pullAnds(const_cast<Expression *>(e));
+        pullAnds(const_cast<Expression *>(e));
+        return e->clone().release();
     };
 
     return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
@@ -49,7 +50,8 @@ Expression *ExpressionUtils::flattenInnerLogicalOrExpr(const Expression *expr) {
         return e->kind() == Expression::Kind::kLogicalOr;
     };
     auto rewriter = [](const Expression *e) -> Expression * {
-        return pullOrs(const_cast<Expression *>(e));
+        pullOrs(const_cast<Expression *>(e));
+        return e->clone().release();
     };
 
     return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));

@@ -95,6 +95,7 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
 
         // Embed startPointFilter into Filter node
         auto* filter = Filter::make(matchClauseCtx->qctx, scan, startPointFilter);
+        filter->setColNames({kVid});
         plan.root = filter;
     }
 
