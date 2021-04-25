@@ -17,14 +17,14 @@
 namespace nebula {
 namespace graph {
 
-std::unique_ptr<Expression> ExpressionUtils::foldConstantExpr(const Expression *expr) {
+Expression *ExpressionUtils::foldConstantExpr(const Expression *expr, ObjectPool *objPool) {
     auto newExpr = expr->clone();
     FoldConstantExprVisitor visitor;
     newExpr->accept(&visitor);
     if (visitor.canBeFolded()) {
-        return std::unique_ptr<Expression>(visitor.fold(newExpr.get()));
+        return objPool->add(visitor.fold(newExpr.get()));
     }
-    return newExpr;
+    return const_cast<Expression *>(expr);
 }
 
 Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPool *objPool) {
@@ -35,11 +35,10 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
 }
 
 Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *pool) {
-    auto exprCopy = pool->add(expr->clone().release());
     if (!expr->isRelExpr()) {
-        // TODO: Use set instead of list in objectpool to avoid copy
-        return exprCopy;
+        return const_cast<Expression *>(expr);
     }
+    auto exprCopy = pool->add(expr->clone().release());
     auto relExpr = static_cast<RelationalExpression *>(exprCopy);
     auto lExpr = relExpr->left();
     auto rExpr = relExpr->right();
@@ -103,6 +102,18 @@ Expression *ExpressionUtils::rewriteRelExprHelper(
 
     relRightOperandExpr.reset(new ArithmeticExpression(kind, lexpr, rexpr));
     return rewriteRelExprHelper(root, relRightOperandExpr);
+}
+
+Expression *ExpressionUtils::filterTransform(const Expression *filter, ObjectPool *pool) {
+    // Fold constant expression
+    auto rewrittenExpr = foldConstantExpr(filter, pool);
+    // Rewrite relational expression
+    if (rewrittenExpr->isRelExpr()) {
+        rewrittenExpr = rewriteRelExpr(static_cast<RelationalExpression *>(rewrittenExpr), pool);
+    }
+    // Reduce Unary expression
+    rewrittenExpr = reduceUnaryNotExpr(rewrittenExpr, pool);
+    return rewrittenExpr;
 }
 
 Expression *ExpressionUtils::pullAnds(Expression *expr) {

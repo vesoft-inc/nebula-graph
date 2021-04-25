@@ -185,12 +185,13 @@ public:
                                             std::unique_ptr<Expression>& relRightOperandExpr);
 
     // Clone and fold constant expression
-    static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
+    static Expression* foldConstantExpr(const Expression* expr, ObjectPool* objPool);
 
     // Clone and reduce constant expression
     static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* objPool);
-    // TODO: Filter transformation
-    // static Expression* transformFilter(const Expression* expr);
+
+    // Transform filter using multiple expression rewrite strategies
+    static Expression* filterTransform(const Expression* expr, ObjectPool* objPool);
 
     // Negate the given logical expr: (A && B) -> (!A || !B)
     static std::unique_ptr<LogicalExpression> reverseLogicalExpr(LogicalExpression* expr);

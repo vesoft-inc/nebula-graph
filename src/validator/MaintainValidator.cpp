@@ -50,7 +50,9 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification *>
             }
             auto defaultValueExpr = spec->getDefaultValue();
             // some expression is evaluable but not pure so only fold instead of eval here
-            column.set_default_value(ExpressionUtils::foldConstantExpr(defaultValueExpr)->encode());
+            auto pool = qctx()->objPool();
+            column.set_default_value(
+                ExpressionUtils::foldConstantExpr(defaultValueExpr, pool)->encode());
         }
         schema.columns_ref().value().emplace_back(std::move(column));
     }
