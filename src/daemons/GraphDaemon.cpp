@@ -19,6 +19,7 @@
 #include "service/GraphFlags.h"
 #include "common/webservice/WebService.h"
 #include "common/time/TimeUtils.h"
+#include "common/time/TimezoneInfo.h"
 #include "stats/StatsDef.h"
 
 using nebula::Status;
@@ -97,6 +98,13 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
         localIP = std::move(result).value();
+    }
+
+    // load the time zone data
+    status = nebula::time::Timezone::init();
+    if (!status.ok()) {
+        LOG(ERROR) << status;
+        return EXIT_FAILURE;
     }
 
     // Initialize the global timezone, it's only used for datetime type compute
