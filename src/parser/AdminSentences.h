@@ -6,7 +6,6 @@
 #ifndef PARSER_ADMINSENTENCES_H_
 #define PARSER_ADMINSENTENCES_H_
 
-#include <memory>
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
 #include "parser/MutateSentences.h"
@@ -155,8 +154,7 @@ public:
         VID_TYPE,
         CHARSET,
         COLLATE,
-        ATOMIC_EDGE,
-        GROUP_NAME
+        ATOMIC_EDGE
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -318,6 +316,10 @@ public:
 
     void setGroupName(std::string* name) {
         groupName_.reset(name);
+    }
+
+    const std::string* groupName() const {
+        return groupName_.get();
     }
 
     std::vector<SpaceOptItem*> getOpts() {

@@ -66,10 +66,10 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 row.values.emplace_back(properties.get_charset_name());
                 row.values.emplace_back(properties.get_collate_name());
                 row.values.emplace_back(SchemaUtil::typeToString(properties.get_vid_type()));
-                std::string sAtomicEdge{"false"};
+                bool sAtomicEdge{false};
                 if (properties.isolation_level_ref().has_value()  &&
                     (*properties.isolation_level_ref() == meta::cpp2::IsolationLevel::TOSS)) {
-                    sAtomicEdge = "true";
+                    sAtomicEdge = true;
                 }
                 row.values.emplace_back(sAtomicEdge);
                 if (properties.group_name_ref().has_value()) {
