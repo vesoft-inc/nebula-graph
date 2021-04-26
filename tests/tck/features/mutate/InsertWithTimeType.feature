@@ -149,6 +149,34 @@ Feature: Insert with time-dependent types
     Then the result should be, in any order:
       | edge_date._src | edge_date._dst | edge_date._rank | edge_date.f_date | edge_date.f_time  | edge_date.f_datetime         |
       | 'test_src'     | 'test_dst'     | 0               | '2017-03-04'     | '07:01:00.010000' | '2017-03-05T06:30:40.003000' |
+    # insert with timezone name and utc offset
+    When try to execute query:
+      """
+      INSERT VERTEX tag_date(f_date, f_time, f_datetime) VALUES "test":(date("2017-03-04"), time("23:01:00.010000+08:00[Asia/Shanghai]"), datetime("2017-03-04T22:30:40.003000+08:00[Asia/Shanghai]"));
+      INSERT EDGE edge_date(f_date, f_time, f_datetime) VALUES "test_src"->"test_dst":(date("2017-03-04"), time("23:01:00.010000+08:00[Asia/Shanghai]"), datetime("2017-03-04T22:30:40.003000+08:00[Asia/Shanghai]"));
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      FETCH PROP ON tag_date "test" YIELD tag_date.f_date, tag_date.f_time, tag_date.f_datetime;
+      """
+    Then the result should be, in any order:
+      | VertexID | tag_date.f_date | tag_date.f_time   | tag_date.f_datetime          |
+      | 'test'   | '2017-03-04'    | '07:01:00.010000' | '2017-03-05T06:30:40.003000' |
+    When executing query:
+      """
+      FETCH PROP ON edge_date "test_src"->"test_dst" YIELD edge_date.f_date, edge_date.f_time, edge_date.f_datetime;
+      """
+    Then the result should be, in any order:
+      | edge_date._src | edge_date._dst | edge_date._rank | edge_date.f_date | edge_date.f_time  | edge_date.f_datetime         |
+      | 'test_src'     | 'test_dst'     | 0               | '2017-03-04'     | '07:01:00.010000' | '2017-03-05T06:30:40.003000' |
+    # insert with timezone name and mismatched utc offset
+    When try to execute query:
+      """
+      INSERT VERTEX tag_date(f_date, f_time, f_datetime) VALUES "test":(date("2017-03-04"), time("23:01:00.010000-03:00[Asia/Shanghai]"), datetime("2017-03-04T22:30:40.003000+03:00[Asia/Shanghai]"));
+      INSERT EDGE edge_date(f_date, f_time, f_datetime) VALUES "test_src"->"test_dst":(date("2017-03-04"), time("23:01:00.010000-03:00[Asia/Shanghai]"), datetime("2017-03-04T22:30:40.003000+03:00[Asia/Shanghai]"));
+      """
+    Then a ExecutionError should be raised at runtime: Wrong value type: time("23:01:00.010000-03:00[Asia/Shanghai]")
     When executing query:
       """
       UPDATE VERTEX "test"
