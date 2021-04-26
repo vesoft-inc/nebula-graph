@@ -83,7 +83,7 @@ Status FetchVerticesValidator::check() {
             auto schema = qctx_->schemaMng()->getTagSchema(space_.id, tagId);
             if (schema == nullptr) {
                 LOG(ERROR) << "No schema found for " << *tag;
-                return Status::SemanticError("No schema found for `%s'", tag->c_str());
+                return Status::Error("No schema found for `%s'", tag->c_str());
             }
             tagsSchema_.emplace(tagId, schema);
         }
@@ -127,7 +127,7 @@ Status FetchVerticesValidator::prepareVertices() {
             std::stringstream ss;
             ss << "`" << vid->toString() << "', the vid should be type of " << vidType_
                << ", but was`" << v.type() << "'";
-            return Status::SemanticError(ss.str());
+            return Status::Error(ss.str());
         }
         srcVids_.emplace_back(nebula::Row({std::move(v)}));
     }
@@ -166,14 +166,14 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
             return std::move(deducePropsVisitor).status();
         }
         if (exprProps.hasInputVarProperty()) {
-            return Status::SemanticError(
+            return Status::Error(
                 "Unsupported input/variable property expression in yield.");
         }
         if (!exprProps.edgeProps().empty()) {
-            return Status::SemanticError("Unsupported edge property expression in yield.");
+            return Status::Error("Unsupported edge property expression in yield.");
         }
         if (exprProps.hasSrcDstTagProperty()) {
-            return Status::SemanticError("Unsupported src/dst property expression in yield.");
+            return Status::Error("Unsupported src/dst property expression in yield.");
         }
 
         colNames_.emplace_back(deduceColName(col));
@@ -183,12 +183,12 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
         // TODO(shylock) think about the push-down expr
     }
     if (exprProps.tagProps().empty()) {
-        return Status::SemanticError("Unsupported empty tag property expression in yield.");
+        return Status::Error("Unsupported empty tag property expression in yield.");
     }
 
     for (const auto &tag : exprProps.tagNameIds()) {
         if (tags_.find(tag.first) == tags_.end()) {
-            return Status::SemanticError("Mismatched tag: %s", tag.first.c_str());
+            return Status::Error("Mismatched tag: %s", tag.first.c_str());
         }
     }
     for (const auto &tagNameId : exprProps.tagNameIds()) {

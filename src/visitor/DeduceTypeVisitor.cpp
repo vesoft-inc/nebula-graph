@@ -55,7 +55,7 @@ static const std::unordered_map<Value::Type, Value> kConstantValues = {
         std::stringstream ss;                                                                      \
         ss << "`" << expr->toString() << "' is not a valid expression, "                           \
            << "can not apply `" << #OP << "' to `" << left << "' and `" << right << "'.";          \
-        status_ = Status::SemanticError(ss.str());                                                 \
+        status_ = Status::Error(ss.str());                                                 \
         return;                                                                                    \
     }                                                                                              \
     type_ = detectVal.type()
@@ -75,7 +75,7 @@ static const std::unordered_map<Value::Type, Value> kConstantValues = {
                 std::stringstream ss;                                                              \
                 ss << "`" << expr->toString() << "' is not a valid expression, "                   \
                 << "can not apply `" << #OP << "' to `" << prev << "' and `" << current << "'.";   \
-                status_ = Status::SemanticError(ss.str());                                         \
+                status_ = Status::Error(ss.str());                                         \
                 return;                                                                            \
             }                                                                                      \
             prev = detectValue.type();                                                             \
@@ -89,7 +89,7 @@ static const std::unordered_map<Value::Type, Value> kConstantValues = {
         std::stringstream ss;                                                                      \
         ss << "`" << expr->toString() << "' is not a valid expression, "                           \
            << "can not apply `" << #OP << "' to " << type_ << ".";                                 \
-        status_ = Status::SemanticError(ss.str());                                                 \
+        status_ = Status::Error(ss.str());                                                 \
         return;                                                                                    \
     }                                                                                              \
     type_ = detectVal.type()
@@ -151,7 +151,7 @@ void DeduceTypeVisitor::visit(UnaryExpression *expr) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                    << "can not apply `++' to " << type_ << ".";
-                status_ = Status::SemanticError(ss.str());
+                status_ = Status::Error(ss.str());
                 return;
             }
             type_ = detectVal.type();
@@ -163,7 +163,7 @@ void DeduceTypeVisitor::visit(UnaryExpression *expr) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                    << "can not apply `--' to " << type_ << ".";
-                status_ = Status::SemanticError(ss.str());
+                status_ = Status::Error(ss.str());
                 return;
             }
             type_ = detectVal.type();
@@ -197,14 +197,14 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
         std::stringstream out;
         out << "Can not convert " << expr->operand()->toString() << " 's type : " << type_ << " to "
             << expr->type();
-        status_ = Status::SemanticError(out.str());
+        status_ = Status::Error(out.str());
         return;
     }
     QueryExpressionContext ctx(nullptr);
     auto val = expr->eval(ctx(nullptr));
     if (val.isNull()) {
         status_ =
-            Status::SemanticError("`%s' is not a valid expression ", expr->toString().c_str());
+            Status::Error("`%s' is not a valid expression ", expr->toString().c_str());
         return;
     }
     type_ = val.type();
@@ -259,7 +259,7 @@ void DeduceTypeVisitor::visit(RelationalExpression *expr) {
             ss << "`" << expr->right()->toString()
                << "', expected List/Set/Map, but was "
                << type_;
-            status_ = Status::SemanticError(ss.str());
+            status_ = Status::Error(ss.str());
             return;
         }
     }
@@ -278,7 +278,7 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected LIST but was " << leftType << ": "
            << expr->left()->toString();
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -295,7 +295,7 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected Integer but was " << rightType << ": "
            << expr->right()->toString();
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -308,7 +308,7 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected Identifier but was " << rightType << ": "
            << expr->right()->toString();
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -318,7 +318,7 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected Integer Or Identifier but was " << rightType
            << ": " << expr->right()->toString();
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -335,7 +335,7 @@ void DeduceTypeVisitor::visit(AttributeExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected Map, Vertex or Edge but was " << type_ << ": "
            << expr->left()->toString();
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -345,7 +345,7 @@ void DeduceTypeVisitor::visit(AttributeExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->toString()
            << "', expected an valid identifier: " << expr->right()->toString();
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -378,7 +378,7 @@ void DeduceTypeVisitor::visit(LabelAttributeExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->toString()
            << "', expected an valid identifier: " << expr->left()->toString();
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -388,7 +388,7 @@ void DeduceTypeVisitor::visit(LabelAttributeExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->toString()
            << "', expected an valid identifier: " << expr->right()->toString();
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -411,7 +411,7 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
     }
     auto result = FunctionManager::getReturnType(funName, argsTypeList);
     if (!result.ok()) {
-        status_ = Status::SemanticError("`%s' is not a valid expression : %s",
+        status_ = Status::Error("`%s' is not a valid expression : %s",
                                         expr->toString().c_str(),
                                         result.status().toString().c_str());
         return;
@@ -464,7 +464,7 @@ void DeduceTypeVisitor::visit(EdgePropertyExpression *expr) {
     }
     auto schema = qctx_->schemaMng()->getEdgeSchema(space_, edgeType.value());
     if (!schema) {
-        status_ = Status::SemanticError(
+        status_ = Status::Error(
             "`%s', not found edge `%s'.", expr->toString().c_str(), edge->c_str());
         return;
     }
@@ -472,7 +472,7 @@ void DeduceTypeVisitor::visit(EdgePropertyExpression *expr) {
     auto *prop = expr->prop();
     auto *field = schema->field(*prop);
     if (field == nullptr) {
-        status_ = Status::SemanticError(
+        status_ = Status::Error(
             "`%s', not found the property `%s'.", expr->toString().c_str(), prop->c_str());
         return;
     }
@@ -484,7 +484,7 @@ void DeduceTypeVisitor::visit(InputPropertyExpression *expr) {
     auto found = std::find_if(
         inputs_.cbegin(), inputs_.cend(), [&prop](auto &col) { return *prop == col.name; });
     if (found == inputs_.cend()) {
-        status_ = Status::SemanticError(
+        status_ = Status::Error(
             "`%s', not exist prop `%s'", expr->toString().c_str(), prop->c_str());
         return;
     }
@@ -494,7 +494,7 @@ void DeduceTypeVisitor::visit(InputPropertyExpression *expr) {
 void DeduceTypeVisitor::visit(VariablePropertyExpression *expr) {
     auto *var = expr->sym();
     if (!vctx_->existVar(*var)) {
-        status_ = Status::SemanticError(
+        status_ = Status::Error(
             "`%s', not exist variable `%s'", expr->toString().c_str(), var->c_str());
         return;
     }
@@ -503,7 +503,7 @@ void DeduceTypeVisitor::visit(VariablePropertyExpression *expr) {
     auto found =
         std::find_if(cols.begin(), cols.end(), [&prop](auto &col) { return *prop == col.name; });
     if (found == cols.end()) {
-        status_ = Status::SemanticError(
+        status_ = Status::Error(
             "`%s', not exist prop `%s'", expr->toString().c_str(), prop->c_str());
         return;
     }
@@ -562,7 +562,7 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         if (!expr->hasCondition() && type_ != Value::Type::BOOL && !isSuperiorType(type_)) {
             std::stringstream ss;
             ss << "`" << whenThen.when->toString() << "', expected BOOL, but was " << type_;
-            status_ = Status::SemanticError(ss.str());
+            status_ = Status::Error(ss.str());
             return;
         }
         whenThen.then->accept(this);
@@ -590,7 +590,7 @@ void DeduceTypeVisitor::visit(PredicateExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->collection()->toString()
            << "', expected LIST, but was " << type_;
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -624,7 +624,7 @@ void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->collection()->toString()
            << "', expected LIST, but was " << type_;
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -648,7 +648,7 @@ void DeduceTypeVisitor::visit(ReduceExpression *expr) {
         std::stringstream ss;
         ss << "`" << expr->collection()->toString()
            << "', expected LIST, but was " << type_;
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::Error(ss.str());
         return;
     }
 
@@ -665,14 +665,14 @@ void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {
     }
     auto schema = qctx_->schemaMng()->getTagSchema(space_, tagId.value());
     if (!schema) {
-        status_ = Status::SemanticError(
+        status_ = Status::Error(
             "`%s', not found tag `%s'.", expr->toString().c_str(), tag->c_str());
         return;
     }
     auto *prop = expr->prop();
     auto *field = schema->field(*prop);
     if (field == nullptr) {
-        status_ = Status::SemanticError(
+        status_ = Status::Error(
             "`%s', not found the property `%s'.", expr->toString().c_str(), prop->c_str());
         return;
     }

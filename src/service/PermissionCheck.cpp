@@ -32,8 +32,8 @@ namespace graph {
 
 // static
 Status PermissionCheck::permissionCheck(Session *session,
-                                      Sentence* sentence,
-                                      GraphSpaceID targetSpace) {
+                                       Sentence* sentence,
+                                       GraphSpaceID targetSpace) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
@@ -187,7 +187,7 @@ Status PermissionCheck::permissionCheck(Session *session,
             if (session->isGod()) {
                 return Status::OK();
             } else {
-                return Status::PermissionError("No permission to show users/snapshots/textClients");
+                return Status::Error("No permission to show users/snapshots/textClients");
             }
         }
         case Sentence::Kind::kChangePassword: {

@@ -219,7 +219,7 @@ Status ExpressionUtils::checkAggExpr(const AggregateExpression* aggExpr) {
 
     auto *aggArg = aggExpr->arg();
     if (graph::ExpressionUtils::findAny(aggArg, {Expression::Kind::kAggregate})) {
-        return Status::SemanticError("Aggregate function nesting is not allowed: `%s'",
+        return Status::Error("Aggregate function nesting is not allowed: `%s'",
                                      aggExpr->toString().c_str());
     }
 
@@ -228,7 +228,7 @@ Status ExpressionUtils::checkAggExpr(const AggregateExpression* aggExpr) {
                                   aggArg->kind() == Expression::Kind::kVarProperty)) {
         auto propExpr = static_cast<const PropertyExpression *>(aggArg);
         if (*propExpr->prop() == "*") {
-            return Status::SemanticError("Could not apply aggregation function `%s' on `%s'",
+            return Status::Error("Could not apply aggregation function `%s' on `%s'",
                                          aggExpr->toString().c_str(),
                                          propExpr->toString().c_str());
         }

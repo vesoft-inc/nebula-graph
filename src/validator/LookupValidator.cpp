@@ -121,8 +121,8 @@ Status LookupValidator::prepareYield() {
     auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
                           : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
     if (schema == nullptr) {
-        return isEdge_ ? Status::EdgeNotFound("Edge schema not found : %s", from_.c_str())
-                       : Status::TagNotFound("Tag schema not found : %s", from_.c_str());
+        return isEdge_ ? Status::Error("Edge schema not found : %s", from_.c_str())
+                       : Status::Error("Tag schema not found : %s", from_.c_str());
     }
     for (auto col : columns) {
         // TODO(shylock) support more expr
@@ -142,11 +142,11 @@ Status LookupValidator::prepareYield() {
                 newYieldColumns_->back()->setAlias(new std::string(*col->alias()));
             }
             if (schemaName != from_) {
-                return Status::SemanticError("Schema name error : %s", schemaName.c_str());
+                return Status::Error("Schema name error : %s", schemaName.c_str());
             }
             auto ret = schema->getFieldType(colName);
             if (ret == meta::cpp2::PropertyType::UNKNOWN) {
-                return Status::SemanticError(
+                return Status::Error(
                     "Column %s not found in schema %s", colName.c_str(), from_.c_str());
             }
             returnCols_->emplace_back(colName);
@@ -154,7 +154,7 @@ Status LookupValidator::prepareYield() {
             colNames_.emplace_back(deduceColName(newYieldColumns_->back()));
             outputs_.emplace_back(colNames_.back(), SchemaUtil::propTypeToValueType(ret));
         } else {
-            return Status::SemanticError("Yield clauses are not supported : %s",
+            return Status::Error("Yield clauses are not supported : %s",
                                          col->expr()->toString().c_str());
         }
     }
@@ -172,7 +172,7 @@ Status LookupValidator::prepareFilter() {
     if (needTextSearch(filter)) {
         NG_RETURN_IF_ERROR(checkTSService());
         if (!textSearchReady_) {
-            return Status::SemanticError("Text search service not ready");
+            return Status::Error("Text search service not ready");
         }
         auto retFilter = rewriteTSFilter(filter);
         if (!retFilter.ok()) {
@@ -198,7 +198,7 @@ StatusOr<std::string> LookupValidator::rewriteTSFilter(Expression* expr) {
     auto tsExpr = static_cast<TextSearchExpression*>(expr);
     auto vRet = textSearch(tsExpr);
     if (!vRet.ok()) {
-        return Status::SemanticError("Text search error.");
+        return Status::Error("Text search error.");
     }
     if (vRet.value().empty()) {
         isEmptyResultSet_ = true;
@@ -231,7 +231,7 @@ StatusOr<std::string> LookupValidator::rewriteTSFilter(Expression* expr) {
 
 StatusOr<std::vector<std::string>> LookupValidator::textSearch(TextSearchExpression* expr) {
     if (*expr->arg()->from() != from_) {
-        return Status::SemanticError("Schema name error : %s", expr->arg()->from()->c_str());
+        return Status::Error("Schema name error : %s", expr->arg()->from()->c_str());
     }
     auto index = plugin::IndexTraits::indexName(*space_.spaceDesc.space_name_ref(), isEdge_);
     nebula::plugin::DocItem doc(index, *expr->arg()->prop(), schemaId_, *expr->arg()->val());
@@ -270,7 +270,7 @@ StatusOr<std::vector<std::string>> LookupValidator::textSearch(TextSearchExpress
                 break;
             }
             default:
-                return Status::SemanticError("text search expression error");
+                return Status::Error("text search expression error");
         }
         if (!ret.ok()) {
             continue;
@@ -278,10 +278,10 @@ StatusOr<std::vector<std::string>> LookupValidator::textSearch(TextSearchExpress
         if (ret.value()) {
             return result;
         }
-        return Status::SemanticError("External index error. "
+        return Status::Error("External index error. "
                                      "please check the status of fulltext cluster");
     }
-    return Status::SemanticError("scan external index failed");
+    return Status::Error("scan external index failed");
 }
 
 bool LookupValidator::needTextSearch(Expression* expr) {
@@ -321,7 +321,7 @@ Status LookupValidator::checkFilter(Expression* expr) {
             return checkRelExpr(rExpr);
         }
         default: {
-            return Status::SemanticError("Expression %s not supported yet",
+            return Status::Error("Expression %s not supported yet",
                                          expr->toString().c_str());
         }
     }
@@ -334,13 +334,13 @@ Status LookupValidator::checkRelExpr(RelationalExpression* expr) {
     // Does not support filter : schema.col1 > schema.col2
     if (left->kind() == Expression::Kind::kLabelAttribute &&
         right->kind() == Expression::Kind::kLabelAttribute) {
-        return Status::SemanticError("Expression %s not supported yet", expr->toString().c_str());
+        return Status::Error("Expression %s not supported yet", expr->toString().c_str());
     } else if (left->kind() == Expression::Kind::kLabelAttribute ||
                right->kind() == Expression::Kind::kLabelAttribute) {
         auto ret = rewriteRelExpr(expr);
         NG_RETURN_IF_ERROR(ret);
     } else {
-        return Status::SemanticError("Expression %s not supported yet", expr->toString().c_str());
+        return Status::Error("Expression %s not supported yet", expr->toString().c_str());
     }
     return Status::OK();
 }
@@ -353,7 +353,7 @@ Status LookupValidator::rewriteRelExpr(RelationalExpression* expr) {
     auto* la = leftIsAE ? static_cast<LabelAttributeExpression*>(left)
                         : static_cast<LabelAttributeExpression*>(right);
     if (*la->left()->name() != from_) {
-        return Status::SemanticError("Schema name error : %s", la->left()->name()->c_str());
+        return Status::Error("Schema name error : %s", la->left()->name()->c_str());
     }
 
     std::string prop = la->right()->value().getStr();
@@ -363,7 +363,7 @@ Status LookupValidator::rewriteRelExpr(RelationalExpression* expr) {
                       : checkConstExpr(left, prop, relExprType, leftIsAE);
 
     if (!c.ok()) {
-        return Status::SemanticError("expression error : %s", left->toString().c_str());
+        return Status::Error("expression error : %s", left->toString().c_str());
     }
 
     if (leftIsAE) {
@@ -394,7 +394,7 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
                                                 const Expression::Kind kind,
                                                 bool leftIsAE) {
     if (!evaluableExpr(expr)) {
-        return Status::SemanticError("'%s' is not an evaluable expression.",
+        return Status::Error("'%s' is not an evaluable expression.",
                                      expr->toString().c_str());
     }
     auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
@@ -425,7 +425,7 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
     }
 
     if (v.type() != SchemaUtil::propTypeToValueType(type)) {
-        return Status::SemanticError("Column type error : %s", prop.c_str());
+        return Status::Error("Column type error : %s", prop.c_str());
     }
     return v;
 }
@@ -436,7 +436,7 @@ Status LookupValidator::checkTSService() {
         return tcs.status();
     }
     if (tcs.value().empty()) {
-        return Status::SemanticError("No full text client found");
+        return Status::Error("No full text client found");
     }
     textSearchReady_ = true;
     for (const auto& c : tcs.value()) {
@@ -463,7 +463,7 @@ Status LookupValidator::checkTSIndex() {
         if (ret.value()) {
             return Status::OK();
         }
-        return Status::SemanticError("fulltext index not found : %s", ftIndex.c_str());
+        return Status::Error("fulltext index not found : %s", ftIndex.c_str());
     }
     return ret.status();
 }

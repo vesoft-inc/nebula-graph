@@ -22,7 +22,7 @@ Status OrderByValidator::validateImpl() {
             factor->setExpr(expr);
         }
         if (factor->expr()->kind() != Expression::Kind::kInputProperty) {
-            return Status::SemanticError("Order by with invalid expression `%s'",
+            return Status::Error("Order by with invalid expression `%s'",
                                           factor->expr()->toString().c_str());
         }
         auto expr = static_cast<InputPropertyExpression*>(factor->expr());

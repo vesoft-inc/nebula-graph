@@ -18,7 +18,7 @@ class PasswordAuthenticator final : public Authenticator {
 public:
     explicit PasswordAuthenticator(const meta::MetaClient* client);
 
-    bool auth(const std::string& user, const std::string& password) override;
+    nebula::cpp2::ErrorCode auth(const std::string& user, const std::string& password) override;
 
 private:
     const meta::MetaClient*               metaClient_;

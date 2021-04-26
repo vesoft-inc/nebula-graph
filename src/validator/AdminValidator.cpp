@@ -32,14 +32,14 @@ Status CreateSpaceValidator::validateImpl() {
             case SpaceOptItem::PARTITION_NUM: {
                 spaceDesc_.set_partition_num(item->getPartitionNum());
                 if (*spaceDesc_.partition_num_ref() <= 0) {
-                    return Status::SemanticError("Partition_num value should be greater than zero");
+                    return Status::Error("Partition_num value should be greater than zero");
                 }
                 break;
             }
             case SpaceOptItem::REPLICA_FACTOR: {
                 spaceDesc_.set_replica_factor(item->getReplicaFactor());
                 if (*spaceDesc_.replica_factor_ref() <= 0) {
-                    return Status::SemanticError(
+                    return Status::Error(
                         "Replica_factor value should be greater than zero");
                 }
                 break;
@@ -51,7 +51,7 @@ Status CreateSpaceValidator::validateImpl() {
                     std::stringstream ss;
                     ss << "Only support FIXED_STRING or INT64 vid type, but was given "
                        << apache::thrift::util::enumNameSafe(typeDef.type);
-                    return Status::SemanticError(ss.str());
+                    return Status::Error(ss.str());
                 }
                 spaceDesc_.vid_type_ref().value().set_type(typeDef.type);
 
@@ -59,11 +59,11 @@ Status CreateSpaceValidator::validateImpl() {
                     spaceDesc_.vid_type_ref().value().set_type_length(8);
                 } else {
                     if (!typeDef.type_length_ref().has_value()) {
-                        return Status::SemanticError(
+                        return Status::Error(
                             "type length is not set for fixed string type");
                     }
                     if (*typeDef.type_length_ref() <= 0) {
-                        return Status::SemanticError("Vid size should be a positive number: %d",
+                        return Status::Error("Vid size should be a positive number: %d",
                                                      *typeDef.type_length_ref());
                     }
                     spaceDesc_.vid_type_ref().value().set_type_length(*typeDef.type_length_ref());
@@ -239,7 +239,7 @@ Status AddListenerValidator::validateImpl() {
     auto sentence = static_cast<AddListenerSentence*>(sentence_);
     auto hosts = sentence->listeners()->hosts();
     if (hosts.empty()) {
-        return Status::SemanticError("Listener hosts should not be empty");
+        return Status::Error("Listener hosts should not be empty");
     }
 
     // check the hosts, if the hosts the same with storage, return error
@@ -370,7 +370,7 @@ Status SetConfigValidator::validateImpl() {
     auto sentence = static_cast<SetConfigSentence*>(sentence_);
     auto item = sentence->configItem();
     if (item == nullptr) {
-        return Status::SemanticError("Empty config item");
+        return Status::Error("Empty config item");
     }
     if (item->getName() != nullptr) {
         name_ = *item->getName();
@@ -394,14 +394,14 @@ Status SetConfigValidator::validateImpl() {
             std::string name;
             Value value;
             if (updateItem->getFieldName() == nullptr || updateItem->value() == nullptr) {
-                return Status::SemanticError("Empty item");
+                return Status::Error("Empty item");
             }
             name = *updateItem->getFieldName();
 
             value = Expression::eval(const_cast<Expression*>(updateItem->value()), ctx(nullptr));
 
             if (value.isNull() || (!value.isNumeric() && !value.isStr() && !value.isBool())) {
-                return Status::SemanticError("Wrong value: `%s'", name.c_str());
+                return Status::Error("Wrong value: `%s'", name.c_str());
             }
             configs.kvs.emplace(std::move(name), std::move(value));
         }
@@ -426,7 +426,7 @@ Status GetConfigValidator::validateImpl() {
     auto sentence = static_cast<GetConfigSentence*>(sentence_);
     auto item = sentence->configItem();
     if (item == nullptr) {
-        return Status::SemanticError("Empty config item");
+        return Status::Error("Empty config item");
     }
 
     module_ = item->getModule();

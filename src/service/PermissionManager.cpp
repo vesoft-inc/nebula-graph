@@ -20,7 +20,7 @@ Status PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
     }
     auto roleResult = session->roleWithSpace(spaceId);
     if (!roleResult.ok()) {
-        return Status::PermissionError("No permission to read space.");
+        return Status::Error("No permission to read space.");
     }
     auto role = roleResult.value();
     switch (role) {
@@ -32,7 +32,7 @@ Status PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
             return Status::OK();
         }
     }
-    return Status::PermissionError("No permission to read space.");
+    return Status::Error("No permission to read space.");
 }
 
 // static
@@ -45,11 +45,11 @@ Status PermissionManager::canReadSchemaOrData(Session *session) {
     }
     if (session->space().id == -1) {
         LOG(ERROR) << "No space selected";
-        return Status::PermissionError("No space selected.");
+        return Status::Error("No space selected.");
     }
     auto roleResult = session->roleWithSpace(session->space().id);
     if (!roleResult.ok()) {
-        return Status::PermissionError("No permission to read schema/data.");
+        return Status::Error("No permission to read schema/data.");
     }
     auto role = roleResult.value();
     switch (role) {
@@ -61,7 +61,7 @@ Status PermissionManager::canReadSchemaOrData(Session *session) {
             return Status::OK();
         }
     }
-    return Status::PermissionError("No permission to read schema/data.");
+    return Status::Error("No permission to read schema/data.");
 }
 
 // static
@@ -72,7 +72,7 @@ Status PermissionManager::canWriteSpace(Session *session) {
     if (session->isGod()) {
         return Status::OK();
     }
-    return Status::PermissionError("No permission to write space.");
+    return Status::Error("No permission to write space.");
 }
 
 // static
@@ -85,11 +85,11 @@ Status PermissionManager::canWriteSchema(Session *session) {
     }
     if (session->space().id == -1) {
         LOG(ERROR) << "No space selected";
-        return Status::PermissionError("No space selected.");
+        return Status::Error("No space selected.");
     }
     auto roleResult = session->roleWithSpace(session->space().id);
     if (!roleResult.ok()) {
-        return Status::PermissionError("No permission to write schema.");
+        return Status::Error("No permission to write schema.");
     }
     auto role = roleResult.value();
     switch (role) {
@@ -100,9 +100,9 @@ Status PermissionManager::canWriteSchema(Session *session) {
         }
         case meta::cpp2::RoleType::USER :
         case meta::cpp2::RoleType::GUEST :
-            return Status::PermissionError("No permission to write schema.");
+            return Status::Error("No permission to write schema.");
     }
-    return Status::PermissionError("No permission to write schema.");
+    return Status::Error("No permission to write schema.");
 }
 
 // static
@@ -112,12 +112,12 @@ Status PermissionManager::canWriteUser(Session *session) {
     }
     // Cloud auth user cannot create user
     if (FLAGS_auth_type == "cloud") {
-        return Status::PermissionError("Cloud authenticate user can't write user.");
+        return Status::Error("Cloud authenticate user can't write user.");
     }
     if (session->isGod()) {
         return Status::OK();
     } else {
-        return Status::PermissionError("No permission to write user.");
+        return Status::Error("No permission to write user.");
     }
 }
 
@@ -130,19 +130,19 @@ Status PermissionManager::canWriteRole(Session *session,
     }
     // Cloud auth user cannot grant role
     if (FLAGS_auth_type == "cloud") {
-        return Status::PermissionError("Cloud authenticate user can't write role.");
+        return Status::Error("Cloud authenticate user can't write role.");
     }
     /**
      * Reject grant or revoke to himself.
      */
      if (session->user() == targetUser) {
-         return Status::PermissionError("No permission to grant/revoke yourself.");
+         return Status::Error("No permission to grant/revoke yourself.");
      }
     /*
      * Reject any user grant or revoke role to GOD
      */
     if (targetRole == meta::cpp2::RoleType::GOD) {
-        return Status::PermissionError("No permission to grant/revoke god user.");
+        return Status::Error("No permission to grant/revoke god user.");
     }
     /*
      * God user can be grant or revoke any one.
@@ -155,13 +155,13 @@ Status PermissionManager::canWriteRole(Session *session,
      */
     auto roleResult = session->roleWithSpace(spaceId);
     if (!roleResult.ok()) {
-        return Status::PermissionError("No permission to write grant/revoke role.");
+        return Status::Error("No permission to write grant/revoke role.");
     }
     auto role = roleResult.value();
     if (role == meta::cpp2::RoleType::ADMIN && targetRole != meta::cpp2::RoleType::ADMIN) {
         return Status::OK();
     }
-    return Status::PermissionError("No permission to grant/revoke `%s' to `%s'.",
+    return Status::Error("No permission to grant/revoke `%s' to `%s'.",
                                    apache::thrift::util::enumNameSafe(role).c_str(),
                                    targetUser.c_str());
 }
@@ -176,11 +176,11 @@ Status PermissionManager::canWriteData(Session *session) {
     }
     if (session->space().id == -1) {
         LOG(ERROR) << "No space selected.";
-        return Status::PermissionError("No space selected.");
+        return Status::Error("No space selected.");
     }
     auto roleResult = session->roleWithSpace(session->space().id);
     if (!roleResult.ok()) {
-        return Status::PermissionError("No permission to write data.");
+        return Status::Error("No permission to write data.");
     }
     auto role = roleResult.value();
     switch (role) {
@@ -191,9 +191,9 @@ Status PermissionManager::canWriteData(Session *session) {
             return Status::OK();
         }
         case meta::cpp2::RoleType::GUEST :
-            return Status::PermissionError("No permission to write data.");
+            return Status::Error("No permission to write data.");
     }
-    return Status::PermissionError("No permission to write data.");
+    return Status::Error("No permission to write data.");
 }
 }   // namespace graph
 }   // namespace nebula

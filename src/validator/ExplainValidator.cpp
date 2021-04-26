@@ -47,17 +47,21 @@ static StatusOr<std::string> toExplainFormatType(const std::string& formatType) 
         return fmtType;
     }
     auto allowedStr = folly::join(",", kAllowedFmtType);
-    return Status::SyntaxError(
+    return Status::Error(
         "Invalid explain/profile format type: \"%s\", only following values are supported: %s",
         fmtType.c_str(),
         allowedStr.c_str());
 }
 
 Status ExplainValidator::validateImpl() {
+    qctx_->rctx()->resp().errorCode = ErrorCode::E_SEMANTIC_ERROR;
     auto explain = static_cast<ExplainSentence*>(sentence_);
 
     auto status = toExplainFormatType(explain->formatType());
-    NG_RETURN_IF_ERROR(status);
+    if (!status.ok()) {
+        qctx_->rctx()->resp().errorCode = ErrorCode::E_SYNTAX_ERROR;
+        return status.status();
+    }
     qctx_->plan()->setExplainFormat(std::move(status).value());
 
     NG_RETURN_IF_ERROR(validator_->validate());

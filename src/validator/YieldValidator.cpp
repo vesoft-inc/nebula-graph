@@ -40,15 +40,15 @@ Status YieldValidator::validateImpl() {
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
         !exprProps_.edgeProps().empty()) {
-        return Status::SemanticError("Only support input and variable in yield sentence.");
+        return Status::Error("Only support input and variable in yield sentence.");
     }
 
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
-        return Status::SemanticError("Not support both input and variable.");
+        return Status::Error("Not support both input and variable.");
     }
 
     if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
-        return Status::SemanticError("Only one variable allowed to use.");
+        return Status::Error("Only one variable allowed to use.");
     }
 
     if (!groupByValidator_ && exprProps_.inputProps().empty()
@@ -60,7 +60,7 @@ Status YieldValidator::validateImpl() {
     if (!exprProps_.varProps().empty() && !userDefinedVarNameList_.empty()) {
         // TODO: Support Multiple userDefinedVars
         if (userDefinedVarNameList_.size() != 1) {
-            return Status::SemanticError("Multiple user defined vars not supported yet.");
+            return Status::Error("Multiple user defined vars not supported yet.");
         }
         userDefinedVarName_ = *userDefinedVarNameList_.begin();
     }
@@ -156,7 +156,7 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
             if (*vpe->prop() == "*") {
                 auto var = DCHECK_NOTNULL(vpe->sym());
                 if (!vctx_->existVar(*var)) {
-                    return Status::SemanticError("variable `%s' not exists.", var->c_str());
+                    return Status::Error("variable `%s' not exists.", var->c_str());
                 }
                 auto &varColDefs = vctx_->getVar(*var);
                 for (auto &colDef : varColDefs) {

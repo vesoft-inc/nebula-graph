@@ -29,10 +29,10 @@ Status GetSubgraphValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateBothInOutBound(gsSentence->both()));
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty()) {
-        return Status::SemanticError("Only support input and variable in Subgraph sentence.");
+        return Status::Error("Only support input and variable in Subgraph sentence.");
     }
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
-        return Status::SemanticError("Not support both input and variable in Subgraph sentence.");
+        return Status::Error("Not support both input and variable in Subgraph sentence.");
     }
 
     return Status::OK();
@@ -45,7 +45,7 @@ Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : edges) {
             if (e->alias() != nullptr) {
-                return Status::SemanticError("Get Subgraph not support rename edge name.");
+                return Status::Error("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
@@ -66,7 +66,7 @@ Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
-                return Status::SemanticError("Get Subgraph not support rename edge name.");
+                return Status::Error("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
@@ -86,7 +86,7 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
-                return Status::SemanticError("Get Subgraph not support rename edge name.");
+                return Status::Error("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
@@ -122,7 +122,7 @@ StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::fillEdgePro
     for (const auto edge : edges) {
         auto edgeSchema = qctx()->schemaMng()->getEdgeSchema(space_.id, std::abs(edge));
         if (edgeSchema == nullptr) {
-            return Status::SemanticError("Not exist edge `%d' in space `%d'.", edge, space_.id);
+            return Status::Error("Not exist edge `%d' in space `%d'.", edge, space_.id);
         }
         storage::cpp2::EdgeProp eProp;
         eProp.set_type(edge);

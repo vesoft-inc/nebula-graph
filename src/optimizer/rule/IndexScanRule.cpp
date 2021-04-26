@@ -83,7 +83,7 @@ Status IndexScanRule::createIndexQueryCtx(IndexQueryCtx &iqctx,
                                           const OptGroupNode *groupNode) const {
     auto index = findLightestIndex(qctx, groupNode);
     if (index == nullptr) {
-        return Status::IndexNotFound("No valid index found");
+        return Status::Error("No valid index found");
     }
     auto ret = appendIQCtx(index, iqctx);
     NG_RETURN_IF_ERROR(ret);
@@ -98,7 +98,7 @@ Status IndexScanRule::createSingleIQC(IndexQueryCtx &iqctx,
                                       const OptGroupNode *groupNode) const {
     auto index = findOptimalIndex(qctx, groupNode, items);
     if (index == nullptr) {
-        return Status::IndexNotFound("No valid index found");
+        return Status::Error("No valid index found");
     }
     auto in = static_cast<const IndexScan *>(groupNode->node());
     const auto& filter = in->queryContext()->begin()->get_filter();
@@ -196,7 +196,7 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
             // check the items, don't allow where c1 == 1 and c1 == 2 and c1 > 3....
             // If EQ item appears, only one element is allowed
             if (items.items.size() > 1) {
-                return Status::SemanticError();
+                return Status::Error();
             }
             isRangeScan = false;
             begin = OptimizerUtils::normalizeValue(col, item.value_);
@@ -204,7 +204,7 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
         }
         // because only type for bool is true/false, which can not satisify [start, end)
         if (col.get_type().get_type() == meta::cpp2::PropertyType::BOOL) {
-            return Status::SemanticError("Range scan for bool type is illegal");
+            return Status::Error("Range scan for bool type is illegal");
         }
         NG_RETURN_IF_ERROR(boundValue(item, col, begin, end));
     }
@@ -234,7 +234,7 @@ Status IndexScanRule::boundValue(const FilterItem& item,
                                  Value& begin, Value& end) const {
     auto val = item.value_;
     if (val.type() != graph::SchemaUtil::propTypeToValueType(col.type.type)) {
-        return Status::SemanticError("Data type error of field : %s", col.get_name().c_str());
+        return Status::Error("Data type error of field : %s", col.get_name().c_str());
     }
     switch (item.relOP_) {
         case Expression::Kind::kRelLE: {
@@ -282,7 +282,7 @@ Status IndexScanRule::boundValue(const FilterItem& item,
             break;
         }
         default:
-            return Status::SemanticError();
+            return Status::Error();
     }
     return Status::OK();
 }

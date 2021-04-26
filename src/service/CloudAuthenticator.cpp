@@ -18,13 +18,14 @@ CloudAuthenticator::CloudAuthenticator(const meta::MetaClient* client) {
     metaClient_ = client;
 }
 
-bool CloudAuthenticator::auth(const std::string& user, const std::string& password) {
+nebula::cpp2::ErrorCode CloudAuthenticator::auth(const std::string& user,
+                                                 const std::string& password) {
     // The shadow account on the nebula side has been created
     // Normal passwords and tokens use different prefixes
 
     // First, go to meta to check if the shadow account exists
     if (!metaClient_->checkShadowAccountFromCache(user)) {
-        return false;
+        return nebula::cpp2::ErrorCode::E_USER_NOT_FOUND;
     }
 
     // Second, use user + password authentication methods
@@ -38,20 +39,20 @@ bool CloudAuthenticator::auth(const std::string& user, const std::string& passwo
 
     if (!result.ok()) {
         LOG(ERROR) << result.status();
-        return false;
+        return nebula::cpp2::ErrorCode::E_DISCONNECTED;
     }
 
     try {
         auto json = folly::parseJson(result.value());
         if (json["code"].asString().compare("0") != 0) {
             LOG(ERROR) << "Cloud authentication failed, user: " << user;
-            return false;
+            return nebula::cpp2::ErrorCode::E_INVALID_PASSWORD;
         }
     } catch (std::exception& e) {
         LOG(ERROR) << "Invalid json: " << e.what();
-        return false;
+        return nebula::cpp2::ErrorCode::E_INVALID_PASSWORD;
     }
-    return true;
+    return nebula::cpp2::ErrorCode::SUCCEEDED;
 }
 
 }   // namespace graph

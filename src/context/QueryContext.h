@@ -127,7 +127,7 @@ public:
 
     void setPartialSuccess() {
         DCHECK(rctx_ != nullptr);
-        rctx_->resp().errorCode = ErrorCode::E_PARTIAL_SUCCEEDED;
+        rctx_->resp().errorCode = ErrorCode::E_PARTIAL_RESULT;
     }
 
 private:
