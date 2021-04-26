@@ -1935,6 +1935,7 @@ find_path_sentence
         s->setTo($6);
         s->setOver($7);
         s->setStep($8);
+        /* s->setWhere($9); */
         $$ = s;
     }
     | KW_FIND KW_NOLOOP KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
@@ -1944,6 +1945,7 @@ find_path_sentence
         s->setTo($6);
         s->setOver($7);
         s->setStep($8);
+        /* s->setWhere($9); */
         $$ = s;
     }
     ;
