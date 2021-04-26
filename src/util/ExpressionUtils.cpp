@@ -24,7 +24,7 @@ Expression *ExpressionUtils::foldConstantExpr(const Expression *expr, ObjectPool
     if (visitor.canBeFolded()) {
         return objPool->add(visitor.fold(newExpr.get()));
     }
-    return const_cast<Expression *>(expr);
+    return objPool->add(newExpr.release());
 }
 
 Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPool *objPool) {
@@ -48,7 +48,7 @@ Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *
         auto conExpr = static_cast<ConstantExpression *>(rExpr);
         auto val = conExpr->eval(ctx(nullptr));
         auto type = val.type();
-        // if contains any operand that is null , rewrite to null
+        // if contains any operand that is null, rewrite to null
         if (type == Value::Type::NULLVALUE) {
             return pool->add(rExpr->clone().release());
         } else if (relExpr->kind() == Expression::Kind::kRelEQ) {
@@ -105,12 +105,13 @@ Expression *ExpressionUtils::rewriteRelExprHelper(
 }
 
 Expression *ExpressionUtils::filterTransform(const Expression *filter, ObjectPool *pool) {
-    // Fold constant expression
-    auto rewrittenExpr = foldConstantExpr(filter, pool);
+    auto rewrittenExpr = const_cast<Expression *>(filter);
     // Rewrite relational expression
     if (rewrittenExpr->isRelExpr()) {
         rewrittenExpr = rewriteRelExpr(static_cast<RelationalExpression *>(rewrittenExpr), pool);
     }
+    // Fold constant expression
+    rewrittenExpr = foldConstantExpr(rewrittenExpr, pool);
     // Reduce Unary expression
     rewrittenExpr = reduceUnaryNotExpr(rewrittenExpr, pool);
     return rewrittenExpr;

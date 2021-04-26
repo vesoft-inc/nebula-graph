@@ -12,6 +12,7 @@ nebula_add_test(
         DeduceTypeVisitorTest.cpp
         RewriteUnaryNotExprVisitorTest.cpp
         RewriteRelExprVisitorTest.cpp
+        FilterTransformTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:mock_schema_obj>
         $<TARGET_OBJECTS:util_obj>
