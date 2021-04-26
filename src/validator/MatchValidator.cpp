@@ -9,7 +9,6 @@
 #include "planner/match/MatchSolver.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteVisitor.h"
-#include "visitor/RewriteUnaryNotExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -295,8 +294,8 @@ Status MatchValidator::validateFilter(const Expression *filter,
     // Fold constant expr
     auto newFilter = ExpressionUtils::foldConstantExpr(filter);
     // Reduce Unary expr
-    // auto pool = whereClauseCtx.qctx->objPool();
-    whereClauseCtx.filter = ExpressionUtils::reduceUnaryNotExpr(newFilter.get());
+    auto pool = whereClauseCtx.qctx->objPool();
+    whereClauseCtx.filter = ExpressionUtils::reduceUnaryNotExpr(newFilter.get(), pool);
 
     auto typeStatus = deduceExprType(whereClauseCtx.filter);
     NG_RETURN_IF_ERROR(typeStatus);
