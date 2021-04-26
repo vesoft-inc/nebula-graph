@@ -25,7 +25,7 @@ Status BalanceValidator::toPlan() {
         if (!hosts.empty()) {
             auto it = std::unique(hosts.begin(), hosts.end());
             if (it != hosts.end()) {
-                return Status::SemanticError("Host have duplicated");
+                return Status::Error("Host have duplicated");
             }
         }
         current = Balance::make(qctx_,

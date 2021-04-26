@@ -27,7 +27,7 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification *>
     std::unordered_set<std::string> nameSet;
     for (auto &spec : columnSpecs) {
         if (nameSet.find(*spec->name()) != nameSet.end()) {
-            return Status::SemanticError("Duplicate column name `%s'", spec->name()->c_str());
+            return Status::Error("Duplicate column name `%s'", spec->name()->c_str());
         }
         nameSet.emplace(*spec->name());
         meta::cpp2::ColumnDef column;
@@ -45,7 +45,7 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification *>
 
         if (spec->hasDefaultValue()) {
             if (!evaluableExpr(spec->getDefaultValue())) {
-                return Status::SemanticError("Wrong default value experssion `%s'",
+                return Status::Error("Wrong default value experssion `%s'",
                                              spec->getDefaultValue()->toString().c_str());
             }
             auto defaultValueExpr = spec->getDefaultValue();
@@ -66,7 +66,7 @@ Status CreateTagValidator::validateImpl() {
     // Check the validateContext has the same name schema
     auto pro = vctx_->getSchema(name_);
     if (pro != nullptr) {
-        return Status::SemanticError("Has the same name `%s' in the SequentialSentences",
+        return Status::Error("Has the same name `%s' in the SequentialSentences",
                                      name_.c_str());
     }
     NG_RETURN_IF_ERROR(validateColumns(sentence->columnSpecs(), schema_));
@@ -94,7 +94,7 @@ Status CreateEdgeValidator::validateImpl() {
     // Check the validateContext has the same name schema
     auto pro = vctx_->getSchema(name_);
     if (pro != nullptr) {
-        return Status::SemanticError("Has the same name `%s' in the SequentialSentences",
+        return Status::Error("Has the same name `%s' in the SequentialSentences",
                                      name_.c_str());
     }
     NG_RETURN_IF_ERROR(validateColumns(sentence->columnSpecs(), schema_));
@@ -182,7 +182,7 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem *> &sche
                 schemaProp_.set_ttl_col(retStr.value());
                 break;
             default:
-                return Status::SemanticError("Property type not support");
+                return Status::Error("Property type not support");
         }
     }
     return Status::OK();

@@ -55,11 +55,11 @@ public:
                 sentences_ = nullptr;
             }
             scanner_.setQuery(nullptr);
-            return Status::SyntaxError(error_);
+            return Status::Error(error_);
         }
 
         if (sentences_ == nullptr) {
-            return Status::StatementEmpty();
+            return Status::Error("It is the annotation");
         }
         auto *sentences = sentences_;
         sentences_ = nullptr;

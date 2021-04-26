@@ -20,12 +20,12 @@ Status SetValidator::validateImpl() {
     auto rCols = rValidator_->outputCols();
 
     if (lCols.size() != rCols.size()) {
-        return Status::SemanticError("number of columns to UNION/INTERSECT/MINUS must be same");
+        return Status::Error("number of columns to UNION/INTERSECT/MINUS must be same");
     }
 
     for (size_t i = 0, e = lCols.size(); i < e; i++) {
         if (lCols[i].name != rCols[i].name) {
-            return Status::SemanticError(
+            return Status::Error(
                 "different column names to UNION/INTERSECT/MINUS are not supported");
         }
     }
@@ -67,7 +67,7 @@ Status SetValidator::toPlan() {
             break;
         }
         default:
-            return Status::SemanticError("Unknown operator: %ld",
+            return Status::Error("Unknown operator: %ld",
                                          static_cast<int64_t>(setSentence->op()));
     }
 

@@ -64,7 +64,9 @@ Status QueryInstance::validateAndOptimize() {
     auto *rctx = qctx()->rctx();
     VLOG(1) << "Parsing query: " << rctx->query();
     auto result = GQLParser(qctx()).parse(rctx->query());
-    NG_RETURN_IF_ERROR(result);
+    if (!result.ok()) {
+        rctx->resp().errorCode = ErrorCode::E_SYNTAX_ERROR;
+    }
     sentence_ = std::move(result).value();
 
     NG_RETURN_IF_ERROR(Validator::validate(sentence_.get(), qctx()));
@@ -106,42 +108,8 @@ void QueryInstance::onFinish() {
 void QueryInstance::onError(Status status) {
     LOG(ERROR) << status;
     auto *rctx = qctx()->rctx();
-    switch (status.code()) {
-        case Status::Code::kOk:
-            rctx->resp().errorCode = ErrorCode::SUCCEEDED;
-            break;
-        case Status::Code::kSyntaxError:
-            rctx->resp().errorCode = ErrorCode::E_SYNTAX_ERROR;
-            break;
-        case Status::Code::kStatementEmpty:
-            rctx->resp().errorCode = ErrorCode::E_STATEMENT_EMPTY;
-            break;
-        case Status::Code::kSemanticError:
-            rctx->resp().errorCode = ErrorCode::E_SEMANTIC_ERROR;
-            break;
-        case Status::Code::kPermissionError:
-            rctx->resp().errorCode = ErrorCode::E_BAD_PERMISSION;
-            break;
-        case Status::Code::kBalanced:
-        case Status::Code::kEdgeNotFound:
-        case Status::Code::kError:
-        case Status::Code::kHostNotFound:
-        case Status::Code::kIndexNotFound:
-        case Status::Code::kInserted:
-        case Status::Code::kKeyNotFound:
-        case Status::Code::kPartialSuccess:
-        case Status::Code::kLeaderChanged:
-        case Status::Code::kNoSuchFile:
-        case Status::Code::kNotSupported:
-        case Status::Code::kPartNotFound:
-        case Status::Code::kSpaceNotFound:
-        case Status::Code::kGroupNotFound:
-        case Status::Code::kZoneNotFound:
-        case Status::Code::kTagNotFound:
-        case Status::Code::kUserNotFound:
-        case Status::Code::kListenerNotFound:
-            rctx->resp().errorCode = ErrorCode::E_EXECUTION_ERROR;
-            break;
+    if (rctx->resp().errorCode == ErrorCode::SUCCEEDED) {
+        rctx->resp().errorCode = ErrorCode::E_INTERNAL_ERROR;
     }
     auto &spaceName = rctx->session()->space().name;
     rctx->resp().spaceName = std::make_unique<std::string>(spaceName);
@@ -163,6 +131,7 @@ void QueryInstance::addSlowQueryStats(uint64_t latency) const {
 }
 
 void QueryInstance::fillRespData(ExecutionResponse *resp) {
+    resp->errorCode = nebula::ErrorCode::SUCCEEDED;
     auto ectx = DCHECK_NOTNULL(qctx_->ectx());
     auto plan = DCHECK_NOTNULL(qctx_->plan());
     const auto &name = plan->root()->outputVar();
@@ -176,7 +145,7 @@ void QueryInstance::fillRespData(ExecutionResponse *resp) {
     if (!result.colNames.empty()) {
         resp->data = std::make_unique<DataSet>(std::move(result));
     } else {
-        resp->errorCode = ErrorCode::E_EXECUTION_ERROR;
+        resp->errorCode = ErrorCode::E_INTERNAL_ERROR;
         resp->errorMsg = std::make_unique<std::string>("Internal error: empty column name list");
         LOG(ERROR) << "Empty column name list";
     }

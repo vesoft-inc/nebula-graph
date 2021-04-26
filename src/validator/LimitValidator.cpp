@@ -14,11 +14,12 @@ Status LimitValidator::validateImpl() {
     auto limitSentence = static_cast<LimitSentence*>(sentence_);
     offset_ = limitSentence->offset();
     count_ = limitSentence->count();
+    qctx_->rctx()->resp().errorCode = ErrorCode::E_SYNTAX_ERROR;
     if (offset_ < 0) {
-        return Status::SyntaxError("skip `%ld' is illegal", offset_);
+        return Status::Error("skip `%ld' is illegal", offset_);
     }
     if (count_ < 0) {
-        return Status::SyntaxError("count `%ld' is illegal", count_);
+        return Status::Error("count `%ld' is illegal", count_);
     }
 
     outputs_ = inputCols();

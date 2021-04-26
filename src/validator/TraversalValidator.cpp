@@ -14,13 +14,13 @@ namespace graph {
 
 Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& starts) {
     if (clause == nullptr) {
-        return Status::SemanticError("From clause nullptr.");
+        return Status::Error("From clause nullptr.");
     }
     if (clause->isRef()) {
         auto* src = clause->ref();
         if (src->kind() != Expression::Kind::kInputProperty
                 && src->kind() != Expression::Kind::kVarProperty) {
-            return Status::SemanticError(
+            return Status::Error(
                     "`%s', Only input and variable expression is acceptable"
                     " when starts are evaluated at runtime.", src->toString().c_str());
         }
@@ -35,7 +35,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             ss << "`" << src->toString() << "', the srcs should be type of "
                 << apache::thrift::util::enumNameSafe(vidType) << ", but was`"
                 << type.value() << "'";
-            return Status::SemanticError(ss.str());
+            return Status::Error(ss.str());
         }
         starts.originalSrc = src;
         auto* propExpr = static_cast<PropertyExpression*>(src);
@@ -49,7 +49,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
         QueryExpressionContext ctx;
         for (auto* expr : vidList) {
             if (!evaluableExpr(expr)) {
-                return Status::SemanticError("`%s' is not an evaluable expression.",
+                return Status::Error("`%s' is not an evaluable expression.",
                         expr->toString().c_str());
             }
             auto vid = expr->eval(ctx(nullptr));
@@ -57,7 +57,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             if (!SchemaUtil::isValidVid(vid, vidType)) {
                 std::stringstream ss;
                 ss << "Vid should be a " << apache::thrift::util::enumNameSafe(vidType);
-                return Status::SemanticError(ss.str());
+                return Status::Error(ss.str());
             }
             starts.vids.emplace_back(std::move(vid));
             startVidList_->add(expr->clone().release());
@@ -68,7 +68,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
 
 Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
     if (clause == nullptr) {
-        return Status::SemanticError("Over clause nullptr.");
+        return Status::Error("Over clause nullptr.");
     }
 
     over.direction = clause->direction();
@@ -78,13 +78,13 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
         NG_RETURN_IF_ERROR(allEdgeStatus);
         auto edges = std::move(allEdgeStatus).value();
         if (edges.empty()) {
-            return Status::SemanticError("No edge type found in space `%s'",
+            return Status::Error("No edge type found in space `%s'",
                     space_.name.c_str());
         }
         for (auto edge : edges) {
             auto edgeType = schemaMng->toEdgeType(space_.id, edge);
             if (!edgeType.ok()) {
-                return Status::SemanticError("`%s' not found in space [`%s'].",
+                return Status::Error("`%s' not found in space [`%s'].",
                         edge.c_str(), space_.name.c_str());
             }
             over.edgeTypes.emplace_back(edgeType.value());
@@ -97,7 +97,7 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
             auto edgeName = *edge->edge();
             auto edgeType = schemaMng->toEdgeType(space_.id, edgeName);
             if (!edgeType.ok()) {
-                return Status::SemanticError("%s not found in space [%s].",
+                return Status::Error("%s not found in space [%s].",
                         edgeName.c_str(), space_.name.c_str());
             }
             over.edgeTypes.emplace_back(edgeType.value());
@@ -108,7 +108,7 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
 
 Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
     if (clause == nullptr) {
-        return Status::SemanticError("Step clause nullptr.");
+        return Status::Error("Step clause nullptr.");
     }
     if (clause->isMToN()) {
         auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
@@ -123,7 +123,7 @@ Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
             mToN->mSteps = 1;
         }
         if (mToN->nSteps < mToN->mSteps) {
-            return Status::SemanticError(
+            return Status::Error(
                 "`%s', upper bound steps should be greater than lower bound.",
                 clause->toString().c_str());
         }

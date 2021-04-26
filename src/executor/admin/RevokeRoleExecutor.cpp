@@ -27,7 +27,8 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
     auto spaceId = spaceIdResult.value();
 
     if (rrNode->role() == meta::cpp2::RoleType::GOD) {
-        return Status::PermissionError("Permission denied");
+        qctx_->rctx()->resp().errorCode = ErrorCode::E_PERMISSION_DENIED;
+        return Status::Error("Permission denied");
     }
     auto *session = qctx_->rctx()->session();
     NG_RETURN_IF_ERROR(

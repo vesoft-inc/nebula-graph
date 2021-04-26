@@ -26,7 +26,9 @@ Pattern Pattern::create(graph::PlanNode::Kind kind, std::initializer_list<Patter
 
 StatusOr<MatchedResult> Pattern::match(const OptGroupNode *groupNode) const {
     if (groupNode->node()->kind() != kind_) {
-        return Status::Error();
+        return Status::Error("PlanNode kind mismatch, input[%d] != expected [%d]",
+                              static_cast<int32_t>(groupNode->node()->kind()),
+                              static_cast<int32_t>(kind_));
     }
 
     if (dependencies_.empty()) {
@@ -34,7 +36,9 @@ StatusOr<MatchedResult> Pattern::match(const OptGroupNode *groupNode) const {
     }
 
     if (groupNode->dependencies().size() != dependencies_.size()) {
-        return Status::Error();
+        return Status::Error("Dependencies size mismatch, input[%d] != expected[%d]",
+                              static_cast<int32_t>(groupNode->dependencies().size()),
+                              static_cast<int32_t>(dependencies_.size()));
     }
 
     MatchedResult result;
@@ -57,7 +61,7 @@ StatusOr<MatchedResult> Pattern::match(const OptGroup *group) const {
             return status;
         }
     }
-    return Status::Error();
+    return Status::Error("Rule mismatch");
 }
 
 StatusOr<MatchedResult> OptRule::match(OptContext *ctx, const OptGroupNode *groupNode) const {
@@ -66,7 +70,7 @@ StatusOr<MatchedResult> OptRule::match(OptContext *ctx, const OptGroupNode *grou
     NG_RETURN_IF_ERROR(status);
     auto matched = std::move(status).value();
     if (!this->match(ctx, matched)) {
-        return Status::Error();
+        return Status::Error("Rule mismatch");
     }
     return matched;
 }
@@ -83,6 +87,7 @@ bool OptRule::checkDataflowDeps(OptContext *ctx,
     auto planNode = node->node();
     const auto &outVarName = planNode->outputVar();
     if (outVarName != var) {
+        LOG(ERROR) << "Varname mismatch, outVarName: " << outVarName << ", var: " << var;
         return false;
     }
     auto symTbl = ctx->qctx()->symTable();

@@ -52,7 +52,7 @@ std::unique_ptr<PlanNodeDescription> CartesianProduct::explain() const {
 Status CartesianProduct::addVar(std::string varName) {
     auto checkName = [&varName](auto var) { return var->name == varName; };
     if (std::find_if(inputVars_.begin(), inputVars_.end(), checkName) != inputVars_.end()) {
-        return Status::SemanticError("Duplicate Var: %s", varName.c_str());
+        return Status::Error("Duplicate Var: %s", varName.c_str());
     }
     auto* varPtr = qctx_->symTable()->getVar(varName);
     DCHECK(varPtr != nullptr);

@@ -757,26 +757,26 @@ TEST(Parser, InsertVertex) {
         std::string query = "INSERT VERTEX person(name, age) "
                             "VALUES \"Tom\":(\"Tom, 30)";
         auto result = parse(query);
-        ASSERT_TRUE(result.status().isSyntaxError());
+        ASSERT_TRUE(result.ok()) << result.status();
     }
     // Test insert prop unterminated ''
     {
         std::string query = "INSERT VERTEX person(name, age) "
                             "VALUES \"Tom\":(\'Tom, 30)";
         auto result = parse(query);
-        ASSERT_TRUE(result.status().isSyntaxError());
+        ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         std::string query = "INSERT VERTEX person(name, age) "
                             "VALUES \"Tom\":(\'Tom, 30)";
         auto result = parse(query);
-        ASSERT_TRUE(result.status().isSyntaxError());
+        ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         std::string query = "INSERT VERTEX person(name, age) "
                             "VALUES \"Tom\":(\'Tom, 30)";
         auto result = parse(query);
-        ASSERT_TRUE(result.status().isSyntaxError());
+        ASSERT_TRUE(result.ok()) << result.status();
     }
 }
 
@@ -1556,22 +1556,22 @@ TEST(Parser, Annotation) {
     {
         std::string query = "show spaces /* test comment....";
         auto result = parse(query);
-        ASSERT_TRUE(result.status().isSyntaxError());
+        ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         std::string query = "// test comment....";
         auto result = parse(query);
-        ASSERT_TRUE(result.status().isStatementEmpty());
+        ASSERT_EQ("It is the annotation.", result.status().toString());
     }
     {
         std::string query = "# test comment....";
         auto result = parse(query);
-        ASSERT_TRUE(result.status().isStatementEmpty());
+        ASSERT_EQ("It is the annotation.", result.status().toString());
     }
     {
         std::string query = "/* test comment....*/";
         auto result = parse(query);
-        ASSERT_TRUE(result.status().isStatementEmpty());
+        ASSERT_EQ("It is the annotation.", result.status().toString());
     }
     {
         std::string query = "CREATE TAG TAG1(space string) // test....";

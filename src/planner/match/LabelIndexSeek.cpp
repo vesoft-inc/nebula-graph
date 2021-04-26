@@ -166,7 +166,7 @@ StatusOr<SubPlan> LabelIndexSeek::transformEdge(EdgeContext* edgeCtx) {
             }
         }
         if (candidateIndex == nullptr) {
-            return Status::SemanticError("No valid index for label `%s'.",
+            return Status::Error("No valid index for label `%s'.",
                                         nodeCtx->scanInfo.schemaNames[i]->c_str());
         }
         indexIds.emplace_back(candidateIndex->get_index_id());
@@ -195,7 +195,7 @@ LabelIndexSeek::pickEdgeIndex(const EdgeContext* edgeCtx) {
             }
         }
         if (candidateIndex == nullptr) {
-            return Status::SemanticError("No valid index for label `%s'.",
+            return Status::Error("No valid index for label `%s'.",
                                          edgeCtx->scanInfo.schemaNames[i]->c_str());
         }
         indexIds.emplace_back(candidateIndex->get_index_id());

@@ -268,7 +268,7 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
 
     auto root = validator->root();
     if (!root) {
-        return Status::SemanticError("Get null plan from sequential validator");
+        return Status::Error("Get null plan from sequential validator");
     }
     qctx->plan()->setRoot(root);
     return Status::OK();
@@ -278,7 +278,7 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     DCHECK(node != nullptr);
     DCHECK(appended != nullptr);
     if (!node->isSingleInput()) {
-        return Status::SemanticError("%s not support to append an input.",
+        return Status::Error("%s not support to append an input.",
                                      PlanNode::toString(node->kind()));
     }
     static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
@@ -292,17 +292,17 @@ Status Validator::appendPlan(PlanNode* root) {
 Status Validator::validate() {
     if (!vctx_) {
         VLOG(1) << "Validate context was not given.";
-        return Status::SemanticError("Validate context was not given.");
+        return Status::Error("Validate context was not given.");
     }
 
     if (!sentence_) {
         VLOG(1) << "Sentence was not given";
-        return Status::SemanticError("Sentence was not given");
+        return Status::Error("Sentence was not given");
     }
 
     if (!noSpaceRequired_ && !spaceChosen()) {
         VLOG(1) << "Space was not chosen.";
-        return Status::SemanticError("Space was not chosen.");
+        return Status::Error("Space was not chosen.");
     }
 
     if (!noSpaceRequired_) {
@@ -321,7 +321,11 @@ Status Validator::validate() {
 
     // Execute after validateImpl because need field from it
     if (FLAGS_enable_authorize) {
-        NG_RETURN_IF_ERROR(checkPermission());
+        auto status = checkPermission();
+        if (!status.ok()) {
+            qctx_->rctx()->resp().errorCode = ErrorCode::E_PERMISSION_DENIED;
+            return status;
+        }
     }
 
     NG_RETURN_IF_ERROR(toPlan());
@@ -375,7 +379,7 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         ColDef col(*propExpr->prop(), type);
         const auto find = std::find(inputs_.begin(), inputs_.end(), col);
         if (find == inputs_.end()) {
-            return Status::SemanticError("No input property `%s'", propExpr->prop()->c_str());
+            return Status::Error("No input property `%s'", propExpr->prop()->c_str());
         }
         return inputVarName_;
     }
@@ -386,11 +390,11 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         const auto &outputVar = *propExpr->sym();
         const auto &var = vctx_->getVar(outputVar);
         if (var.empty()) {
-            return Status::SemanticError("No variable `%s'", outputVar.c_str());
+            return Status::Error("No variable `%s'", outputVar.c_str());
         }
         const auto find = std::find(var.begin(), var.end(), col);
         if (find == var.end()) {
-            return Status::SemanticError(
+            return Status::Error(
                 "No property `%s' in variable `%s'", propExpr->prop()->c_str(), outputVar.c_str());
         }
         userDefinedVarNameList_.emplace(outputVar);
@@ -398,7 +402,7 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
     }
     // it's guranteed by parser
     DLOG(FATAL) << "Unexpected expression " << ref->kind();
-    return Status::SemanticError("Unexpected expression.");
+    return Status::Error("Unexpected expression.");
 }
 
 Status Validator::toPlan() {
@@ -421,7 +425,7 @@ Status Validator::checkDuplicateColName() {
         for (auto& item : nameList) {
             auto ret = names.emplace(item.name);
             if (!ret.second) {
-                return Status::SemanticError("Duplicate Column Name : `%s'", item.name.c_str());
+                return Status::Error("Duplicate Column Name : `%s'", item.name.c_str());
             }
         }
         return Status::OK();
@@ -454,7 +458,7 @@ Status Validator::invalidLabelIdentifiers(const Expression* expr) const {
         }
         auto errMsg = ss.str();
         errMsg.pop_back();
-        return Status::SemanticError(std::move(errMsg));
+        return Status::Error(std::move(errMsg));
     }
 
     return Status::OK();

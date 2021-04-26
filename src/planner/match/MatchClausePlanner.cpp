@@ -91,7 +91,7 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
         }
     }
     if (!foundStart) {
-        return Status::SemanticError("Can't solve the start vids from the sentence: %s",
+        return Status::Error("Can't solve the start vids from the sentence: %s",
                                      matchClauseCtx->sentence->toString().c_str());
     }
 

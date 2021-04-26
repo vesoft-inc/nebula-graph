@@ -29,7 +29,7 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
         columns = yieldClause->columns();
     }
     if (columns.empty()) {
-        return Status::SemanticError("Yield cols is Empty");
+        return Status::Error("Yield cols is Empty");
     }
 
     projCols_ = qctx_->objPool()->add(new YieldColumns);
@@ -101,10 +101,10 @@ Status GroupByValidator::validateGroup(const GroupClause* groupClause) {
         if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate}) ||
             !graph::ExpressionUtils::findAny(
                 col->expr(), {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty})) {
-            return Status::SemanticError("Group `%s' invalid", col->expr()->toString().c_str());
+            return Status::Error("Group `%s' invalid", col->expr()->toString().c_str());
         }
         if (!groupByValid(col->expr()->kind())) {
-            return Status::SemanticError("Group `%s' invalid", col->expr()->toString().c_str());
+            return Status::Error("Group `%s' invalid", col->expr()->toString().c_str());
         }
 
         NG_RETURN_IF_ERROR(deduceExprType(col->expr()));
@@ -134,13 +134,13 @@ Status GroupByValidator::toPlan() {
 Status GroupByValidator::groupClauseSemanticCheck() {
     // check exprProps
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty()) {
-        return Status::SemanticError("Only support input and variable in GroupBy sentence.");
+        return Status::Error("Only support input and variable in GroupBy sentence.");
     }
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
-        return Status::SemanticError("Not support both input and variable in GroupBy sentence.");
+        return Status::Error("Not support both input and variable in GroupBy sentence.");
     }
     if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
-        return Status::SemanticError("Only one variable allowed to use.");
+        return Status::Error("Only one variable allowed to use.");
     }
 
     if (groupKeys_.empty()) {
@@ -163,7 +163,7 @@ Status GroupByValidator::groupClauseSemanticCheck() {
             FindVisitor<Expression*> visitor(finder, groupSet);
             expr->accept(&visitor);
             if (!visitor.found()) {
-                return Status::SemanticError("Yield non-agg expression `%s' must be"
+                return Status::Error("Yield non-agg expression `%s' must be"
                                              " functionally dependent on items in GROUP BY clause",
                                              expr->toString().c_str());
             }
@@ -180,7 +180,7 @@ Status GroupByValidator::rewriteInnerAggExpr(YieldColumn* col, bool& rewrited) {
     auto collectAggCol = colExpr->clone();
     auto aggs = ExpressionUtils::collectAll(collectAggCol.get(), {Expression::Kind::kAggregate});
     if (aggs.size() > 1) {
-        return Status::SemanticError("Aggregate function nesting is not allowed: `%s'",
+        return Status::Error("Aggregate function nesting is not allowed: `%s'",
                                      collectAggCol->toString().c_str());
     }
     if (aggs.size() == 1) {

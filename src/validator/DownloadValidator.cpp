@@ -18,7 +18,7 @@ Status DownloadValidator::toPlan() {
     if (sentence->host() == nullptr ||
         sentence->port() == 0 ||
         sentence->path() == nullptr) {
-        return Status::SemanticError("HDFS path illegal."
+        return Status::Error("HDFS path illegal."
                                      "Should be HDFS://${HDFS_HOST}:${HDFS_PORT}/${HDFS_PATH}");
     }
     auto *doNode = Download::make(qctx_,

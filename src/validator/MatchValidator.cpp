@@ -37,7 +37,7 @@ Status MatchValidator::validateImpl() {
     for (size_t i = 0; i < clauses.size(); ++i) {
         auto kind = clauses[i]->kind();
         if (i > 0 && kind == ReadingClause::Kind::kMatch) {
-            return Status::SemanticError(
+            return Status::Error(
                 "Match clause is not supported to be followed by other cypher clauses");
         }
         switch (kind) {
@@ -45,7 +45,7 @@ Status MatchValidator::validateImpl() {
                 auto *matchClause = static_cast<MatchClause *>(clauses[i].get());
 
                 if (matchClause->isOptional()) {
-                    return Status::SemanticError("OPTIONAL MATCH not supported");
+                    return Status::Error("OPTIONAL MATCH not supported");
                 }
 
                 auto matchClauseCtx = getContext<MatchClauseContext>();
@@ -153,7 +153,7 @@ Status MatchValidator::buildPathExpr(const MatchPath *path,
         return Status::OK();
     }
     if (!matchClauseCtx.aliasesGenerated.emplace(*pathAlias, AliasType::kPath).second) {
-        return Status::SemanticError("`%s': Redefined alias", pathAlias->c_str());
+        return Status::Error("`%s': Redefined alias", pathAlias->c_str());
     }
 
     auto &nodeInfos = matchClauseCtx.nodeInfos;
@@ -190,7 +190,7 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
                 if (label != nullptr) {
                     auto tid = sm->toTagID(space_.id, *label->label());
                     if (!tid.ok()) {
-                        return Status::SemanticError("`%s': Unknown tag", label->label()->c_str());
+                        return Status::Error("`%s': Unknown tag", label->label()->c_str());
                     }
                     nodeInfos[i].tids.emplace_back(tid.value());
                     nodeInfos[i].labels.emplace_back(label->label());
@@ -203,7 +203,7 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
             alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
         }
         if (!aliases.emplace(*alias, AliasType::kNode).second) {
-            return Status::SemanticError("`%s': Redefined alias", alias->c_str());
+            return Status::Error("`%s': Redefined alias", alias->c_str());
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
@@ -246,7 +246,7 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
             for (auto &type : types) {
                 auto etype = sm->toEdgeType(space_.id, *type);
                 if (!etype.ok()) {
-                    return Status::SemanticError("`%s': Unknown edge type", type->c_str());
+                    return Status::Error("`%s': Unknown edge type", type->c_str());
                 }
                 edgeInfos[i].edgeTypes.emplace_back(etype.value());
                 edgeInfos[i].types.emplace_back(type.get());
@@ -272,7 +272,7 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
             alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
         }
         if (!aliases.emplace(*alias, AliasType::kEdge).second) {
-            return Status::SemanticError("`%s': Redefined alias", alias->c_str());
+            return Status::Error("`%s': Redefined alias", alias->c_str());
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
@@ -306,7 +306,7 @@ Status MatchValidator::validateFilter(const Expression *filter,
         std::stringstream ss;
         ss << "`" << filter->toString() << "', expected Boolean, "
            << "but was `" << type << "'";
-        return Status::SemanticError(ss.str());
+        return Status::Error(ss.str());
     }
 
     NG_RETURN_IF_ERROR(validateAliases({whereClauseCtx.filter}, whereClauseCtx.aliasesUsed));
@@ -320,7 +320,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     auto kind = cypherClauseCtx->kind;
     if (kind != CypherClauseKind::kMatch && kind != CypherClauseKind::kUnwind &&
         kind != CypherClauseKind::kWith) {
-        return Status::SemanticError("Must be a MATCH/UNWIND/WITH");
+        return Status::Error("Must be a MATCH/UNWIND/WITH");
     }
     // `RETURN *': return all named nodes or edges
     YieldColumns *columns = nullptr;
@@ -368,7 +368,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
         }
 
         if (columns->empty()) {
-            return Status::SemanticError("`RETURN *' not allowed if there is no alias");
+            return Status::Error("`RETURN *' not allowed if there is no alias");
         }
     }
 
@@ -428,7 +428,7 @@ Status MatchValidator::validateAliases(
             }
             DCHECK(name != nullptr);
             if (!aliasesUsed || aliasesUsed->count(*name) != 1) {
-                return Status::SemanticError("Alias used but not defined: `%s'", name->c_str());
+                return Status::Error("Alias used but not defined: `%s'", name->c_str());
             }
         }
     }
@@ -439,14 +439,14 @@ Status MatchValidator::validateStepRange(const MatchStepRange *range) const {
     auto min = range->min();
     auto max = range->max();
     if (min > max) {
-        return Status::SemanticError(
+        return Status::Error(
             "Max hop must be greater equal than min hop: %ld vs. %ld", max, min);
     }
     if (max == std::numeric_limits<int64_t>::max()) {
-        return Status::SemanticError("Cannot set maximum hop for variable length relationships");
+        return Status::Error("Cannot set maximum hop for variable length relationships");
     }
     if (min < 0) {
-        return Status::SemanticError(
+        return Status::Error(
             "Cannot set negative steps minumum hop for variable length relationships");
     }
     return Status::OK();
@@ -462,11 +462,11 @@ Status MatchValidator::validateWith(const WithClause *with,
             if (col->expr()->kind() == Expression::Kind::kLabel) {
                 col->setAlias(new std::string(col->expr()->toString()));
             } else {
-                return Status::SemanticError("Expression in WITH must be aliased (use AS)");
+                return Status::Error("Expression in WITH must be aliased (use AS)");
             }
         }
         if (!withClauseCtx.aliasesGenerated.emplace(*col->alias(), AliasType::kDefault).second) {
-            return Status::SemanticError("`%s': Redefined alias", col->alias()->c_str());
+            return Status::Error("`%s': Redefined alias", col->alias()->c_str());
         }
         if (!withClauseCtx.yield->hasAgg_ &&
             ExpressionUtils::hasAny(col->expr(), {Expression::Kind::kAggregate})) {
@@ -496,7 +496,7 @@ Status MatchValidator::validateWith(const WithClause *with,
 Status MatchValidator::validateUnwind(const UnwindClause *unwind,
                                       UnwindClauseContext &unwindClauseCtx) const {
     if (unwind->alias() == nullptr) {
-        return Status::SemanticError("Expression in UNWIND must be aliased (use AS)");
+        return Status::Error("Expression in UNWIND must be aliased (use AS)");
     }
     YieldColumns *columns = saveObject(new YieldColumns());
     auto *expr = unwind->expr()->clone().release();
@@ -508,7 +508,7 @@ Status MatchValidator::validateUnwind(const UnwindClause *unwind,
     unwindClauseCtx.yieldColumns = columns;
 
     if (!unwindClauseCtx.aliasesGenerated.emplace(*unwind->alias(), AliasType::kDefault).second) {
-        return Status::SemanticError("`%s': Redefined alias", unwind->alias()->c_str());
+        return Status::Error("`%s': Redefined alias", unwind->alias()->c_str());
     }
 
     return Status::OK();
@@ -543,7 +543,7 @@ StatusOr<Expression *> MatchValidator::makeSubFilterWithoutSave(const std::strin
 
     // TODO(dutor) Check if evaluable and evaluate
     if (items[0].second->kind() != Expression::Kind::kConstant) {
-        return Status::SemanticError("Props must be constant: `%s'",
+        return Status::Error("Props must be constant: `%s'",
                                      items[0].second->toString().c_str());
     }
     Expression *root = new RelationalExpression(
@@ -553,7 +553,7 @@ StatusOr<Expression *> MatchValidator::makeSubFilterWithoutSave(const std::strin
         items[0].second->clone().release());
     for (auto i = 1u; i < items.size(); i++) {
         if (items[i].second->kind() != Expression::Kind::kConstant) {
-            return Status::SemanticError("Props must be constant: `%s'",
+            return Status::Error("Props must be constant: `%s'",
                                          items[i].second->toString().c_str());
         }
         auto *left = root;
@@ -583,7 +583,7 @@ Status MatchValidator::combineAliases(
     const std::unordered_map<std::string, AliasType> &lastAliases) const {
     for (auto &aliasPair : lastAliases) {
         if (!curAliases.emplace(aliasPair).second) {
-            return Status::SemanticError("`%s': Redefined alias", aliasPair.first.c_str());
+            return Status::Error("`%s': Redefined alias", aliasPair.first.c_str());
         }
     }
 
@@ -611,30 +611,30 @@ Status MatchValidator::validatePagination(const Expression *skipExpr,
     int64_t limit = std::numeric_limits<int64_t>::max();
     if (skipExpr != nullptr) {
         if (!evaluableExpr(skipExpr)) {
-            return Status::SemanticError("SKIP should be instantly evaluable");
+            return Status::Error("SKIP should be instantly evaluable");
         }
         QueryExpressionContext ctx;
         auto value = const_cast<Expression *>(skipExpr)->eval(ctx);
         if (!value.isInt()) {
-            return Status::SemanticError("SKIP should be of type integer");
+            return Status::Error("SKIP should be of type integer");
         }
         if (value.getInt() < 0) {
-            return Status::SemanticError("SKIP should not be negative");
+            return Status::Error("SKIP should not be negative");
         }
         skip = value.getInt();
     }
 
     if (limitExpr != nullptr) {
         if (!evaluableExpr(limitExpr)) {
-            return Status::SemanticError("SKIP should be instantly evaluable");
+            return Status::Error("SKIP should be instantly evaluable");
         }
         QueryExpressionContext ctx;
         auto value = const_cast<Expression *>(limitExpr)->eval(ctx);
         if (!value.isInt()) {
-            return Status::SemanticError("LIMIT should be of type integer");
+            return Status::Error("LIMIT should be of type integer");
         }
         if (value.getInt() < 0) {
-            return Status::SemanticError("LIMIT should not be negative");
+            return Status::Error("LIMIT should not be negative");
         }
         limit = value.getInt();
     }
@@ -660,19 +660,19 @@ Status MatchValidator::validateOrderBy(const OrderFactors *factors,
         std::unordered_map<std::string, size_t> inputColIndices;
         for (auto i = 0u; i < inputColList.size(); i++) {
             if (!inputColIndices.emplace(inputColList[i], i).second) {
-                return Status::SemanticError("Duplicated columns not allowed: %s",
+                return Status::Error("Duplicated columns not allowed: %s",
                                              inputColList[i].c_str());
             }
         }
 
         for (auto &factor : factors->factors()) {
             if (factor->expr()->kind() != Expression::Kind::kLabel) {
-                return Status::SemanticError("Only column name can be used as sort item");
+                return Status::Error("Only column name can be used as sort item");
             }
             auto *name = static_cast<const LabelExpression *>(factor->expr())->name();
             auto iter = inputColIndices.find(*name);
             if (iter == inputColIndices.end()) {
-                return Status::SemanticError("Column `%s' not found", name->c_str());
+                return Status::Error("Column `%s' not found", name->c_str());
             }
             orderByCtx.indexedOrderFactors.emplace_back(iter->second, factor->orderType());
         }
@@ -693,7 +693,7 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
                 ExpressionUtils::collectAll(collectAggCol.get(), {Expression::Kind::kAggregate});
             auto size = aggs.size();
             if (size > 1) {
-                return Status::SemanticError("Aggregate function nesting is not allowed: `%s'",
+                return Status::Error("Aggregate function nesting is not allowed: `%s'",
                                              collectAggCol->toString().c_str());
             }
             if (size == 1) {
@@ -736,7 +736,7 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
 Status MatchValidator::validateYield(YieldClauseContext &yieldCtx) const {
     auto cols = yieldCtx.yieldColumns->columns();
     if (cols.empty()) {
-        return Status::SemanticError("Return yield columns is Empty.");
+        return Status::Error("Return yield columns is Empty.");
     }
 
     yieldCtx.projCols_ = yieldCtx.qctx->objPool()->add(new YieldColumns());

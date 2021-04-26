@@ -13,7 +13,8 @@ PasswordAuthenticator::PasswordAuthenticator(const meta::MetaClient* client) {
     metaClient_ = client;
 }
 
-bool PasswordAuthenticator::auth(const std::string& user, const std::string& password) {
+nebula::cpp2::ErrorCode PasswordAuthenticator::auth(const std::string& user,
+                                              const std::string& password) {
     return metaClient_->authCheckFromCache(user, password);
 }
 

@@ -85,7 +85,7 @@ Status FetchEdgesValidator::toPlan() {
 Status FetchEdgesValidator::check() {
     auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     if (sentence->edgeSize() > 1) {
-        return Status::SemanticError("Only allow fetch on one edge.");
+        return Status::Error("Only allow fetch on one edge.");
     }
     spaceId_ = vctx_->whichSpace().id;
     edgeTypeName_ = *sentence->edge();
@@ -95,7 +95,7 @@ Status FetchEdgesValidator::check() {
     schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
     if (schema_ == nullptr) {
         LOG(ERROR) << "No schema found for " << sentence->edge();
-        return Status::SemanticError("No schema found for `%s'", sentence->edge()->c_str());
+        return Status::Error("No schema found for `%s'", sentence->edge()->c_str());
     }
 
     return Status::OK();
@@ -114,7 +114,7 @@ Status FetchEdgesValidator::prepareEdges() {
             result = checkRef(rankRef_, Value::Type::INT);
             NG_RETURN_IF_ERROR(result);
             if (inputVar_ != result.value()) {
-                return Status::SemanticError(
+                return Status::Error(
                     "Can't refer to different variable as key at same time.");
             }
         }
@@ -122,7 +122,7 @@ Status FetchEdgesValidator::prepareEdges() {
         result = checkRef(dstRef_, vidType_);
         NG_RETURN_IF_ERROR(result);
         if (inputVar_ != result.value()) {
-            return Status::SemanticError("Can't refer to different variable as key at same time.");
+            return Status::Error("Can't refer to different variable as key at same time.");
         }
         return Status::OK();
     }
@@ -140,7 +140,7 @@ Status FetchEdgesValidator::prepareEdges() {
             if (src.type() != vidType_) {
                 std::stringstream ss;
                 ss << "the src should be type of " << vidType_ << ", but was`" << src.type() << "'";
-                return Status::SemanticError(ss.str());
+                return Status::Error(ss.str());
             }
             auto ranking = key->rank();
             DCHECK(ExpressionUtils::isConstExpr(key->dstid()));
@@ -148,7 +148,7 @@ Status FetchEdgesValidator::prepareEdges() {
             if (dst.type() != vidType_) {
                 std::stringstream ss;
                 ss << "the dst should be type of " << vidType_ << ", but was`" << dst.type() << "'";
-                return Status::SemanticError(ss.str());
+                return Status::Error(ss.str());
             }
             edgeKeys_.emplace_back(nebula::Row({std::move(src), ranking, std::move(dst)}));
         }
@@ -196,7 +196,7 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
         const auto *invalidExpr = findInvalidYieldExpression(col->expr());
         if (invalidExpr != nullptr) {
-            return Status::SemanticError("Invalid newYield_ expression `%s'.",
+            return Status::Error("Invalid newYield_ expression `%s'.",
                                          col->expr()->toString().c_str());
         }
         // The properties from storage directly push down only
@@ -205,14 +205,14 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
         for (const auto &storageExpr : storageExprs) {
             const auto *expr = static_cast<const PropertyExpression *>(storageExpr);
             if (*expr->sym() != edgeTypeName_) {
-                return Status::SemanticError("Mismatched edge type name");
+                return Status::Error("Mismatched edge type name");
             }
             // Check is prop name in schema
             if (schema_->getFieldIndex(*expr->prop()) < 0 &&
                 reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
                 LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `" << edgeTypeName_
                            << "'.";
-                return Status::SemanticError("Unknown column `%s' in edge `%s'",
+                return Status::Error("Unknown column `%s' in edge `%s'",
                                              expr->prop()->c_str(),
                                              edgeTypeName_.c_str());
             }

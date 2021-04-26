@@ -26,17 +26,17 @@ Status GoValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
 
     if (!exprProps_.inputProps().empty() && from_.fromType != kPipe) {
-        return Status::SemanticError("$- must be referred in FROM before used in WHERE or YIELD");
+        return Status::Error("$- must be referred in FROM before used in WHERE or YIELD");
     }
 
     if (!exprProps_.varProps().empty() && from_.fromType != kVariable) {
-        return Status::SemanticError(
+        return Status::Error(
             "A variable must be referred in FROM before used in WHERE or YIELD");
     }
 
     if ((!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) ||
         exprProps_.varProps().size() > 1) {
-        return Status::SemanticError("Only support single input in a go sentence.");
+        return Status::Error("Only support single input in a go sentence.");
     }
 
     NG_RETURN_IF_ERROR(buildColumns());
@@ -51,7 +51,7 @@ Status GoValidator::validateWhere(WhereClause* where) {
 
     filter_ = where->filter();
     if (graph::ExpressionUtils::findAny(filter_, {Expression::Kind::kAggregate})) {
-        return Status::SemanticError("`%s', not support aggregate function in where sentence.",
+        return Status::Error("`%s', not support aggregate function in where sentence.",
                                      filter_->toString().c_str());
     }
     where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(filter_));
@@ -65,7 +65,7 @@ Status GoValidator::validateWhere(WhereClause* where) {
         std::stringstream ss;
         ss << "`" << filter_->toString() << "', expected Boolean, "
            << "but was `" << type << "'";
-        return Status::SemanticError(ss.str());
+        return Status::Error(ss.str());
     }
 
     NG_RETURN_IF_ERROR(deduceProps(filter_, exprProps_));
@@ -74,7 +74,7 @@ Status GoValidator::validateWhere(WhereClause* where) {
 
 Status GoValidator::validateYield(YieldClause* yield) {
     if (yield == nullptr) {
-        return Status::SemanticError("Yield clause nullptr.");
+        return Status::Error("Yield clause nullptr.");
     }
 
     distinct_ = yield->isDistinct();
@@ -101,7 +101,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
 
             auto* colExpr = col->expr();
             if (graph::ExpressionUtils::findAny(colExpr, {Expression::Kind::kAggregate})) {
-                return Status::SemanticError("`%s', not support aggregate function in go sentence.",
+                return Status::Error("`%s', not support aggregate function in go sentence.",
                                              col->toString().c_str());
             }
             auto colName = deduceColName(col);
@@ -117,7 +117,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
         for (auto& e : exprProps_.edgeProps()) {
             auto found = std::find(over_.edgeTypes.begin(), over_.edgeTypes.end(), e.first);
             if (found == over_.edgeTypes.end()) {
-                return Status::SemanticError("Edges should be declared first in over clause.");
+                return Status::Error("Edges should be declared first in over clause.");
             }
         }
         yields_ = yield->yields();

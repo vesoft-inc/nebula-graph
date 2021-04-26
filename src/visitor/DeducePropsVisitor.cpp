@@ -231,7 +231,7 @@ void DeducePropsVisitor::visitEdgePropExpr(PropertyExpression *expr) {
 void DeducePropsVisitor::reportError(const Expression *expr) {
     std::stringstream ss;
     ss << "Not supported expression `" << expr->toString() << "' for props deduction.";
-    status_ = Status::SemanticError(ss.str());
+    status_ = Status::Error(ss.str());
 }
 
 }   // namespace graph

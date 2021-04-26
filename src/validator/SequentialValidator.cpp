@@ -19,7 +19,7 @@ namespace graph {
 Status SequentialValidator::validateImpl() {
     Status status;
     if (sentence_->kind() != Sentence::Kind::kSequential) {
-        return Status::SemanticError(
+        return Status::Error(
                 "Sequential validator validates a SequentialSentences, but %ld is given.",
                 static_cast<int64_t>(sentence_->kind()));
     }
@@ -27,7 +27,7 @@ Status SequentialValidator::validateImpl() {
     auto sentences = seqSentence->sentences();
 
     if (sentences.size() > static_cast<size_t>(FLAGS_max_allowed_statements)) {
-        return Status::SemanticError("The maximum number of statements allowed has been exceeded");
+        return Status::Error("The maximum number of statements allowed has been exceeded");
     }
 
     DCHECK(!sentences.empty());
@@ -36,7 +36,8 @@ Status SequentialValidator::validateImpl() {
         case Sentence::Kind::kLimit:
         case Sentence::Kind::kOrderBy:
         case Sentence::Kind::kGroupBy:
-            return Status::SyntaxError("Could not start with the statement: %s",
+            qctx_->rctx()->resp().errorCode = ErrorCode::E_SYNTAX_ERROR;
+            return Status::Error("Could not start with the statement: %s",
                                        firstSentence->toString().c_str());
         default:
             break;

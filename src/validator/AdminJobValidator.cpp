@@ -25,13 +25,13 @@ Status AdminJobValidator::validateImpl() {
                            ? qctx()->indexMng()->getTagIndexes(spaceId)
                            : qctx()->indexMng()->getEdgeIndexes(spaceId);
                 if (!ret.ok()) {
-                    return Status::SemanticError("Get index failed in space `%s': %s",
+                    return Status::Error("Get index failed in space `%s': %s",
                             spaceName.c_str(), ret.status().toString().c_str());
                 }
                 auto indexes = std::move(ret).value();
                 const auto &paras = sentence_->getParas();
                 if (paras.size() == 1 && indexes.empty()) {
-                    return Status::SemanticError("Space `%s' without indexes", spaceName.c_str());
+                    return Status::Error("Space `%s' without indexes", spaceName.c_str());
                 }
                 for (auto i = 0u; i < paras.size() - 1; i++) {
                     const auto &indexName = paras[i];
@@ -40,7 +40,7 @@ Status AdminJobValidator::validateImpl() {
                                 return item->get_index_name() == indexName;
                             });
                     if (it == indexes.end()) {
-                        return Status::SemanticError(
+                        return Status::Error(
                                 "Index %s not found in space %s",
                                 indexName.c_str(), spaceName.c_str());
                     }
