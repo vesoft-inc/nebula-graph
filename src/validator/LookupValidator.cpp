@@ -239,8 +239,10 @@ StatusOr<std::vector<std::string>> LookupValidator::textSearch(TextSearchExpress
     std::vector<std::string> result;
     // TODO (sky) : External index load balancing
     auto retryCnt = FLAGS_ft_request_retry_times;
+    static std::stringstream ss;
+    ss << "Unsupported expression kind: " << expr;
     while (--retryCnt > 0) {
-        StatusOr<bool> ret = Status::Error();
+        StatusOr<bool> ret = Status::Error(ss.str());
         switch (expr->kind()) {
             case Expression::Kind::kTSFuzzy: {
                 folly::dynamic fuzz = folly::dynamic::object();

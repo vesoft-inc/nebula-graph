@@ -196,7 +196,7 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
             // check the items, don't allow where c1 == 1 and c1 == 2 and c1 > 3....
             // If EQ item appears, only one element is allowed
             if (items.items.size() > 1) {
-                return Status::Error();
+                return Status::Error("Unsupported multi elements");
             }
             isRangeScan = false;
             begin = OptimizerUtils::normalizeValue(col, item.value_);
@@ -282,7 +282,8 @@ Status IndexScanRule::boundValue(const FilterItem& item,
             break;
         }
         default:
-            return Status::Error();
+            return Status::Error("Unsupported expression kind: %d",
+                                  static_cast<int32_t>(item.relOP_));
     }
     return Status::OK();
 }
