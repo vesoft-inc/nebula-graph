@@ -25,6 +25,7 @@ Status GoValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateOver(goSentence->overClause(), goCtx_->over));
     NG_RETURN_IF_ERROR(validateWhere(goSentence->whereClause()));
     NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
+    NG_RETURN_IF_ERROR(validateTruncate(goSentence->truncateClause()));
 
     const auto& exprProps = goCtx_->exprProps;
     if (!exprProps.inputProps().empty() && goCtx_->from.fromType != kPipe) {
@@ -77,6 +78,13 @@ Status GoValidator::validateWhere(WhereClause* where) {
     return Status::OK();
 }
 
+Status GoValidator::validateTruncate(TruncateClause* truncate) {
+    if (truncate == nullptr) {
+        return Status::OK();
+    }
+    return Status::OK();
+}
+
 Status GoValidator::validateYield(YieldClause* yield) {
     if (yield == nullptr) {
         return Status::SemanticError("Yield clause nullptr.");
@@ -98,7 +106,6 @@ Status GoValidator::validateYield(YieldClause* yield) {
         goCtx_->colNames = getOutColNames();
         return Status::OK();
     }
-
     for (auto col : cols) {
         col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
