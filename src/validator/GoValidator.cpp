@@ -82,6 +82,37 @@ Status GoValidator::validateTruncate(TruncateClause* truncate) {
     if (truncate == nullptr) {
         return Status::OK();
     }
+    random_ = truncate->isSample();
+    auto* expr = truncate->truncate();
+    if (expr->kind() != Expression::Kind::kList) {
+        return Status::SemanticError("`%s' type must be LIST", expr->toString().c_str());
+    }
+    // lenght of list must be equal to N step
+    uint32_t totalSteps = steps_.mToN == nullptr ? steps_.steps : steps_.mToN->nSteps;
+    if (static_cast<const ListExpression*>(expr)->size() != totalSteps) {
+        return Status::SemanticError(
+            "`%s' length must be equal to %d", expr->toString().c_str(), totalSteps);
+    }
+    // check if value of list is non-integer
+    auto existNonInteger = [](Expression* expr) -> bool {
+        if (expr->kind() != Expression::Kind::kConstant &&
+            expr->kind() != Expression::Kind::kList) {
+            return true;
+        }
+        if (expr->kind() == Expression::Kind::kConstant) {
+            auto& val = static_cast<const ConstantExpression*>(expr)->value();
+            if (!val.isInt()) {
+                return true;
+            }
+        }
+        return false;
+    };
+    FindVisitor visitor(existNonInteger);
+    expr->accept(&visitor);
+    auto res = visitor.results();
+    if (res.size() == 1) {
+        return Status::SemanticError("`%s' must be INT", res.front()->toString().c_str());
+    }
     return Status::OK();
 }
 
@@ -106,6 +137,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
         goCtx_->colNames = getOutColNames();
         return Status::OK();
     }
+
     for (auto col : cols) {
         col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));

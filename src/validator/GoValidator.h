@@ -45,6 +45,7 @@ private:
 
     YieldColumns*                                   inputPropCols_{nullptr};
     std::unordered_map<std::string, YieldColumn*>   propExprColMap_;
+    bool random_{false};
 };
 }   // namespace graph
 }   // namespace nebula

@@ -213,6 +213,10 @@ public:
         return std::make_unique<TruncateClause>(truncate_->clone().release(), isSample_);
     }
 
+    bool isSample() const {
+        return isSample_;
+    }
+
     std::string toString() const;
 
 private:
