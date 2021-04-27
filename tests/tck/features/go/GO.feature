@@ -1731,3 +1731,87 @@ Feature: Go Sentence
       """
     Then the result should be, in any order:
       | serve._dst |
+
+  @skip
+  Scenario: go step limit
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like WHERE like._dst == "Tony Parker"  LIMIT [1];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE like._dst == "Tony Parker" LIMIT [1, 2, 2];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE like._dst == "Tony Parker"  LIMIT {1:1, 3:2};
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+
+  @skip
+  Scenario: go step filter & step limit
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like WHERE [like._dst == "Tony Parker"]  LIMIT [1];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE [like._dst == "Tony Parker", $$.player.age>20, $$.player.age>22] LIMIT [1, 2, 2];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE {1:like._dst == "Tony Parker", 3:$$.player.age>20}  LIMIT {1:1, 3:2};
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+
+  @skip
+  Scenario: go step sample
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like WHERE like._dst == "Tony Parker"  SAMPLE [1];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE like._dst == "Tony Parker" SAMPLE [1, 3, 2];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE like._dst == "Tony Parker"  SAMPLE {1:2, 3:2};
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+
+  @skip
+  Scenario: go step filter & step sample
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like WHERE [like._dst == "Tony Parker"]  SAMPLE [1];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE [like._dst == "Tony Parker", $$.player.age>20, $$.player.age>22] SAMPLE [1, 2, 2];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE {1:like._dst == "Tony Parker", 3:$$.player.age>20}  SAMPLE {1:1, 3:2};
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
