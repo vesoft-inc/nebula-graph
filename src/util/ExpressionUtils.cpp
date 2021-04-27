@@ -26,50 +26,41 @@ std::unique_ptr<Expression> ExpressionUtils::foldConstantExpr(const Expression *
 }
 
 Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPool *pool) {
-    // Match the root expression
-    auto rootMatcher = [](const Expression *e) -> bool {
-        if (e->kind() == Expression::Kind::kUnaryNot) {
-            auto operand = static_cast<const UnaryExpression *>(e)->operand();
-
-            if (operand->kind() == Expression::Kind::kUnaryNot ||
-                (operand->isRelExpr() && operand->kind() != Expression::Kind::kRelREG) ||
-                operand->isLogicalExpr()) {
-                return true;
-            }
-        }
-        return false;
-    };
     // Match the operand
     auto operandMatcher = [](const Expression *operandExpr) -> bool {
-        if (operandExpr->kind() == Expression::Kind::kUnaryNot ||
-            (operandExpr->isRelExpr() && operandExpr->kind() != Expression::Kind::kRelREG) ||
-            operandExpr->isLogicalExpr()) {
-            return true;
+        return (operandExpr->kind() == Expression::Kind::kUnaryNot ||
+                (operandExpr->isRelExpr() && operandExpr->kind() != Expression::Kind::kRelREG) ||
+                operandExpr->isLogicalExpr());
+    };
+
+    // Match the root expression
+    auto rootMatcher = [&](const Expression *e) -> bool {
+        if (e->kind() == Expression::Kind::kUnaryNot) {
+            auto operand = static_cast<const UnaryExpression *>(e)->operand();
+            return (operandMatcher(operand));
         }
         return false;
     };
 
     std::function<Expression *(const Expression *)> rewriter =
         [&](const Expression *e) -> Expression * {
-        auto exprCopy = pool->add(e->clone().release());
-        auto operand = static_cast<UnaryExpression *>(exprCopy)->operand();
+        auto operand = static_cast<const UnaryExpression *>(e)->operand();
+        auto reducedExpr = pool->add(operand->clone().release());
 
-        Expression *reducedExpr = exprCopy;
-        if (operand->kind() == Expression::Kind::kUnaryNot) {
-            auto castedExpr = static_cast<UnaryExpression *>(operand);
+        if (reducedExpr->kind() == Expression::Kind::kUnaryNot) {
+            auto castedExpr = static_cast<UnaryExpression *>(reducedExpr);
             reducedExpr = castedExpr->operand();
-        } else if (operand->isRelExpr() && operand->kind() != Expression::Kind::kRelREG) {
-            auto castedExpr = static_cast<RelationalExpression *>(operand);
+        } else if (reducedExpr->isRelExpr() && reducedExpr->kind() != Expression::Kind::kRelREG) {
+            auto castedExpr = static_cast<RelationalExpression *>(reducedExpr);
             reducedExpr = pool->add(reverseRelExpr(castedExpr).release());
-        } else if (operand->isLogicalExpr()) {
-            auto castedExpr = static_cast<LogicalExpression *>(operand);
+        } else if (reducedExpr->isLogicalExpr()) {
+            auto castedExpr = static_cast<LogicalExpression *>(reducedExpr);
             reducedExpr = pool->add(reverseLogicalExpr(castedExpr).release());
         }
         // Rewrite the output of rewrite if possible
-        if (operandMatcher(reducedExpr)) {
-            reducedExpr = RewriteVisitor::transform(reducedExpr, rootMatcher, rewriter);
-        }
-        return reducedExpr;
+        return operandMatcher(reducedExpr)
+                   ? RewriteVisitor::transform(reducedExpr, rootMatcher, rewriter)
+                   : reducedExpr;
     };
 
     return pool->add(RewriteVisitor::transform(expr, rootMatcher, rewriter));
