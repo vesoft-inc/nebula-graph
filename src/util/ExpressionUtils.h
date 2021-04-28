@@ -42,7 +42,7 @@ public:
             }
             return false;
         };
-        FindVisitor<Expression::Kind> visitor(finder);
+        FindVisitor visitor(finder);
         const_cast<Expression*>(self)->accept(&visitor);
         auto res = visitor.results();
 
@@ -65,7 +65,7 @@ public:
             }
             return false;
         };
-        FindVisitor<Expression::Kind> visitor(finder, true);
+        FindVisitor visitor(finder, true);
         const_cast<Expression*>(self)->accept(&visitor);
         return std::move(visitor).results();
     }

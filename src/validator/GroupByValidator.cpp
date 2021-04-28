@@ -159,7 +159,7 @@ Status GroupByValidator::groupClauseSemanticCheck() {
             if (evaluableExpr(expr)) {
                 continue;
             }
-            FindVisitor<Expression*> visitor(finder);
+            FindVisitor visitor(finder);
             expr->accept(&visitor);
             if (!visitor.found()) {
                 return Status::SemanticError("Yield non-agg expression `%s' must be"

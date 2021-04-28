@@ -7,8 +7,6 @@
 #ifndef VISITOR_FINDVISITOR_H_
 #define VISITOR_FINDVISITOR_H_
 
-#include <unordered_set>
-
 #include "common/expression/Expression.h"
 #include "visitor/ExprVisitorImpl.h"
 
