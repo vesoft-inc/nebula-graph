@@ -227,6 +227,26 @@ void FindVisitor<T>::visit(ColumnExpression* expr) {
     findInCurrentExpr(expr);
 }
 
+
+template <typename T>
+void FindVisitor<T>::visit(SubscriptRangeExpression* expr) {
+    findInCurrentExpr(expr);
+    if (!needFindAll_ && found_) return;
+
+    expr->list()->accept(this);
+    if (!needFindAll_ && found_) return;
+
+    if (expr->lo() != nullptr) {
+        expr->lo()->accept(this);
+        if (!needFindAll_ && found_) return;
+    }
+
+    if (expr->hi() != nullptr) {
+        expr->hi()->accept(this);
+        if (!needFindAll_ && found_) return;
+    }
+}
+
 template <typename T>
 void FindVisitor<T>::visitBinaryExpr(BinaryExpression* expr) {
     findInCurrentExpr(expr);
