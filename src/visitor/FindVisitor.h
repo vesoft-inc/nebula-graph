@@ -17,14 +17,10 @@ namespace graph {
 template <typename T>
 class FindVisitor final : public ExprVisitorImpl {
 public:
-    using Finder = std::function<bool(Expression*, const std::unordered_set<T>&)>;
+    using Finder = std::function<bool(Expression*)>;
 
-    explicit FindVisitor(Finder finder,
-                         const std::unordered_set<T>& targets,
-                         bool needFindAll = false)
-        : finder_(finder), targets_(targets), needFindAll_(needFindAll) {
-        DCHECK(!targets_.empty());
-    }
+    explicit FindVisitor(Finder finder, bool needFindAll = false)
+        : finder_(finder), needFindAll_(needFindAll) {}
 
     bool ok() const override {
         // TODO: delete this interface
@@ -86,13 +82,8 @@ private:
 
     void findInCurrentExpr(Expression* expr);
 
-    bool find(Expression* expr) {
-        return finder_(expr, targets_);
-    }
-
 private:
     Finder finder_;
-    const std::unordered_set<T> targets_;
     bool needFindAll_;
 
     bool found_{false};

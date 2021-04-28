@@ -242,7 +242,7 @@ void FindVisitor<T>::visitBinaryExpr(BinaryExpression* expr) {
 
 template <typename T>
 void FindVisitor<T>::findInCurrentExpr(Expression* expr) {
-    if (find(expr)) {
+    if (finder_(expr)) {
         found_ = true;
         foundExprs_.emplace_back(expr);
     }
