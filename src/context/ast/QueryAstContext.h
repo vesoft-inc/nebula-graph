@@ -80,7 +80,7 @@ struct WhereClauseContext final : CypherClauseContextBase {
 
     Expression* filter;
 
-    // embed into GetNeighbors
+    // embed into IndexScan
     Expression* srcFilter;
 
     // TODO: embed into corresponding plan node
