@@ -14,7 +14,6 @@
 
 namespace nebula {
 namespace graph {
-template <typename T>
 class FindVisitor final : public ExprVisitorImpl {
 public:
     using Finder = std::function<bool(Expression*)>;
@@ -93,5 +92,4 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#include "visitor/FindVisitor.inl"
 #endif   // VISITOR_FINDVISITOR_H_
