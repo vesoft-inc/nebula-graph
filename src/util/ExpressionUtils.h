@@ -187,8 +187,8 @@ public:
     // Clone and fold constant expression
     static Expression* foldConstantExpr(const Expression* expr, ObjectPool* objPool);
 
-    // Clone and reduce constant expression
-    static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* objPool);
+    // Clone and reduce unaryNot expression
+    static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* pool);
 
     // Transform filter using multiple expression rewrite strategies
     static Expression* filterTransform(const Expression* expr, ObjectPool* objPool);
