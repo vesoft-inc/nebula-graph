@@ -87,16 +87,26 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
         auto* objPool = matchClauseCtx->qctx->objPool();
 
         // Extract the subfilters related to start-point
-        auto* startPointFilter = objPool->add(
-            ExpressionUtils::pickLogicalOperandsWithLabel(startPointAlias, oldFilter));
-        auto* otherFilter = objPool->add(
-            ExpressionUtils::pickLogicalOperandsWithLabel(startPointAlias, oldFilter, false));
-        oldFilter = otherFilter;
+        auto* startPointFilter =
+            objPool->add(ExpressionUtils::pickLogicalOperandsWithLabel(startPointAlias, oldFilter));
+        auto* srcFilter =
+            objPool->add(ExpressionUtils::rewriteLabelAttr2TagProp(startPointFilter));
+    storage::cpp2::IndexQueryContext ctx;
+    ctx.set_filter(Expression::encode(*srcFilter));
+    auto context = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
+    // IndexScan::IndexQueryCtx context;
+    context->emplace_back(std::move(ctx));
+        scan->setIndexQueryContext(std::move(context));
+        // auto* otherFilter = objPool->add(
+        //     ExpressionUtils::pickLogicalOperandsWithLabel(startPointAlias, oldFilter, false));
+        // oldFilter = otherFilter;
 
-        // Embed startPointFilter into Filter node
-        auto* filter = Filter::make(matchClauseCtx->qctx, scan, startPointFilter);
-        filter->setColNames({kVid});
-        plan.root = filter;
+        // // Embed startPointFilter into Filter node
+        // auto* newFilter = MatchSolver::doRewrite(*whereCtx->aliasesUsed, startPointFilter);
+        // objPool->add(newFilter);
+        // auto* filter = Filter::make(matchClauseCtx->qctx, scan, newFilter);
+        // filter->setColNames({kVid});
+        // plan.root = filter;
     }
 
     // initialize start expression in project node

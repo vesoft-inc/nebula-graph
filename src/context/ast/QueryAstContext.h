@@ -79,6 +79,15 @@ struct WhereClauseContext final : CypherClauseContextBase {
     WhereClauseContext() : CypherClauseContextBase(CypherClauseKind::kWhere) {}
 
     Expression* filter;
+
+    // embed into GetNeighbors
+    Expression* srcFilter;
+
+    // TODO: embed into corresponding plan node
+    Expression* edgeFilter;
+    Expression* dstFilter;
+    Expression* compoundFilter;
+
     std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
 };
 
