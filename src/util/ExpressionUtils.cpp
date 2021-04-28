@@ -35,40 +35,72 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
 }
 
 Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *pool) {
-    if (!expr->isRelExpr()) {
-        return const_cast<Expression *>(expr);
-    }
-    auto exprCopy = pool->add(expr->clone().release());
-    auto relExpr = static_cast<RelationalExpression *>(exprCopy);
-    auto lExpr = relExpr->left();
-    auto rExpr = relExpr->right();
+    // Match relational expressions containing at least one airthmetic expr
+    auto matcher = [&](const Expression *e) -> bool {
+        if (e->isRelExpr()) {
+            auto relExpr = static_cast<const RelationalExpression *>(e);
+            if (isEvaluableExpr(relExpr->right())) {
+                return true;
+            }
+            // TODO: To match arithmetic expression on both side
+            if (relExpr->left()->isArithmeticExpr()) {
+                auto arithmExpr = static_cast<const ArithmeticExpression *>(relExpr->left());
+                return isEvaluableExpr(arithmExpr->left()) || isEvaluableExpr(arithmExpr->right());
+            }
+        }
+        return false;
+    };
+
     // Simplify relational expressions involving boolean literals
-    QueryExpressionContext ctx(nullptr);
-    if (rExpr->kind() == Expression::Kind::kConstant) {
-        auto conExpr = static_cast<ConstantExpression *>(rExpr);
-        auto val = conExpr->eval(ctx(nullptr));
-        auto type = val.type();
-        // if contains any operand that is null, rewrite to null
-        if (type == Value::Type::NULLVALUE) {
-            return pool->add(rExpr->clone().release());
-        } else if (relExpr->kind() == Expression::Kind::kRelEQ) {
-            if (type == Value::Type::BOOL) {
-                if (val.toBool() == true) {
-                    return pool->add(lExpr->clone().release());
-                } else {
-                    return pool->add(
-                        new UnaryExpression(Expression::Kind::kUnaryNot, lExpr->clone().release()));
+    auto simplifyBoolOperand =
+        [&](RelationalExpression *relExpr, Expression *lExpr, Expression *rExpr) -> Expression * {
+        QueryExpressionContext ctx(nullptr);
+        if (rExpr->kind() == Expression::Kind::kConstant) {
+            auto conExpr = static_cast<ConstantExpression *>(rExpr);
+            auto val = conExpr->eval(ctx(nullptr));
+            auto valType = val.type();
+            // Rewrite to null if the expression contains any operand that is null
+            if (valType == Value::Type::NULLVALUE) {
+                return rExpr->clone().release();
+            }
+            if (relExpr->kind() == Expression::Kind::kRelEQ) {
+                if (valType == Value::Type::BOOL) {
+                    return val.getBool() ? lExpr->clone().release()
+                                         : new UnaryExpression(Expression::Kind::kUnaryNot,
+                                                               lExpr->clone().release());
+                }
+            } else if (relExpr->kind() == Expression::Kind::kRelNE) {
+                if (valType == Value::Type::BOOL) {
+                    return val.getBool() ? new UnaryExpression(Expression::Kind::kUnaryNot,
+                                                               lExpr->clone().release())
+                                         : lExpr->clone().release();
                 }
             }
         }
-    }
-    // Move all evaluable expression to the right side
-    auto relRightOperandExpr = relExpr->right()->clone();
-    auto relLeftOperandExpr = rewriteRelExprHelper(relExpr->left(), relRightOperandExpr);
+        return nullptr;
+    };
 
-    return pool->add(new RelationalExpression(relExpr->kind(),
-                                              relLeftOperandExpr->clone().release(),
-                                              relRightOperandExpr->clone().release()));
+    std::function<Expression *(const Expression *)> rewriter =
+        [&](const Expression *e) -> Expression * {
+        auto exprCopy = pool->add(e->clone().release());
+        auto relExpr = static_cast<RelationalExpression *>(exprCopy);
+        auto lExpr = relExpr->left();
+        auto rExpr = relExpr->right();
+
+        // Simplify relational expressions involving boolean literals
+        auto simplifiedExpr = simplifyBoolOperand(relExpr, lExpr, rExpr);
+        if (simplifiedExpr) {
+            return simplifiedExpr;
+        }
+        // Move all evaluable expression to the right side
+        auto relRightOperandExpr = relExpr->right()->clone();
+        auto relLeftOperandExpr = rewriteRelExprHelper(relExpr->left(), relRightOperandExpr);
+        return new RelationalExpression(relExpr->kind(),
+                                        relLeftOperandExpr->clone().release(),
+                                        relRightOperandExpr->clone().release());
+    };
+
+    return pool->add(RewriteVisitor::transform(expr, matcher, rewriter));
 }
 
 Expression *ExpressionUtils::rewriteRelExprHelper(
@@ -107,9 +139,7 @@ Expression *ExpressionUtils::rewriteRelExprHelper(
 Expression *ExpressionUtils::filterTransform(const Expression *filter, ObjectPool *pool) {
     auto rewrittenExpr = const_cast<Expression *>(filter);
     // Rewrite relational expression
-    if (rewrittenExpr->isRelExpr()) {
-        rewrittenExpr = rewriteRelExpr(static_cast<RelationalExpression *>(rewrittenExpr), pool);
-    }
+    rewrittenExpr = rewriteRelExpr(rewrittenExpr, pool);
     // Fold constant expression
     rewrittenExpr = foldConstantExpr(rewrittenExpr, pool);
     // Reduce Unary expression
