@@ -85,7 +85,9 @@ private:
 
     Status combineYieldColumns(YieldColumns *yieldColumns, YieldColumns *prevYieldColumns) const;
 
-    Status buildOutputs(const YieldColumns* yields);
+    void embedWhereFilter(MatchClauseContext &matchCtx);
+
+    Status buildOutputs(const YieldColumns *yields);
 
     template <typename T>
     std::unique_ptr<T> getContext() const {

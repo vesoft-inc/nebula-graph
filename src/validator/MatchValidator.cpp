@@ -24,6 +24,24 @@ AstContext *MatchValidator::getAstContext() {
     return matchCtx_.get();
 }
 
+void MatchValidator::embedWhereFilter(MatchClauseContext& matchCtx) {
+    if (matchCtx.where && matchCtx.where->filter) {
+        auto* filter = matchCtx.where->filter;
+        auto& nodeInfos = matchCtx.nodeInfos;
+        for (auto& nodeInfo : nodeInfos) {
+            auto *alias = nodeInfo.alias;
+            if (!alias) {
+                continue;
+            }
+            auto *filterWithAlias = ExpressionUtils::pickLogicalOperandsWithLabel(*alias, filter);
+            auto *nodeFilter = nodeInfo.filter->clone().release();
+            nodeInfo.filter =
+                matchCtx.qctx->objPool()->add(andConnect(nodeFilter, filterWithAlias));
+        }
+        // auto edgeInfos = matchCtx.edgeInfos;
+    }
+}
+
 Status MatchValidator::validateImpl() {
     auto *sentence = static_cast<MatchSentence *>(sentence_);
     auto &clauses = sentence->clauses();
@@ -57,6 +75,8 @@ Status MatchValidator::validateImpl() {
                     NG_RETURN_IF_ERROR(
                         validateFilter(matchClause->where()->filter(), *whereClauseCtx));
                     matchClauseCtx->where = std::move(whereClauseCtx);
+                    // embed filter in whereClause into nodeInfos/edgeInfos
+                    embedWhereFilter(*matchClauseCtx);
                 }
 
                 if (aliasesUsed) {
