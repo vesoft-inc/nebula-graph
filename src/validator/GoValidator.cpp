@@ -82,13 +82,14 @@ Status GoValidator::validateTruncate(TruncateClause* truncate) {
     if (truncate == nullptr) {
         return Status::OK();
     }
-    random_ = truncate->isSample();
+    goCtx_->random = truncate->isSample();
     auto* tExpr = truncate->truncate();
     if (tExpr->kind() != Expression::Kind::kList) {
         return Status::SemanticError("`%s' type must be LIST", tExpr->toString().c_str());
     }
+    const auto& steps = goCtx_->steps;
     // lenght of list must be equal to N step
-    uint32_t totalSteps = steps_.mToN == nullptr ? steps_.steps : steps_.mToN->nSteps;
+    uint32_t totalSteps = steps.isMToN() ? steps.nSteps() : steps.steps();
     if (static_cast<const ListExpression*>(tExpr)->size() != totalSteps) {
         return Status::SemanticError(
             "`%s' length must be equal to %d", tExpr->toString().c_str(), totalSteps);
@@ -113,7 +114,7 @@ Status GoValidator::validateTruncate(TruncateClause* truncate) {
     if (res.size() == 1) {
         return Status::SemanticError("`%s' must be INT", res.front()->toString().c_str());
     }
-    return Status::OK();
+    return Status::SemanticError("not implement it");
 }
 
 Status GoValidator::validateYield(YieldClause* yield) {
