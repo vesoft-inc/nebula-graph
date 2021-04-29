@@ -83,18 +83,18 @@ Status GoValidator::validateTruncate(TruncateClause* truncate) {
         return Status::OK();
     }
     random_ = truncate->isSample();
-    auto* expr = truncate->truncate();
-    if (expr->kind() != Expression::Kind::kList) {
-        return Status::SemanticError("`%s' type must be LIST", expr->toString().c_str());
+    auto* tExpr = truncate->truncate();
+    if (tExpr->kind() != Expression::Kind::kList) {
+        return Status::SemanticError("`%s' type must be LIST", tExpr->toString().c_str());
     }
     // lenght of list must be equal to N step
     uint32_t totalSteps = steps_.mToN == nullptr ? steps_.steps : steps_.mToN->nSteps;
-    if (static_cast<const ListExpression*>(expr)->size() != totalSteps) {
+    if (static_cast<const ListExpression*>(tExpr)->size() != totalSteps) {
         return Status::SemanticError(
-            "`%s' length must be equal to %d", expr->toString().c_str(), totalSteps);
+            "`%s' length must be equal to %d", tExpr->toString().c_str(), totalSteps);
     }
     // check if value of list is non-integer
-    auto existNonInteger = [](Expression* expr) -> bool {
+    auto existNonInteger = [](const Expression* expr) -> bool {
         if (expr->kind() != Expression::Kind::kConstant &&
             expr->kind() != Expression::Kind::kList) {
             return true;
@@ -108,7 +108,7 @@ Status GoValidator::validateTruncate(TruncateClause* truncate) {
         return false;
     };
     FindVisitor visitor(existNonInteger);
-    expr->accept(&visitor);
+    tExpr->accept(&visitor);
     auto res = visitor.results();
     if (res.size() == 1) {
         return Status::SemanticError("`%s' must be INT", res.front()->toString().c_str());
