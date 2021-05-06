@@ -66,6 +66,9 @@ private:
     PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
 
     PlanNode* projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn);
+    bool isInstantFrom() const {
+        return from_.fromType == FromType::kInstantExpr;
+    }
 
 private:
     Over over_;
