@@ -36,14 +36,13 @@ public:
     // null for not found
     static const Expression* findAny(const Expression* self,
                                      const std::unordered_set<Expression::Kind>& expected) {
-        auto finder = [](const Expression* expr,
-                         const std::unordered_set<Expression::Kind>& targets) -> bool {
-            if (targets.find(expr->kind()) != targets.end()) {
+        auto finder = [&expected](const Expression* expr) -> bool {
+            if (expected.find(expr->kind()) != expected.end()) {
                 return true;
             }
             return false;
         };
-        FindVisitor<Expression::Kind> visitor(finder, expected);
+        FindVisitor visitor(finder);
         const_cast<Expression*>(self)->accept(&visitor);
         auto res = visitor.results();
 
@@ -60,14 +59,13 @@ public:
     static std::vector<const Expression*> collectAll(
         const Expression* self,
         const std::unordered_set<Expression::Kind>& expected) {
-        auto finder = [](const Expression* expr,
-                         const std::unordered_set<Expression::Kind>& targets) -> bool {
-            if (targets.find(expr->kind()) != targets.end()) {
+        auto finder = [&expected](const Expression* expr) -> bool {
+            if (expected.find(expr->kind()) != expected.end()) {
                 return true;
             }
             return false;
         };
-        FindVisitor<Expression::Kind> visitor(finder, expected, true);
+        FindVisitor visitor(finder, true);
         const_cast<Expression*>(self)->accept(&visitor);
         return std::move(visitor).results();
     }
@@ -182,8 +180,8 @@ public:
     // Clone and fold constant expression
     static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
 
-    // Clone and reduce constant expression
-    static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* objPool);
+    // Clone and reduce unaryNot expression
+    static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* pool);
 
     // Negate the given logical expr: (A && B) -> (!A || !B)
     static std::unique_ptr<LogicalExpression> reverseLogicalExpr(LogicalExpression* expr);
