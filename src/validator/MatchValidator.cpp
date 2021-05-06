@@ -488,19 +488,29 @@ Status MatchValidator::validateAliasesSchema(const std::vector<const Expression 
             continue;
         }
         for (auto *refExpr : refExprs) {
-            NG_RETURN_IF_ERROR(checkAlias(refExpr, aliasesUsed));
+            // NG_RETURN_IF_ERROR(checkAlias(refExpr, aliasesUsed));
             auto kind = refExpr->kind();
             const std::string *name = nullptr;
             std::string prop;
-            if (kind == Expression::Kind::kLabel) {
-                name = static_cast<const LabelExpression *>(refExpr)->name();
-            } else {
-                DCHECK(kind == Expression::Kind::kLabelAttribute);
-                name = static_cast<const LabelAttributeExpression *>(refExpr)->left()->name();
-                prop = static_cast<const LabelAttributeExpression *>(refExpr)
-                           ->right()
-                           ->value()
-                           .getStr();
+            switch (refExpr->kind()) {
+                case Expression::Kind::kLabel: {
+                    name = static_cast<const LabelExpression*>(refExpr)->name();
+                    break;
+                }
+                case Expression::Kind::kLabelAttribute: {
+                    name = static_cast<const LabelAttributeExpression *>(refExpr)->left()->name();
+                    prop = static_cast<const LabelAttributeExpression *>(refExpr)
+                               ->right()
+                               ->value()
+                               .getStr();
+                    break;
+                }
+                case Expression::Kind::kEdgeSrc:
+                case Expression::Kind::kEdgeDst:
+                case Expression::Kind::kEdgeRank:
+                case Expression::Kind::kEdgeType: {
+                    return Status::SemanticError("ERROR");
+                }
             }
             DCHECK(name != nullptr);
             NG_RETURN_IF_ERROR(checkAliasesSchema(*name, prop, aliasesUsed));
