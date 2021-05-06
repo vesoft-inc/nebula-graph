@@ -7,7 +7,7 @@ Feature: Fetch String Vertices
   Background:
     Given a graph with space named "<space_name>"
 
-  Scenario: Fetch prop on one tag, one vertex
+  Scenario Outline: Fetch prop on one tag, one vertex
     When executing query:
       """
       FETCH PROP ON player <hash_begin>'Boris Diaw'<hash_end> YIELD player.name, player.age
@@ -46,7 +46,7 @@ Feature: Fetch String Vertices
       | vertices_                                                              |
       | (<hash_begin>"Boris Diaw"<hash_end>:player{name:"Boris Diaw", age:36}) |
 
-  Scenario: Fetch Vertices works with ORDER BY
+  Scenario Outline: Fetch Vertices works with ORDER BY
     When executing query:
       """
       $var = GO FROM <hash_begin>'Boris Diaw'<hash_end> over like YIELD like._dst as id;
@@ -58,7 +58,7 @@ Feature: Fetch String Vertices
       | <hash_begin>"Tim Duncan"<hash_end>  | "Tim Duncan"  | 42         |
       | <hash_begin>"Tony Parker"<hash_end> | "Tony Parker" | 36         |
 
-  Scenario: Fetch Vertices works with DISTINCT
+  Scenario Outline: Fetch Vertices works with DISTINCT
     When executing query:
       """
       FETCH PROP ON player <hash_begin>'Boris Diaw'<hash_end>, <hash_begin>'Boris Diaw'<hash_end> YIELD DISTINCT player.name, player.age
@@ -82,7 +82,7 @@ Feature: Fetch String Vertices
       | VertexID                           | player.age |
       | <hash_begin>"Boris Diaw"<hash_end> | 36         |
 
-  Scenario: Fetch prop on multiple tags, multiple vertices
+  Scenario Outline: Fetch prop on multiple tags, multiple vertices
     When executing query:
       """
       FETCH PROP ON bachelor, team, player <hash_begin>"Tim Duncan"<hash_end>, <hash_begin>"Boris Diaw"<hash_end> YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
@@ -122,7 +122,7 @@ Feature: Fetch String Vertices
       | VertexID                           | player.name  | team.name | bachelor.name |
       | <hash_begin>"Tim Duncan"<hash_end> | "Tim Duncan" | EMPTY     | "Tim Duncan"  |
 
-  Scenario: Fetch prop on not existing vertex
+  Scenario Outline: Fetch prop on not existing vertex
     When executing query:
       """
       FETCH PROP ON player <hash_begin>'NON EXIST VERTEX ID'<hash_end> yield player.name
@@ -143,7 +143,7 @@ Feature: Fetch String Vertices
     Then the result should be, in any order:
       | vertices_ |
 
-  Scenario: Fetch prop on *
+  Scenario Outline: Fetch prop on *
     When executing query:
       """
       FETCH PROP ON * <hash_begin>'Boris Diaw'<hash_end> yield player.name, player.age
@@ -205,7 +205,7 @@ Feature: Fetch String Vertices
       | <hash_begin>"Tim Duncan"<hash_end> | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
       | <hash_begin>"Boris Diaw"<hash_end> | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
 
-  Scenario: Fetch from pipe
+  Scenario Outline: Fetch from pipe
     # Fetch prop on one tag of vertices from pipe
     When executing query:
       """
@@ -275,7 +275,7 @@ Feature: Fetch String Vertices
       | <hash_begin>"Tony Parker"<hash_end> | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
       | <hash_begin>"Tim Duncan"<hash_end>  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
 
-  Scenario: fetch from varibles
+  Scenario Outline: fetch from varibles
     When executing query:
       """
       $var = GO FROM <hash_begin>'Boris Diaw'<hash_end> over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name, player.age
@@ -303,7 +303,7 @@ Feature: Fetch String Vertices
       | <hash_begin>"Tim Duncan"<hash_end>  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
       | <hash_begin>"Tony Parker"<hash_end> | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
 
-  Scenario: Fetch and Yield id(v)
+  Scenario Outline: Fetch and Yield id(v)
     When executing query:
       """
       FETCH PROP ON player <hash_begin>'Boris Diaw'<hash_end>, <hash_begin>'Tony Parker'<hash_end> | YIELD id($-.vertices_) as id
@@ -314,7 +314,7 @@ Feature: Fetch String Vertices
       | <hash_begin>"Tony Parker"<hash_end> |
 
   @skip
-  Scenario: Output fetch result to graph traverse
+  Scenario Outline: Output fetch result to graph traverse
     When executing query:
       """
       FETCH PROP ON player <hash_begin>'NON EXIST VERTEX ID'<hash_end> | go from id($-.vertices_) over like yield like._dst
@@ -378,7 +378,7 @@ Feature: Fetch String Vertices
       | <hash_begin>"Manu Ginobili"<hash_end>     |
       | <hash_begin>"Tim Duncan"<hash_end>        |
 
-  Scenario: Typical errors
+  Scenario Outline: Typical errors
     # Fetch Vertices not support get src property
     When executing query:
       """
@@ -430,7 +430,7 @@ Feature: Fetch String Vertices
       """
     Then a SemanticError should be raised at runtime:
 
-  Scenario: Different from v1.x
+  Scenario Outline: Different from v1.x
     When executing query:
       """
       GO FROM <hash_begin>'Boris Diaw'<hash_end> over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age, $-.*
