@@ -762,7 +762,6 @@ Status MatchValidator::checkAlias(
     const Expression *refExpr,
     const std::unordered_map<std::string, AliasType> *aliasesUsed) const {
     auto kind = refExpr->kind();
-    // const std::string *name = nullptr;
     AliasType aliasType = AliasType::kDefault;
 
     switch (kind) {
@@ -789,18 +788,20 @@ Status MatchValidator::checkAlias(
                 return res.status();
             }
             aliasType = res.value();
-            if (aliasType == AliasType::kNode) {
-                return Status::SemanticError("Vertex `%s' does not have the src attribute",
-                                             name->c_str());
-            } else if (aliasType == AliasType::kEdge) {
-                return Status::SemanticError("To get the src vid of the edge, use src(%s)",
-                                             name->c_str());
-            } else if (aliasType == AliasType::kPath) {
-                return Status::SemanticError("To get the start node of the path, use startNode(%s)",
-                                             name->c_str());
+            switch (aliasType) {
+                case AliasType::kNode:
+                    return Status::SemanticError("Vertex `%s' does not have the src attribute",
+                                                 name->c_str());
+                case AliasType::kEdge:
+                    return Status::SemanticError("To get the src vid of the edge, use src(%s)",
+                                                 name->c_str());
+                case AliasType::kPath:
+                    return Status::SemanticError(
+                        "To get the start node of the path, use startNode(%s)", name->c_str());
+                default:
+                    return Status::SemanticError("Alias `%s' does not have the edge property src",
+                                                 name->c_str());
             }
-            return Status::SemanticError("Alias `%s' does not have the edge property src",
-                                         name->c_str());
         }
         case Expression::Kind::kEdgeDst: {
             auto name = static_cast<const EdgeDstIdExpression *>(refExpr)->sym();
@@ -809,18 +810,20 @@ Status MatchValidator::checkAlias(
                 return res.status();
             }
             aliasType = res.value();
-            if (aliasType == AliasType::kNode) {
-                return Status::SemanticError("Vertex `%s' does not have the dst attribute",
-                                             name->c_str());
-            } else if (aliasType == AliasType::kEdge) {
-                return Status::SemanticError("To get the dst vid of the edge, use dst(%s)",
-                                             name->c_str());
-            } else if (aliasType == AliasType::kPath) {
-                return Status::SemanticError("To get the end node of the path, use endNode(%s)",
-                                             name->c_str());
+            switch (aliasType) {
+                case AliasType::kNode:
+                    return Status::SemanticError("Vertex `%s' does not have the dst attribute",
+                                                 name->c_str());
+                case AliasType::kEdge:
+                    return Status::SemanticError("To get the dst vid of the edge, use dst(%s)",
+                                                 name->c_str());
+                case AliasType::kPath:
+                    return Status::SemanticError("To get the end node of the path, use endNode(%s)",
+                                                 name->c_str());
+                default:
+                    return Status::SemanticError("Alias `%s' does not have the edge property dst",
+                                                 name->c_str());
             }
-            return Status::SemanticError("Alias `%s' does not have the edge property dst",
-                                         name->c_str());
         }
         case Expression::Kind::kEdgeRank: {
             auto name = static_cast<const EdgeRankExpression *>(refExpr)->sym();
@@ -829,18 +832,20 @@ Status MatchValidator::checkAlias(
                 return res.status();
             }
             aliasType = res.value();
-            if (aliasType == AliasType::kNode) {
-                return Status::SemanticError("Vertex `%s' does not have the rank attribute",
-                                             name->c_str());
-            } else if (aliasType == AliasType::kEdge) {
-                return Status::SemanticError("To get the ranking of the edge, use rank(%s)",
-                                             name->c_str());
-            } else if (aliasType == AliasType::kPath) {
-                return Status::SemanticError("Path `%s' does not have the ranking attribute",
-                                             name->c_str());
+            switch (aliasType) {
+                case AliasType::kNode:
+                    return Status::SemanticError("Vertex `%s' does not have the ranking attribute",
+                                                 name->c_str());
+                case AliasType::kEdge:
+                    return Status::SemanticError("To get the ranking of the edge, use rank(%s)",
+                                                 name->c_str());
+                case AliasType::kPath:
+                    return Status::SemanticError("Path `%s' does not have the ranking attribute",
+                                                 name->c_str());
+                default:
+                    return Status::SemanticError(
+                        "Alias `%s' does not have the edge property ranking", name->c_str());
             }
-            return Status::SemanticError("Alias `%s' does not have the edge property ranking",
-                                         name->c_str());
         }
         case Expression::Kind::kEdgeType: {
             auto name = static_cast<const EdgeTypeExpression *>(refExpr)->sym();
@@ -849,18 +854,20 @@ Status MatchValidator::checkAlias(
                 return res.status();
             }
             aliasType = res.value();
-            if (aliasType == AliasType::kNode) {
-                return Status::SemanticError("Vertex `%s' does not have the type attribute",
-                                             name->c_str());
-            } else if (aliasType == AliasType::kEdge) {
-                return Status::SemanticError("To get the type of the edge, use type(%s)",
-                                             name->c_str());
-            } else if (aliasType == AliasType::kPath) {
-                return Status::SemanticError("Path `%s' does not have the type attribute",
-                                             name->c_str());
+            switch (aliasType) {
+                case AliasType::kNode:
+                    return Status::SemanticError("Vertex `%s' does not have the type attribute",
+                                                 name->c_str());
+                case AliasType::kEdge:
+                    return Status::SemanticError("To get the type of the edge, use type(%s)",
+                                                 name->c_str());
+                case AliasType::kPath:
+                    return Status::SemanticError("Path `%s' does not have the type attribute",
+                                                 name->c_str());
+                default:
+                    return Status::SemanticError(
+                        "Alias `%s' does not have the edge property ranking", name->c_str());
             }
-            return Status::SemanticError("Alias `%s' does not have the edge property type",
-                                         name->c_str());
         }
         default:   // refExpr must satisfy one of cases and should never hit this branch
             break;
