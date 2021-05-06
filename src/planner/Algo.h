@@ -34,7 +34,7 @@ private:
         : SingleInputNode(qctx, Kind::kBFSShortest, input) {}
 };
 
-class ConjunctPath : public BiInputNode {
+class ConjunctPath : public BinaryInputNode {
 public:
     enum class PathKind : uint8_t {
         kBiBFS,
@@ -82,7 +82,7 @@ private:
                  PlanNode* right,
                  PathKind pathKind,
                  size_t steps)
-        : BiInputNode(qctx, Kind::kConjunctPath, left, right) {
+        : BinaryInputNode(qctx, Kind::kConjunctPath, left, right) {
         pathKind_ = pathKind;
         steps_ = steps;
     }
