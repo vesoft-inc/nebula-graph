@@ -923,7 +923,7 @@ private:
     void cloneMembers(const Dedup&);
 };
 
-class DataCollect final : public SingleDependencyNode {
+class DataCollect final : public VariableInputNode {
 public:
     enum class CollectKind : uint8_t {
         kSubgraph,
@@ -935,11 +935,9 @@ public:
     };
 
     static DataCollect* make(QueryContext* qctx,
-                             PlanNode* input,
                              CollectKind collectKind,
                              std::vector<std::string> vars = {}) {
-        return qctx->objPool()->add(
-            new DataCollect(qctx, input, collectKind, std::move(vars)));
+        return qctx->objPool()->add(new DataCollect(qctx, collectKind, std::move(vars)));
     }
 
     void setMToN(StepClause::MToN* mToN) {
@@ -975,10 +973,9 @@ public:
 
 private:
     DataCollect(QueryContext* qctx,
-                PlanNode* input,
                 CollectKind collectKind,
                 std::vector<std::string> vars)
-        : SingleDependencyNode(qctx, Kind::kDataCollect, input) {
+        : VariableInputNode(qctx, Kind::kDataCollect) {
         collectKind_ = collectKind;
         inputVars_.clear();
         for (auto& var : vars) {

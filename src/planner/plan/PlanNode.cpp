@@ -341,7 +341,7 @@ std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {
 std::unique_ptr<PlanNodeDescription> SingleDependencyNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(desc->dependencies == nullptr);
-    desc->dependencies.reset(new std::vector<int64_t>{dep()->id()});
+        desc->dependencies.reset(new std::vector<int64_t>{dep()->id()});
     return desc;
 }
 
@@ -371,6 +371,18 @@ std::unique_ptr<PlanNodeDescription> BinaryInputNode::explain() const {
     inputVar.insert("leftVar", leftInputVar());
     inputVar.insert("rightVar", rightInputVar());
     addDescription("inputVar", folly::toJson(inputVar), desc.get());
+    return desc;
+}
+
+std::unique_ptr<PlanNodeDescription> VariableInputNode::explain() const {
+    auto desc = PlanNode::explain();
+    DCHECK(desc->dependencies == nullptr);
+    desc->dependencies.reset(new std::vector<int64_t>(dependIds()));
+    folly::dynamic inputVarName = folly::dynamic::object();
+    for (size_t i = 0; i < inputVars_.size(); ++i) {
+        inputVarName.insert("inputVar", inputVar(i));
+    }
+    addDescription("inputVar", folly::toJson(inputVarName), desc.get());
     return desc;
 }
 

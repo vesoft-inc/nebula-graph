@@ -369,6 +369,36 @@ protected:
     }
 };
 
+//
+class VariableInputNode : public PlanNode {
+public:
+    void setDepends(const PlanNode* dep) {
+        addDep(dep);
+        readVariable(dep->outputVarPtr());
+    }
+
+    std::vector<int64_t> dependIds() const {
+        std::vector<int64_t> ids(numDeps());
+        std::transform(dependencies_.begin(), dependencies_.end(), ids.begin(), [](auto& dep) {
+            return dep->id();
+        });
+        return ids;
+    }
+
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+    PlanNode* clone() const override {
+        LOG(FATAL) << "Shouldn't call the unimplemented method";
+    }
+
+protected:
+    VariableInputNode(QueryContext* qctx, Kind kind) : PlanNode(qctx, kind) {}
+
+    void cloneMembers(const VariableInputNode& node) {
+        PlanNode::cloneMembers(node);
+    }
+};
+
 }  // namespace graph
 }  // namespace nebula
 

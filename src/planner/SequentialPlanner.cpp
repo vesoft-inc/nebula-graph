@@ -45,9 +45,9 @@ void SequentialPlanner::ifBuildDataCollect(SubPlan& subPlan, QueryContext* qctx)
         case PlanNode::Kind::kMinus:
         case PlanNode::Kind::kFilter: {
             auto* dc = DataCollect::make(qctx,
-                                         subPlan.root,
                                          DataCollect::CollectKind::kRowBasedMove,
                                          {subPlan.root->outputVar()});
+            dc->setDepends(subPlan.root);
             dc->setColNames(subPlan.root->colNames());
             subPlan.root = dc;
             break;
