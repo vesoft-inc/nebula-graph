@@ -136,6 +136,12 @@ Feature: Fetch String Vertices
     Then the result should be, in any order:
       | VertexID                           | player.name  |
       | <hash_begin>"Boris Diaw"<hash_end> | "Boris Diaw" |
+    When executing query:
+      """
+      FETCH PROP ON * <hash_begin>'NON EXIST VERTEX ID'<hash_end>
+      """
+    Then the result should be, in any order:
+      | vertices_ |
 
   Scenario: Fetch prop on *
     When executing query:
