@@ -75,8 +75,9 @@ Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *
                 return true;
             }
             // TODO: To match arithmetic expression on both side
-            if (relExpr->left()->isArithmeticExpr()) {
-                auto arithmExpr = static_cast<const ArithmeticExpression *>(relExpr->left());
+            auto lExpr = relExpr->left();
+            if (lExpr->isArithmeticExpr()) {
+                auto arithmExpr = static_cast<const ArithmeticExpression *>(lExpr);
                 return isEvaluableExpr(arithmExpr->left()) || isEvaluableExpr(arithmExpr->right());
             }
         }
@@ -138,8 +139,12 @@ Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *
 Expression *ExpressionUtils::rewriteRelExprHelper(
     const Expression *expr,
     std::unique_ptr<Expression> &relRightOperandExpr) {
+    // TODO: Support rewrite mul/div expressoion after fixing overflow
     auto matcher = [](const Expression *e) -> bool {
-        if (!e->isArithmeticExpr()) return false;
+        if (!e->isArithmeticExpr() ||
+            e->kind() == Expression::Kind::kMultiply ||
+            e->kind() == Expression::Kind::kDivision)
+            return false;
         auto arithExpr = static_cast<const ArithmeticExpression *>(e);
         return ExpressionUtils::isEvaluableExpr(arithExpr->left()) ||
                ExpressionUtils::isEvaluableExpr(arithExpr->right());

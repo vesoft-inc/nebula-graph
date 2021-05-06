@@ -30,6 +30,14 @@ protected:
         return new ArithmeticExpression(Expression::Kind::kMinus, lhs, rhs);
     }
 
+    static ArithmeticExpression *multiplyExpr(Expression *lhs, Expression *rhs) {
+        return new ArithmeticExpression(Expression::Kind::kMultiply, lhs, rhs);
+    }
+
+    static ArithmeticExpression *divideExpr(Expression *lhs, Expression *rhs) {
+        return new ArithmeticExpression(Expression::Kind::kDivision, lhs, rhs);
+    }
+
     static RelationalExpression *eqExpr(Expression *lhs, Expression *rhs) {
         return new RelationalExpression(Expression::Kind::kRelEQ, lhs, rhs);
     }

@@ -51,11 +51,27 @@ TEST_F(RewriteRelExprVisitorTest, TestArithmeticalExpr) {
             pool.add(ltExpr(laExpr("v", "age"), minusExpr(constantExpr(40), constantExpr(-1))));
         ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
     }
-    // (label1 + label2 < 40)  =>  (label1 + label2 < 40) unchaged
+    // (label1 + label2 < 40)  =>  (label1 + label2 < 40) Unchaged
     // TODO: replace list with set in object pool and avoid copy
     {
         auto expr =
             pool.add(ltExpr(addExpr(laExpr("v", "age"), laExpr("v2", "age2")), constantExpr(40)));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = expr;
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+    // (label * 2 < 40)  =>  (2*label < 40) Unchanged
+    {
+        auto expr =
+            pool.add(ltExpr(multiplyExpr(laExpr("v", "age"), constantExpr(2)), constantExpr(40)));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = expr;
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+    // (label / 3 < 40)  =>  (label / 3 < 40) Unchanged
+    {
+        auto expr =
+            pool.add(ltExpr(divideExpr(laExpr("v", "age"), constantExpr(3)), constantExpr(40)));
         auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
         auto expected = expr;
         ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
@@ -96,6 +112,26 @@ TEST_F(RewriteRelExprVisitorTest, TestNestedArithmeticalExpr) {
             ltExpr(laExpr("v", "age"),
                    minusExpr(addExpr(minusExpr(constantExpr(40), constantExpr(3)), constantExpr(2)),
                              constantExpr(1))));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+    // (2 * label + 1 < 40)  =>  (2*label < 40 - 1) Partial rewrite
+    {
+        auto expr = pool.add(
+            ltExpr(addExpr(multiplyExpr(constantExpr(2), laExpr("v", "age")), constantExpr(1)),
+                   constantExpr(40)));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = pool.add(ltExpr(multiplyExpr(constantExpr(2), laExpr("v", "age")),
+                                        minusExpr(constantExpr(40), constantExpr(1))));
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
+    }
+    // (label / 3 - 1 < 40)  =>  (label / 3 < 40 + 1) Partial rewrite
+    {
+        auto expr = pool.add(
+            ltExpr(minusExpr(divideExpr(laExpr("v", "age"), constantExpr(3)), constantExpr(1)),
+                   constantExpr(40)));
+        auto res = ExpressionUtils::rewriteRelExpr(expr, &pool);
+        auto expected = pool.add(ltExpr(divideExpr(laExpr("v", "age"), constantExpr(3)),
+                                        addExpr(constantExpr(40), constantExpr(1))));
         ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
     }
 }
