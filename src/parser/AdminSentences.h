@@ -155,7 +155,7 @@ public:
         CHARSET,
         COLLATE,
         ATOMIC_EDGE,
-        GROUP_NAME
+        GROUP_NAME,
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -319,6 +319,14 @@ public:
         groupName_.reset(name);
     }
 
+    void setComment(std::string *name) {
+        comment_.reset(name);
+    }
+
+    const std::string* comment() const {
+        return comment_.get();
+    }
+
     std::vector<SpaceOptItem*> getOpts() {
         if (spaceOpts_ == nullptr) {
             return {};
@@ -332,6 +340,7 @@ private:
     std::unique_ptr<std::string>     spaceName_;
     std::unique_ptr<std::string>     groupName_;
     std::unique_ptr<SpaceOptList>    spaceOpts_;
+    std::unique_ptr<std::string>     comment_;
 };
 
 

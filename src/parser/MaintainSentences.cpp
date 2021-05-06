@@ -23,9 +23,11 @@ std::string SchemaPropItem::toString() const {
         case TTL_COL:
             return folly::stringPrintf("ttl_col = \"%s\"",
                                        boost::get<std::string>(propValue_).c_str());
-        default:
-            FLOG_FATAL("Schema property type illegal");
+        case COMMENT:
+            return folly::stringPrintf("comment = \"%s\"",
+                                       boost::get<std::string>(propValue_).c_str());
     }
+    DLOG(FATAL)<< "Schema property type illegal";
     return "Unknown";
 }
 
@@ -44,6 +46,22 @@ std::string SchemaPropItem::toString() const {
     return buf;
 }
 
+std::string ColumnProperty::toString() const {
+    std::stringstream str;
+    if (isNullable()) {
+        if (nullable()) {
+            str << "NULL";
+        } else {
+            str << "NOT NULL";
+        }
+    } else if (isDefaultValue()) {
+        str << "DEFAULT " << DCHECK_NOTNULL(defaultValue())->toString();
+    } else if (isComment()) {
+        str << "COMMENT '" << *DCHECK_NOTNULL(comment()) << "'";
+    }
+    return str.str();
+}
+
 std::string ColumnSpecification::toString() const {
     std::string buf;
     buf.reserve(128);
@@ -57,15 +75,8 @@ std::string ColumnSpecification::toString() const {
     } else {
         buf += apache::thrift::util::enumNameSafe(type_);
     }
-    if (isNull_) {
-        buf += " NULL";
-    } else {
-        buf += " NOT NULL";
-    }
-    if (defaultValue_ != nullptr) {
-        buf += " DEFAULT ";
-        buf += defaultValue_->toString();
-    }
+    buf += " ";
+    buf += properties_->toString();
     return buf;
 }
 
@@ -257,6 +268,10 @@ std::string CreateTagIndexSentence::toString() const {
     folly::join(", ", fieldDefs, fields);
     buf += fields;
     buf += ")";
+    if (comment_ != nullptr) {
+        buf += "COMMENT = ";
+        buf += *comment_;
+    }
     return buf;
 }
 
@@ -284,6 +299,10 @@ std::string CreateEdgeIndexSentence::toString() const {
     folly::join(", ", fieldDefs, fields);
     buf += fields;
     buf += ")";
+    if (comment_ != nullptr) {
+        buf += "COMMENT = ";
+        buf += *comment_;
+    }
     return buf;
 }
 
