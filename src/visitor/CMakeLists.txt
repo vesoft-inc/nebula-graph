@@ -13,8 +13,8 @@ nebula_add_library(
     FoldConstantExprVisitor.cpp
     RewriteSymExprVisitor.cpp
     RewriteVisitor.cpp
+    FindVisitor.cpp
     VidExtractVisitor.cpp
-    RewriteUnaryNotExprVisitor.cpp
 )
 
 nebula_add_subdirectory(test)
