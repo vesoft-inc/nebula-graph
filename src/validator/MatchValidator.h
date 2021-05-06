@@ -11,7 +11,7 @@
 #include "validator/TraversalValidator.h"
 #include "util/AnonVarGenerator.h"
 #include "planner/Query.h"
-#include "context/ast/QueryAstContext.h"
+#include "context/ast/CypherAstContext.h"
 
 namespace nebula {
 
@@ -85,7 +85,13 @@ private:
 
     Status combineYieldColumns(YieldColumns *yieldColumns, YieldColumns *prevYieldColumns) const;
 
-    Status buildOutputs(const YieldColumns* yields);
+    StatusOr<AliasType> getAliasType(const std::unordered_map<std::string, AliasType> *aliasesUsed,
+                                     const std::string *name) const;
+
+    Status checkAlias(const Expression *refExpr,
+                      const std::unordered_map<std::string, AliasType> *aliasesUsed) const;
+
+    Status buildOutputs(const YieldColumns *yields);
 
     template <typename T>
     std::unique_ptr<T> getContext() const {
