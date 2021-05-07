@@ -369,7 +369,8 @@ protected:
     }
 };
 
-//
+// some PlanNode may depend on multiple Nodes(may be one OR more)
+// Attention: user need to set inputs byself
 class VariableDependencyNode : public PlanNode {
 public:
     std::unique_ptr<PlanNodeDescription> explain() const override;
