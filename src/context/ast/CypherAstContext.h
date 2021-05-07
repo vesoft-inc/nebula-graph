@@ -45,7 +45,7 @@ struct AliasSchema {
 };
 
 using Direction = MatchEdge::Direction;
-using AliasSchemaMap = std::unordered_map<std::string, AliasSchema>
+using AliasSchemaMap = std::unordered_map<std::string, AliasSchema>;
 
 struct NodeInfo {
     bool                                    anonymous{false};
