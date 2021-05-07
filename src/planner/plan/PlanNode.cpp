@@ -341,7 +341,7 @@ std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {
 std::unique_ptr<PlanNodeDescription> SingleDependencyNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(desc->dependencies == nullptr);
-        desc->dependencies.reset(new std::vector<int64_t>{dep()->id()});
+    desc->dependencies.reset(new std::vector<int64_t>{dep()->id()});
     return desc;
 }
 
@@ -374,7 +374,7 @@ std::unique_ptr<PlanNodeDescription> BinaryInputNode::explain() const {
     return desc;
 }
 
-std::unique_ptr<PlanNodeDescription> VariableInputNode::explain() const {
+std::unique_ptr<PlanNodeDescription> VariableDependencyNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(desc->dependencies == nullptr);
     desc->dependencies.reset(new std::vector<int64_t>(dependIds()));

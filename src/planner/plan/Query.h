@@ -923,7 +923,7 @@ private:
     void cloneMembers(const Dedup&);
 };
 
-class DataCollect final : public VariableInputNode {
+class DataCollect final : public VariableDependencyNode {
 public:
     enum class CollectKind : uint8_t {
         kSubgraph,
@@ -975,7 +975,7 @@ private:
     DataCollect(QueryContext* qctx,
                 CollectKind collectKind,
                 std::vector<std::string> vars)
-        : VariableInputNode(qctx, Kind::kDataCollect) {
+        : VariableDependencyNode(qctx, Kind::kDataCollect) {
         collectKind_ = collectKind;
         inputVars_.clear();
         for (auto& var : vars) {

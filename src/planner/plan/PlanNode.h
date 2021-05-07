@@ -370,7 +370,7 @@ protected:
 };
 
 //
-class VariableInputNode : public PlanNode {
+class VariableDependencyNode : public PlanNode {
 public:
     void setDepends(const PlanNode* dep) {
         addDep(dep);
@@ -392,9 +392,9 @@ public:
     }
 
 protected:
-    VariableInputNode(QueryContext* qctx, Kind kind) : PlanNode(qctx, kind) {}
+    VariableDependencyNode(QueryContext* qctx, Kind kind) : PlanNode(qctx, kind) {}
 
-    void cloneMembers(const VariableInputNode& node) {
+    void cloneMembers(const VariableDependencyNode& node) {
         PlanNode::cloneMembers(node);
     }
 };

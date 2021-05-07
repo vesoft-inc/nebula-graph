@@ -450,7 +450,7 @@ void Dedup::cloneMembers(const Dedup &l) {
 
 
 std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
-    auto desc = VariableInputNode::explain();
+    auto desc = VariableDependencyNode::explain();
     addDescription("inputVar", folly::toJson(util::toJson(inputVars_)), desc.get());
     switch (collectKind_) {
         case CollectKind::kSubgraph: {
@@ -488,7 +488,7 @@ PlanNode* DataCollect::clone() const {
 }
 
 void DataCollect::cloneMembers(const DataCollect &l) {
-    VariableInputNode::cloneMembers(l);
+    VariableDependencyNode::cloneMembers(l);
 
     mToN_ = l.mToN();
     distinct_ = l.distinct();
