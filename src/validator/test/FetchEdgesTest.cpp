@@ -317,9 +317,9 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         dedup->setColNames(colNames);
 
         // data collect
-        auto *dataCollect =
-            DataCollect::make(qctx, DataCollect::CollectKind::kRowBasedMove, {dedup->outputVar()});
-        dataCollect->setDepends(dedup);
+        auto *dataCollect = DataCollect::make(qctx, DataCollect::DCKind::kRowBasedMove);
+        dataCollect->addDep(dedup);
+        dataCollect->setInputVars({dedup->outputVar()});
         dataCollect->setColNames(colNames);
 
         auto result = Eq(qctx->plan()->root(), dataCollect);

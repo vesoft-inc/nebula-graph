@@ -925,7 +925,7 @@ private:
 
 class DataCollect final : public VariableDependencyNode {
 public:
-    enum class CollectKind : uint8_t {
+    enum class DCKind : uint8_t {
         kSubgraph,
         kRowBasedMove,
         kMToN,
@@ -934,10 +934,8 @@ public:
         kMultiplePairShortest,
     };
 
-    static DataCollect* make(QueryContext* qctx,
-                             CollectKind collectKind,
-                             std::vector<std::string> vars = {}) {
-        return qctx->objPool()->add(new DataCollect(qctx, collectKind, std::move(vars)));
+    static DataCollect* make(QueryContext* qctx, DCKind kind) {
+        return qctx->objPool()->add(new DataCollect(qctx, kind));
     }
 
     void setMToN(StepClause::MToN* mToN) {
@@ -948,8 +946,15 @@ public:
         distinct_ = distinct;
     }
 
-    CollectKind collectKind() const {
-        return collectKind_;
+    void setInputVars(const std::vector<std::string>& vars) {
+        inputVars_.clear();
+        for (auto& var : vars) {
+            readVariable(var);
+        }
+    }
+
+    DCKind kind() const {
+        return kind_;
     }
 
     std::vector<std::string> vars() const {
@@ -969,27 +974,20 @@ public:
     }
 
     PlanNode* clone() const override;
+
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
-    DataCollect(QueryContext* qctx,
-                CollectKind collectKind,
-                std::vector<std::string> vars)
-        : VariableDependencyNode(qctx, Kind::kDataCollect) {
-        collectKind_ = collectKind;
-        inputVars_.clear();
-        for (auto& var : vars) {
-            readVariable(var);
-        }
-    }
+    DataCollect(QueryContext* qctx, DCKind kind)
+        : VariableDependencyNode(qctx, Kind::kDataCollect), kind_(kind) {}
 
     void cloneMembers(const DataCollect&);
 
 private:
-    CollectKind                 collectKind_;
+    DCKind kind_;
     // using for m to n steps
-    StepClause::MToN*           mToN_{nullptr};
-    bool                        distinct_{false};
+    StepClause::MToN* mToN_{nullptr};
+    bool distinct_{false};
 };
 
 class Join : public SingleDependencyNode {

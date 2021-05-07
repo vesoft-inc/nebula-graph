@@ -372,19 +372,6 @@ protected:
 //
 class VariableDependencyNode : public PlanNode {
 public:
-    void setDepends(const PlanNode* dep) {
-        addDep(dep);
-        readVariable(dep->outputVarPtr());
-    }
-
-    std::vector<int64_t> dependIds() const {
-        std::vector<int64_t> ids(numDeps());
-        std::transform(dependencies_.begin(), dependencies_.end(), ids.begin(), [](auto& dep) {
-            return dep->id();
-        });
-        return ids;
-    }
-
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
     PlanNode* clone() const override {
@@ -396,6 +383,14 @@ protected:
 
     void cloneMembers(const VariableDependencyNode& node) {
         PlanNode::cloneMembers(node);
+    }
+
+    std::vector<int64_t> dependIds() const {
+        std::vector<int64_t> ids(numDeps());
+        std::transform(dependencies_.begin(), dependencies_.end(), ids.begin(), [](auto& dep) {
+            return dep->id();
+        });
+        return ids;
     }
 };
 

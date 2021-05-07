@@ -452,28 +452,28 @@ void Dedup::cloneMembers(const Dedup &l) {
 std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
     auto desc = VariableDependencyNode::explain();
     addDescription("inputVar", folly::toJson(util::toJson(inputVars_)), desc.get());
-    switch (collectKind_) {
-        case CollectKind::kSubgraph: {
+    switch (kind_) {
+        case DCKind::kSubgraph: {
             addDescription("kind", "SUBGRAPH", desc.get());
             break;
         }
-        case CollectKind::kRowBasedMove: {
+        case DCKind::kRowBasedMove: {
             addDescription("kind", "ROW", desc.get());
             break;
         }
-        case CollectKind::kMToN: {
+        case DCKind::kMToN: {
             addDescription("kind", "M TO N", desc.get());
             break;
         }
-        case CollectKind::kBFSShortest: {
+        case DCKind::kBFSShortest: {
             addDescription("kind", "BFS SHORTEST", desc.get());
             break;
         }
-        case CollectKind::kAllPaths: {
+        case DCKind::kAllPaths: {
             addDescription("kind", "ALL PATHS", desc.get());
             break;
         }
-        case CollectKind::kMultiplePairShortest: {
+        case DCKind::kMultiplePairShortest: {
             addDescription("kind", "Multiple Pair Shortest", desc.get());
             break;
         }
@@ -482,14 +482,13 @@ std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
 }
 
 PlanNode* DataCollect::clone() const {
-    auto* newDataCollect = DataCollect::make(qctx_, collectKind_);
+    auto* newDataCollect = DataCollect::make(qctx_, kind_);
     newDataCollect->cloneMembers(*this);
     return newDataCollect;
 }
 
 void DataCollect::cloneMembers(const DataCollect &l) {
     VariableDependencyNode::cloneMembers(l);
-
     mToN_ = l.mToN();
     distinct_ = l.distinct();
 }

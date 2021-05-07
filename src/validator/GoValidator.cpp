@@ -382,9 +382,9 @@ Status GoValidator::buildMToNPlan() {
     } else {
         collectVars = {dedupNode->outputVar()};
     }
-    auto* dc =
-        DataCollect::make(qctx_, DataCollect::CollectKind::kMToN, collectVars);
-    dc->setDepends(loop);
+    auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kMToN);
+    dc->addDep(loop);
+    dc->setInputVars(collectVars);
     dc->setMToN(steps_.mToN);
     dc->setDistinct(distinct_);
     dc->setColNames(projectResult->colNames());

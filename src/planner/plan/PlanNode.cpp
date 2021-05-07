@@ -378,11 +378,6 @@ std::unique_ptr<PlanNodeDescription> VariableDependencyNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(desc->dependencies == nullptr);
     desc->dependencies.reset(new std::vector<int64_t>(dependIds()));
-    folly::dynamic inputVarName = folly::dynamic::object();
-    for (size_t i = 0; i < inputVars_.size(); ++i) {
-        inputVarName.insert("inputVar", inputVar(i));
-    }
-    addDescription("inputVar", folly::toJson(inputVarName), desc.get());
     return desc;
 }
 
