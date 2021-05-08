@@ -159,12 +159,6 @@ function _build_graph {
 
 # args: <version>
 function build {
-    version=$1
-    san=$2
-    ssan=$3
-    build_type=$4
-    branch=$5
-
     rm -rf ${build_dir} && mkdir -p ${build_dir}
 
     if [[ "$build_storage" == "ON" ]]; then
@@ -274,7 +268,7 @@ if [[ $package_type == "auto" ]]; then
     package
 else
     install_dir=${build_dir}/install
-    build $version $enablesanitizer $static_sanitizer $buildtype
+    build
     pushd ${storage_build_dir}
         make install -j$(nproc)
     popd
