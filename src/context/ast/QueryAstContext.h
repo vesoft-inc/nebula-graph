@@ -17,7 +17,7 @@ namespace graph {
 enum FromType {
     kInstant,
     kVariable,
-    kPipe;
+    kPipe,
 };
 
 struct Starts {
@@ -37,18 +37,21 @@ struct Over {
 };
 
 // path context
-struct PathContext {
+struct PathContext final : AstContext {
     Starts from;
     Starts to;
-    Steps steps;
+    StepClause steps;
     Over over;
 
-    bool isShortest_{false};
+    std::string fromStartVidsVar;
+    std::string toStartVidsVar;
+
+    bool isShortest{false};
     bool isWeight{false};
     bool noLoop{false};
 
     // runtime
-    PlanNode* loopDepTail{nullptr};
+    PlanNode* fromProjectStartVid{nullptr};
     PlanNode* toProjectStartVid{nullptr};
     PlanNode* fromDedupStartVid{nullptr};
     PlanNode* toDedupStartVid{nullptr};

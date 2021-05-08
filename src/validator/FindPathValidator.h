@@ -49,6 +49,10 @@ private:
                                          const std::string& inputVar,
                                          const std::string& outputVar);
 
+    AstContext* getAstContext() override {
+        return pathCtx_.get();
+    }
+
 private:
     bool isShortest_{false};
     bool isWeight_{false};
@@ -62,6 +66,8 @@ private:
     PlanNode* toProjectStartVid_{nullptr};
     PlanNode* fromDedupStartVid_{nullptr};
     PlanNode* toDedupStartVid_{nullptr};
+
+    std::unique_ptr<PathContext> pathCtx_;
 };
 }  // namespace graph
 }  // namespace nebula
