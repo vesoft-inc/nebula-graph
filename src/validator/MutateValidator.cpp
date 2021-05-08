@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 vesoft inc. All rights reserved.
+/* Copyright (c) 2021 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -16,18 +16,9 @@ namespace graph {
 
 Status InsertVerticesValidator::validateImpl() {
     spaceId_ = vctx_->whichSpace().id;
-    auto status = Status::OK();
-    do {
-        status = check();
-        if (!status.ok()) {
-            break;
-        }
-        status = prepareVertices();
-        if (!status.ok()) {
-            break;
-        }
-    } while (false);
-    return status;
+    NG_RETURN_IF_ERROR(check());
+    NG_RETURN_IF_ERROR(prepareVertices());
+    return Status::OK();
 }
 
 Status InsertVerticesValidator::toPlan() {
@@ -36,7 +27,7 @@ Status InsertVerticesValidator::toPlan() {
                                        spaceId_,
                                        std::move(vertices_),
                                        std::move(tagPropNames_),
-                                       overwritable_);
+                                       ifNotExists_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -44,13 +35,13 @@ Status InsertVerticesValidator::toPlan() {
 
 Status InsertVerticesValidator::check() {
     auto sentence = static_cast<InsertVerticesSentence*>(sentence_);
+    ifNotExists_ = sentence->isIfNotExists();
     rows_ = sentence->rows();
     if (rows_.empty()) {
         return Status::SemanticError("VALUES cannot be empty");
     }
 
     auto tagItems = sentence->tagItems();
-    overwritable_ = sentence->overwritable();
 
     schemas_.reserve(tagItems.size());
 
@@ -70,15 +61,23 @@ Status InsertVerticesValidator::check() {
         }
 
         std::vector<std::string> names;
-        auto props = item->properties();
-        // Check prop name is in schema
-        for (auto *it : props) {
-            if (schema->getFieldIndex(*it) < 0) {
-                LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-                return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+        if (item->isDefaultPropNames()) {
+            propSize_ = schema->getNumFields();
+            for (size_t i = 0; i < propSize_; ++i) {
+                const char* propName = schema->getFieldName(i);
+                names.emplace_back(propName);
             }
-            propSize_++;
-            names.emplace_back(*it);
+        } else {
+            auto props = item->properties();
+            // Check prop name is in schema
+            for (auto *it : props) {
+                if (schema->getFieldIndex(*it) < 0) {
+                    LOG(ERROR) << "Unknown column `" << *it << "' in schema";
+                    return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+                }
+                propSize_++;
+                names.emplace_back(*it);
+            }
         }
         tagPropNames_[tagId] = names;
         schemas_.emplace_back(tagId, schema);
@@ -147,13 +146,15 @@ Status InsertEdgesValidator::validateImpl() {
 }
 
 Status InsertEdgesValidator::toPlan() {
-    auto useChainInsert = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useChainInsert = isoLevel == IsoLevel::TOSS;
     auto doNode = InsertEdges::make(qctx_,
                                     nullptr,
                                     spaceId_,
                                     std::move(edges_),
                                     std::move(propNames_),
-                                    overwritable_,
+                                    ifNotExists_,
                                     useChainInsert);
     root_ = doNode;
     tail_ = root_;
@@ -162,7 +163,7 @@ Status InsertEdgesValidator::toPlan() {
 
 Status InsertEdgesValidator::check() {
     auto sentence = static_cast<InsertEdgesSentence*>(sentence_);
-    overwritable_ = sentence->overwritable();
+    ifNotExists_ = sentence->isIfNotExists();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, *sentence->edge());
     NG_RETURN_IF_ERROR(edgeStatus);
     edgeType_ = edgeStatus.value();
@@ -175,20 +176,29 @@ Status InsertEdgesValidator::check() {
         return Status::SemanticError("No schema found for `%s'", sentence->edge()->c_str());
     }
 
-    // Check prop name is in schema
-    for (auto *it : props) {
-        if (schema_->getFieldIndex(*it) < 0) {
-            LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-            return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+    if (sentence->isDefaultPropNames()) {
+        size_t propNums = schema_->getNumFields();
+        for (size_t i = 0; i < propNums; ++i) {
+            const char* propName = schema_->getFieldName(i);
+            propNames_.emplace_back(propName);
         }
-        propNames_.emplace_back(*it);
+    } else {
+        // Check prop name is in schema
+        for (auto *it : props) {
+            if (schema_->getFieldIndex(*it) < 0) {
+                LOG(ERROR) << "Unknown column `" << *it << "' in schema";
+                return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+            }
+            propNames_.emplace_back(*it);
+        }
     }
-
     return Status::OK();
 }
 
 Status InsertEdgesValidator::prepareEdges() {
-    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useToss = isoLevel == IsoLevel::TOSS;
     auto size = useToss ? rows_.size() : rows_.size() * 2;
     edges_.reserve(size);
     for (auto i = 0u; i < rows_.size(); i++) {
@@ -229,22 +239,22 @@ Status InsertEdgesValidator::prepareEdges() {
         auto valsRet = SchemaUtil::toValueVec(row->values());
         NG_RETURN_IF_ERROR(valsRet);
         auto props = std::move(valsRet).value();
-        // outbound
         storage::cpp2::NewEdge edge;
-        edge.key.set_src(srcId);
-        edge.key.set_dst(dstId);
-        edge.key.set_ranking(rank);
-        edge.key.set_edge_type(edgeType_);
-        edge.set_props(std::move(props));
-        edge.__isset.key = true;
-        edge.__isset.props = true;
-        edges_.emplace_back(edge);
+        storage::cpp2::EdgeKey key;
 
+        key.set_src(srcId);
+        key.set_dst(dstId);
+        key.set_edge_type(edgeType_);
+        key.set_ranking(rank);
+        edge.set_key(key);
+        edge.set_props(std::move(props));
+        edges_.emplace_back(edge);
         if (!useToss) {
             // inbound
-            edge.key.set_src(dstId);
-            edge.key.set_dst(srcId);
-            edge.key.set_edge_type(-edgeType_);
+            key.set_src(dstId);
+            key.set_dst(srcId);
+            key.set_edge_type(-edgeType_);
+            edge.set_key(key);
             edges_.emplace_back(std::move(edge));
         }
     }
@@ -259,10 +269,10 @@ Status DeleteVerticesValidator::validateImpl() {
         vidRef_ = sentence->vertices()->ref();
         auto type = deduceExprType(vidRef_);
         NG_RETURN_IF_ERROR(type);
-        if (type.value() != Value::Type::STRING) {
+        if (type.value() != vidType_) {
             std::stringstream ss;
-            ss << "The vid should be string type, "
-               << "but input is `" << type.value() << "'";
+            ss << "The vid `" << vidRef_->toString() << "' should be type of `" << vidType_
+               << "', but was`" << type.value() << "'";
             return Status::SemanticError(ss.str());
         }
     } else {
@@ -330,10 +340,10 @@ Status DeleteVerticesValidator::toPlan() {
 
         storage::cpp2::EdgeProp edgeProp;
         edgeProp.set_type(edgeTypes_[index]);
-        edgeProp.props.emplace_back(kSrc);
-        edgeProp.props.emplace_back(kDst);
-        edgeProp.props.emplace_back(kType);
-        edgeProp.props.emplace_back(kRank);
+        edgeProp.props_ref().value().emplace_back(kSrc);
+        edgeProp.props_ref().value().emplace_back(kDst);
+        edgeProp.props_ref().value().emplace_back(kType);
+        edgeProp.props_ref().value().emplace_back(kRank);
         edgeProps.emplace_back(edgeProp);
 
         edgeProp.set_type(-edgeTypes_[index]);
@@ -683,7 +693,9 @@ Status UpdateEdgeValidator::toPlan() {
                                      {},
                                      condition_,
                                      {});
-    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useToss = isoLevel == IsoLevel::TOSS;
     if (useToss) {
         root_ = outNode;
         tail_ = root_;

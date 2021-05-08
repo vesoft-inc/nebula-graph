@@ -308,6 +308,29 @@ Feature: Go Sentence
       | "Marc Gasol"  | EMPTY       | EMPTY         |
     When executing query:
       """
+      GO FROM "Paul Gasol" OVER *
+      WHERE $$.player.name IS NOT EMPTY
+      YIELD like._dst
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst     |
+      | "Kobe Bryant" |
+      | "Marc Gasol"  |
+    When executing query:
+      """
+      GO FROM "Paul Gasol" OVER *
+      WHERE $$.player.name IS EMPTY
+      YIELD like._dst
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+      | EMPTY     |
+      | EMPTY     |
+      | EMPTY     |
+      | EMPTY     |
+      | EMPTY     |
+    When executing query:
+      """
       GO FROM "Manu Ginobili" OVER * REVERSELY YIELD like.likeness, teammate.start_year, serve.start_year, $$.player.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -348,7 +371,7 @@ Feature: Go Sentence
       """
       YIELD serve.start_year, like.likeness, serve._type, like._type
       """
-    Then a SemanticError should be raised at runtime: Not supported expression `serve.start_year' for props deduction.
+    Then a SemanticError should be raised at runtime: Invalid label identifiers: serve
     When executing query:
       """
       GO FROM "Russell Westbrook" OVER serve, like REVERSELY

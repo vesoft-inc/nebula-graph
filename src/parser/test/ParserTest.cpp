@@ -898,7 +898,7 @@ TEST(Parser, InsertEdge) {
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
-        std::string query = "INSERT EDGE NO OVERWRITE transfer(amount, time_) "
+        std::string query = "INSERT EDGE IF NOT EXISTS transfer(amount, time_) "
                             "VALUES \"-12345\"->\"54321\":(3.75, 1537408527)";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
@@ -910,14 +910,14 @@ TEST(Parser, InsertEdge) {
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
-        std::string query = "INSERT EDGE NO OVERWRITE transfer(amount, time_) "
+        std::string query = "INSERT EDGE IF NOT EXISTS transfer(amount, time_) "
                             "VALUES \"12345\"->\"54321@1537408527\":(3.75, 1537408527)";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     // Test insert empty value
     {
-        std::string query = "INSERT EDGE NO OVERWRITE transfer() "
+        std::string query = "INSERT EDGE IF NOT EXISTS transfer() "
                             "VALUES \"12345\"->\"54321@1537408527\":()";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
@@ -2441,6 +2441,17 @@ TEST(Parser, Match) {
         std::string query = "UNWIND a AS b MATCH (c) MATCH (d) WITH e MATCH (f) RETURN b,c,d";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
+    }
+}
+
+TEST(Parser, MatchErrorCheck) {
+    {
+        std::string query = "MATCH (v:player) WHERE count(v)>1 RETURN v";
+        auto result = parse(query);
+        ASSERT_FALSE(result.ok());
+        auto error = "SyntaxError: Invalid use of aggregating "
+            "function in this context. near `WHERE count(v)>1'";
+        ASSERT_EQ(error, result.status().toString());
     }
 }
 

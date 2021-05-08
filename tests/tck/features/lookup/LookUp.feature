@@ -270,19 +270,19 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | VertexID |
-    # FIXME(aiee): should not contains vid 220
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 > 100.5
+      LOOKUP ON lookup_tag_2
+      WHERE lookup_tag_2.col3 > 100.5
+      YIELD lookup_tag_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | VertexID |
-      | "220"    |
-      | "221"    |
-      | "222"    |
-      | "223"    |
-      | "224"    |
-      | "225"    |
+      | VertexID | col3  |
+      | "221"    | 200.5 |
+      | "222"    | 300.5 |
+      | "223"    | 400.5 |
+      | "224"    | 500.5 |
+      | "225"    | 600.5 |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5
@@ -296,15 +296,17 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | VertexID |
-    # FIXME(aiee): should contain vid 222
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 >= 100.5 AND lookup_tag_2.col3 <= 300.5
+      LOOKUP ON lookup_tag_2
+      WHERE lookup_tag_2.col3 >= 100.5 AND lookup_tag_2.col3 <= 300.5
+      YIELD lookup_tag_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | VertexID |
-      | "220"    |
-      | "221"    |
+      | VertexID | col3  |
+      | "220"    | 100.5 |
+      | "221"    | 200.5 |
+      | "222"    | 300.5 |
     Then drop the used space
 
   Scenario: LookupTest EdgeConditionScan
@@ -413,18 +415,18 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
-    # FIXME(aiee): shouble not contain first line
     When executing query:
       """
-      LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 > 100.5
+      LOOKUP ON lookup_edge_2
+      WHERE lookup_edge_2.col3 > 100.5
+      YIELD lookup_edge_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-      | "220"  | "221"  | 0       |
-      | "220"  | "222"  | 0       |
-      | "220"  | "223"  | 0       |
-      | "220"  | "224"  | 0       |
-      | "220"  | "225"  | 0       |
+      | SrcVID | DstVID | Ranking | col3  |
+      | "220"  | "222"  | 0       | 200.5 |
+      | "220"  | "223"  | 0       | 300.5 |
+      | "220"  | "224"  | 0       | 400.5 |
+      | "220"  | "225"  | 0       | 500.5 |
     When executing query:
       """
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 == 100.5
@@ -438,16 +440,17 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
-    # FIXME(aiee): should contain edge 200->223
     When executing query:
       """
-      LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col3 >= 100.5
-      AND lookup_edge_2.col3 <= 300.5
+      LOOKUP ON lookup_edge_2
+      WHERE lookup_edge_2.col3 >= 100.5 AND lookup_edge_2.col3 <= 300.5
+      YIELD lookup_edge_2.col3 AS col3
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-      | "220"  | "221"  | 0       |
-      | "220"  | "222"  | 0       |
+      | SrcVID | DstVID | Ranking | col3  |
+      | "220"  | "221"  | 0       | 100.5 |
+      | "220"  | "222"  | 0       | 200.5 |
+      | "220"  | "223"  | 0       | 300.5 |
     Then drop the used space
 
   Scenario: LookupTest FunctionExprTest
@@ -557,12 +560,6 @@ Feature: LookUpTest_Vid_String
     # When executing query:
     # """
     # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "HelLo")
-    # """
-    # Then the result should be, in any order:
-    # | VertexID |
-    # When executing query:
-    # """
-    # LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "hello")
     # """
     # Then the result should be, in any order:
     # | VertexID |
@@ -874,4 +871,169 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | VertexID |
+    Then drop the used space
+
+  Scenario: LookupTest from pytest
+    Given having executed:
+      """
+      CREATE EDGE like(likeness int);
+      CREATE EDGE serve(start_year int, end_year int);
+      CREATE EDGE INDEX serve_index_1 on serve(start_year);
+      CREATE EDGE INDEX serve_index_2 on serve(end_year);
+      CREATE EDGE INDEX serve_index_3 on serve(start_year,end_year);
+      CREATE EDGE INDEX like_index_1 on like(likeness);
+      CREATE TAG player (name FIXED_STRING(30), age INT);
+      CREATE TAG team (name FIXED_STRING(30));
+      CREATE TAG INDEX player_index_1 on player(name);
+      CREATE TAG INDEX player_index_2 on player(age);
+      CREATE TAG INDEX player_index_3 on player(name,age);
+      CREATE TAG INDEX team_index_1 on team(name);
+      """
+    And wait 4 seconds
+    And having executed:
+      """
+      INSERT EDGE
+        like(likeness)
+      VALUES
+        "100" -> "101":(95),
+        "101" -> "102":(95),
+        "102" -> "104":(85),
+        "102" -> "103":(85),
+        "105" -> "106":(90),
+        "106" -> "100":(75);
+      INSERT EDGE
+        serve(start_year, end_year)
+      VALUES
+        "100" -> "200":(1997, 2016),
+        "101" -> "201":(1999, 2018),
+        "102" -> "202":(1997, 2016),
+        "103" -> "203":(1999, 2018),
+        "105" -> "204":(1997, 2016),
+        "121" -> "201":(1999, 2018);
+      INSERT VERTEX
+        player(name, age)
+      VALUES
+        "100":("Tim Duncan", 42),
+        "101":("Tony Parker", 36),
+        "102":("LaMarcus Aldridge", 33),
+        "103":("xxx", 35),
+        "104":("yyy", 28),
+        "105":("zzz", 21),
+        "106":("kkk", 21),
+        "121":("Useless", 60),
+        "121":("Useless", 20);
+        INSERT VERTEX
+          team(name)
+        VALUES
+          "200":("Warriors"),
+          "201":("Nuggets"),
+          "202":("oopp"),
+          "203":("iiiooo"),
+          "204":("opl");
+      """
+    When executing query:
+      """
+      LOOKUP ON serve where serve.start_year > 0
+      """
+    Then the result should be, in any order:
+      | SrcVID | DstVID | Ranking |
+      | '100'  | '200'  | 0       |
+      | '101'  | '201'  | 0       |
+      | '102'  | '202'  | 0       |
+      | '103'  | '203'  | 0       |
+      | '105'  | '204'  | 0       |
+      | '121'  | '201'  | 0       |
+    When executing query:
+      """
+      LOOKUP ON serve where serve.start_year > 1997 and serve.end_year < 2020
+      """
+    Then the result should be, in any order:
+      | SrcVID | DstVID | Ranking |
+      | '101'  | '201'  | 0       |
+      | '103'  | '203'  | 0       |
+      | '121'  | '201'  | 0       |
+    When executing query:
+      """
+      LOOKUP ON serve where serve.start_year > 2000 and serve.end_year < 2020
+      """
+    Then the result should be, in any order:
+      | SrcVID | DstVID | Ranking |
+    When executing query:
+      """
+      LOOKUP ON like where like.likeness > 89
+      """
+    Then the result should be, in any order:
+      | SrcVID | DstVID | Ranking |
+      | '100'  | '101'  | 0       |
+      | '101'  | '102'  | 0       |
+      | '105'  | '106'  | 0       |
+    When executing query:
+      """
+      LOOKUP ON like where like.likeness < 39
+      """
+    Then the result should be, in any order:
+      | SrcVID | DstVID | Ranking |
+    When executing query:
+      """
+      LOOKUP ON player where player.age == 35
+      """
+    Then the result should be, in any order:
+      | VertexID |
+      | '103'    |
+    When executing query:
+      """
+      LOOKUP ON player where player.age > 0
+      """
+    Then the result should be, in any order:
+      | VertexID |
+      | '100'    |
+      | '101'    |
+      | '102'    |
+      | '103'    |
+      | '104'    |
+      | '105'    |
+      | '106'    |
+      | '121'    |
+    When executing query:
+      """
+      LOOKUP ON player where player.age < 100
+      """
+    Then the result should be, in any order:
+      | VertexID |
+      | '100'    |
+      | '101'    |
+      | '102'    |
+      | '103'    |
+      | '104'    |
+      | '105'    |
+      | '106'    |
+      | '121'    |
+    When executing query:
+      """
+      LOOKUP ON player where player.name == "Useless"
+      """
+    Then the result should be, in any order:
+      | VertexID |
+      | '121'    |
+    When executing query:
+      """
+      LOOKUP ON player where player.name == "Useless" and player.age < 30
+      """
+    Then the result should be, in any order:
+      | VertexID |
+      | '121'    |
+    When executing query:
+      """
+      LOOKUP ON team where team.name == "Warriors"
+      """
+    Then the result should be, in any order:
+      | VertexID |
+      | '200'    |
+    When executing query:
+      """
+      LOOKUP ON team where team.name == "oopp"
+      """
+    Then the result should be, in any order:
+      | VertexID |
+      | '202'    |
     Then drop the used space

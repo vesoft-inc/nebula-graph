@@ -12,6 +12,8 @@ nebula_add_library(
     OptRule.cpp
     OptContext.cpp
     rule/PushFilterDownGetNbrsRule.cpp
+    rule/RemoveNoopProjectRule.cpp
+    rule/CombineFilterRule.cpp
     rule/MergeGetVerticesAndDedupRule.cpp
     rule/MergeGetVerticesAndProjectRule.cpp
     rule/MergeGetNbrsAndDedupRule.cpp
@@ -19,6 +21,7 @@ nebula_add_library(
     rule/IndexScanRule.cpp
     rule/LimitPushDownRule.cpp
     rule/TopNRule.cpp
+    rule/PushFilterDownAggregateRule.cpp
 )
 
 nebula_add_subdirectory(test)

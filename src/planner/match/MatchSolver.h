@@ -11,7 +11,7 @@
 #include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/LabelExpression.h"
 #include "context/QueryContext.h"
-#include "context/ast/QueryAstContext.h"
+#include "context/ast/CypherAstContext.h"
 #include "planner/Planner.h"
 
 namespace nebula {
@@ -24,25 +24,25 @@ public:
     MatchSolver() = delete;
     ~MatchSolver() = delete;
 
-    // static Status buildReturn(MatchAstContext* matchCtx, SubPlan& subPlan);
+    static Expression* rewriteLabel2Vertex(const Expression* expr);
 
-    static Expression* rewrite(const LabelExpression* label);
+    static Expression* rewriteLabel2Edge(const Expression* expr);
 
-    static Expression* rewrite(const LabelAttributeExpression* la);
+    static Expression* rewriteLabel2VarProp(const Expression* expr);
 
     static Expression* doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
                                  const Expression* expr);
 
     static Expression* makeIndexFilter(const std::string& label,
                                        const MapExpression* map,
-                                       QueryContext* qctx);
+                                       QueryContext* qctx,
+                                       bool isEdgeProperties = false);
 
     static Expression* makeIndexFilter(const std::string& label,
                                        const std::string& alias,
                                        Expression* filter,
-                                       QueryContext* qctx);
-
-    static Status buildFilter(const MatchClauseContext* mctx, SubPlan* plan);
+                                       QueryContext* qctx,
+                                       bool isEdgeProperties = false);
 
     static void extractAndDedupVidColumn(QueryContext* qctx,
                                          Expression* initialExpr,
@@ -50,8 +50,7 @@ public:
                                          const std::string& inputVar,
                                          SubPlan& plan);
 
-    static Expression* initialExprOrEdgeDstExpr(Expression* initialExpr,
-                                                const std::string& vidCol);
+    static Expression* initialExprOrEdgeDstExpr(Expression* initialExpr, const std::string& vidCol);
 
     static Expression* getEndVidInPath(const std::string& colName);
 
@@ -81,6 +80,6 @@ public:
                                                                         const SpaceInfo& space);
 };
 
-}  // namespace graph
-}  // namespace nebula
-#endif  // PLANNER_MATCHSOLVER_H_
+}   // namespace graph
+}   // namespace nebula
+#endif   // PLANNER_MATCHSOLVER_H_

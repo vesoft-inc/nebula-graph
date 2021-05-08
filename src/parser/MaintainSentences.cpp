@@ -4,14 +4,14 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include <string>
+#include <thrift/lib/cpp/util/EnumUtils.h>
 #include "common/base/Base.h"
 #include "parser/MaintainSentences.h"
 
 namespace nebula {
 
 std::ostream& operator<<(std::ostream& os, meta::cpp2::PropertyType type) {
-    os << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(type);
+    os << apache::thrift::util::enumNameSafe(type);
     return os;
 }
 
@@ -23,9 +23,11 @@ std::string SchemaPropItem::toString() const {
         case TTL_COL:
             return folly::stringPrintf("ttl_col = \"%s\"",
                                        boost::get<std::string>(propValue_).c_str());
-        default:
-            FLOG_FATAL("Schema property type illegal");
+        case COMMENT:
+            return folly::stringPrintf("comment = \"%s\"",
+                                       boost::get<std::string>(propValue_).c_str());
     }
+    DLOG(FATAL)<< "Schema property type illegal";
     return "Unknown";
 }
 
@@ -44,6 +46,22 @@ std::string SchemaPropItem::toString() const {
     return buf;
 }
 
+std::string ColumnProperty::toString() const {
+    std::stringstream str;
+    if (isNullable()) {
+        if (nullable()) {
+            str << "NULL";
+        } else {
+            str << "NOT NULL";
+        }
+    } else if (isDefaultValue()) {
+        str << "DEFAULT " << DCHECK_NOTNULL(defaultValue())->toString();
+    } else if (isComment()) {
+        str << "COMMENT '" << *DCHECK_NOTNULL(comment()) << "'";
+    }
+    return str.str();
+}
+
 std::string ColumnSpecification::toString() const {
     std::string buf;
     buf.reserve(128);
@@ -55,17 +73,10 @@ std::string ColumnSpecification::toString() const {
         buf += std::to_string(typeLen_);
         buf += ")";
     } else {
-        buf += meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(type_);
+        buf += apache::thrift::util::enumNameSafe(type_);
     }
-    if (isNull_) {
-        buf += " NULL";
-    } else {
-        buf += " NOT NULL";
-    }
-    if (defaultValue_ != nullptr) {
-        buf += " DEFAULT ";
-        buf += defaultValue_->toString();
-    }
+    buf += " ";
+    buf += properties_->toString();
     return buf;
 }
 
@@ -87,6 +98,9 @@ std::string CreateTagSentence::toString() const {
     std::string buf;
     buf.reserve(256);
     buf += "CREATE TAG ";
+    if (isIfNotExist()) {
+        buf += "IF NOT EXISTS ";
+    }
     buf += "`";
     buf += *name_;
     buf += "` (";
@@ -103,6 +117,9 @@ std::string CreateEdgeSentence::toString() const {
     std::string buf;
     buf.reserve(256);
     buf += "CREATE EDGE ";
+    if (isIfNotExist()) {
+        buf += "IF NOT EXISTS ";
+    }
     buf += "`";
     buf += *name_;
     buf += "` (";
@@ -242,8 +259,8 @@ std::string CreateTagIndexSentence::toString() const {
     std::vector<std::string> fieldDefs;
     for (const auto& field : this->fields()) {
         std::string f = field.get_name();
-        if (field.__isset.type_length) {
-            f += "(" + std::to_string(*field.get_type_length()) + ")";
+        if (field.type_length_ref().has_value()) {
+            f += "(" + std::to_string(*field.type_length_ref()) + ")";
         }
         fieldDefs.emplace_back(std::move(f));
     }
@@ -251,6 +268,10 @@ std::string CreateTagIndexSentence::toString() const {
     folly::join(", ", fieldDefs, fields);
     buf += fields;
     buf += ")";
+    if (comment_ != nullptr) {
+        buf += "COMMENT = ";
+        buf += *comment_;
+    }
     return buf;
 }
 
@@ -269,8 +290,8 @@ std::string CreateEdgeIndexSentence::toString() const {
     std::vector<std::string> fieldDefs;
     for (const auto& field : this->fields()) {
         std::string f = field.get_name();
-        if (field.__isset.type_length) {
-            f += "(" + std::to_string(*field.get_type_length()) + ")";
+        if (field.type_length_ref().has_value()) {
+            f += "(" + std::to_string(*field.type_length_ref()) + ")";
         }
         fieldDefs.emplace_back(std::move(f));
     }
@@ -278,6 +299,10 @@ std::string CreateEdgeIndexSentence::toString() const {
     folly::join(", ", fieldDefs, fields);
     buf += fields;
     buf += ")";
+    if (comment_ != nullptr) {
+        buf += "COMMENT = ";
+        buf += *comment_;
+    }
     return buf;
 }
 

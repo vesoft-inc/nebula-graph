@@ -7,8 +7,7 @@
 #ifndef PLANNER_EXECUTIONPLAN_H_
 #define PLANNER_EXECUTIONPLAN_H_
 
-#include <cstdint>
-#include <memory>
+#include <string>
 
 namespace nebula {
 
@@ -50,6 +49,10 @@ public:
     }
 
 private:
+    uint64_t makePlanNodeDesc(const PlanNode* node);
+    void descBranchInfo(const PlanNode* node, bool isDoBranch, int64_t id);
+    void setPlanNodeDeps(const PlanNode* dep, PlanNodeDescription* planNodeDesc) const;
+
     int32_t optimizeTimeInUs_{0};
     int64_t id_{-1};
     PlanNode* root_{nullptr};

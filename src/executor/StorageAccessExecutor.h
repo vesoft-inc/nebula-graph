@@ -7,6 +7,7 @@
 #ifndef EXECUTOR_STORAGEACCESSEXECUTOR_H_
 #define EXECUTOR_STORAGEACCESSEXECUTOR_H_
 
+#include <thrift/lib/cpp/util/EnumUtils.h>
 #include "common/clients/storage/StorageClientBase.h"
 #include "context/QueryContext.h"
 #include "executor/Executor.h"
@@ -40,7 +41,7 @@ protected:
             const auto &failedCodes = rpcResp.failedParts();
             for (auto it = failedCodes.begin(); it != failedCodes.end(); it++) {
                 LOG(ERROR) << name_ << " failed, error "
-                           << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second) << ", part "
+                           << apache::thrift::util::enumNameSafe(it->second) << ", part "
                            << it->first;
             }
             // cannot execute at all, or partial success is not accepted
@@ -109,12 +110,15 @@ protected:
                 return Status::Error("Storage Error: Out of range value.");
             case storage::cpp2::ErrorCode::E_ATOMIC_OP_FAILED:
                 return Status::Error("Storage Error: Atomic operation failed.");
+            case storage::cpp2::ErrorCode::E_DATA_CONFLICT_ERROR:
+                return Status::Error("Storage Error: More than one request trying to "
+                                     "add/update/delete one edge/vertex at the same time.");
             case storage::cpp2::ErrorCode::E_FILTER_OUT:
                 return Status::OK();
             default:
                 auto status = Status::Error("Storage Error: part: %d, error: %s(%d).",
                                             partId,
-                                            storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(code),
+                                            apache::thrift::util::enumNameSafe(code).c_str(),
                                             static_cast<int32_t>(code));
                 LOG(ERROR) << status;
                 return status;

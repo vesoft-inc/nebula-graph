@@ -7,7 +7,6 @@
 #ifndef PLANNER_QUERY_H_
 #define PLANNER_QUERY_H_
 
-#include "common/base/Base.h"
 #include "common/expression/AggregateExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "context/QueryContext.h"
@@ -89,16 +88,9 @@ protected:
     Explore(QueryContext* qctx, Kind kind, PlanNode* input, GraphSpaceID space)
         : SingleInputNode(qctx, kind, input), space_(space) {}
 
-protected:
-    void clone(const Explore& e) {
-        SingleInputNode::clone(e);
-        space_ = e.space_;
-        dedup_ = e.dedup_;
-        limit_ = e.limit_;
-        filter_ = e.filter_;
-        orderBy_ = e.orderBy_;
-    }
+    void cloneMembers(const Explore&);
 
+protected:
     GraphSpaceID space_;
     bool dedup_{false};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
@@ -150,10 +142,6 @@ public:
         gn->setFilter(std::move(filter));
         return gn;
     }
-
-    std::unique_ptr<PlanNodeDescription> explain() const override;
-
-    GetNeighbors* clone(QueryContext* qctx) const;
 
     Expression* src() const {
         return src_;
@@ -219,6 +207,10 @@ public:
         random_ = random;
     }
 
+
+    PlanNode* clone() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
 private:
     GetNeighbors(QueryContext* qctx, PlanNode* input, GraphSpaceID space)
         : Explore(qctx, Kind::kGetNeighbors, input, space) {
@@ -226,7 +218,7 @@ private:
     }
 
 private:
-    void clone(const GetNeighbors& g);
+    void cloneMembers(const GetNeighbors&);
 
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
@@ -246,9 +238,9 @@ public:
     static GetVertices* make(QueryContext* qctx,
                              PlanNode* input,
                              GraphSpaceID space,
-                             Expression* src,
-                             std::vector<storage::cpp2::VertexProp> props,
-                             std::vector<storage::cpp2::Expr>       exprs,
+                             Expression* src = nullptr,
+                             std::vector<storage::cpp2::VertexProp> props = {},
+                             std::vector<storage::cpp2::Expr>       exprs = {},
                              bool dedup = false,
                              std::vector<storage::cpp2::OrderBy> orderBy = {},
                              int64_t limit = std::numeric_limits<int64_t>::max(),
@@ -266,8 +258,6 @@ public:
                 std::move(filter)));
     }
 
-    std::unique_ptr<PlanNodeDescription> explain() const override;
-
     Expression* src() const {
         return src_;
     }
@@ -284,11 +274,11 @@ public:
         return exprs_;
     }
 
-    GetVertices* clone() const;
+
+    PlanNode* clone() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
-    using Explore::clone;
-
     GetVertices(QueryContext* qctx,
                 PlanNode* input,
                 GraphSpaceID space,
@@ -311,6 +301,8 @@ private:
           props_(std::move(props)),
           exprs_(std::move(exprs)) { }
 
+    void cloneMembers(const GetVertices&);
+
 private:
     // vertices may be parsing from runtime.
     Expression*                              src_{nullptr};
@@ -328,12 +320,12 @@ public:
     static GetEdges* make(QueryContext* qctx,
                           PlanNode* input,
                           GraphSpaceID space,
-                          Expression* src,
-                          Expression* type,
-                          Expression* ranking,
-                          Expression* dst,
-                          std::vector<storage::cpp2::EdgeProp> props,
-                          std::vector<storage::cpp2::Expr> exprs,
+                          Expression* src = nullptr,
+                          Expression* type = nullptr,
+                          Expression* ranking = nullptr,
+                          Expression* dst = nullptr,
+                          std::vector<storage::cpp2::EdgeProp> props = {},
+                          std::vector<storage::cpp2::Expr> exprs = {},
                           bool dedup = false,
                           int64_t limit = std::numeric_limits<int64_t>::max(),
                           std::vector<storage::cpp2::OrderBy> orderBy = {},
@@ -353,8 +345,6 @@ public:
                 std::move(orderBy),
                 std::move(filter)));
     }
-
-    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
@@ -379,6 +369,9 @@ public:
     const std::vector<storage::cpp2::Expr>& exprs() const {
         return exprs_;
     }
+
+    PlanNode* clone() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     GetEdges(QueryContext* qctx,
@@ -409,6 +402,8 @@ private:
           props_(std::move(props)),
           exprs_(std::move(exprs)) { }
 
+    void cloneMembers(const GetEdges&);
+
 private:
     // edges_ may be parsed from runtime.
     Expression*                              src_{nullptr};
@@ -431,11 +426,11 @@ public:
 
     static IndexScan* make(QueryContext* qctx,
                            PlanNode* input,
-                           GraphSpaceID space,
-                           IndexQueryCtx&& contexts,
-                           IndexReturnCols&& returnCols,
-                           bool isEdge,
-                           int32_t schemaId,
+                           GraphSpaceID space = -1,  //  TBD: -1 is inValid spaceID?
+                           IndexQueryCtx&& contexts = nullptr,
+                           IndexReturnCols&& returnCols = nullptr,
+                           bool isEdge = false,
+                           int32_t schemaId = -1,
                            bool isEmptyResultSet = false,
                            bool dedup = false,
                            std::vector<storage::cpp2::OrderBy> orderBy = {},
@@ -454,10 +449,6 @@ public:
                                                   limit,
                                                   std::move(filter)));
     }
-
-    std::unique_ptr<PlanNodeDescription> explain() const override;
-
-    IndexScan* clone(QueryContext* qctx) const;
 
     const std::vector<storage::cpp2::IndexQueryContext>* queryContext() const {
         return contexts_.get();
@@ -495,6 +486,9 @@ public:
         schemaId_ = schema;
     }
 
+    PlanNode* clone() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
 private:
     IndexScan(QueryContext* qctx,
               PlanNode* input,
@@ -523,7 +517,7 @@ private:
         isEmptyResultSet_ = isEmptyResultSet;
     }
 
-    void clone(const IndexScan &g);
+    void cloneMembers(const IndexScan&);
 
 private:
     IndexQueryCtx                                 contexts_;
@@ -540,7 +534,7 @@ class Filter final : public SingleInputNode {
 public:
     static Filter* make(QueryContext* qctx,
                         PlanNode* input,
-                        Expression* condition,
+                        Expression* condition = nullptr,
                         bool      needStableFilter = false) {
         return qctx->objPool()->add(new Filter(qctx, input, condition, needStableFilter));
     }
@@ -549,10 +543,15 @@ public:
         return condition_;
     }
 
+    void setCondition(Expression* condition) {
+        condition_ = condition;
+    }
+
     bool needStableFilter() const {
         return needStableFilter_;
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -561,6 +560,8 @@ private:
         condition_ = condition;
         needStableFilter_ = needStableFilter;
     }
+
+    void cloneMembers(const Filter&);
 
 private:
     // Remain result when true
@@ -574,12 +575,14 @@ private:
  *   INTERSECT,
  *   MINUS
  */
-class SetOp : public BiInputNode {
+class SetOp : public BinaryInputNode {
 protected:
     SetOp(QueryContext* qctx, Kind kind, PlanNode* left, PlanNode* right)
-        : BiInputNode(qctx, kind, left, right) {
+        : BinaryInputNode(qctx, kind, left, right) {
         DCHECK(kind == Kind::kUnion || kind == Kind::kIntersect || kind == Kind::kMinus);
     }
+
+    void cloneMembers(const SetOp&);
 };
 
 /**
@@ -591,9 +594,13 @@ public:
         return qctx->objPool()->add(new Union(qctx, left, right));
     }
 
+    PlanNode* clone() const override;
+
 private:
     Union(QueryContext* qctx, PlanNode* left, PlanNode* right)
         : SetOp(qctx, Kind::kUnion, left, right) {}
+
+    void cloneMembers(const Union&);
 };
 
 /**
@@ -605,9 +612,13 @@ public:
         return qctx->objPool()->add(new Intersect(qctx, left, right));
     }
 
+    PlanNode* clone() const override;
+
 private:
     Intersect(QueryContext* qctx, PlanNode* left, PlanNode* right)
         : SetOp(qctx, Kind::kIntersect, left, right) {}
+
+    void cloneMembers(const Intersect&);
 };
 
 /**
@@ -619,9 +630,13 @@ public:
         return qctx->objPool()->add(new Minus(qctx, left, right));
     }
 
+    PlanNode* clone() const override;
+
 private:
     Minus(QueryContext* qctx, PlanNode* left, PlanNode* right)
         : SetOp(qctx, Kind::kMinus, left, right) {}
+
+    void cloneMembers(const Minus&);
 };
 
 /**
@@ -631,23 +646,22 @@ class Project final : public SingleInputNode {
 public:
     static Project* make(QueryContext* qctx,
                          PlanNode* input,
-                         YieldColumns* cols) {
+                         YieldColumns* cols = nullptr) {
         return qctx->objPool()->add(new Project(qctx, input, cols));
     }
-
-    std::unique_ptr<PlanNodeDescription> explain() const override;
-
-    Project* clone(QueryContext* qctx) const;
 
     const YieldColumns* columns() const {
         return cols_;
     }
 
+    PlanNode* clone() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
 private:
     Project(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
       : SingleInputNode(qctx, Kind::kProject, input), cols_(cols) { }
 
-    void clone(const Project &p);
+    void cloneMembers(const Project&);
 
 private:
     YieldColumns*               cols_{nullptr};
@@ -655,19 +669,22 @@ private:
 
 class Unwind final : public SingleInputNode {
 public:
-    static Unwind* make(QueryContext* qctx, PlanNode* input, YieldColumns* cols) {
+    static Unwind* make(QueryContext* qctx, PlanNode* input, YieldColumns* cols = nullptr) {
         return qctx->objPool()->add(new Unwind(qctx, input, cols));
     }
-
-    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     const YieldColumns* columns() const {
         return cols_;
     }
 
+    PlanNode* clone() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
 private:
     Unwind(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
         : SingleInputNode(qctx, Kind::kUnwind, input), cols_(cols) {}
+
+    void cloneMembers(const Unwind&);
 
 private:
     YieldColumns*               cols_{nullptr};
@@ -680,7 +697,7 @@ class Sort final : public SingleInputNode {
 public:
     static Sort* make(QueryContext* qctx,
                       PlanNode* input,
-                      std::vector<std::pair<size_t, OrderFactor::OrderType>> factors) {
+                      std::vector<std::pair<size_t, OrderFactor::OrderType>> factors = {}) {
         return qctx->objPool()->add(
             new Sort(qctx, input, std::move(factors)));
     }
@@ -689,6 +706,7 @@ public:
         return factors_;
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -713,6 +731,8 @@ private:
         return result;
     }
 
+    void cloneMembers(const Sort&);
+
 private:
     std::vector<std::pair<size_t, OrderFactor::OrderType>>   factors_;
 };
@@ -722,9 +742,11 @@ private:
  */
 class Limit final : public SingleInputNode {
 public:
-    static Limit* make(QueryContext* qctx, PlanNode* input, int64_t offset, int64_t count) {
-        return qctx->objPool()->add(
-            new Limit(qctx, input, offset, count));
+    static Limit* make(QueryContext* qctx,
+                       PlanNode* input,
+                       int64_t offset = -1,
+                       int64_t count = -1) {
+        return qctx->objPool()->add(new Limit(qctx, input, offset, count));
     }
 
     int64_t offset() const {
@@ -735,9 +757,8 @@ public:
         return count_;
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
-
-    Limit* clone(QueryContext* qctx) const;
 
 private:
     Limit(QueryContext* qctx, PlanNode* input, int64_t offset, int64_t count)
@@ -746,13 +767,12 @@ private:
         count_ = count;
     }
 
-    void clone(const Limit &l);
+    void cloneMembers(const Limit&);
 
 private:
     int64_t     offset_{-1};
     int64_t     count_{-1};
 };
-
 
 /**
  * Get the Top N record set.
@@ -761,9 +781,9 @@ class TopN final : public SingleInputNode {
 public:
     static TopN* make(QueryContext* qctx,
                       PlanNode* input,
-                      std::vector<std::pair<size_t, OrderFactor::OrderType>> factors,
-                      int64_t offset,
-                      int64_t count) {
+                      std::vector<std::pair<size_t, OrderFactor::OrderType>> factors = {},
+                      int64_t offset = -1,
+                      int64_t count = -1) {
         return qctx->objPool()->add(new TopN(qctx, input, std::move(factors), offset, count));
     }
 
@@ -779,6 +799,7 @@ public:
         return count_;
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -809,6 +830,8 @@ private:
         return result;
     }
 
+    void cloneMembers(const TopN&);
+
 private:
     std::vector<std::pair<size_t, OrderFactor::OrderType>>   factors_;
     int64_t     offset_{-1};
@@ -823,8 +846,8 @@ class Aggregate final : public SingleInputNode {
 public:
     static Aggregate* make(QueryContext* qctx,
                            PlanNode* input,
-                           std::vector<Expression*>&& groupKeys,
-                           std::vector<Expression*>&& groupItems) {
+                           std::vector<Expression*>&& groupKeys = {},
+                           std::vector<Expression*>&& groupItems = {}) {
         return qctx->objPool()->add(
             new Aggregate(qctx, input, std::move(groupKeys), std::move(groupItems)));
     }
@@ -837,6 +860,7 @@ public:
         return groupItems_;
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -848,6 +872,8 @@ private:
         groupKeys_ = std::move(groupKeys);
         groupItems_ = std::move(groupItems);
     }
+
+    void cloneMembers(const Aggregate&);
 
 private:
     std::vector<Expression*>    groupKeys_;
@@ -864,6 +890,7 @@ public:
         return spaceName_;
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -871,6 +898,8 @@ private:
         : SingleInputNode(qctx, Kind::kSwitchSpace, input) {
         spaceName_ = std::move(spaceName);
     }
+
+    void cloneMembers(const SwitchSpace&);
 
 private:
     std::string     spaceName_;
@@ -883,11 +912,15 @@ public:
         return qctx->objPool()->add(new Dedup(qctx, input));
     }
 
+    PlanNode* clone() const override;
+
 private:
     Dedup(QueryContext* qctx,
           PlanNode* input)
         : SingleInputNode(qctx, Kind::kDedup, input) {
     }
+
+    void cloneMembers(const Dedup&);
 };
 
 class DataCollect final : public SingleDependencyNode {
@@ -904,7 +937,7 @@ public:
     static DataCollect* make(QueryContext* qctx,
                              PlanNode* input,
                              CollectKind collectKind,
-                             std::vector<std::string> vars) {
+                             std::vector<std::string> vars = {}) {
         return qctx->objPool()->add(
             new DataCollect(qctx, input, collectKind, std::move(vars)));
     }
@@ -937,6 +970,7 @@ public:
         return distinct_;
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -951,6 +985,8 @@ private:
             readVariable(var);
         }
     }
+
+    void cloneMembers(const DataCollect&);
 
 private:
     CollectKind                 collectKind_;
@@ -988,6 +1024,9 @@ protected:
          std::vector<Expression*> hashKeys,
          std::vector<Expression*> probeKeys);
 
+    void cloneMembers(const Join&);
+
+protected:
     // var name, var version
     std::pair<std::string, int64_t>         leftVar_;
     std::pair<std::string, int64_t>         rightVar_;
@@ -1004,8 +1043,8 @@ public:
                           PlanNode* input,
                           std::pair<std::string, int64_t> leftVar,
                           std::pair<std::string, int64_t> rightVar,
-                          std::vector<Expression*> hashKeys,
-                          std::vector<Expression*> probeKeys) {
+                          std::vector<Expression*> hashKeys = {},
+                          std::vector<Expression*> probeKeys = {}) {
         return qctx->objPool()->add(new LeftJoin(qctx,
                                                  input,
                                                  std::move(leftVar),
@@ -1014,6 +1053,7 @@ public:
                                                  std::move(probeKeys)));
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -1030,6 +1070,8 @@ private:
                std::move(rightVar),
                std::move(hashKeys),
                std::move(probeKeys)) {}
+
+    void cloneMembers(const LeftJoin&);
 };
 
 /*
@@ -1041,8 +1083,8 @@ public:
                            PlanNode* input,
                            std::pair<std::string, int64_t> leftVar,
                            std::pair<std::string, int64_t> rightVar,
-                           std::vector<Expression*> hashKeys,
-                           std::vector<Expression*> probeKeys) {
+                           std::vector<Expression*> hashKeys = {},
+                           std::vector<Expression*> probeKeys = {}) {
         return qctx->objPool()->add(new InnerJoin(qctx,
                                                   input,
                                                   std::move(leftVar),
@@ -1051,6 +1093,7 @@ public:
                                                   std::move(probeKeys)));
     }
 
+    PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -1067,6 +1110,8 @@ private:
                std::move(rightVar),
                std::move(hashKeys),
                std::move(probeKeys)) {}
+
+    void cloneMembers(const InnerJoin&);
 };
 
 /*
@@ -1082,8 +1127,6 @@ public:
         return items_;
     }
 
-    std::unique_ptr<PlanNodeDescription> explain() const override;
-
     void assignVar(std::string var, Expression* value) {
         auto* varPtr = qctx_->symTable()->getVar(var);
         DCHECK(varPtr != nullptr);
@@ -1091,8 +1134,13 @@ public:
         items_.emplace_back(std::make_pair(std::move(var), value));
     }
 
+    PlanNode* clone() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
 private:
     Assign(QueryContext* qctx, PlanNode* input) : SingleInputNode(qctx, Kind::kAssign, input) {}
+
+    void cloneMembers(const Assign&);
 
 private:
     std::vector<std::pair<std::string, std::unique_ptr<Expression>>> items_;
@@ -1107,9 +1155,14 @@ public:
     static UnionAllVersionVar* make(QueryContext* qctx, PlanNode* input) {
         return qctx->objPool()->add(new UnionAllVersionVar(qctx, input));
     }
+
+    PlanNode* clone() const override;
+
 private:
     UnionAllVersionVar(QueryContext* qctx, PlanNode* input)
         : SingleInputNode(qctx, Kind::kUnionAllVersionVar, input) {}
+
+    void cloneMembers(const UnionAllVersionVar&);
 };
 
 }  // namespace graph

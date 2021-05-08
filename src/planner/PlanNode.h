@@ -7,7 +7,6 @@
 #ifndef PLANNER_PLANNODE_H_
 #define PLANNER_PLANNODE_H_
 
-#include "common/base/Base.h"
 #include "common/expression/Expression.h"
 #include "common/graph/Response.h"
 #include "context/QueryContext.h"
@@ -144,12 +143,11 @@ public:
         kIngest,
     };
 
-    PlanNode(QueryContext* qctx, Kind kind);
-
-    virtual ~PlanNode() = default;
 
     // Describe plan node
     virtual std::unique_ptr<PlanNodeDescription> explain() const;
+
+    virtual PlanNode* clone() const = 0;
 
     virtual void calcCost();
 
@@ -165,8 +163,8 @@ public:
         return qctx_;
     }
 
-    virtual bool isSingleInput() const {
-        return false;
+    bool isSingleInput() const {
+        return numDeps() == 1U;
     }
 
     void setOutputVar(const std::string &var);
@@ -219,8 +217,12 @@ public:
         dependencies_[index] = DCHECK_NOTNULL(dep);
     }
 
-    const std::vector<const PlanNode*>& dependencies() const {
-        return dependencies_;
+    void addDep(const PlanNode* dep) {
+        dependencies_.emplace_back(dep);
+    }
+
+    size_t numDeps() const {
+        return dependencies_.size();
     }
 
     std::string inputVar(size_t idx = 0UL) const {
@@ -244,11 +246,15 @@ public:
     }
 
 protected:
+    PlanNode(QueryContext* qctx, Kind kind);
+
+    virtual ~PlanNode() = default;
+
     static void addDescription(std::string key, std::string value, PlanNodeDescription* desc);
+
     void readVariable(const std::string& varname);
     void readVariable(Variable* varPtr);
-
-    void clone(const PlanNode &node) {
+    void cloneMembers(const PlanNode &node) {
         // TODO maybe shall copy cost_ and dependencies_ too
         inputVars_ = node.inputVars_;
         outputVars_ = node.outputVars_;
@@ -275,14 +281,18 @@ public:
         setDep(0, dep);
     }
 
+    PlanNode* clone() const override {
+        LOG(FATAL) << "Shouldn't call the unimplemented method";
+    }
+
 protected:
     SingleDependencyNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
         : PlanNode(qctx, kind) {
-        dependencies_.emplace_back(dep);
+        addDep(dep);
     }
 
-    void clone(const SingleDependencyNode &node) {
-        PlanNode::clone(node);
+    void cloneMembers(const SingleDependencyNode &node) {
+        PlanNode::cloneMembers(node);
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
@@ -290,15 +300,15 @@ protected:
 
 class SingleInputNode : public SingleDependencyNode {
 public:
-    bool isSingleInput() const override {
-        return true;
-    }
-
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
+    PlanNode* clone() const override {
+        LOG(FATAL) << "Shouldn't call the unimplemented method";
+    }
+
 protected:
-    void clone(const SingleInputNode &node) {
-        SingleDependencyNode::clone(node);
+    void cloneMembers(const SingleInputNode &node) {
+        SingleDependencyNode::cloneMembers(node);
     }
 
     SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
@@ -311,7 +321,7 @@ protected:
     }
 };
 
-class BiInputNode : public PlanNode {
+class BinaryInputNode : public PlanNode {
 public:
     void setLeftDep(const PlanNode* left) {
         setDep(0, left);
@@ -345,19 +355,17 @@ public:
         return inputVars_[1]->name;
     }
 
+    PlanNode* clone() const override {
+        LOG(FATAL) << "Shouldn't call the unimplemented method";
+    }
+
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 protected:
-    BiInputNode(QueryContext* qctx, Kind kind, PlanNode* left, PlanNode* right)
-        : PlanNode(qctx, kind) {
-        DCHECK(left != nullptr);
-        DCHECK(right != nullptr);
+    BinaryInputNode(QueryContext* qctx, Kind kind, const PlanNode* left, const PlanNode* right);
 
-        dependencies_.emplace_back(left);
-        readVariable(left->outputVarPtr());
-
-        dependencies_.emplace_back(right);
-        readVariable(right->outputVarPtr());
+    void cloneMembers(const BinaryInputNode &node) {
+        PlanNode::cloneMembers(node);
     }
 };
 

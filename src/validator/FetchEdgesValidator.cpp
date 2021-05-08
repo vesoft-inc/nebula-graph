@@ -192,14 +192,8 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
     propsName.reserve(newYield_->columns().size());
     dedup_ = newYield_->isDistinct();
     for (auto col : newYield_->columns()) {
+        col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
-
-        if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
-            col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr));
-        } else {
-            ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());
-        }
         const auto *invalidExpr = findInvalidYieldExpression(col->expr());
         if (invalidExpr != nullptr) {
             return Status::SemanticError("Invalid newYield_ expression `%s'.",

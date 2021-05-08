@@ -1,31 +1,43 @@
-/* Copyright (c) 2020 vesoft inc. All rights reserved.
+/* Copyright (c) 2021 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VISITOR_FINDANYEXPRVISITOR_H_
-#define VISITOR_FINDANYEXPRVISITOR_H_
-
-#include <unordered_set>
+#ifndef VISITOR_FINDVISITOR_H_
+#define VISITOR_FINDVISITOR_H_
 
 #include "common/expression/Expression.h"
 #include "visitor/ExprVisitorImpl.h"
 
 namespace nebula {
 namespace graph {
-
-class FindAnyExprVisitor final : public ExprVisitorImpl {
+class FindVisitor final : public ExprVisitorImpl {
 public:
-    explicit FindAnyExprVisitor(const std::unordered_set<Expression::Kind>& kinds);
+    using Finder = std::function<bool(Expression*)>;
+
+    explicit FindVisitor(Finder finder, bool needFindAll = false)
+        : finder_(finder), needFindAll_(needFindAll) {}
 
     bool ok() const override {
-        // continue if not found
-        return !found_;
+        // TODO: delete this interface
+        return true;
     }
 
-    const Expression* expr() const {
-        return expr_;
+    bool needFindAll() const {
+        return needFindAll_;
+    }
+
+    void setNeedFindAll(bool needFindAll) {
+        needFindAll_ = needFindAll;
+    }
+
+    bool found() const {
+        return found_;
+    }
+
+    std::vector<const Expression*> results() const {
+        return foundExprs_;
     }
 
 private:
@@ -57,6 +69,7 @@ private:
     void visit(VariableExpression* expr) override;
     void visit(VersionedVariableExpression* expr) override;
     void visit(LabelExpression* expr) override;
+    void visit(LabelAttributeExpression* expr) override;
     void visit(VertexExpression* expr) override;
     void visit(EdgeExpression* expr) override;
     void visit(ColumnExpression* expr) override;
@@ -64,14 +77,17 @@ private:
 
     void visitBinaryExpr(BinaryExpression* expr) override;
 
-    void findExpr(const Expression* expr);
+    void findInCurrentExpr(Expression* expr);
+
+private:
+    Finder finder_;
+    bool needFindAll_;
 
     bool found_{false};
-    const Expression* expr_{nullptr};
-    const std::unordered_set<Expression::Kind>& kinds_;
+    std::vector<const Expression*> foundExprs_;
 };
 
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // VISITOR_FINDANYEXPRVISITOR_H_
+#endif   // VISITOR_FINDVISITOR_H_
