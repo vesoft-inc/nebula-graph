@@ -184,7 +184,6 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
         auto *alias = node->alias();
         auto *props = node->props();
         auto anonymous = false;
-        std::vector<TagID> tagIds;
         if (node->labels() != nullptr) {
             auto &labels = node->labels()->labels();
             for (const auto &label : labels) {
@@ -196,18 +195,18 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
                     nodeInfos[i].tids.emplace_back(tid.value());
                     nodeInfos[i].labels.emplace_back(label->label());
                     nodeInfos[i].labelProps.emplace_back(label->props());
-                    tagIds.emplace_back(tid.value());
                 }
             }
-        } else {
-            const auto &allTagsResult =
-                matchCtx_->qctx->schemaMng()->getAllLatestVerTagSchema(space_.id);
-            NG_RETURN_IF_ERROR(allTagsResult);
-            const auto &allTags = allTagsResult.value();
-            for (const auto &tagSchema : allTags) {
-                tagIds.emplace_back(tagSchema.first);
-            }
         }
+        std::vector<TagID> tagIds;
+        const auto &allTagsResult =
+            matchCtx_->qctx->schemaMng()->getAllLatestVerTagSchema(space_.id);
+        NG_RETURN_IF_ERROR(allTagsResult);
+        const auto &allTags = allTagsResult.value();
+        for (const auto &tagSchema : allTags) {
+            tagIds.emplace_back(tagSchema.first);
+        }
+
         if (alias == nullptr) {
             anonymous = true;
             alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
@@ -440,9 +439,6 @@ Status MatchValidator::checkAliasesSchema(const std::string &aliasName,
                     return Status::SemanticError("Alias `%s' Tag Error", aliasName.c_str());
                 }
                 auto* field = schema->field(prop);
-                // (TODO) handle below cases
-                // case1 match(a:player:team)-[b:like]->(c) where a.age > 20 return b
-                // case2 match (a:player)-[b:like]->(c) where c.age > 20 return b
                 if (field != nullptr) {
                     return Status::OK();
                 }
