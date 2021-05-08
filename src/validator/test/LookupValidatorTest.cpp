@@ -5,8 +5,8 @@
  */
 
 #include "common/base/ObjectPool.h"
-#include "planner/Logic.h"
-#include "planner/Query.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/Query.h"
 #include "validator/LookupValidator.h"
 #include "validator/test/ValidatorTestBase.h"
 
@@ -109,6 +109,11 @@ TEST_F(LookupValidatorTest, InvalidFilterExpression) {
         const std::string query =
             "LOOKUP ON person where person.age > person.name + 5;";
         EXPECT_FALSE(checkResult(query, {}));
+    }
+    {
+        const std::string query =
+            "LOOKUP ON person where  1 + 5 < person.age;";
+        EXPECT_TRUE(checkResult(query, {}));
     }
     {
         const std::string query =

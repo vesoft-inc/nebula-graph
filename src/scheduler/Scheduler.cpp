@@ -12,9 +12,9 @@
 #include "executor/logic/LoopExecutor.h"
 #include "executor/logic/PassThroughExecutor.h"
 #include "executor/logic/SelectExecutor.h"
-#include "planner/PlanNode.h"
-#include "planner/Logic.h"
-#include "planner/Query.h"
+#include "planner/plan/PlanNode.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {

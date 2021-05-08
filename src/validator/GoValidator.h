@@ -7,8 +7,7 @@
 #ifndef VALIDATOR_GOVALIDATOR_H_
 #define VALIDATOR_GOVALIDATOR_H_
 
-#include "common/base/Base.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "validator/TraversalValidator.h"
 
 namespace nebula {
