@@ -10,11 +10,11 @@
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
 #include "optimizer/OptRule.h"
-#include "planner/ExecutionPlan.h"
-#include "planner/Logic.h"
-#include "planner/PlanNode.h"
+#include "planner/plan/ExecutionPlan.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/PlanNode.h"
 
-using nebula::graph::BiInputNode;
+using nebula::graph::BinaryInputNode;
 using nebula::graph::Loop;
 using nebula::graph::PlanNode;
 using nebula::graph::QueryContext;

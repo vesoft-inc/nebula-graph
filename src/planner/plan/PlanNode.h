@@ -4,10 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_PLANNODE_H_
-#define PLANNER_PLANNODE_H_
+#ifndef PLANNER_PLAN_PLANNODE_H_
+#define PLANNER_PLAN_PLANNODE_H_
 
-#include "common/base/Base.h"
 #include "common/expression/Expression.h"
 #include "common/graph/Response.h"
 #include "context/QueryContext.h"
@@ -322,7 +321,7 @@ protected:
     }
 };
 
-class BiInputNode : public PlanNode {
+class BinaryInputNode : public PlanNode {
 public:
     void setLeftDep(const PlanNode* left) {
         setDep(0, left);
@@ -363,9 +362,9 @@ public:
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 protected:
-    BiInputNode(QueryContext* qctx, Kind kind, const PlanNode* left, const PlanNode* right);
+    BinaryInputNode(QueryContext* qctx, Kind kind, const PlanNode* left, const PlanNode* right);
 
-    void cloneMembers(const BiInputNode &node) {
+    void cloneMembers(const BinaryInputNode &node) {
         PlanNode::cloneMembers(node);
     }
 };
@@ -373,4 +372,4 @@ protected:
 }  // namespace graph
 }  // namespace nebula
 
-#endif  // PLANNER_PLANNODE_H_
+#endif  // PLANNER_PLAN_PLANNODE_H_

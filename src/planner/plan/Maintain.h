@@ -4,12 +4,11 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_MAINTAIN_H_
-#define PLANNER_MAINTAIN_H_
+#ifndef PLANNER_PLAN_MAINTAIN_H_
+#define PLANNER_PLAN_MAINTAIN_H_
 
-#include "common/clients/meta/MetaClient.h"
 #include "common/interface/gen-cpp2/meta_types.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -328,12 +327,14 @@ protected:
                     std::string schemaName,
                     std::string indexName,
                     std::vector<meta::cpp2::IndexFieldDef> fields,
-                    bool ifNotExists)
+                    bool ifNotExists,
+                    const std::string *comment)
         : SingleInputNode(qctx, kind, input),
           schemaName_(std::move(schemaName)),
           indexName_(std::move(indexName)),
           fields_(std::move(fields)),
-          ifNotExists_(ifNotExists) {}
+          ifNotExists_(ifNotExists),
+          comment_(comment) {}
 
 public:
     const std::string& getSchemaName() const {
@@ -352,6 +353,10 @@ public:
         return ifNotExists_;
     }
 
+    const std::string* getComment() const {
+        return comment_;
+    }
+
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 protected:
@@ -359,6 +364,7 @@ protected:
     std::string                             indexName_;
     std::vector<meta::cpp2::IndexFieldDef>  fields_;
     bool                                    ifNotExists_;
+    const std::string*                            comment_;
 };
 
 class CreateTagIndex final : public CreateIndexNode {
@@ -368,9 +374,15 @@ public:
                                 std::string tagName,
                                 std::string indexName,
                                 std::vector<meta::cpp2::IndexFieldDef> fields,
-                                bool ifNotExists) {
-        return qctx->objPool()->add(new CreateTagIndex(
-            qctx, input, std::move(tagName), std::move(indexName), std::move(fields), ifNotExists));
+                                bool ifNotExists,
+                                const std::string *comment) {
+        return qctx->objPool()->add(new CreateTagIndex(qctx,
+                                                       input,
+                                                       std::move(tagName),
+                                                       std::move(indexName),
+                                                       std::move(fields),
+                                                       ifNotExists,
+                                                       comment));
     }
 
 private:
@@ -379,14 +391,16 @@ private:
                    std::string tagName,
                    std::string indexName,
                    std::vector<meta::cpp2::IndexFieldDef> fields,
-                   bool ifNotExists)
+                   bool ifNotExists,
+                   const std::string *comment)
         : CreateIndexNode(qctx,
                           input,
                           Kind::kCreateTagIndex,
                           std::move(tagName),
                           std::move(indexName),
                           std::move(fields),
-                          ifNotExists) {}
+                          ifNotExists,
+                          comment) {}
 };
 
 class CreateEdgeIndex final : public CreateIndexNode {
@@ -396,13 +410,15 @@ public:
                                  std::string edgeName,
                                  std::string indexName,
                                  std::vector<meta::cpp2::IndexFieldDef> fields,
-                                 bool ifNotExists) {
+                                 bool ifNotExists,
+                                 const std::string *comment) {
         return qctx->objPool()->add(new CreateEdgeIndex(qctx,
                                                         input,
                                                         std::move(edgeName),
                                                         std::move(indexName),
                                                         std::move(fields),
-                                                        ifNotExists));
+                                                        ifNotExists,
+                                                        comment));
     }
 
 private:
@@ -411,14 +427,16 @@ private:
                     std::string edgeName,
                     std::string indexName,
                     std::vector<meta::cpp2::IndexFieldDef> fields,
-                    bool ifNotExists)
+                    bool ifNotExists,
+                    const std::string *comment)
         : CreateIndexNode(qctx,
                           input,
                           Kind::kCreateEdgeIndex,
                           std::move(edgeName),
                           std::move(indexName),
                           std::move(fields),
-                          ifNotExists) {}
+                          ifNotExists,
+                          comment) {}
 };
 
 class DescIndexNode : public SingleInputNode {
@@ -582,4 +600,4 @@ private:
 
 }   // namespace graph
 }   // namespace nebula
-#endif   // PLANNER_MAINTAIN_H_
+#endif   // PLANNER_PLAN_MAINTAIN_H_

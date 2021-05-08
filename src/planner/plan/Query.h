@@ -4,16 +4,15 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_QUERY_H_
-#define PLANNER_QUERY_H_
+#ifndef PLANNER_PLAN_QUERY_H_
+#define PLANNER_PLAN_QUERY_H_
 
-#include "common/base/Base.h"
 #include "common/expression/AggregateExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "context/QueryContext.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
-#include "planner/PlanNode.h"
+#include "planner/plan/PlanNode.h"
 
 /**
  * All query-related nodes would be put in this file,
@@ -576,10 +575,10 @@ private:
  *   INTERSECT,
  *   MINUS
  */
-class SetOp : public BiInputNode {
+class SetOp : public BinaryInputNode {
 protected:
     SetOp(QueryContext* qctx, Kind kind, PlanNode* left, PlanNode* right)
-        : BiInputNode(qctx, kind, left, right) {
+        : BinaryInputNode(qctx, kind, left, right) {
         DCHECK(kind == Kind::kUnion || kind == Kind::kIntersect || kind == Kind::kMinus);
     }
 
@@ -1168,4 +1167,4 @@ private:
 
 }  // namespace graph
 }  // namespace nebula
-#endif  // PLANNER_QUERY_H_
+#endif  // PLANNER_PLAN_QUERY_H_

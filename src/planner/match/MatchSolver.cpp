@@ -8,9 +8,9 @@
 
 #include "common/expression/UnaryExpression.h"
 #include "context/ast/AstContext.h"
-#include "context/ast/QueryAstContext.h"
+#include "context/ast/CypherAstContext.h"
 #include "planner/Planner.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteVisitor.h"
 
@@ -144,6 +144,7 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
         auto* right = binary->right();
         const LabelAttributeExpression* la = nullptr;
         const ConstantExpression* constant = nullptr;
+        // TODO(aiee) extract the logic that apllies to both match and lookup
         if (left->kind() == Expression::Kind::kLabelAttribute &&
             right->kind() == Expression::Kind::kConstant) {
             la = static_cast<const LabelAttributeExpression*>(left);

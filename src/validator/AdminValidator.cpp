@@ -12,8 +12,8 @@
 #include "common/charset/Charset.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "parser/MaintainSentences.h"
-#include "planner/Admin.h"
-#include "planner/Query.h"
+#include "planner/plan/Admin.h"
+#include "planner/plan/Query.h"
 #include "service/GraphFlags.h"
 #include "util/SchemaUtil.h"
 
@@ -97,6 +97,10 @@ Status CreateSpaceValidator::validateImpl() {
                 break;
             }
         }
+    }
+    // check comment
+    if (sentence->comment() != nullptr) {
+        spaceDesc_.set_comment(*sentence->comment());
     }
 
     // if charset and collate are not specified, set default value

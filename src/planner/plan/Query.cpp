@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 #include <folly/String.h>
 #include <folly/dynamic.h>
@@ -227,7 +227,7 @@ void Filter::cloneMembers(const Filter& f) {
 
 
 void SetOp::cloneMembers(const SetOp& s) {
-    BiInputNode::cloneMembers(s);
+    BinaryInputNode::cloneMembers(s);
 }
 
 
