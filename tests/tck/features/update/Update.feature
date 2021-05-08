@@ -140,7 +140,7 @@ Feature: Update string vid of vertex and edge
       SET grade = select.grade + 1, year = 2000
       WHEN select.grade > 1024 AND $^.student.age > 15;
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>1024) AND ($^.student.age>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>1024 AND $^.student.age>15'
     # 2.0 test, filter out
     When executing query:
       """
@@ -156,7 +156,7 @@ Feature: Update string vid of vertex and edge
       SET grade = select.grade + 1, year = 2000
       WHEN select.grade > 4 AND $^.student.age > 15;
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>4) AND ($^.student.age>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>4 AND $^.student.age>15'
     # set filter
     When executing query:
       """
@@ -187,10 +187,10 @@ Feature: Update string vid of vertex and edge
       """
       UPDATE EDGE "200"->"101"@0 OF select
       SET grade = select.grade + 1, year = 2019
-      WHEN select.grade > 4 AND $^.student.age > 15
+      WHEN (select.grade > 4) AND $^.student.age > 15
       YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>4) AND ($^.student.age>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `(select.grade>4) AND $^.student.age>15'
     # filter and yield
     When executing query:
       """
@@ -210,7 +210,7 @@ Feature: Update string vid of vertex and edge
       WHEN select.grade > 233333333333 AND $^.student.age > 15
       YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>233333333333) AND ($^.student.age>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>233333333333 AND $^.student.age>15'
     # set filter out and yield
     When executing query:
       """
@@ -237,7 +237,7 @@ Feature: Update string vid of vertex and edge
       WHEN $$.course.name == "Math" AND $^.course.credits > $$.course.credits + 1
       YIELD $^.course.name AS Name, $^.course.credits AS Credits, $$.building.name
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `($$.course.credits+1)'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `$$.course.credits+1'
     When executing query:
       """
       UPDATE VERTEX "101"
@@ -444,7 +444,7 @@ Feature: Update string vid of vertex and edge
       WHEN $^.student.age > 15 AND $^.student.gender == "male"
       YIELD select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `(($^.student.age>15) AND ($^.student.gender=="male"))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `$^.student.age>15 AND $^.student.gender=="male"'
     When executing query:
       """
       UPSERT EDGE "201" -> "101"@0 OF select
@@ -544,7 +544,7 @@ Feature: Update string vid of vertex and edge
       WHEN select.grade > 4 AND $^.student.age > 15
       YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>4) AND ($^.student.age>15))
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>4 AND $^.student.age>15
     # make sure the edge(src, ranking, dst) must not exist
     When executing query:
       """

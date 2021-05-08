@@ -299,5 +299,5 @@ Feature: With clause and Unwind clause
       RETURN exists(m.abc), exists((null).abc)
       """
     Then the result should be, in any order, with relax comparison:
-      | exists(m.abc) | exists(NULL.abc) |
-      | NULL          | NULL             |
+      | exists(m.abc) | exists((NULL).abc) |
+      | NULL          | NULL               |

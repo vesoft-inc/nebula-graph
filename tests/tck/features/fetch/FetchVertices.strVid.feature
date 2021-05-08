@@ -24,8 +24,8 @@ Feature: Fetch String Vertices
       FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.age, player.age > 30
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | (player.age>30) |
-      | "Boris Diaw" | "Boris Diaw" | 36         | True            |
+      | VertexID     | player.name  | player.age | player.age>30 |
+      | "Boris Diaw" | "Boris Diaw" | 36         | True          |
     # Fetch Vertices without YIELD
     When executing query:
       """

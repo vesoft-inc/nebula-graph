@@ -138,7 +138,7 @@ Feature: Update int vid of vertex and edge
       SET grade = select.grade + 1, year = 2000
       WHEN select.grade > 1024 AND $^.student.age > 15;
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>1024) AND ($^.student.age>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>1024 AND $^.student.age>15'
     # 2.0 test, filter out
     When executing query:
       """
@@ -154,7 +154,7 @@ Feature: Update int vid of vertex and edge
       SET grade = select.grade + 1, year = 2000
       WHEN select.grade > 4 AND $^.student.age > 15;
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>4) AND ($^.student.age>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>4 AND $^.student.age>15'
     # set filter
     When executing query:
       """
@@ -188,7 +188,7 @@ Feature: Update int vid of vertex and edge
       WHEN select.grade > 4 AND $^.student.age > 15
       YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>4) AND ($^.student.age>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>4 AND $^.student.age>15'
     # filter and yield
     When executing query:
       """
@@ -208,7 +208,7 @@ Feature: Update int vid of vertex and edge
       WHEN select.grade > 233333333333 AND $^.student.age > 15
       YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>233333333333) AND ($^.student.age>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>233333333333 AND $^.student.age>15'
     # set filter out and yield
     When executing query:
       """
@@ -235,7 +235,7 @@ Feature: Update int vid of vertex and edge
       WHEN $$.course.name == "Math" AND $^.course.credits > $$.course.credits + 1
       YIELD $^.course.name AS Name, $^.course.credits AS Credits, $$.building.name
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `($$.course.credits+1)'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `$$.course.credits+1'
     # make sure TagName and PropertyName must exist in all clauses
     When executing query:
       """
@@ -258,7 +258,7 @@ Feature: Update int vid of vertex and edge
       WHEN nonexistentEdgeName.grade > 4 AND $^.student.nonexistentProperty > 15
       YIELD $^.nonexistentTag.name AS Name, select.nonexistentProperty AS Grade
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((nonexistentEdgeName.grade>4) AND ($^.student.nonexistentProperty>15))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `nonexistentEdgeName.grade>4 AND $^.student.nonexistentProperty>15'
     # make sure the edge_type must not exist
     When executing query:
       """
@@ -396,7 +396,7 @@ Feature: Update int vid of vertex and edge
       WHEN $^.student.age > 15 AND $^.student.gender == "male"
       YIELD select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `(($^.student.age>15) AND ($^.student.gender=="male"))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `$^.student.age>15 AND $^.student.gender=="male"'
     When executing query:
       """
       UPSERT EDGE ON select 201 -> 101@0
@@ -496,7 +496,7 @@ Feature: Update int vid of vertex and edge
       WHEN select.grade > 4 AND $^.student.age > 15
       YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `((select.grade>4) AND ($^.student.age>15))
+    Then a SemanticError should be raised at runtime: Has wrong expr in `select.grade>4 AND $^.student.age>15
     # make sure the edge(src, ranking, dst) must not exist
     When executing query:
       """

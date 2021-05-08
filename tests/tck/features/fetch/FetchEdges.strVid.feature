@@ -31,8 +31,8 @@ Feature: Fetch String Vid Edges
       FETCH PROP ON serve 'Boris Diaw'->'Hawks' YIELD serve.start_year > 2001, serve.end_year
       """
     Then the result should be, in any order:
-      | serve._src   | serve._dst | serve._rank | (serve.start_year>2001) | serve.end_year |
-      | "Boris Diaw" | "Hawks"    | 0           | True                    | 2005           |
+      | serve._src   | serve._dst | serve._rank | serve.start_year>2001 | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | True                  | 2005           |
     # Fetch prop on the edgetype of a edge with ranking
     When executing query:
       """
