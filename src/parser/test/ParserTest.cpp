@@ -2496,6 +2496,11 @@ TEST(Parser, MatchListSubscriptRange) {
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
+    {
+        std::string query = "RETURN [0, 1, 2][0..1] AS l";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
 }
 
 TEST(Parser, Zone) {
