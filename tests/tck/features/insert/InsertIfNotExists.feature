@@ -232,11 +232,11 @@ Feature: Insert vertex and edge with if not exists
     # check vertex result with fetch
     When executing query:
       """
-      FETCH PROP ON person "Tom" YIELD person.age as age
+      FETCH PROP ON person "Tom" YIELD _vid, person.age as age
       """
     Then the result should be, in any order, with relax comparison:
-      | VertexID | age |
-      | "Tom"    | 2   |
+      | _vid  | age |
+      | "Tom" | 2   |
     # check insert edge with default props
     When try to execute query:
       """
@@ -271,7 +271,7 @@ Feature: Insert vertex and edge with if not exists
     # check edge result with fetch
     When executing query:
       """
-      FETCH PROP ON like "Tom"->"Conan" YIELD like.likeness
+      FETCH PROP ON like "Tom"->"Conan" YIELD like._src, like._dst, like._rank, like.likeness
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness |

@@ -137,7 +137,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON * 'NON EXIST VERTEX ID'
       """
     Then the result should be, in any order:
-      | vertices_ |
+      | vertices |
 
   Scenario: Fetch prop on *
     When executing query:

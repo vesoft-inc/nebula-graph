@@ -197,7 +197,7 @@ void FindVisitor::visit(EdgeExpression* expr) {
     findInCurrentExpr(expr);
 }
 
-void FindVisitor::visitVidExpr(VidExpression* expr) {
+void FindVisitor::visit(VidExpression* expr) {
     findInCurrentExpr(expr);
 }
 
