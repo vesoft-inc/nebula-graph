@@ -4,14 +4,14 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/Algo.h"
+#include "planner/plan/Algo.h"
 #include "util/ToJson.h"
 namespace nebula {
 namespace graph {
 
 
 std::unique_ptr<PlanNodeDescription> ConjunctPath::explain() const {
-    auto desc = BiInputNode::explain();
+    auto desc = BinaryInputNode::explain();
     switch (pathKind_) {
         case PathKind::kBiBFS: {
             addDescription("kind", "BFS", desc.get());

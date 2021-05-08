@@ -4,12 +4,11 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_MUTATE_H_
-#define PLANNER_MUTATE_H_
+#ifndef PLANNER_PLAN_MUTATE_H_
+#define PLANNER_PLAN_MUTATE_H_
 
-#include "common/interface/gen-cpp2/storage_types.h"
 #include "context/QueryContext.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "parser/TraverseSentences.h"
 
 /**
@@ -421,4 +420,4 @@ private:
 
 }  // namespace graph
 }  // namespace nebula
-#endif  // PLANNER_MUTATE_H_
+#endif  // PLANNER_PLAN_MUTATE_H_

@@ -6,7 +6,7 @@
 #ifndef _VALIDATOR_INDEXSCAN_VALIDATOR_H_
 #define _VALIDATOR_INDEXSCAN_VALIDATOR_H_
 
-#include <planner/Query.h>
+#include "planner/plan/Query.h"
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
@@ -38,16 +38,17 @@ private:
 
     bool needTextSearch(Expression* expr);
 
-    Status checkFilter(Expression* expr);
+    StatusOr<Expression*> checkFilter(Expression* expr);
 
-    Status checkRelExpr(RelationalExpression* expr);
+    StatusOr<Expression*> checkRelExpr(RelationalExpression* expr);
 
-    Status rewriteRelExpr(RelationalExpression* expr);
+    StatusOr<Expression*> rewriteRelExpr(RelationalExpression* expr);
 
     StatusOr<Value> checkConstExpr(Expression* expr,
                                    const std::string& prop,
-                                   const Expression::Kind kind,
-                                   bool leftIsAE);
+                                   const Expression::Kind kind);
+
+    std::unique_ptr<Expression> reverseRelKind(RelationalExpression* expr);
 
     Status checkTSService();
 

@@ -6,8 +6,8 @@
 
 #include "validator/SetValidator.h"
 
-#include "planner/Logic.h"
-#include "planner/Query.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -39,7 +39,7 @@ Status SetValidator::toPlan() {
     auto lRoot = DCHECK_NOTNULL(lValidator_->root());
     auto rRoot = DCHECK_NOTNULL(rValidator_->root());
     auto colNames = lRoot->colNames();
-    BiInputNode *bNode = nullptr;
+    BinaryInputNode *bNode = nullptr;
     switch (setSentence->op()) {
         case SetSentence::Operator::UNION: {
             bNode = Union::make(qctx_, lRoot, rRoot);

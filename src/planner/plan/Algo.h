@@ -4,12 +4,11 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_ALGO_H_
-#define PLANNER_ALGO_H_
+#ifndef PLANNER_PLAN_ALGO_H_
+#define PLANNER_PLAN_ALGO_H_
 
-#include "common/base/Base.h"
 #include "context/QueryContext.h"
-#include "planner/PlanNode.h"
+#include "planner/plan/PlanNode.h"
 
 namespace nebula {
 namespace graph {
@@ -35,7 +34,7 @@ private:
         : SingleInputNode(qctx, Kind::kBFSShortest, input) {}
 };
 
-class ConjunctPath : public BiInputNode {
+class ConjunctPath : public BinaryInputNode {
 public:
     enum class PathKind : uint8_t {
         kBiBFS,
@@ -83,7 +82,7 @@ private:
                  PlanNode* right,
                  PathKind pathKind,
                  size_t steps)
-        : BiInputNode(qctx, Kind::kConjunctPath, left, right) {
+        : BinaryInputNode(qctx, Kind::kConjunctPath, left, right) {
         pathKind_ = pathKind;
         steps_ = steps;
     }
@@ -180,4 +179,4 @@ private:
 
 }  // namespace graph
 }  // namespace nebula
-#endif  // PLANNER_ALGO_H_
+#endif  // PLANNER_PLAN_ALGO_H_
