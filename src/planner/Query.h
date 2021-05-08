@@ -7,7 +7,6 @@
 #ifndef PLANNER_QUERY_H_
 #define PLANNER_QUERY_H_
 
-#include "common/base/Base.h"
 #include "common/expression/AggregateExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "context/QueryContext.h"
@@ -576,10 +575,10 @@ private:
  *   INTERSECT,
  *   MINUS
  */
-class SetOp : public BiInputNode {
+class SetOp : public BinaryInputNode {
 protected:
     SetOp(QueryContext* qctx, Kind kind, PlanNode* left, PlanNode* right)
-        : BiInputNode(qctx, kind, left, right) {
+        : BinaryInputNode(qctx, kind, left, right) {
         DCHECK(kind == Kind::kUnion || kind == Kind::kIntersect || kind == Kind::kMinus);
     }
 

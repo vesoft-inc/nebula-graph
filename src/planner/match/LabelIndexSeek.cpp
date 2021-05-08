@@ -37,9 +37,14 @@ bool LabelIndexSeek::matchNode(NodeContext* nodeCtx) {
 bool LabelIndexSeek::matchEdge(EdgeContext* edgeCtx) {
     const auto &edge = *edgeCtx->info;
     // require one edge at least
-    if (edge.edgeTypes.size() != 1 || edge.range != nullptr) {
+    if (edge.edgeTypes.size() != 1) {
         // TODO multiple edge index seek need the IndexScan support
-        VLOG(2) << "Multiple edge index seek and variable length edge seek are not supported now.";
+        VLOG(2) << "Multiple edge index seek is not supported now.";
+        return false;
+    }
+
+    if (edge.range != nullptr && edge.range->min() == 0) {
+        // The 0 step is NodeScan in fact.
         return false;
     }
 
@@ -80,6 +85,54 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
     plan.tail = scan;
     plan.root = scan;
 
+    // This if-block is a patch for or-filter-embeding to avoid OOM,
+    // and it should be converted to an `optRule` after the match validator is refactored
+    auto& whereCtx = matchClauseCtx->where;
+    if (whereCtx && whereCtx->filter) {
+        auto* filter = whereCtx->filter;
+        const auto nodeAlias = *nodeCtx->info->alias;
+        auto* objPool = matchClauseCtx->qctx->objPool();
+        if (filter->kind() == Expression::Kind::kLogicalOr) {
+            auto labelExprs = ExpressionUtils::collectAll(filter, {Expression::Kind::kLabel});
+            bool labelMatched = true;
+            for (auto* labelExpr : labelExprs) {
+                DCHECK_EQ(labelExpr->kind(), Expression::Kind::kLabel);
+                if (*(static_cast<const LabelExpression*>(labelExpr)->name()) != nodeAlias) {
+                    labelMatched = false;
+                    break;
+                }
+            }
+            if (labelMatched) {
+                auto flattenFilter = ExpressionUtils::flattenInnerLogicalExpr(filter);
+                DCHECK_EQ(flattenFilter->kind(), Expression::Kind::kLogicalOr);
+                auto& filterItems =
+                    static_cast<LogicalExpression*>(flattenFilter.get())->operands();
+                auto canBeEmbeded = [](Expression::Kind k) -> bool {
+                    return k == Expression::Kind::kRelEQ || k == Expression::Kind::kRelLT ||
+                           k == Expression::Kind::kRelLE || k == Expression::Kind::kRelGT ||
+                           k == Expression::Kind::kRelGE;
+                };
+                bool canBeEmbeded2IndexScan = true;
+                for (auto& f : filterItems) {
+                    if (!canBeEmbeded(f->kind())) {
+                        canBeEmbeded2IndexScan = false;
+                        break;
+                    }
+                }
+                if (canBeEmbeded2IndexScan) {
+                    auto* srcFilter = objPool->add(
+                        ExpressionUtils::rewriteLabelAttr2TagProp(flattenFilter.get()));
+                    storage::cpp2::IndexQueryContext ctx;
+                    ctx.set_filter(Expression::encode(*srcFilter));
+                    auto context =
+                        std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
+                    context->emplace_back(std::move(ctx));
+                    scan->setIndexQueryContext(std::move(context));
+                    whereCtx.reset();
+                }
+            }
+        }
+    }
     // initialize start expression in project node
     nodeCtx->initialExpr.reset(ExpressionUtils::newVarPropExpr(kVid));
     return plan;
