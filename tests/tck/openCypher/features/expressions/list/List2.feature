@@ -2,7 +2,7 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-
+#
 #
 # Copyright (c) 2015-2021 "Neo Technology,"
 # Network Engine for Objects in Lund AB [http://neotechnology.com]
@@ -11,7 +11,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,9 +30,8 @@
 # described as "implementation extensions to Cypher" or as "proposed changes to
 # Cypher that are not yet approved by the openCypher community".
 #
-
-#encoding: utf-8
-
+#
+# encoding: utf-8
 Feature: List2 - List Slicing
 
   Scenario: [1] List slice
