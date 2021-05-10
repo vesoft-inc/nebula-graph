@@ -17,6 +17,15 @@ namespace graph {
 
 // some utils for the validator to traverse the graph
 class TraversalValidator : public Validator {
+public:
+    static void buildConstantInput(QueryContext* qctx,
+                                   Starts& starts,
+                                   std::string& startVidsVar);
+
+    static PlanNode* buildRuntimeInput(QueryContext* qctx,
+                                       Starts& starts,
+                                       PlanNode*& project);
+
 protected:
     TraversalValidator(Sentence* sentence, QueryContext* qctx) : Validator(sentence, qctx) {
         startVidList_.reset(new ExpressionList());
@@ -30,10 +39,6 @@ protected:
     Status validateStep(const StepClause* clause, StepClause& step);
 
     PlanNode* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
-
-    void buildConstantInput(Starts& starts, std::string& startVidsVar);
-
-    PlanNode* buildRuntimeInput(Starts& starts, PlanNode*& project);
 
     Expression* buildNStepLoopCondition(uint32_t steps) const;
 

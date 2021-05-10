@@ -201,9 +201,9 @@ Status GetSubgraphValidator::toPlan() {
     std::string startVidsVar;
     PlanNode* loopDep = nullptr;
     if (!from_.vids.empty() && from_.originalSrc == nullptr) {
-        buildConstantInput(from_, startVidsVar);
+        buildConstantInput(qctx_, from_, startVidsVar);
     } else {
-        loopDep = buildRuntimeInput(from_, projectStartVid_);
+        loopDep = buildRuntimeInput(qctx_, from_, projectStartVid_);
         startVidsVar = loopDep->outputVar();
     }
 

@@ -144,8 +144,10 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
     return dedupDstVids;
 }
 
-void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVidsVar) {
-    startVidsVar = vctx_->anonVarGen()->getVar();
+void TraversalValidator::buildConstantInput(QueryContext* qctx,
+                                            Starts& starts,
+                                            std::string& startVidsVar) {
+    startVidsVar = qctx->vctx()->anonVarGen()->getVar();
     DataSet ds;
     ds.colNames.emplace_back(kVid);
     for (auto& vid : starts.vids) {
@@ -153,20 +155,22 @@ void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVi
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
+    qctx->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
     starts.src =
         new VariablePropertyExpression(new std::string(startVidsVar), new std::string(kVid));
-    qctx_->objPool()->add(starts.src);
+    qctx->objPool()->add(starts.src);
 }
 
-PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& projectStartVid) {
-    auto pool = qctx_->objPool();
+PlanNode* TraversalValidator::buildRuntimeInput(QueryContext* qctx,
+                                                Starts& starts,
+                                                PlanNode*& projectStartVid) {
+    auto pool = qctx->objPool();
     auto* columns = pool->add(new YieldColumns());
     auto* column = new YieldColumn(starts.originalSrc->clone().release(), new std::string(kVid));
     columns->addColumn(column);
 
-    auto* project = Project::make(qctx_, nullptr, columns);
+    auto* project = Project::make(qctx, nullptr, columns);
     if (starts.fromType == kVariable) {
         project->setInputVar(starts.userDefinedVarName);
     }
@@ -174,7 +178,7 @@ PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& proje
     VLOG(1) << project->outputVar() << " input: " << project->inputVar();
     starts.src = pool->add(new InputPropertyExpression(new std::string(kVid)));
 
-    auto* dedupVids = Dedup::make(qctx_, project);
+    auto* dedupVids = Dedup::make(qctx, project);
     dedupVids->setInputVar(project->outputVar());
     dedupVids->setColNames(project->colNames());
 

@@ -7,6 +7,7 @@
 #include "planner/GoPlanner.h"
 
 #include "validator/Validator.h"
+#include "validator/TraversalValidator.h"
 #include "planner/plan/Logic.h"
 
 namespace nebula {
@@ -29,9 +30,10 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
     if (!goCtx_->from.vids.empty() && goCtx_->from.originalSrc == nullptr) {
-        buildConstantInput(goCtx_->from, startVidsVar);
+        TraversalValidator::buildConstantInput(goCtx_->qctx, goCtx_->from, startVidsVar);
     } else {
-        dedupStartVid = buildRuntimeInput(goCtx_->from, goCtx_->projectStartVid);
+        dedupStartVid = TraversalValidator::buildRuntimeInput(
+            goCtx_->qctx, goCtx_->from, goCtx_->projectStartVid);
         startVidsVar = dedupStartVid->outputVar();
     }
 
@@ -413,43 +415,5 @@ GetNeighbors::EdgeProps GoPlanner::buildEdgeDst() {
     return edgeProps;
 }
 
-void GoPlanner::buildConstantInput(Starts& starts, std::string& startVidsVar) {
-    startVidsVar = goCtx_->qctx->vctx()->anonVarGen()->getVar();
-    DataSet ds;
-    ds.colNames.emplace_back(kVid);
-    for (auto& vid : starts.vids) {
-        Row row;
-        row.values.emplace_back(vid);
-        ds.rows.emplace_back(std::move(row));
-    }
-    goCtx_->qctx->ectx()->setResult(startVidsVar,
-                                      ResultBuilder().value(Value(std::move(ds))).finish());
-
-    starts.src =
-        new VariablePropertyExpression(new std::string(startVidsVar), new std::string(kVid));
-    goCtx_->qctx->objPool()->add(starts.src);
-}
-
-PlanNode* GoPlanner::buildRuntimeInput(Starts& starts, PlanNode*& projectStartVid) {
-    auto pool = goCtx_->qctx->objPool();
-    auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(starts.originalSrc->clone().release(), new std::string(kVid));
-    columns->addColumn(column);
-
-    auto* project = Project::make(goCtx_->qctx, nullptr, columns);
-    if (starts.fromType == kVariable) {
-        project->setInputVar(starts.userDefinedVarName);
-    }
-    project->setColNames({kVid});
-    VLOG(1) << project->outputVar() << " input: " << project->inputVar();
-    starts.src = pool->add(new InputPropertyExpression(new std::string(kVid)));
-
-    auto* dedupVids = Dedup::make(goCtx_->qctx, project);
-    dedupVids->setInputVar(project->outputVar());
-    dedupVids->setColNames(project->colNames());
-
-    projectStartVid = project;
-    return dedupVids;
-}
 }  // namespace graph
 }  // namespace nebula

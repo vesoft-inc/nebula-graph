@@ -52,10 +52,6 @@ public:
                                      bool needJoinInput,
                                      bool needJoinDst);
 
-    void buildConstantInput(Starts& starts, std::string& startVidsVar);
-
-    PlanNode* buildRuntimeInput(Starts& starts, PlanNode*& project);
-
 private:
      GoPlanner() = default;
 

@@ -40,13 +40,13 @@ void FindPathValidator::buildStart(Starts& starts,
                                    std::string& startVidsVar,
                                    bool reverse) {
     if (!starts.vids.empty() && starts.originalSrc == nullptr) {
-        buildConstantInput(starts, startVidsVar);
+        buildConstantInput(qctx_, starts, startVidsVar);
     } else {
         if (reverse) {
-            toDedupStartVid_ = buildRuntimeInput(starts, toProjectStartVid_);
+            toDedupStartVid_ = buildRuntimeInput(qctx_, starts, toProjectStartVid_);
             startVidsVar = toDedupStartVid_->outputVar();
         } else {
-            fromDedupStartVid_ = buildRuntimeInput(starts, projectStartVid_);
+            fromDedupStartVid_ = buildRuntimeInput(qctx_, starts, projectStartVid_);
             startVidsVar = fromDedupStartVid_->outputVar();
         }
     }
@@ -80,7 +80,7 @@ Status FindPathValidator::singlePairPlan() {
 
 PlanNode* FindPathValidator::bfs(PlanNode* dep, Starts& starts, bool reverse) {
     std::string startVidsVar;
-    buildConstantInput(starts, startVidsVar);
+    buildConstantInput(qctx_, starts, startVidsVar);
     auto* gn = GetNeighbors::make(qctx_, dep, space_.id);
     gn->setSrc(starts.src);
     gn->setEdgeProps(buildEdgeKey(reverse));
