@@ -8,6 +8,7 @@
 #include "parser/TraverseSentences.h"
 #include "planner/plan/Logic.h"
 #include "planner/plan/Query.h"
+#include "planner/plan/Admin.h"
 
 namespace nebula {
 namespace graph {
