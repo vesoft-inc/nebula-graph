@@ -10,28 +10,10 @@
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
 #include "context/ast/AstContext.h"
+#include "visitor/DeducePropsVisitor.h"
 
 namespace nebula {
 namespace graph {
-
-// path context
-struct PathContext {
-    Starts from;
-    Starts to;
-    Steps steps;
-    Over over;
-
-    bool isShortest_{false};
-    bool isWeight_{false};
-    bool noLoop_{false};
-
-    // runtime
-    PlanNode* loopDepTail{nullptr};
-    PlanNode* toProjectStartVid{nullptr};
-    PlanNode* fromDedupStartVid{nullptr};
-    PlanNode* toDedupStartVid{nullptr};
-};
-
 
 // GO
 enum FromType {
@@ -54,6 +36,24 @@ struct Over {
     std::vector<EdgeType>           edgeTypes;
     storage::cpp2::EdgeDirection    direction;
     std::vector<std::string>        allEdges;
+};
+
+// path context
+struct PathContext {
+    Starts from;
+    Starts to;
+    StepClause steps;
+    Over over;
+
+    bool isShortest_{false};
+    bool isWeight_{false};
+    bool noLoop_{false};
+
+    // runtime
+    PlanNode* loopDepTail{nullptr};
+    PlanNode* toProjectStartVid{nullptr};
+    PlanNode* fromDedupStartVid{nullptr};
+    PlanNode* toDedupStartVid{nullptr};
 };
 
 struct GoAstContext final : AstContext {
@@ -83,7 +83,6 @@ struct GoAstContext final : AstContext {
     ExpressionProps                                         exprProps;
     std::string                                             inputVarName;
 };
->>>>>>> Move toplan part to planner.
 }  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_AST_QUERYASTCONTEXT_H_

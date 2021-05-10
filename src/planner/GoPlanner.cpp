@@ -7,7 +7,7 @@
 #include "planner/GoPlanner.h"
 
 #include "validator/Validator.h"
-#include "planner/Logic.h"
+#include "planner/plan/Logic.h"
 
 namespace nebula {
 namespace graph {

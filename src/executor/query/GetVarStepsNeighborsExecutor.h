@@ -16,7 +16,7 @@
 #include "common/clients/storage/GraphStorageClient.h"
 
 #include "executor/StorageAccessExecutor.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {

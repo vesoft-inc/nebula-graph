@@ -10,7 +10,7 @@
 #include "context/QueryContext.h"
 #include "context/ast/QueryAstContext.h"
 #include "planner/Planner.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {

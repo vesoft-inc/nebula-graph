@@ -6,7 +6,7 @@
 
 #include "executor/query/TraceProjectExecutor.h"
 
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {
