@@ -30,7 +30,7 @@ jobs:
       - uses: ./.github/actions/tagname-action
         id: tag
       - name: package
-        run: ./package/package.sh -b ${{ steps.tag.outputs.tag }}
+        run: ./package/package.sh -b ${{ steps.tag.outputs.tag }} -f all
       - name: output some vars
         id: vars
         env:
@@ -38,6 +38,8 @@ jobs:
         run: |
           tag=$(echo ${{ github.ref }} | rev | cut -d/ -f1 | rev)
           filename=$(find pkg-build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
+          sha256sum $filename > $filename.$SHA_EXT
+          filename=$(find pkg-build/cpack_output -type f \( -iname \*.sh \))
           sha256sum $filename > $filename.$SHA_EXT
           subdir=$(echo $tag |sed 's/^v//')
           echo "::set-output name=subdir::$subdir"

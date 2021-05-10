@@ -19,6 +19,7 @@ cmake_minimum_required(VERSION 3.5.0)
 project("Nebula Package")
 
 OPTION(ENABLE_PACKAGE_STORAGE "Whether package storage." ON)
+OPTION(ENABLE_TO_PACKAGE_SH "Whether package to sh file." OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/../../modules/common/cmake")
 
@@ -40,10 +41,15 @@ if(NOT NEBULA_BINARY_DIR)
     set(NEBULA_BINARY_DIR ${CMAKE_BINARY_DIR}/../)
 endif()
 
+if(NOT NEBULA_TARGET_FILE_DIR)
+    set(NEBULA_TARGET_FILE_DIR ${CMAKE_BINARY_DIR}/package)
+endif()
+
 message(STATUS "NEBULA_STORAGE_SOURCE_DIR : ${NEBULA_STORAGE_SOURCE_DIR}")
 message(STATUS "NEBULA_STORAGE_BINARY_DIR : ${NEBULA_STORAGE_BINARY_DIR}")
 message(STATUS "NEBULA_SOURCE_DIR         : ${NEBULA_SOURCE_DIR}")
 message(STATUS "NEBULA_BINARY_DIR         : ${NEBULA_BINARY_DIR}")
+message(STATUS "NEBULA_TARGET_FILE_DIR    : ${NEBULA_TARGET_FILE_DIR}")
 
 if(ENABLE_PACKAGE_STORAGE)
 
@@ -260,3 +266,25 @@ package(${ENABLE_PACK_ONE}
         "nebula-graph"
         "https://github.com/vesoft-inc/nebula-graph/releases"
         ${CMAKE_SOURCE_DIR})
+
+if(ENABLE_TO_PACKAGE_SH)
+    set(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}.${HOST_SYSTEM_VER}.${CMAKE_HOST_SYSTEM_PROCESSOR})
+    set(EXEC_FILE_NAME "${NEBULA_TARGET_FILE_DIR}/${CPACK_PACKAGE_FILE_NAME}.sh")
+
+    execute_process(
+        COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/tar.sh ${EXEC_FILE_NAME}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        RESULT_VARIABLE cp_status
+    )
+
+    if(NOT ${cp_status} EQUAL 0)
+        message(FATAL_ERROR "Failed to cp tar.sh file")
+    endif()
+
+    add_custom_target(
+        package-tar
+        COMMAND tar -cJf - * >> ${EXEC_FILE_NAME}
+        COMMAND chmod 0755 ${EXEC_FILE_NAME}
+        WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
+    )
+endif()

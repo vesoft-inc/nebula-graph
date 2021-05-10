@@ -9,9 +9,9 @@
 #   -g: Whether build storage, default is ON
 #   -b: The branch of nebula-common and nebula-storage
 #   -t: The build type, values `Debug, Release, RelWithDebInfo, MinSizeRel`, default value is Release
-#   -f: Whether to package to tar file or rpm/deb file, default is `auto`, it means package to rpm/deb, `tar` means package to tar
+#   -f: Whether to package to tar file or rpm/deb file, default is `auto`, it means package to rpm/deb, `tar` means package to tar, `all` means package to tar and  rpm/deb
 #
-# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF> -t <Debug/Release/RelWithDebInfo/MinSizeRel> -f <auto/tar>
+# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF> -t <Debug/Release/RelWithDebInfo/MinSizeRel> -f <auto/tar/all>
 #
 
 set -e
@@ -23,6 +23,7 @@ strip_enable="FALSE"
 usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF> -t <Debug/Release/RelWithDebInfo/MinSizeRel> -f <auto/tar>"
 project_dir="$(cd "$(dirname "$0")" && pwd)/.."
 build_dir=${project_dir}/pkg-build
+package_dir=${build_dir}/package/
 modules_dir=${project_dir}/modules
 storage_dir=${modules_dir}/storage
 storage_build_dir=${build_dir}/modules/storage
@@ -31,6 +32,7 @@ static_sanitizer="OFF"
 build_type="Release"
 branch="master"
 jobs=$(nproc)
+jobs=20
 package_type="auto"
 install_dir="/usr/local/nebula"
 
@@ -89,8 +91,8 @@ if [[ $strip_enable != TRUE ]] && [[ $strip_enable != FALSE ]]; then
     exit 1
 fi
 
-if [[ $package_type != "auto" ]] && [[ $package_type != "tar" ]]; then
-    echo "package type[$package_type] is wrong, exit"
+if [[ $package_type != "auto" ]] && [[ $package_type != "tar" ]] && [[ $package_type != "all" ]]; then
+    echo "package type[$package_type] is wrong, should be [auto/tar/all]. exit"
     echo ${usage}
     exit -1
 fi
@@ -104,7 +106,7 @@ build_type       : [$build_type]
 branch           : [$branch]
 package_one      : [$package_one]
 build_storage    : [$build_storage]
-package_type     : [$package_type]
+package_type   : [$package_type]
 >>>>>>>> option <<<<<<<<"
 
 
@@ -168,113 +170,74 @@ function build {
     _build_graph
 }
 
-function package {
-    # The package CMakeLists.txt in ${project_dir}/package/build
-    package_dir=${build_dir}/package/
-    if [[ -d $package_dir ]]; then
-        rm -rf ${package_dir:?}/*
-    else
-        mkdir ${package_dir}
+function package_cmake {
+    package_to_tar="OFF"
+    if [[ $package_type == "tar" ]] || [[ $package_type == "all" ]]; then
+        package_to_tar="ON"
     fi
-    pushd ${package_dir}
     cmake \
         -DNEBULA_BUILD_VERSION=${version} \
         -DENABLE_PACK_ONE=${package_one} \
-        -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+        -DCMAKE_INSTALL_PREFIX=${install_dir} \
         -DENABLE_PACKAGE_STORAGE=${build_storage} \
         -DNEBULA_STORAGE_SOURCE_DIR=${storage_dir} \
         -DNEBULA_STORAGE_BINARY_DIR=${storage_build_dir} \
+        -DNEBULA_TARGET_FILE_DIR=${package_dir} \
+        -DENABLE_TO_PACKAGE_SH=${package_to_tar} \
         ${project_dir}/package/
+}
 
+function package {
+    package_cmake
     args=""
     [[ $strip_enable == TRUE ]] && args="-D CPACK_STRIP_FILES=TRUE -D CPACK_RPM_SPEC_MORE_DEFINE="
 
     if ! ( cpack --verbose $args ); then
         echo ">>> package nebula failed <<<"
         exit 1
-    else
-        # rename package file
-        outputDir=$build_dir/cpack_output
-        mkdir -p ${outputDir}
-        for pkg_name in $(ls ./*nebula*-${version}*); do
-            mv ${pkg_name} ${outputDir}/
-            echo "####### taget package file is ${outputDir}/${pkg_name}"
-        done
-    fi
-
-    popd
-}
-
-function gen_package_name {
-    if [[ -f "/etc/redhat-release" ]]; then
-        sys_name=`cat /etc/redhat-release | cut -d ' ' -f1`
-        if [[ ${sys_name} == "CentOS" ]]; then
-            sys_ver=`cat /etc/redhat-release | tr -dc '0-9.' | cut -d \. -f1`
-            if [[ ${sys_ver} == 7 ]] || [[ ${sys_ver} == 6 ]]; then
-                package_name=.el${sys_ver}.$(uname -m)
-            else
-                package_name=.el${sys_ver}.$(uname -m)
-            fi
-        elif [[ ${sys_name} == "Fedora" ]]; then
-            sys_ver=`cat /etc/redhat-release | cut -d ' ' -f3`
-            package_name=.fc${sys_ver}.$(uname -m)
-        fi
-    elif [[ -f "/etc/lsb-release" ]]; then
-        sys_name=`cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d "=" -f 2 | sed 's/\.//'`
-        package_name=.ubuntu${sys_name}.$(uname -m)
-    elif [[ -f "/etc/issue" ]]; then
-        sys_name=`cat /etc/issue | cut -d " " -f 3`
-        package_name=.debian${sys_name}.$(uname -m)
     fi
 }
 
-function package_tar_sh {
-    gen_package_name
-    exec_file=$build_dir/nebula-$version$package_name.sh
-
-    echo "Creating self-extractable package $exec_file"
-    cat > $exec_file <<EOF
-#! /usr/bin/env bash
-set -e
-hash xz &> /dev/null || { echo "xz: Command not found"; exit 1; }
-[[ \$# -ne 0 ]] && prefix=\$(echo "\$@" | sed 's;.*--prefix=(\S*).*;\1;p' -rn)
-prefix=\${prefix:-/usr/local/nebula}
-mkdir -p \$prefix
-[[ -w \$prefix ]] || { echo "\$prefix: No permission to write"; exit 1; }
-archive_offset=\$(awk '/^__start_of_archive__$/{print NR+1; exit 0;}' \$0)
-tail -n+\$archive_offset \$0 | tar --no-same-owner --numeric-owner -xJf - -C \$prefix
-daemons=(metad graphd storaged)
-for daemon in \${daemons[@]}
-do
-    if [[ ! -f \$prefix/etc/nebula-\$daemon.conf ]] && [[ -f \$prefix/etc/nebula-\$daemon.conf.default ]]; then
-        cp \$prefix/etc/nebula-\$daemon.conf.default \$prefix/etc/nebula-\$daemon.conf
-        chmod 644 \$prefix/etc/nebula-\$daemon.conf
-    fi
-done
-echo "Nebula Graph has been installed to \$prefix"
-exit 0
-__start_of_archive__
-EOF
-    pushd $install_dir
-    tar -cJf - * >> $exec_file
-    chmod 0755 $exec_file
-    echo "####### target package file is $exec_file"
+function package_tar {
+    install_dir=${build_dir}/install
+    package_cmake
+    pushd ${package_dir}
+        make install -j$(nproc)
     popd
+    if ! ( make package-tar ); then
+        echo ">>> package nebula to sh failed <<<"
+        exit 1
+    fi
+}
+
+function move_file {
+    # rename package file
+    outputDir=$build_dir/cpack_output
+    mkdir -p ${outputDir}
+    for pkg_name in $(ls ./*nebula*-${version}*); do
+        mv ${pkg_name} ${outputDir}/
+        echo "####### taget package file is ${outputDir}/${pkg_name}"
+    done
 }
 
 # The main
-if [[ $package_type == "auto" ]]; then
-    build
-    package
+build
+
+# The package CMakeLists.txt in ${project_dir}/package/build
+if [[ -d $package_dir ]]; then
+    rm -rf ${package_dir:?}/*
 else
-    install_dir=${build_dir}/install
-    build
-    pushd ${storage_build_dir}
-        make install -j$(nproc)
-    popd
-    pushd ${build_dir}
-        make install -j$(nproc)
-    popd
-    package_tar_sh
+    mkdir ${package_dir}
 fi
 
+pushd ${package_dir}
+if [[ "$package_type" == "tar" ]]; then
+    package_tar
+elif [[ "$package_type" == "auto" ]]; then
+    package
+else
+    package
+    package_tar
+fi
+move_file
+popd
