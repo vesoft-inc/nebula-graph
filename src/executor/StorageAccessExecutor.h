@@ -83,10 +83,8 @@ protected:
                 return Status::Error("Storage Error: The leader has changed. Try again later");
             case nebula::cpp2::ErrorCode::E_INVALID_FILTER:
                 return Status::Error("Storage Error: Invalid filter.");
-            case nebula::cpp2::ErrorCode::E_INVALID_RETURN:
-                return Status::Error("Storage Error: Invalid yield col.");
-            case nebula::cpp2::ErrorCode::E_INVALID_EXPR_FORMAT:
-                return Status::Error("Storage Error: Invalid expression.");
+            case nebula::cpp2::ErrorCode::E_INVALID_UPDATER:
+                return Status::Error("Storage Error: Invalid Update col or yield col.");
             case nebula::cpp2::ErrorCode::E_INVALID_SPACEVIDLEN:
                 return Status::Error("Storage Error: Invalid space vid len.");
             case nebula::cpp2::ErrorCode::E_SPACE_NOT_FOUND:
@@ -105,14 +103,14 @@ protected:
                 return Status::Error("Storage Error: Invalid data, may be wrong value type.");
             case nebula::cpp2::ErrorCode::E_NOT_NULLABLE:
                 return Status::Error("Storage Error: The not null field cannot be null.");
-            case nebula::cpp2::ErrorCode::E_NO_DEFAULT_VALUE:
+            case nebula::cpp2::ErrorCode::E_FIELD_UNSET:
                 return Status::Error("Storage Error: "
                                      "The not null field doesn't have a default value.");
             case nebula::cpp2::ErrorCode::E_OUT_OF_RANGE:
                 return Status::Error("Storage Error: Out of range value.");
             case nebula::cpp2::ErrorCode::E_ATOMIC_OP_FAILED:
                 return Status::Error("Storage Error: Atomic operation failed.");
-            case nebula::cpp2::ErrorCode::E_DATA_CONFLICT:
+            case nebula::cpp2::ErrorCode::E_DATA_CONFLICT_ERROR:
                 return Status::Error("Storage Error: More than one request trying to "
                                      "add/update/delete one edge/vertex at the same time.");
             case nebula::cpp2::ErrorCode::E_FILTER_OUT:
