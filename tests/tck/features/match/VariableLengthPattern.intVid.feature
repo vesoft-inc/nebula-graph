@@ -350,3 +350,9 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       """
     Then the result should be, in any order:
       | v.name |
+    When executing query:
+      """
+      MATCH (v:player {name: "Yao Ming"})-[:serve*1000000000..1000000002]->() RETURN v.name
+      """
+    Then the result should be, in any order:
+      | v.name |
