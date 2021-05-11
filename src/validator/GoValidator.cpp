@@ -241,11 +241,13 @@ Status GoValidator::buildNStepsPlan() {
         loopBody = projectFromJoin;
     }
 
+    auto *condition = buildExpandCondition(gn->outputVar(), steps_.steps - 1);
+    qctx_->objPool()->add(condition);
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
         loopBody,                                                                   // body
-        buildExpandCondition(gn->outputVar(), steps_.steps - 1));
+        condition);
 
     NG_RETURN_IF_ERROR(oneStep(loop, dedupDstVids->outputVar(), projectFromJoin));
     // reset tail_
