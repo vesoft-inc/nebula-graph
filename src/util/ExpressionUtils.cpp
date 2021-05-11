@@ -140,17 +140,7 @@ Expression *ExpressionUtils::rewriteAgg2VarProp(const Expression *expr) {
 
         return RewriteVisitor::transform(expr,
                                          std::move(matcher),
-                                         std::move(rewriter),
-                                         {Expression::Kind::kFunctionCall,
-                                          Expression::Kind::kTypeCasting,
-                                          Expression::Kind::kAdd,
-                                          Expression::Kind::kMinus,
-                                          Expression::Kind::kMultiply,
-                                          Expression::Kind::kDivision,
-                                          Expression::Kind::kMod,
-                                          Expression::Kind::kPredicate,
-                                          Expression::Kind::kListComprehension,
-                                          Expression::Kind::kReduce});
+                                         std::move(rewriter));
     }
 
 Expression *ExpressionUtils::foldConstantExpr(const Expression *expr, ObjectPool *objPool) {
@@ -360,6 +350,39 @@ void ExpressionUtils::pullOrsImpl(LogicalExpression *expr,
     }
 }
 
+std::unique_ptr<Expression> ExpressionUtils::flattenInnerLogicalAndExpr(const Expression *expr) {
+    auto matcher = [](const Expression *e) -> bool {
+        return e->kind() == Expression::Kind::kLogicalAnd;
+    };
+    auto rewriter = [](const Expression *e) -> Expression * {
+        pullAnds(const_cast<Expression *>(e));
+        return e->clone().release();
+    };
+
+    return std::unique_ptr<Expression>(
+        RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter)));
+}
+
+std::unique_ptr<Expression> ExpressionUtils::flattenInnerLogicalOrExpr(const Expression *expr) {
+    auto matcher = [](const Expression *e) -> bool {
+        return e->kind() == Expression::Kind::kLogicalOr;
+    };
+    auto rewriter = [](const Expression *e) -> Expression * {
+        pullOrs(const_cast<Expression *>(e));
+        return e->clone().release();
+    };
+
+    return std::unique_ptr<Expression>(
+        RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter)));
+}
+
+std::unique_ptr<Expression> ExpressionUtils::flattenInnerLogicalExpr(const Expression *expr) {
+    auto andFlattenExpr = flattenInnerLogicalAndExpr(expr);
+    auto allFlattenExpr = flattenInnerLogicalOrExpr(andFlattenExpr.get());
+
+    return allFlattenExpr;
+}
+
 VariablePropertyExpression *ExpressionUtils::newVarPropExpr(const std::string &prop,
                                                             const std::string &var) {
     return new VariablePropertyExpression(new std::string(var), new std::string(prop));
@@ -519,6 +542,7 @@ Status ExpressionUtils::checkAggExpr(const AggregateExpression *aggExpr) {
     return Status::OK();
 }
 
+// Negate the given relational expr
 std::unique_ptr<RelationalExpression> ExpressionUtils::reverseRelExpr(RelationalExpression *expr) {
     auto left = static_cast<RelationalExpression *>(expr)->left();
     auto right = static_cast<RelationalExpression *>(expr)->right();
@@ -528,6 +552,7 @@ std::unique_ptr<RelationalExpression> ExpressionUtils::reverseRelExpr(Relational
         negatedKind, left->clone().release(), right->clone().release());
 }
 
+// Return the negation of the given relational kind
 Expression::Kind ExpressionUtils::getNegatedRelExprKind(const Expression::Kind kind) {
     switch (kind) {
         case Expression::Kind::kRelEQ:
@@ -619,5 +644,6 @@ Expression::Kind ExpressionUtils::getNegatedLogicalExprKind(const Expression::Ki
             break;
     }
 }
+
 }   // namespace graph
 }   // namespace nebula

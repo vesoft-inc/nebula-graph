@@ -113,6 +113,12 @@ public:
         Expression::Kind kind,
         const std::vector<std::unique_ptr<Expression>>& rels);
 
+    static std::unique_ptr<Expression> flattenInnerLogicalAndExpr(const Expression* expr);
+
+    static std::unique_ptr<Expression> flattenInnerLogicalOrExpr(const Expression* expr);
+
+    static std::unique_ptr<Expression> flattenInnerLogicalExpr(const Expression* expr);
+
     static std::unique_ptr<Expression> expandExpr(const Expression* expr);
 
     static std::unique_ptr<Expression> expandImplAnd(const Expression* expr);
