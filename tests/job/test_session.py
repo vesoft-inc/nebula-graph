@@ -10,9 +10,9 @@ import time
 import pytest
 import concurrent
 
-from thrift.transport import TSocket
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
+from nebula2.fbthrift.transport import TSocket
+from nebula2.fbthrift.transport import TTransport
+from nebula2.fbthrift.protocol import TBinaryProtocol
 
 from nebula2.graph import GraphService
 from nebula2.graph import ttypes
@@ -147,12 +147,12 @@ class TestSession(NebulaTestSuite):
         session_id = resp.session_id
 
         resp = conn1.execute(session_id, 'CREATE SPACE IF NOT EXISTS aSpace(partition_num=1);USE aSpace;')
-        self.check_resp_succeeded(ResultSet(resp))
+        self.check_resp_succeeded(ResultSet(resp, 0))
         time.sleep(3)
         resp = conn1.execute(session_id, 'CREATE TAG IF NOT EXISTS a();')
-        self.check_resp_succeeded(ResultSet(resp))
+        self.check_resp_succeeded(ResultSet(resp, 0))
         resp = conn2.execute(session_id, 'CREATE TAG IF NOT EXISTS b();')
-        self.check_resp_succeeded(ResultSet(resp))
+        self.check_resp_succeeded(ResultSet(resp, 0))
 
         def do_test(connection, sid, num):
             result = connection.execute(sid, 'USE aSpace;')
@@ -173,8 +173,8 @@ class TestSession(NebulaTestSuite):
             for future in concurrent.futures.as_completed(test_jobs):
                 assert future.exception() is None, future.exception()
         resp = conn2.execute(session_id, 'SHOW TAGS')
-        self.check_resp_succeeded(ResultSet(resp))
+        self.check_resp_succeeded(ResultSet(resp, 0))
         expect_result = [['a'], ['b'], ['aa0'], ['aa1'], ['aa2']]
-        self.check_out_of_order_result(ResultSet(resp), expect_result)
+        self.check_out_of_order_result(ResultSet(resp, 0), expect_result)
 
 

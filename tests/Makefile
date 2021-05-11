@@ -50,7 +50,7 @@ down:
 
 test:
 	cd $(CURR_DIR) && python3 -m pytest -n$(J) --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" -k "not tck" $(TEST_DIR) \
-	&& python3 -m pytest --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" -k "not tck" job/test_session.py
+	&& python3 -m pytest --rm_dir=$(RM_DIR) -m "not skip" -k "not tck" job/test_session.py
 
 tck:
 	cd $(CURR_DIR) && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/
