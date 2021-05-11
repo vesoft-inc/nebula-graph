@@ -373,7 +373,7 @@ Status GoValidator::buildMToNPlan() {
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
-        body, // body
+        body,  // body
         condition);
 
     if (projectStartVid_ != nullptr) {
