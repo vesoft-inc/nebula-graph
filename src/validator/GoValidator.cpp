@@ -366,11 +366,15 @@ Status GoValidator::buildMToNPlan() {
         dedupNode->setColNames(std::move(colNames_));
     }
 
+    PlanNode *body = dedupNode == nullptr ? projectResult : dedupNode;
+    auto *condition = buildExpandCondition(body->outputVar(),
+                                           steps_.mToN->nSteps);
+    qctx_->objPool()->add(condition);
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
-        dedupNode == nullptr ? projectResult : dedupNode,                           // body
-        buildNStepLoopCondition(steps_.mToN->nSteps));
+        body, // body
+        condition);
 
     if (projectStartVid_ != nullptr) {
         tail_ = projectStartVid_;
