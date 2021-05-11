@@ -146,18 +146,18 @@ class TestSession(NebulaTestSuite):
         assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
         session_id = resp.session_id
 
-        resp = conn1.execute(session_id, 'CREATE SPACE aSpace(partition_num=1);USE aSpace;')
+        resp = conn1.execute(session_id, 'CREATE SPACE IF NOT EXISTS aSpace(partition_num=1);USE aSpace;')
         self.check_resp_succeeded(ResultSet(resp))
         time.sleep(3)
-        resp = conn1.execute(session_id, 'CREATE TAG a();')
+        resp = conn1.execute(session_id, 'CREATE TAG IF NOT EXISTS a();')
         self.check_resp_succeeded(ResultSet(resp))
-        resp = conn2.execute(session_id, 'CREATE TAG b();')
+        resp = conn2.execute(session_id, 'CREATE TAG IF NOT EXISTS b();')
         self.check_resp_succeeded(ResultSet(resp))
 
         def do_test(connection, sid, num):
             result = connection.execute(sid, 'USE aSpace;')
             assert result.error_code == ttypes.ErrorCode.SUCCEEDED
-            result = connection.execute(sid, 'CREATE TAG aa{}()'.format(num))
+            result = connection.execute(sid, 'CREATE TAG IF NOT EXISTS aa{}()'.format(num))
             assert result.error_code == ttypes.ErrorCode.SUCCEEDED, result.error_msg
 
         # test multi connection with the same session_id
@@ -171,10 +171,7 @@ class TestSession(NebulaTestSuite):
                 test_jobs.append(future)
 
             for future in concurrent.futures.as_completed(test_jobs):
-                if future.exception() is not None:
-                    assert False, future.exception()
-                else:
-                    assert True
+                assert future.exception() is None, future.exception()
         resp = conn2.execute(session_id, 'SHOW TAGS')
         self.check_resp_succeeded(ResultSet(resp))
         expect_result = [['a'], ['b'], ['aa0'], ['aa1'], ['aa2']]

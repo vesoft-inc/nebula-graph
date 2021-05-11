@@ -93,7 +93,7 @@ folly::Future<Status> UpdateSessionExecutor::execute() {
     sessions.emplace_back(updateNode->getSession());
     return qctx()->getMetaClient()->updateSessions(sessions)
             .via(runner())
-            .thenValue([this, updateNode](auto&& resp) {
+            .thenValue([this](auto&& resp) {
                 SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
