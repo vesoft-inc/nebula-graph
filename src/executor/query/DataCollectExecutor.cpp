@@ -277,15 +277,15 @@ Status DataCollectExecutor::collectPathProp(const std::vector<std::string>& vars
     vertexMap.reserve(vIter->size());
     DCHECK(vIter->isPropIter());
     for (; vIter->valid(); vIter->next()) {
-        auto& vertexVal = vIter->getVertex();
+        const auto& vertexVal = vIter->getVertex();
         if (!vertexVal.isVertex()) {
             continue;
         }
-        auto& vertex = vertexVal.getVertex();
+        const auto& vertex = vertexVal.getVertex();
         vertexMap.insert(std::make_pair(vertex.vid, std::move(vertex)));
     }
 
-    auto& eIter = ectx_->getResult(vars[1]).iter();
+    auto eIter = ectx_->getResult(vars[1]).iter();
     std::unordered_map<std::tuple<Value, EdgeType, EdgeRanking, Value>, Edge> edgeMap;
     edgeMap.reserve(eIter->size());
     DCHECK(eIter->isPropIter());
@@ -299,14 +299,14 @@ Status DataCollectExecutor::collectPathProp(const std::vector<std::string>& vars
         edgeMap.insert(std::make_pair(std::move(edgeKey), std::move(edge)));
     }
 
-    auto& pIter = ectx_->getResult(vars[2]).iter();
+    auto pIter = ectx_->getResult(vars[2]).iter();
     DCHECK(pIter->isSequentialIter());
     for (; pIter->valid(); pIter->next()) {
-        auto pathVal = pIter->getColumn(0);
+        auto& pathVal = pIter->getColumn(0);
         if (!pathVal.isPath()) {
             continue;
         }
-        auto& path = pathVal.getPath();
+        auto path = pathVal.getPath();
         auto src = path.src.vid;
         auto found = vertexMap.find(src);
         if (found != vertexMap.end()) {
