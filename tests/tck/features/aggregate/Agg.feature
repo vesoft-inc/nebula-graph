@@ -568,7 +568,7 @@ Feature: Basic Aggregate and GroupBy
   Scenario: Distinct sum
     When executing query:
       """
-      UNWIND [1,2,3] AS d RETURN d | YIELD sum(distinct $-.d) AS sum
+      UNWIND [1,2,3,3] AS d RETURN d | YIELD sum(distinct $-.d) AS sum
       """
     Then the result should be, in any order:
       | sum |
