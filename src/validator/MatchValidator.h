@@ -35,8 +35,12 @@ private:
                           const CypherClauseContextBase *cypherClauseCtx,
                           ReturnClauseContext &retClauseCtx) const;
 
-    Status validateAliases(const std::vector<const Expression *> &exprs,
-                           const std::unordered_map<std::string, AliasType> *aliases) const;
+    Status checkAliasesSchema(const std::string &name,
+                              const std::string &prop,
+                              const AliasSchemaMap *aliases) const;
+
+    Status validateAliasesSchema(const std::vector<const Expression *> &exprs,
+                                 const AliasSchemaMap *aliases) const;
 
     Status validateStepRange(const MatchStepRange *range) const;
 
@@ -72,24 +76,19 @@ private:
 
     Status buildNodeInfo(const MatchPath *path,
                          std::vector<NodeInfo> &edgeInfos,
-                         std::unordered_map<std::string, AliasType> &aliases) const;
+                         AliasSchemaMap &aliases) const;
 
     Status buildEdgeInfo(const MatchPath *path,
                          std::vector<EdgeInfo> &nodeInfos,
-                         std::unordered_map<std::string, AliasType> &aliases) const;
+                         AliasSchemaMap &aliases) const;
 
     Status buildPathExpr(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
 
-    Status combineAliases(std::unordered_map<std::string, AliasType> &curAliases,
-                          const std::unordered_map<std::string, AliasType> &lastAliases) const;
+    Status combineAliases(AliasSchemaMap &curAliases, const AliasSchemaMap &lastAliases) const;
 
     Status combineYieldColumns(YieldColumns *yieldColumns, YieldColumns *prevYieldColumns) const;
 
-    StatusOr<AliasType> getAliasType(const std::unordered_map<std::string, AliasType> *aliasesUsed,
-                                     const std::string *name) const;
-
-    Status checkAlias(const Expression *refExpr,
-                      const std::unordered_map<std::string, AliasType> *aliasesUsed) const;
+    Status checkAliasesEdgeProp(const Expression *expr, const AliasSchemaMap *aliases) const;
 
     Status buildOutputs(const YieldColumns *yields);
 
