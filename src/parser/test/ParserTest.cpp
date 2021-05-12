@@ -2303,7 +2303,7 @@ TEST(Parser, Match) {
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
-        std::string query = "MATCH (a) -[m:like|:serve]- (b) RETURN a as Person";
+        std::string query = "MATCH (a) -[m:like|serve]- (b) RETURN a as Person";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }

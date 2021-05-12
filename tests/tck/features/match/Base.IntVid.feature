@@ -71,7 +71,7 @@ Feature: Basic match
       | "serve" | "Cavaliers" |
     When executing query:
       """
-      MATCH (v1:player{name: "LeBron James"}) -[r:serve|:like]-> (v2) RETURN type(r) AS Type, v2.name AS Name
+      MATCH (v1:player{name: "LeBron James"}) -[r:serve|like]-> (v2) RETURN type(r) AS Type, v2.name AS Name
       """
     Then the result should be, in any order:
       | Type    | Name        |

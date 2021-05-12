@@ -109,7 +109,7 @@ Feature: Integer Vid Match By Id
       | 'serve' | 'Lakers'    |
     When executing query:
       """
-      MATCH (v1) -[r:serve|:like]-> (v2)
+      MATCH (v1) -[r:serve|like]-> (v2)
       WHERE id(v1) == hash("LeBron James")
       RETURN type(r) AS Type, v2.name AS Name
       """

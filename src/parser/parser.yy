@@ -1532,10 +1532,6 @@ match_edge_type_list
         $$ = $1;
         $$->add($3);
     }
-    | match_edge_type_list PIPE COLON name_label {
-        $$ = $1;
-        $$->add($4);
-    }
     ;
 
 match_return
