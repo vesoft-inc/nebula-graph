@@ -321,7 +321,7 @@ folly::Future<Status> ConjunctPathExecutor::allPaths() {
     std::unordered_map<Value, const List&> table;
     for (; lIter->valid(); lIter->next()) {
         auto& dst = lIter->getColumn(kVid);
-        auto& path = lIter->getColumn("path");
+        auto& path = lIter->getColumn(kPathStr);
         if (path.isList()) {
             VLOG(1) << "Forward dst: " << dst;
             table.emplace(dst, path.getList());
@@ -350,7 +350,7 @@ bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
     for (; backwardPathsIter->valid(); backwardPathsIter->next()) {
         auto& dst = backwardPathsIter->getColumn(kVid);
         VLOG(1) << "Backward dst: " << dst;
-        auto& pathList = backwardPathsIter->getColumn("path");
+        auto& pathList = backwardPathsIter->getColumn(kPathStr);
         if (!pathList.isList()) {
             continue;
         }

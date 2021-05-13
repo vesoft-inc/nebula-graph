@@ -349,48 +349,48 @@ Feature: TTLTest
       FETCH PROP ON person "1";
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices_ |
+      | vertices |
     When executing query:
       """
-      FETCH PROP ON person "1" YIELD person.id as id
+      FETCH PROP ON person "1" YIELD _vid, person.id as id
       """
     Then the result should be, in any order:
-      | VertexID | id |
+      | _vid | id |
     When executing query:
       """
-      FETCH PROP ON * "1" YIELD person.id, career.id
+      FETCH PROP ON * "1" YIELD _vid, person.id, career.id
       """
     Then the result should be, in any order:
-      | VertexID | person.id | career.id |
+      | _vid | person.id | career.id |
     When executing query:
       """
-      FETCH PROP ON person "2" YIELD person.id
+      FETCH PROP ON person "2" YIELD _vid, person.id
       """
     Then the result should be, in any order:
-      | VertexID | person.id |
+      | _vid | person.id |
     When executing query:
       """
-      FETCH PROP ON person "2" YIELD person.id as id
+      FETCH PROP ON person "2" YIELD _vid, person.id as id
       """
     Then the result should be, in any order:
-      | VertexID | id |
+      | _vid | id |
     When executing query:
       """
-      FETCH PROP ON career "2" YIELD career.id;
+      FETCH PROP ON career "2" YIELD _vid, career.id;
       """
     Then the result should be, in any order:
-      | VertexID | career.id |
+      | _vid | career.id |
       | "2"      | 200       |
     When executing query:
       """
-      FETCH PROP ON * "2" YIELD person.id, career.id
+      FETCH PROP ON * "2" YIELD _vid, person.id, career.id
       """
     Then the result should be, in any order:
-      | VertexID | person.id | career.id |
+      | _vid | person.id | career.id |
       | "2"      | EMPTY     | 200       |
     When executing query:
       """
-      FETCH PROP ON friend "100"->"1","100"->"2" YIELD friend.id;
+      FETCH PROP ON friend "100"->"1","100"->"2" YIELD friend._src, friend._dst, friend._rank, friend.id;
       """
     Then the result should be, in any order:
       | friend._src | friend._dst | friend._rank | friend.id |
@@ -398,7 +398,7 @@ Feature: TTLTest
       | "100"       | "2"         | 0            | 200       |
     When executing query:
       """
-      FETCH PROP ON friend "100"->"1","100"->"2" YIELD friend.id AS id;
+      FETCH PROP ON friend "100"->"1","100"->"2" YIELD friend._src, friend._dst, friend._rank, friend.id AS id;
       """
     Then the result should be, in any order:
       | friend._src | friend._dst | friend._rank | id  |
@@ -406,13 +406,13 @@ Feature: TTLTest
       | "100"       | "2"         | 0            | 200 |
     When executing query:
       """
-      FETCH PROP ON like "100"->"1","100"->"2" YIELD like.id;
+      FETCH PROP ON like "100"->"1","100"->"2" YIELD like._src, like._dst, like._rank, like.id;
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.id |
     When executing query:
       """
-      FETCH PROP ON like "100"->"1","100"->"2" YIELD like.id AS id;
+      FETCH PROP ON like "100"->"1","100"->"2" YIELD like._src, like._dst, like._rank, like.id AS id;
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | id |
@@ -431,16 +431,16 @@ Feature: TTLTest
     And wait 1 seconds
     When executing query:
       """
-      FETCH PROP ON person "1" YIELD person.age as age;
+      FETCH PROP ON person "1" YIELD _vid, person.age as age;
       """
     Then the result should be, in any order, with relax comparison:
-      | VertexID | age |
+      | _vid | age |
       | "1"      | 20  |
     And wait 7 seconds
     When executing query:
       """
-      FETCH PROP ON person "1" YIELD person.age as age;
+      FETCH PROP ON person "1" YIELD _vid, person.age as age;
       """
     Then the result should be, in any order:
-      | VertexID | age |
+      | _vid | age |
     And drop the used space

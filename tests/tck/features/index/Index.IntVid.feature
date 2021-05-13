@@ -565,18 +565,18 @@ Feature: IndexTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD tag_1.col5, tag_1.col1
+      LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD _vid, tag_1.col5, tag_1.col1
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col5 | tag_1.col1 |
-      | 100      | 5          | true       |
+      | _vid | tag_1.col5 | tag_1.col1 |
+      | 100  | 5          | true       |
     When executing query:
       """
-      LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD tag_1.col1, tag_1.col5
+      LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD _vid, tag_1.col1, tag_1.col5
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col1 | tag_1.col5 |
-      | 100      | true       | 5          |
+      | _vid | tag_1.col1 | tag_1.col5 |
+      | 100  | true       | 5          |
     Then drop the used space
 
   Scenario: IndexTest IntVid RebuildTagIndexStatusInfo
@@ -706,7 +706,9 @@ Feature: IndexTest_Vid_Int
     Then the execution should be successful
     When executing query:
       """
-      LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD alter_tag.type
+      LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD _vid, alter_tag.type
       """
-    Then the execution should be successful
+    Then the result should be, in any order:
+      | _vid | alter_tag.type |
+      | 100  | NULL           |
     Then drop the used space

@@ -29,7 +29,7 @@ private:
     Status prepareVertices();
 
     Status preparePropertiesWithYield(const YieldClause *yield);
-    Status preparePropertiesWithoutYield();
+    Status preparePropertiesWithVertexExpr();
     Status prepareProperties();
 
     // TODO(shylock) merge the code
@@ -40,7 +40,6 @@ private:
     DataSet srcVids_{{kVid}};  // src from constant
     Expression* srcRef_{nullptr};  // src from runtime
     Expression* src_{nullptr};  // src in total
-    bool onStar_{false};
     std::unordered_map<std::string, TagID> tags_;
     std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema_;
     std::vector<storage::cpp2::VertexProp> props_;
@@ -51,7 +50,7 @@ private:
     std::string filter_{};
     // valid when yield expression not require storage
     // So expression like these will be evaluate in Project Executor
-    bool withYield_{false};
+    bool isVertexCol_{false};
     // outputs
     std::vector<std::string> gvColNames_;
     std::vector<std::string> colNames_;

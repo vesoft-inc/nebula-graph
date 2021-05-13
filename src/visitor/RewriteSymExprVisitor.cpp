@@ -334,5 +334,10 @@ void RewriteSymExprVisitor::visit(SubscriptRangeExpression *expr) {
     }
 }
 
+void RewriteSymExprVisitor::visit(VidExpression *expr) {
+    UNUSED(expr);
+    expr_.reset();
+}
+
 }   // namespace graph
 }   // namespace nebula

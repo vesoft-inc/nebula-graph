@@ -493,7 +493,7 @@ TEST(Scanner, Basic) {
         CHECK_SEMANTIC_TYPE("reduce", TokenType::KW_REDUCE),
 
         CHECK_SEMANTIC_TYPE("_type", TokenType::TYPE_PROP),
-        CHECK_SEMANTIC_TYPE("_id", TokenType::ID_PROP),
+        CHECK_SEMANTIC_TYPE("_vid", TokenType::VID_PROP),
         CHECK_SEMANTIC_TYPE("_src", TokenType::SRC_ID_PROP),
         CHECK_SEMANTIC_TYPE("_dst", TokenType::DST_ID_PROP),
         CHECK_SEMANTIC_TYPE("_rank", TokenType::RANK_PROP),

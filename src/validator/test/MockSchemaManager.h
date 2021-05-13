@@ -115,6 +115,10 @@ public:
         LOG(FATAL) << "Unimplemented.";
     }
 
+    StatusOr<meta::cpp2::PropertyType> getSpaceVidType(GraphSpaceID) override {
+        return meta::cpp2::PropertyType::FIXED_STRING;
+    }
+
 private:
     std::unordered_map<std::string, GraphSpaceID>        spaceNameIds_;
     std::unordered_map<std::string, TagID>               tagNameIds_;

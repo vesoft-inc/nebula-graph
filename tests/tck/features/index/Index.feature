@@ -571,17 +571,17 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     When executing query:
       """
-      LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD tag_1.col5, tag_1.col1
+      LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD _vid, tag_1.col5, tag_1.col1
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col5 | tag_1.col1 |
+      | _vid | tag_1.col5 | tag_1.col1 |
       | "100"    | 5          | true       |
     When executing query:
       """
-      LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD tag_1.col1, tag_1.col5
+      LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD _vid, tag_1.col1, tag_1.col5
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col1 | tag_1.col5 |
+      | _vid | tag_1.col1 | tag_1.col5 |
       | "100"    | true       | 5          |
     Then drop the used space
 
@@ -712,9 +712,11 @@ Feature: IndexTest_Vid_String
     And wait 6 seconds
     When executing query:
       """
-      LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD alter_tag.type
+      LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD _vid, alter_tag.type
       """
-    Then the execution should be successful
+    Then the result should be, in any order:
+      | _vid | alter_tag.type |
+      | "100"    |  NULL     |
     Then drop the used space
 
   Scenario: IndexTest rebuild all tag indexes by empty input
@@ -754,18 +756,18 @@ Feature: IndexTest_Vid_String
       | "rebuild_tag_space_all_tag_indexes" | "FINISHED"   |
     When executing query:
       """
-      LOOKUP ON id_tag WHERE id_tag.id == 100
+      LOOKUP ON id_tag WHERE id_tag.id == 100 YIELD _vid
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "100"    |
       | "200"    |
     When executing query:
       """
-      LOOKUP ON name_tag WHERE name_tag.name == "100"
+      LOOKUP ON name_tag WHERE name_tag.name == "100" YIELD _vid
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "300"    |
       | "400"    |
     Then drop the used space
@@ -809,26 +811,26 @@ Feature: IndexTest_Vid_String
       | "id_tag_index,name_tag_index" | "FINISHED"   |
     When executing query:
       """
-      LOOKUP ON id_tag WHERE id_tag.id == 100
+      LOOKUP ON id_tag WHERE id_tag.id == 100 YIELD _vid
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "100"    |
       | "200"    |
     When executing query:
       """
-      LOOKUP ON name_tag WHERE name_tag.name == "100"
+      LOOKUP ON name_tag WHERE name_tag.name == "100"  YIELD _vid
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
       | "300"    |
       | "400"    |
     When executing query:
       """
-      LOOKUP ON age_tag WHERE age_tag.age == 8
+      LOOKUP ON age_tag WHERE age_tag.age == 8  YIELD _vid
       """
     Then the result should be, in any order:
-      | VertexID |
+      | _vid |
     Then drop the used space
 
   Scenario: IndexTest rebuild all edge indexes by empty input
@@ -868,17 +870,21 @@ Feature: IndexTest_Vid_String
       | "rebuild_edge_space_all_edge_indexes" | "FINISHED"   |
     When executing query:
       """
-      LOOKUP ON id_edge WHERE id_edge.id == 100
+      LOOKUP ON id_edge
+      WHERE id_edge.id == 100
+      YIELD id_edge._src, id_edge._dst, id_edge._rank
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | id_edge._src | id_edge._dst | id_edge._rank |
       | "100"  | "200"  | 0       |
     When executing query:
       """
-      LOOKUP ON name_edge WHERE name_edge.name == "100"
+      LOOKUP ON name_edge
+      WHERE name_edge.name == "100"
+      YIELD name_edge._src, name_edge._dst, name_edge._rank
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | name_edge._src | name_edge._dst | name_edge._rank |
       | "300"  | "400"  | 0       |
     Then drop the used space
 
@@ -922,23 +928,26 @@ Feature: IndexTest_Vid_String
     When executing query:
       """
       LOOKUP ON id_edge WHERE id_edge.id == 100
+      YIELD id_edge._src, id_edge._dst, id_edge._rank
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | id_edge._src | id_edge._dst | id_edge._rank |
       | "100"  | "200"  | 0       |
     When executing query:
       """
       LOOKUP ON name_edge WHERE name_edge.name == "100"
+      YIELD name_edge._src, name_edge._dst, name_edge._rank
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | name_edge._src | name_edge._dst | name_edge._rank |
       | "300"  | "400"  | 0       |
     When executing query:
       """
       LOOKUP ON age_edge WHERE age_edge.age == 8
+      YIELD age_edge._src, age_edge._dst, age_edge._rank
       """
     Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
+      | age_edge._src | age_edge._dst | age_edge._rank |
     Then drop the used space
 
   Scenario: show create tag index

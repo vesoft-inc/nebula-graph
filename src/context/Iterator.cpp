@@ -548,6 +548,8 @@ Status PropIter::makeDataSetIndex(const DataSet& ds) {
         auto& colName = colNames[i];
         if (colName.find(".") != std::string::npos) {
             NG_RETURN_IF_ERROR(buildPropIndex(colName, i));
+        } else if (colName.find(kVid) == 0) {
+            dsIndex_.vidPos_ = i;
         }
     }
     return Status::OK();
@@ -576,11 +578,18 @@ const Value& PropIter::getColumn(const std::string& col) const {
         return Value::kNullValue;
     }
 
+    auto& row = *iter_;
+    if (col == kVid) {
+        DCHECK_GE(dsIndex_.vidPos_, 0UL);
+        DCHECK_LT(dsIndex_.vidPos_, row.values.size());
+        return row.values[dsIndex_.vidPos_];
+    }
+
     auto index = dsIndex_.colIndices.find(col);
     if (index == dsIndex_.colIndices.end()) {
         return Value::kNullValue;
     }
-    auto& row = *iter_;
+
     DCHECK_LT(index->second, row.values.size());
     return row.values[index->second];
 }
@@ -602,6 +611,9 @@ const Value& PropIter::getProp(const std::string& name, const std::string& prop)
     }
     auto colId = propIndex->second;
     auto& row = *iter_;
+    if (row.empty()) {
+        return Value::kEmpty;
+    }
     DCHECK_GT(row.size(), colId);
     return row[colId];
 }
@@ -658,6 +670,9 @@ Value PropIter::getEdge() const {
     auto& row = *iter_;
     for (auto& edgeProp : edgePropsMap) {
         for (auto& propIndex : edgeProp.second) {
+            if (row.empty()) {
+                continue;
+            }
             if (row[propIndex.second].empty()) {
                 // Not current edge's prop
                 isEdgeProps = false;
@@ -724,9 +739,10 @@ List PropIter::getEdges() {
     edges.values.reserve(size());
     for (; valid(); next()) {
         auto edge = getEdge();
-        if (edge.isEdge()) {
-            const_cast<Edge&>(edge.getEdge()).format();
+        if (!edge.isEdge()) {
+            continue;
         }
+        const_cast<Edge&>(edge.getEdge()).format();
         edges.values.emplace_back(std::move(edge));
     }
     reset();

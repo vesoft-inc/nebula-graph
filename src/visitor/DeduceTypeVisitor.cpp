@@ -718,6 +718,16 @@ void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {
 void DeduceTypeVisitor::visit(PathBuildExpression *) {
     type_ = Value::Type::PATH;
 }
+
+void DeduceTypeVisitor::visit(VidExpression *) {
+    auto ret = qctx_->schemaMng()->getSpaceVidType(space_);
+    if (!ret.ok()) {
+        status_ = ret.status();
+        return;
+    }
+    type_ = SchemaUtil::propTypeToValueType(ret.value());
+}
+
 #undef DETECT_NARYEXPR_TYPE
 #undef DETECT_UNARYEXPR_TYPE
 #undef DETECT_BIEXPR_TYPE

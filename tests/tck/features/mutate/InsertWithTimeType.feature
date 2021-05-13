@@ -95,14 +95,15 @@ Feature: Insert with time-dependent types
     Then a ExecutionError should be raised at runtime:
     When executing query:
       """
-      FETCH PROP ON tag_date "test" YIELD tag_date.f_date, tag_date.f_time, tag_date.f_datetime;
+      FETCH PROP ON tag_date "test" YIELD _vid, tag_date.f_date, tag_date.f_time, tag_date.f_datetime;
       """
     Then the result should be, in any order:
-      | VertexID | tag_date.f_date | tag_date.f_time   | tag_date.f_datetime          |
+      | _vid | tag_date.f_date | tag_date.f_time   | tag_date.f_datetime          |
       | 'test'   | '2017-03-04'    | '23:01:00.000000' | '2017-03-04T22:30:40.000000' |
     When executing query:
       """
-      FETCH PROP ON edge_date "test_src"->"test_dst" YIELD edge_date.f_date, edge_date.f_time, edge_date.f_datetime;
+      FETCH PROP ON edge_date "test_src"->"test_dst"
+        YIELD edge_date._src, edge_date._dst, edge_date._rank, edge_date.f_date, edge_date.f_time, edge_date.f_datetime;
       """
     Then the result should be, in any order:
       | edge_date._src | edge_date._dst | edge_date._rank | edge_date.f_date | edge_date.f_time  | edge_date.f_datetime         |
@@ -142,11 +143,11 @@ Feature: Insert with time-dependent types
       FETCH PROP ON tag_date "test";
       """
     Then the result should be, in any order, with relax comparison:
-      | vertices_ |
+      | vertices |
     When executing query:
       """
       FETCH PROP ON edge_date "test_src"->"test_dst";
       """
     Then the result should be, in any order, with relax comparison:
-      | edges_ |
+      | edges |
     And drop the used space

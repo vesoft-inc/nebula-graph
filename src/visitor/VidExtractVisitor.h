@@ -103,6 +103,7 @@ public:
     void visit(ReduceExpression *expr) override;
     // subscript range expression
     void visit(SubscriptRangeExpression *expr) override;
+    void visit(VidExpression *expr) override;
 
 private:
     void visitBinaryExpr(BinaryExpression *expr);

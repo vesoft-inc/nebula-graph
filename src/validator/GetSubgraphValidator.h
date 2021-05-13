@@ -39,8 +39,11 @@ private:
 
     StatusOr<std::vector<storage::cpp2::EdgeProp>> buildAllEdgeProp();
 
+    Status validateYield(YieldClause* yield);
+
 private:
     std::unordered_set<EdgeType>                edgeTypes_;
+    std::vector<std::string>                    colNames_;
 };
 }  // namespace graph
 }  // namespace nebula

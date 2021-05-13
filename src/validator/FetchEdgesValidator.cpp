@@ -41,42 +41,36 @@ Status FetchEdgesValidator::toPlan() {
                                         std::move(exprs_),
                                         dedup_,
                                         limit_,
-                                        std::move(orderBy_),
-                                        std::move(filter_));
+                                        std::move(orderBy_));
     getEdgesNode->setInputVar(edgeKeysVar);
     getEdgesNode->setColNames(geColNames_);
     // the pipe will set the input variable
     PlanNode *current = getEdgesNode;
 
     // filter when the edge key is empty which means not exists edge in fact
-    auto *notExistEdgeFilter = Filter::make(qctx_, current, emptyEdgeKeyFilter());
-    notExistEdgeFilter->setInputVar(current->outputVar());
-    notExistEdgeFilter->setColNames(geColNames_);
-    current = notExistEdgeFilter;
-
-    if (withYield_) {
-        auto *projectNode = Project::make(qctx_, current, newYield_->yields());
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
-        // Project select the properties then dedup
-        if (dedup_) {
-            auto *dedupNode = Dedup::make(qctx_, current);
-            dedupNode->setInputVar(current->outputVar());
-            dedupNode->setColNames(colNames_);
-            current = dedupNode;
-
-            // the framework will add data collect to collect the result
-            // if the result is required
-        }
-    } else {
-        auto *columns = qctx_->objPool()->add(new YieldColumns());
-        columns->addColumn(new YieldColumn(new EdgeExpression(), new std::string("edges_")));
-        auto *projectNode = Project::make(qctx_, current, columns);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+    auto filterExpr = emptyEdgeKeyFilter();
+    if (filterExpr != nullptr) {
+        auto *notExistEdgeFilter = Filter::make(qctx_, current, filterExpr);
+        notExistEdgeFilter->setInputVar(current->outputVar());
+        notExistEdgeFilter->setColNames(geColNames_);
+        current = notExistEdgeFilter;
     }
+
+    auto *projectNode = Project::make(qctx_, current, yield_->yields());
+    projectNode->setInputVar(current->outputVar());
+    projectNode->setColNames(colNames_);
+    current = projectNode;
+    // Project select the properties then dedup
+    if (dedup_) {
+        auto *dedupNode = Dedup::make(qctx_, current);
+        dedupNode->setInputVar(current->outputVar());
+        dedupNode->setColNames(colNames_);
+        current = dedupNode;
+
+        // the framework will add data collect to collect the result
+        // if the result is required
+    }
+
     root_ = current;
     tail_ = getEdgesNode;
     return Status::OK();
@@ -158,82 +152,105 @@ Status FetchEdgesValidator::prepareEdges() {
 
 Status FetchEdgesValidator::prepareProperties() {
     auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
-    auto *yield = sentence->yieldClause();
-    // empty for all properties
-    if (yield != nullptr) {
-        return preparePropertiesWithYield(yield);
-    } else {
-        return preparePropertiesWithoutYield();
-    }
+    yield_ = sentence->yieldClause();
+    return preparePropertiesWithYield();
 }
 
-Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield) {
-    withYield_ = true;
+Status FetchEdgesValidator::preparePropertiesWithYield() {
     storage::cpp2::EdgeProp prop;
     prop.set_type(edgeType_);
-    // insert the reserved properties expression be compatible with 1.0
-    auto *newYieldColumns = new YieldColumns();
-    newYieldColumns->addColumn(
-        new YieldColumn(new EdgeSrcIdExpression(new std::string(edgeTypeName_))));
-    newYieldColumns->addColumn(
-        new YieldColumn(new EdgeDstIdExpression(new std::string(edgeTypeName_))));
-    newYieldColumns->addColumn(
-        new YieldColumn(new EdgeRankExpression(new std::string(edgeTypeName_))));
-    for (auto col : yield->columns()) {
-        newYieldColumns->addColumn(col->clone().release());
-    }
-    newYield_ = qctx_->objPool()->add(new YieldClause(newYieldColumns, yield->isDistinct()));
-
-    auto newYieldSize = newYield_->columns().size();
-    colNames_.reserve(newYieldSize);
-    outputs_.reserve(newYieldSize);
+    colNames_.reserve(yield_->columns().size());
+    outputs_.reserve(yield_->columns().size());
 
     std::vector<std::string> propsName;
-    propsName.reserve(newYield_->columns().size());
-    dedup_ = newYield_->isDistinct();
-    for (auto col : newYield_->columns()) {
-        col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
-        NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+    propsName.reserve(yield_->columns().size());
+    dedup_ = yield_->isDistinct();
+    ExpressionProps exprProps;
+    DeducePropsVisitor deducePropsVisitor(qctx_, space_.id, &exprProps, &userDefinedVarNameList_);
+
+    // rewrite the label expression
+    for (auto col : yield_->columns()) {
         const auto *invalidExpr = findInvalidYieldExpression(col->expr());
         if (invalidExpr != nullptr) {
-            return Status::SemanticError("Invalid newYield_ expression `%s'.",
+            return Status::SemanticError("Invalid YieldClause expression `%s'.",
                                          col->expr()->toString().c_str());
         }
-        // The properties from storage directly push down only
-        // The other will be computed in Project Executor
-        const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
-        for (const auto &storageExpr : storageExprs) {
-            const auto *expr = static_cast<const PropertyExpression *>(storageExpr);
-            if (*expr->sym() != edgeTypeName_) {
-                return Status::SemanticError("Mismatched edge type name");
-            }
-            // Check is prop name in schema
-            if (schema_->getFieldIndex(*expr->prop()) < 0 &&
-                reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
-                LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `" << edgeTypeName_
-                           << "'.";
-                return Status::SemanticError("Unknown column `%s' in edge `%s'",
-                                             expr->prop()->c_str(),
-                                             edgeTypeName_.c_str());
-            }
-            propsName.emplace_back(*expr->prop());
-            geColNames_.emplace_back(*expr->sym() + "." + *expr->prop());
+        if (col->expr()->kind() == Expression::Kind::kLabelAttribute
+                || col->expr()->kind() != Expression::Kind::kEdge) {
+            col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
         }
-        colNames_.emplace_back(deduceColName(col));
-        auto typeResult = deduceExprType(col->expr());
-        NG_RETURN_IF_ERROR(typeResult);
-        outputs_.emplace_back(colNames_.back(), typeResult.value());
-        // TODO(shylock) think about the push-down expr
+        NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+        col->expr()->accept(&deducePropsVisitor);
+        if (!deducePropsVisitor.ok()) {
+            return std::move(deducePropsVisitor).status();
+        }
     }
-    prop.set_props(std::move(propsName));
-    props_.emplace_back(std::move(prop));
+    if (exprProps.hasEdgeExpr() && !exprProps.edgeProps().empty()) {
+        return Status::SemanticError("Unsupported use edge with edge prop in yield.");
+    }
+    if (exprProps.hasEdgeExpr() && exprProps.hasVertexExpr()) {
+        return Status::SemanticError("Unsupported vertex expression in yield.");
+    }
+
+    for (const auto& edge : exprProps.edgeProps()) {
+        for (const auto &propName : edge.second) {
+            if (propName == kSrc) {
+                edgeKeySet_.set(0, true);
+            } else if (propName == kDst) {
+                edgeKeySet_.set(1, true);
+            } else if (propName == kRank) {
+                edgeKeySet_.set(2, true);
+            }
+        }
+    }
+
+    if (exprProps.hasEdgeExpr()) {
+        preparePropertiesWithEdgeExpr();
+        for (auto col : yield_->columns()) {
+            colNames_.emplace_back(deduceColName(col));
+            auto typeResult = deduceExprType(col->expr());
+            NG_RETURN_IF_ERROR(typeResult);
+            outputs_.emplace_back(colNames_.back(), typeResult.value());
+        }
+    } else {
+        for (auto col : yield_->columns()) {
+            // The properties from storage directly push down only
+            // The other will be computed in Project Executor
+            const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
+            for (const auto &storageExpr : storageExprs) {
+                const auto *expr = static_cast<const PropertyExpression *>(storageExpr);
+                if (*expr->sym() != edgeTypeName_) {
+                    return Status::SemanticError("Mismatched edge type name");
+                }
+                // Check is prop name in schema
+                if (schema_->getFieldIndex(*expr->prop()) < 0 &&
+                    reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
+                    LOG(ERROR) << "Unknown column `" << *expr->prop()
+                               << "' in edge `" << edgeTypeName_ << "'.";
+                    return Status::SemanticError("Unknown column `%s' in edge `%s'",
+                                                 expr->prop()->c_str(),
+                                                 edgeTypeName_.c_str());
+                }
+                propsName.emplace_back(*expr->prop());
+                geColNames_.emplace_back(*expr->sym() + "." + *expr->prop());
+            }
+            colNames_.emplace_back(deduceColName(col));
+            auto typeResult = deduceExprType(col->expr());
+            NG_RETURN_IF_ERROR(typeResult);
+            outputs_.emplace_back(colNames_.back(), typeResult.value());
+            // TODO(shylock) think about the push-down expr
+        }
+        prop.set_props(std::move(propsName));
+        props_.emplace_back(std::move(prop));
+    }
     return Status::OK();
 }
 
-Status FetchEdgesValidator::preparePropertiesWithoutYield() {
-    // no yield
-    colNames_.emplace_back("edges_");
-    outputs_.emplace_back("edges_", Value::Type::EDGE);
+Status FetchEdgesValidator::preparePropertiesWithEdgeExpr() {
+    if (isEdgeCol_) {
+        return Status::OK();
+    }
+    isEdgeCol_ = true;
     storage::cpp2::EdgeProp prop;
     prop.set_type(edgeType_);
     std::vector<std::string> propNames;   // filter the type
@@ -259,6 +276,7 @@ Status FetchEdgesValidator::preparePropertiesWithoutYield() {
     }
     prop.set_props(std::move(propNames));
     props_.emplace_back(std::move(prop));
+    edgeKeySet_.set();
     return Status::OK();
 }
 
@@ -297,14 +315,46 @@ std::string FetchEdgesValidator::buildRuntimeInput() {
 }
 
 Expression *FetchEdgesValidator::emptyEdgeKeyFilter() {
-    // _src != empty && _dst != empty && _rank != empty
-    DCHECK_GE(geColNames_.size(), 3);
-    auto *srcNotEmptyExpr = notEmpty(new EdgeSrcIdExpression(new std::string(edgeTypeName_)));
-    auto *dstNotEmptyExpr = notEmpty(new EdgeDstIdExpression(new std::string(edgeTypeName_)));
-    auto *rankNotEmptyExpr = notEmpty(new EdgeRankExpression(new std::string(edgeTypeName_)));
-    auto *edgeKeyNotEmptyExpr =
-        qctx_->objPool()->add(lgAnd(srcNotEmptyExpr, lgAnd(dstNotEmptyExpr, rankNotEmptyExpr)));
-    return edgeKeyNotEmptyExpr;
+    if (edgeKeySet_.count() == 0) {
+        return nullptr;
+    }
+    Expression *srcNotEmptyExpr = nullptr;
+    Expression *dstNotEmptyExpr = nullptr;
+    Expression *rankNotEmptyExpr = nullptr;
+    if (edgeKeySet_[0]) {
+        srcNotEmptyExpr = notEmpty(new EdgeSrcIdExpression(new std::string(edgeTypeName_)));
+    }
+
+    if (edgeKeySet_[1]) {
+        dstNotEmptyExpr = notEmpty(new EdgeDstIdExpression(new std::string(edgeTypeName_)));
+    }
+
+    if (edgeKeySet_[2]) {
+        rankNotEmptyExpr = notEmpty(new EdgeRankExpression(new std::string(edgeTypeName_)));
+    }
+
+
+    if (edgeKeySet_.count() == 3) {
+        return qctx_->objPool()->add(lgAnd(srcNotEmptyExpr,
+                                     lgAnd(dstNotEmptyExpr, rankNotEmptyExpr)));
+    } else if (edgeKeySet_.count() == 2) {
+        if (edgeKeySet_[0] && edgeKeySet_[1]) {
+            return qctx_->objPool()->add(lgAnd(srcNotEmptyExpr, dstNotEmptyExpr));
+        } else if (edgeKeySet_[0] && edgeKeySet_[2]) {
+            return qctx_->objPool()->add(lgAnd(srcNotEmptyExpr, rankNotEmptyExpr));
+        } else if (edgeKeySet_[1] && edgeKeySet_[2]) {
+            return qctx_->objPool()->add(lgAnd(dstNotEmptyExpr, rankNotEmptyExpr));
+        }
+    } else {
+        if (edgeKeySet_[0]) {
+            return qctx_->objPool()->add(srcNotEmptyExpr);
+        } else if (edgeKeySet_[1]) {
+            return qctx_->objPool()->add(dstNotEmptyExpr);
+        } else if (edgeKeySet_[2]) {
+            return qctx_->objPool()->add(rankNotEmptyExpr);
+        }
+    }
+    return nullptr;
 }
 
 }   // namespace graph

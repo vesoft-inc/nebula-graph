@@ -283,7 +283,7 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 
 "<-"                        { return TokenType::L_ARROW; }
 "->"                        { return TokenType::R_ARROW; }
-"_id"                       { return TokenType::ID_PROP; }
+"_vid"                      { return TokenType::VID_PROP; }
 "_type"                     { return TokenType::TYPE_PROP; }
 "_src"                      { return TokenType::SRC_ID_PROP; }
 "_dst"                      { return TokenType::DST_ID_PROP; }

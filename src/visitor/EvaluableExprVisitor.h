@@ -97,6 +97,10 @@ private:
         isEvaluable_ = false;
     }
 
+    void visit(VidExpression *) override {
+        isEvaluable_ = false;
+    }
+
     bool isEvaluable_{true};
 };
 

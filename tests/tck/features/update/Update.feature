@@ -107,7 +107,8 @@ Feature: Update string vid of vertex and edge
       | 'Math' | 7       |
     When executing query:
       """
-      FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year
+      FETCH PROP ON select "200"->"101"@0
+        YIELD select._src, select._dst, select._rank, select.grade, select.year
       """
     Then the result should be, in any order:
       | select._src | select._dst | select._rank | select.grade | select.year |
@@ -121,7 +122,8 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year
+      FETCH PROP ON select "200"->"101"@0
+        YIELD select._src, select._dst, select._rank, select.grade, select.year
       """
     Then the result should be, in any order:
       | select._src | select._dst | select._rank | select.grade | select.year |
@@ -316,11 +318,11 @@ Feature: Update string vid of vertex and edge
     Then a SemanticError should be raised at runtime: No schema found for `nonexistentEdgeTypeName'
     When executing query:
       """
-      FETCH PROP ON course "103" YIELD course.name, course.credits
+      FETCH PROP ON course "103" YIELD _vid, course.name, course.credits
       """
     Then the result should be, in any order:
-      | VertexID | course.name | course.credits |
-      | "103"    | "CS"        | 5              |
+      | _vid  | course.name | course.credits |
+      | "103" | "CS"        | 5              |
     # not allow to handle multi tagid when update
     When executing query:
       """
@@ -431,7 +433,8 @@ Feature: Update string vid of vertex and edge
       | 'Kate' | 2012 | 'one'  | 2011     |
     When executing query:
       """
-      FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year
+      FETCH PROP ON select "200"->"101"@0
+        YIELD select._src, select._dst, select._rank, select.grade, select.year
       """
     Then the result should be, in any order:
       | select._src | select._dst | select._rank | select.grade | select.year |
@@ -476,7 +479,7 @@ Feature: Update string vid of vertex and edge
       | 3     | 2019 |
     When executing query:
       """
-      FETCH PROP ON select "601"->"101"@0 YIELD select.grade, select.year
+      FETCH PROP ON select "601"->"101"@0 YIELD select._src, select._dst, select._rank, select.grade, select.year
       """
     Then the result should be, in any order:
       | select._src | select._dst | select._rank | select.grade | select.year |
@@ -562,11 +565,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "100" YIELD building.name
+      FETCH PROP ON building "100" YIELD _vid, building.name
       """
     Then the result should be, in any order:
-      | VertexID | building.name |
-      | "100"    | "No1"         |
+      | _vid  | building.name |
+      | "100" | "No1"         |
     # insert
     When executing query:
       """
@@ -575,11 +578,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "100" YIELD building.name
+      FETCH PROP ON building "100" YIELD _vid, building.name
       """
     Then the result should be, in any order:
-      | VertexID | building.name |
-      | "100"    | "No2"         |
+      | _vid  | building.name |
+      | "100" | "No2"         |
     When executing query:
       """
       UPSERT VERTEX "101" SET building.name = "No1"
@@ -587,11 +590,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "101" YIELD building.name
+      FETCH PROP ON building "101" YIELD _vid, building.name
       """
     Then the result should be, in any order:
-      | VertexID | building.name |
-      | "101"    | "No1"         |
+      | _vid  | building.name |
+      | "101" | "No1"         |
     # insert
     When executing query:
       """
@@ -600,11 +603,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "101" YIELD building.name
+      FETCH PROP ON building "101" YIELD _vid, building.name
       """
     Then the result should be, in any order:
-      | VertexID | building.name |
-      | "101"    | "No2"         |
+      | _vid  | building.name |
+      | "101" | "No2"         |
     # upsert after alter schema
     When executing query:
       """
@@ -621,11 +624,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "100" YIELD building.name, building.new_field
+      FETCH PROP ON building "100" YIELD _vid, building.name, building.new_field
       """
     Then the result should be, in any order:
-      | VertexID | building.name | building.new_field |
-      | "100"    | "No2"         | "123"              |
+      | _vid  | building.name | building.new_field |
+      | "100" | "No2"         | "123"              |
     # upsert after alter schema
     When executing query:
       """
@@ -634,11 +637,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "100" YIELD building.name, building.new_field
+      FETCH PROP ON building "100" YIELD _vid, building.name, building.new_field
       """
     Then the result should be, in any order:
-      | VertexID | building.name | building.new_field |
-      | "100"    | "No3"         | "321"              |
+      | _vid  | building.name | building.new_field |
+      | "100" | "No3"         | "321"              |
     # upsert after alter schema
     When executing query:
       """
@@ -647,11 +650,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "101" YIELD building.name, building.new_field
+      FETCH PROP ON building "101" YIELD _vid, building.name, building.new_field
       """
     Then the result should be, in any order:
-      | VertexID | building.name | building.new_field |
-      | "101"    | "No1"         | "No2"              |
+      | _vid  | building.name | building.new_field |
+      | "101" | "No1"         | "No2"              |
     # Test upsert edge after alter schema
     When executing query:
       """
@@ -667,7 +670,7 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON like "1"->"100"@0 YIELD like.likeness, like.new_field
+      FETCH PROP ON like "1"->"100"@0 YIELD like._src, like._dst, like._rank, like.likeness, like.new_field
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness | like.new_field |
@@ -679,7 +682,7 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON like "1"->"100"@0 YIELD like.likeness, like.new_field
+      FETCH PROP ON like "1"->"100"@0 YIELD like._src, like._dst, like._rank, like.likeness, like.new_field
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness | like.new_field |
@@ -691,7 +694,7 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON like "1"->"101"@0 YIELD like.likeness, like.new_field
+      FETCH PROP ON like "1"->"101"@0 YIELD like._src, like._dst, like._rank, like.likeness, like.new_field
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness | like.new_field |
@@ -750,7 +753,8 @@ Feature: Update string vid of vertex and edge
       | 'Math' | 7       |
     When executing query:
       """
-      FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year
+      FETCH PROP ON select "200"->"101"@0
+        YIELD select._src, select._dst, select._rank, select.grade, select.year
       """
     Then the result should be, in any order:
       | select._src | select._dst | select._rank | select.grade | select.year |
@@ -764,7 +768,8 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year
+      FETCH PROP ON select "200"->"101"@0
+        YIELD select._src, select._dst, select._rank, select.grade, select.year
       """
     Then the result should be, in any order:
       | select._src | select._dst | select._rank | select.grade | select.year |
@@ -853,11 +858,11 @@ Feature: Update string vid of vertex and edge
     Then a SemanticError should be raised at runtime: No schema found for `nonexistentEdgeTypeName'
     When executing query:
       """
-      FETCH PROP ON course "103" YIELD course.name, course.credits
+      FETCH PROP ON course "103" YIELD _vid, course.name, course.credits
       """
     Then the result should be, in any order:
-      | VertexID | course.name | course.credits |
-      | "103"    | "CS"        | 5              |
+      | _vid  | course.name | course.credits |
+      | "103" | "CS"        | 5              |
     When executing query:
       """
       UPDATE VERTEX ON course "103"
@@ -951,7 +956,8 @@ Feature: Update string vid of vertex and edge
       | 'Kate' | 2012 | 'one'  | 2011     |
     When executing query:
       """
-      FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year
+      FETCH PROP ON select "200"->"101"@0
+        YIELD select._src, select._dst, select._rank, select.grade, select.year
       """
     Then the result should be, in any order:
       | select._src | select._dst | select._rank | select.grade | select.year |
@@ -987,7 +993,7 @@ Feature: Update string vid of vertex and edge
       | 3     | 2019 |
     When executing query:
       """
-      FETCH PROP ON select "601"->"101"@0 YIELD select.grade, select.year
+      FETCH PROP ON select "601"->"101"@0 YIELD select._src, select._dst, select._rank, select.grade, select.year
       """
     Then the result should be, in any order:
       | select._src | select._dst | select._rank | select.grade | select.year |
@@ -1064,11 +1070,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "100" YIELD building.name
+      FETCH PROP ON building "100" YIELD _vid, building.name
       """
     Then the result should be, in any order:
-      | VertexID | building.name |
-      | "100"    | "No1"         |
+      | _vid  | building.name |
+      | "100" | "No1"         |
     # insert
     When executing query:
       """
@@ -1077,11 +1083,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "100" YIELD building.name
+      FETCH PROP ON building "100" YIELD _vid, building.name
       """
     Then the result should be, in any order:
-      | VertexID | building.name |
-      | "100"    | "No2"         |
+      | _vid  | building.name |
+      | "100" | "No2"         |
     When executing query:
       """
       UPSERT VERTEX ON building "101" SET name = "No1"
@@ -1089,11 +1095,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "101" YIELD building.name
+      FETCH PROP ON building "101" YIELD _vid, building.name
       """
     Then the result should be, in any order:
-      | VertexID | building.name |
-      | "101"    | "No1"         |
+      | _vid  | building.name |
+      | "101" | "No1"         |
     # insert
     When executing query:
       """
@@ -1102,11 +1108,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "101" YIELD building.name
+      FETCH PROP ON building "101" YIELD _vid, building.name
       """
     Then the result should be, in any order:
-      | VertexID | building.name |
-      | "101"    | "No2"         |
+      | _vid  | building.name |
+      | "101" | "No2"         |
     # upsert after alter schema
     When executing query:
       """
@@ -1123,11 +1129,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "100" YIELD building.name, building.new_field
+      FETCH PROP ON building "100" YIELD _vid, building.name, building.new_field
       """
     Then the result should be, in any order:
-      | VertexID | building.name | building.new_field |
-      | "100"    | "No2"         | "123"              |
+      | _vid  | building.name | building.new_field |
+      | "100" | "No2"         | "123"              |
     # upsert after alter schema
     When executing query:
       """
@@ -1136,11 +1142,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "100" YIELD building.name, building.new_field
+      FETCH PROP ON building "100" YIELD _vid, building.name, building.new_field
       """
     Then the result should be, in any order:
-      | VertexID | building.name | building.new_field |
-      | "100"    | "No3"         | "321"              |
+      | _vid  | building.name | building.new_field |
+      | "100" | "No3"         | "321"              |
     # upsert after alter schema
     When executing query:
       """
@@ -1149,11 +1155,11 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON building "101" YIELD building.name, building.new_field
+      FETCH PROP ON building "101" YIELD _vid, building.name, building.new_field
       """
     Then the result should be, in any order:
-      | VertexID | building.name | building.new_field |
-      | "101"    | "No1"         | "No2"              |
+      | _vid  | building.name | building.new_field |
+      | "101" | "No1"         | "No2"              |
     # Test upsert edge after alter schema
     When executing query:
       """
@@ -1169,7 +1175,7 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON like "1"->"100"@0 YIELD like.likeness, like.new_field
+      FETCH PROP ON like "1"->"100"@0 YIELD like._src, like._dst, like._rank, like.likeness, like.new_field
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness | like.new_field |
@@ -1181,7 +1187,7 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON like "1"->"100"@0 YIELD like.likeness, like.new_field
+      FETCH PROP ON like "1"->"100"@0 YIELD like._src, like._dst, like._rank, like.likeness, like.new_field
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness | like.new_field |
@@ -1193,7 +1199,7 @@ Feature: Update string vid of vertex and edge
     Then the execution should be successful
     When executing query:
       """
-      FETCH PROP ON like "1"->"101"@0 YIELD like.likeness, like.new_field
+      FETCH PROP ON like "1"->"101"@0 YIELD like._src, like._dst, like._rank, like.likeness, like.new_field
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.likeness | like.new_field |

@@ -8,7 +8,11 @@
 
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
+#include "common/expression/VertexExpression.h"
+#include "common/expression/EdgeExpression.h"
+#include "common/expression/PathBuildExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "util/OutputColName.h"
 
 namespace nebula {
 class StepClause final {
@@ -225,7 +229,22 @@ public:
 class YieldColumn final {
 public:
     explicit YieldColumn(Expression *expr, std::string *alias = nullptr) {
-        expr_.reset(expr);
+        auto exprStr = expr->toString();
+        std::string lowerStr = exprStr;
+        folly::toLowerAscii(lowerStr);
+        if (expr->kind() == Expression::Kind::kLabel) {
+            if (lowerStr == kVerticesStr || lowerStr == kVertexStr) {
+                expr_.reset(new VertexExpression(new std::string(exprStr)));
+            } else if (lowerStr == kEdgesStr || lowerStr == kEdgeStr) {
+                expr_.reset(new EdgeExpression(new std::string(exprStr)));
+            } else if (lowerStr == kPathStr) {
+                expr_.reset(new PathBuildExpression());
+            } else {
+                expr_.reset(expr);
+            }
+        } else {
+            expr_.reset(expr);
+        }
         alias_.reset(alias);
     }
 

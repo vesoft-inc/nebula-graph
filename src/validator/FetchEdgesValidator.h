@@ -27,8 +27,8 @@ private:
 
     Status prepareEdges();
 
-    Status preparePropertiesWithYield(const YieldClause* yield);
-    Status preparePropertiesWithoutYield();
+    Status preparePropertiesWithYield();
+    Status preparePropertiesWithEdgeExpr();
     Status prepareProperties();
 
     static const Expression* findInvalidYieldExpression(const Expression* root);
@@ -69,17 +69,15 @@ private:
     bool dedup_{false};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
     std::vector<storage::cpp2::OrderBy> orderBy_{};
-    std::string filter_{""};
-    // valid when yield expression not require storage
-    // So expression like these will be evaluate in Project Executor
-    bool withYield_{false};
     // outputs
     std::vector<std::string> colNames_;
     std::vector<std::string> geColNames_;
-    // new yield to inject reserved properties for compatible with 1.0
-    YieldClause* newYield_{nullptr};
+    YieldClause* yield_{nullptr};
     // input
     std::string inputVar_;
+    bool isEdgeCol_{false};
+    // the first bit is edge._src, the second bit is edge._dst, the third bit is edge._rank
+    std::bitset<3> edgeKeySet_;
 };
 
 }   // namespace graph

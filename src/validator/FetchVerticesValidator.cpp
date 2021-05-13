@@ -12,8 +12,6 @@
 namespace nebula {
 namespace graph {
 
-static constexpr char VertexID[] = "VertexID";
-
 Status FetchVerticesValidator::validateImpl() {
     NG_RETURN_IF_ERROR(check());
     NG_RETURN_IF_ERROR(prepareVertices());
@@ -39,29 +37,20 @@ Status FetchVerticesValidator::toPlan() {
     // pipe will set the input variable
     PlanNode *current = getVerticesNode;
 
-    if (withYield_) {
-        auto *projectNode = Project::make(qctx_, current, newYieldColumns_);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+    auto *projectNode = Project::make(qctx_, current, newYieldColumns_);
+    projectNode->setInputVar(current->outputVar());
+    projectNode->setColNames(colNames_);
+    current = projectNode;
 
-        // Project select properties then dedup
-        if (dedup_) {
-            auto *dedupNode = Dedup::make(qctx_, current);
-            dedupNode->setInputVar(current->outputVar());
-            dedupNode->setColNames(colNames_);
-            current = dedupNode;
+    // Project select properties then dedup
+    if (dedup_) {
+        auto *dedupNode = Dedup::make(qctx_, current);
+        dedupNode->setInputVar(current->outputVar());
+        dedupNode->setColNames(colNames_);
+        current = dedupNode;
 
-            // the framework will add data collect to collect the result
-            // if the result is required
-        }
-    } else {
-        auto *columns = qctx_->objPool()->add(new YieldColumns());
-        columns->addColumn(new YieldColumn(new VertexExpression(), new std::string("vertices_")));
-        auto *projectNode = Project::make(qctx_, current, columns);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        // the framework will add data collect to collect the result
+        // if the result is required
     }
     root_ = current;
     tail_ = getVerticesNode;
@@ -72,7 +61,6 @@ Status FetchVerticesValidator::check() {
     auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
 
     if (!sentence->isAllTagProps()) {
-        onStar_ = false;
         auto tags = sentence->tags()->labels();
         for (const auto &tag : tags) {
             auto tagStatus = qctx_->schemaMng()->toTagID(space_.id, *tag);
@@ -88,7 +76,6 @@ Status FetchVerticesValidator::check() {
             tagsSchema_.emplace(tagId, schema);
         }
     } else {
-        onStar_ = true;
         const auto allTagsResult = qctx_->schemaMng()->getAllLatestVerTagSchema(space_.id);
         NG_RETURN_IF_ERROR(allTagsResult);
         const auto allTags = std::move(allTagsResult).value();
@@ -134,36 +121,50 @@ Status FetchVerticesValidator::prepareVertices() {
     return Status::OK();
 }
 
-// TODO(shylock) select _vid property instead of return always.
 Status FetchVerticesValidator::prepareProperties() {
     auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
     auto *yield = sentence->yieldClause();
-    if (yield == nullptr) {
-        return preparePropertiesWithoutYield();
-    } else {
-        return preparePropertiesWithYield(yield);
-    }
+    DCHECK(yield != nullptr);
+    return preparePropertiesWithYield(yield);
 }
 
 Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yield) {
-    withYield_ = true;
     // outputs
     auto yieldSize = yield->columns().size();
-    colNames_.reserve(yieldSize + 1);
-    outputs_.reserve(yieldSize + 1);
-    colNames_.emplace_back(VertexID);
-    gvColNames_.emplace_back(nebula::kVid);
-    outputs_.emplace_back(VertexID, vidType_);   // kVid
+    colNames_.reserve(yieldSize);
+    outputs_.reserve(yieldSize);
 
     dedup_ = yield->isDistinct();
     ExpressionProps exprProps;
     DeducePropsVisitor deducePropsVisitor(qctx_, space_.id, &exprProps, &userDefinedVarNameList_);
+    bool hasLabelAttr = false;
     for (auto col : yield->columns()) {
-        col->setExpr(ExpressionUtils::rewriteLabelAttr2TagProp(col->expr()));
-        NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+        colNames_.emplace_back(deduceColName(col));
+        if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
+            hasLabelAttr = true;
+            col->setExpr(ExpressionUtils::rewriteLabelAttr2TagProp(col->expr()));
+            NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+        } else if (col->expr()->kind() == Expression::Kind::kVertex) {
+            preparePropertiesWithVertexExpr();
+        } else if (col->expr()->kind() == Expression::Kind::kVidExpr) {
+            gvColNames_.emplace_back(kVid);
+        } else {
+            hasLabelAttr = true;
+            col->setExpr(ExpressionUtils::rewriteLabelAttr2TagProp(col->expr()));
+            NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+        }
+
         col->expr()->accept(&deducePropsVisitor);
         if (!deducePropsVisitor.ok()) {
             return std::move(deducePropsVisitor).status();
+        }
+        auto typeResult = deduceExprType(col->expr());
+        NG_RETURN_IF_ERROR(typeResult);
+        outputs_.emplace_back(colNames_.back(), typeResult.value());
+
+        if ((exprProps.hasVertexExpr() && hasLabelAttr)) {
+            return Status::SemanticError(
+                "Unsupported use vertex with labelAttr in yield.");
         }
         if (exprProps.hasInputVarProperty()) {
             return Status::SemanticError(
@@ -175,19 +176,18 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
         if (exprProps.hasSrcDstTagProperty()) {
             return Status::SemanticError("Unsupported src/dst property expression in yield.");
         }
+        if (exprProps.hasEdgeExpr()) {
+            return Status::SemanticError("Unsupported edge expression in yield.");
+        }
+        if (exprProps.hasPathExpr()) {
+            return Status::SemanticError("Unsupported path expression in yield.");
+        }
 
-        colNames_.emplace_back(deduceColName(col));
-        auto typeResult = deduceExprType(col->expr());
-        NG_RETURN_IF_ERROR(typeResult);
-        outputs_.emplace_back(colNames_.back(), typeResult.value());
         // TODO(shylock) think about the push-down expr
-    }
-    if (exprProps.tagProps().empty()) {
-        return Status::SemanticError("Unsupported empty tag property expression in yield.");
     }
 
     for (const auto &tag : exprProps.tagNameIds()) {
-        if (tags_.find(tag.first) == tags_.end()) {
+        if (tag.first != kVid && tags_.find(tag.first) == tags_.end()) {
             return Status::SemanticError("Mismatched tag: %s", tag.first.c_str());
         }
     }
@@ -205,21 +205,18 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     }
 
     // insert the reserved properties expression be compatible with 1.0
-    // TODO(shylock) select kVid from storage
     newYieldColumns_ = qctx_->objPool()->add(new YieldColumns());
-    // note eval vid by input expression
-    newYieldColumns_->addColumn(new YieldColumn(
-        new InputPropertyExpression(new std::string(nebula::kVid)), new std::string(VertexID)));
     for (auto col : yield->columns()) {
         newYieldColumns_->addColumn(col->clone().release());
     }
     return Status::OK();
 }
 
-Status FetchVerticesValidator::preparePropertiesWithoutYield() {
-    props_.clear();
-    colNames_.emplace_back("vertices_");
-    outputs_.emplace_back("vertices_", Value::Type::VERTEX);
+Status FetchVerticesValidator::preparePropertiesWithVertexExpr() {
+    if (isVertexCol_) {
+        return Status::OK();
+    }
+    isVertexCol_ = true;
     gvColNames_.emplace_back(nebula::kVid);
     for (const auto &tagSchema : tagsSchema_) {
         storage::cpp2::VertexProp vProp;
@@ -234,8 +231,8 @@ Status FetchVerticesValidator::preparePropertiesWithoutYield() {
             propNames.emplace_back(propName);
             gvColNames_.emplace_back(tagName + "." + propName);
         }
-        gvColNames_.emplace_back(tagName + "._tag");
-        propNames.emplace_back(nebula::kTag);   // "_tag"
+        gvColNames_.emplace_back(tagName + "." + nebula::kTag);
+        propNames.emplace_back(nebula::kTag);  // "_tag"
         vProp.set_props(std::move(propNames));
         props_.emplace_back(std::move(vProp));
     }
