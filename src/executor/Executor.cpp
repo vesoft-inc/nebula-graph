@@ -95,16 +95,25 @@ using folly::stringPrintf;
 namespace nebula {
 namespace graph {
 
+namespace {
+void updateDepth(int64_t *depth, int64_t delta) {
+    if (depth) {
+        *depth += delta;
+    }
+}
+}   // namespace
+
 // static
-Executor *Executor::create(const PlanNode *node, QueryContext *qctx) {
+Executor *Executor::create(const PlanNode *node, QueryContext *qctx, int64_t *depth) {
     std::unordered_map<int64_t, Executor *> visited;
-    return makeExecutor(node, qctx, &visited);
+    return makeExecutor(node, qctx, &visited, depth);
 }
 
 // static
 Executor *Executor::makeExecutor(const PlanNode *node,
                                  QueryContext *qctx,
-                                 std::unordered_map<int64_t, Executor *> *visited) {
+                                 std::unordered_map<int64_t, Executor *> *visited,
+                                 int64_t *depth) {
     DCHECK(qctx != nullptr);
     DCHECK(node != nullptr);
     auto iter = visited->find(node->id());
@@ -116,21 +125,32 @@ Executor *Executor::makeExecutor(const PlanNode *node,
 
     if (node->kind() == PlanNode::Kind::kSelect) {
         auto select = asNode<Select>(node);
-        auto thenBody = makeExecutor(select->then(), qctx, visited);
-        auto elseBody = makeExecutor(select->otherwise(), qctx, visited);
+        int64_t thenDepth = 1;
+        int64_t elseDepth = 1;
+        auto thenBody = makeExecutor(select->then(), qctx, visited, &thenDepth);
+        auto elseBody = makeExecutor(select->otherwise(), qctx, visited, &elseDepth);
         auto selectExecutor = static_cast<SelectExecutor *>(exec);
         selectExecutor->setThenBody(thenBody);
         selectExecutor->setElseBody(elseBody);
+        updateDepth(depth, std::max(thenDepth, elseDepth));
     } else if (node->kind() == PlanNode::Kind::kLoop) {
         auto loop = asNode<Loop>(node);
-        auto body = makeExecutor(loop->body(), qctx, visited);
+        int64_t bodyDepth = 1;
+        auto body = makeExecutor(loop->body(), qctx, visited, &bodyDepth);
         auto loopExecutor = static_cast<LoopExecutor *>(exec);
         loopExecutor->setLoopBody(body);
+        updateDepth(depth, bodyDepth);
     }
 
+    auto maxDepth = 0;
     for (size_t i = 0; i < node->numDeps(); ++i) {
-        exec->dependsOn(makeExecutor(node->dep(i), qctx, visited));
+        int64_t depDepth = 1;
+        exec->dependsOn(makeExecutor(node->dep(i), qctx, visited, &depDepth));
+        if (depDepth > maxDepth) {
+            maxDepth = depDepth;
+        }
     }
+    updateDepth(depth, maxDepth);
 
     visited->insert({node->id(), exec});
     return exec;
