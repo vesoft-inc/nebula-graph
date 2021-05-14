@@ -84,12 +84,21 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     outputColumnNames_.emplace_back(name);
 
     // Constant expression folding must be after type deduction
-    FoldConstantExprVisitor visitor;
-    expr->accept(&visitor);
-    if (visitor.canBeFolded()) {
-        column->setExpr(visitor.fold(expr));
+    auto foldedExpr = ExpressionUtils::foldConstantExpr(expr);
+    QueryExpressionContext ctx;
+    auto val = Expression::eval(column->expr(), ctx(nullptr));
+    if (val.type() == Value::Type::NULLVALUE) {
+        switch (val.getNull()) {
+            case NullType::DIV_BY_ZERO:
+                return Status::Error("/ by zero");
+            case NullType::ERR_OVERFLOW:
+                return Status::Error("%s cannot be represented as an integer",
+                                     expr->toString().c_str());
+            default:
+                break;
+        }
     }
-
+    column->setExpr(foldedExpr->clone().release());
     outputs_.emplace_back(name, type);
     return Status::OK();
 }

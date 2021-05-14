@@ -325,7 +325,7 @@ Feature: Yield Sentence
       """
     Then a SemanticError should be raised at runtime: `$-.abc', not exist prop `abc'
 
-  @skip
+  @aiee
   Scenario: CalculateOverflow
     When executing query:
       """
@@ -382,8 +382,8 @@ Feature: Yield Sentence
       YIELD -9223372036854775808*1
       """
     Then the result should be, in any order, with relax comparison:
-      | (-(-9223372036854775808)*1) |
-      | -9223372036854775808        |
+      | -(-9223372036854775808) |
+      | -9223372036854775808    |
     When executing query:
       """
       YIELD -9223372036854775809
