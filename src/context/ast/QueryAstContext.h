@@ -43,18 +43,29 @@ struct PathContext final : AstContext {
     StepClause steps;
     Over over;
 
-    std::string fromStartVidsVar;
-    std::string toStartVidsVar;
+    /*
+    * find path from A to B OR find path from $-.src to $-.dst
+    * fromVidsVar's DataSet save A OR $-.src
+    * toVidsVar's DataSet save B OR $-.dst
+    */
+    std::string fromVidsVar;
+    std::string toVidsVar;
 
     bool isShortest{false};
     bool isWeight{false};
     bool noLoop{false};
 
     // runtime
-    PlanNode* fromProjectStartVid{nullptr};
-    PlanNode* toProjectStartVid{nullptr};
-    PlanNode* fromDedupStartVid{nullptr};
-    PlanNode* toDedupStartVid{nullptr};
+    /*
+    * find path from $-.src to $-.dst
+    * project($-.src)<- dedup($-.src)
+    * runtimeFromProject is project($-.src)
+    * runtimeFromDedup is dedup($-.src)
+    */
+    PlanNode* runtimeFromProject{nullptr};
+    PlanNode* runtimeFromDedup{nullptr};
+    PlanNode* runtimeToProject{nullptr};
+    PlanNode* runtimeToDedup{nullptr};
 };
 
 }  // namespace graph
