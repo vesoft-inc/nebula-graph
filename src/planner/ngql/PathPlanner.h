@@ -57,7 +57,7 @@ private:
      *  toVid plan: project($-.dst) <- dedup($-.dst)
      *  After reconnect plans, it would be:
      *  project($-.src) <- dedup($-.src) <- project($-.dst) <- dedup($-.dst)
-     *  same with find path from <vid> to $-.dst OR find path from $-.src to <vid>
+     *  same as find path from <vid> to $-.dst OR find path from $-.src to <vid>
      */
     SubPlan buildRuntimeVidPlan();
 
@@ -72,9 +72,10 @@ private:
      * then determine whether the end point of pathB and the end point of pathA are equal
      * so we should build path(B) and path(A)
      */
-    PlanNode* allPairStartVidDataSet();
+    PlanNode* allPairStartVidDataSet(PlanNode* dep, const std::string& input);
 
-    PlanNode* multiPairStartVidDataSet();
+    // refer to allPairStartVidDataSet
+    PlanNode* multiPairStartVidDataSet(PlanNode* dep, const std::string& input);
 
     SubPlan multiPairLoopDepPlan();
 

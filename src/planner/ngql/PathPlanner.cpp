@@ -49,16 +49,16 @@ void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
     }
 }
 
-void PathPlanner::buildStart(Starts& starts, std::string& startVidsVar, bool reverse) {
+void PathPlanner::buildStart(Starts& starts, std::string& vidsVar, bool reverse) {
     if (!starts.vids.empty() && starts.originalSrc == nullptr) {
-        buildConstantInput(starts, startVidsVar);
+        buildConstantInput(starts, vidsVar);
     } else {
         if (reverse) {
-            pathCtx_->toDedupStartVid = buildRuntimeInput(starts, pathCtx_->toProjectStartVid);
-            startVidsVar = pathCtx_->toDedupStartVid->outputVar();
+            pathCtx_->runtimeToDedup = buildRuntimeInput(starts, pathCtx_->runtimeToProject);
+            vidsVar = pathCtx_->runtimeToDedup->outputVar();
         } else {
-            pathCtx_->fromDedupStartVid = buildRuntimeInput(starts, pathCtx_->fromProjectStartVid);
-            startVidsVar = pathCtx_->fromDedupStartVid->outputVar();
+            pathCtx_->runtimeFromDedup = buildRuntimeInput(starts, pathCtx_->runtimeFromProject);
+            vidsVar = pathCtx_->runtimeFromDedup->outputVar();
         }
     }
 }
@@ -67,25 +67,25 @@ void PathPlanner::buildStart(Starts& starts, std::string& startVidsVar, bool rev
 Expression* PathPlanner::singlePairLoopCondition(uint32_t steps, const std:string& pathVar) {
     auto loopSteps = pathCtx_->qctx->vctx()->anonVarGen()->getVar();
     pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
-    auto* stepLimit = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
-    auto* zero = ExpressionUtils::zeroCondition(pathVar)
-    return ExpressionUtils::And(stepLimit, zero);
+    auto stepLimit = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
+    auto zero = ExpressionUtils::zeroCondition(pathVar)
+    return ExpressionUtils::And(stepLimit.release(), zero.release());
 }
 
 // loopSteps{0} <= (steps / 2 + steps % 2)
 Expression* PathPlanner::allPairLoopCondition(uint32_t steps) {
     auto loopSteps = pathCtx_->qctx->vctx()->anonVarGen()->getVar();
     pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
-    return ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
+    return ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2)).release();
 }
 
 // loopSteps{0} <= (steps / 2 + steps % 2) && size(pathVar) != 0
 Expression* PathPlanner::multiPairLoopCondition(uint32_t steps, const std:string& pathVar) {
     auto loopSteps = pathCtx_->qctx->vctx()->anonVarGen()->getVar();
     pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
-    auto* stepLimit = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
-    auto* neZero = ExpressionUtils::neZeroCondition(pathVar)
-    return ExpressionUtils::And(stepLimit, neZero);
+    auto stepLimit = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
+    auto neZero = ExpressionUtils::neZeroCondition(pathVar)
+    return ExpressionUtils::And(stepLimit.release(), neZero.release());
 }
 
 SubPlan buildRuntimeVidPlan() {
@@ -94,20 +94,20 @@ SubPlan buildRuntimeVidPlan() {
         if (!pathCtx_->to.vids.empty() && pathCtx_->to.originalSrc == nullptr) {
             return subPlan;
         }
-        subPlan.tail = pathCtx_->toProjectStartVid;
-        subPlan.root = pathCtx_->toDedupStartVid;
+        subPlan.tail = pathCtx_->runtimeToProject;
+        subPlan.root = pathCtx_->runtimeToDedup;
     } else {
-        if (!pathCtx_->to.vids.empty() && pathCtx_->to.originalSrc == nullpltr) {
-            subPlan.tail = pathCtx_->fromProjectStartVid;
-            subPlan.root = pathCtx_->fromDedupStartVid;
+        if (!pathCtx_->to.vids.empty() && pathCtx_->to.originalSrc == nullptr) {
+            subPlan.tail = pathCtx_->runtimeFromProject;
+            subPlan.root = pathCtx_->runtimeFromDedup;
         } else {
-            auto* toProject = static_cast<SingleInputNode*>(pathCtx_->toProjectStartVid);
-            toProject->dependsOn(pathCtx_->fromDedupStartVid);
+            auto* toProject = static_cast<SingleInputNode*>(pathCtx_->runtimeToProject);
+            toProject->dependsOn(pathCtx_->runtimeFromDedup);
             // TODO
             // auto inputName = pathCtx_->to.fromType == kPikp ?
             // toProject->setInputVar(inputVarName); //todo
-            subPlan.tail = pathCtx_->fromProjectStartVid;
-            subPlan.root = pathCtx_->toDedupStartVid;
+            subPlan.tail = pathCtx_->runtimeFromProject;
+            subPlan.root = pathCtx_->runtimeToDedup;
         }
     }
     return subPlan;
@@ -169,15 +169,15 @@ PlanNode* PathPlanner::multiPairStartVidDataSet(PlanNode* dep, const std::string
 
 SubPlan PathPlanner::allPairLoopDepPlan() {
     SubPlan subPlan = buildRuntimeVidPlan();
-    subPlan.root = allPairStartVidDataSet(subPlan.root, pathCtx_->fromStartVid);
-    subPlan.root = allPairStartVidDataSet(subPlan.root, pathCtx_->toStartVid);
+    subPlan.root = allPairStartVidDataSet(subPlan.root, pathCtx_->fromVidsVar);
+    subPlan.root = allPairStartVidDataSet(subPlan.root, pathCtx_->toVidsVar);
     return subPlan;
 }
 
 SubPlan PathPlanner::multiPairLoopDepPlan() {
     SubPlan subPlan = buildRuntimeVidPlan();
-    subPlan.root = multiPairStartVidDataSet(subPlan.root, pathCtx_->fromStartVid);
-    subPlan.root = multiPairStartVidDataSet(subPlan.root, pathCtx_->toStartVid);
+    subPlan.root = multiPairStartVidDataSet(subPlan.root, pathCtx_->fromVidsVar);
+    subPlan.root = multiPairStartVidDataSet(subPlan.root, pathCtx_->toVidsVar);
 
     /*
     *  Create the Cartesian product of the start point set and the end point set.
@@ -187,31 +187,35 @@ SubPlan PathPlanner::multiPairLoopDepPlan() {
     *  terminate the execution early
     */
     auto* cartesianProduct = CartesianProduct::make(pathCtx_->qctx, subPlan.root);
-    NG_RETURN_IF_ERROR(cartesianProduct->addVar(pathCtx_->fromStartVidsVar));
-    NG_RETURN_IF_ERROR(cartesianProduct->addVar(pathCtx_->toStartVidsVar));
+    NG_RETURN_IF_ERROR(cartesianProduct->addVar(pathCtx_->fromVidsVar));
+    NG_RETURN_IF_ERROR(cartesianProduct->addVar(pathCtx_->toVidsVar));
     subPlan.root = cartesianProduct;
     return subPlan;
 }
 
 PlanNode* PathPlanner::singlePairPath(PlanNode* dep, bool reverse) {
-    const auto& startVidsVar = reverse ? pathCtx_->toStartVidsVar : pathCtx_->fromStartVidsVar;
+    const auto& vidsVar = reverse ? pathCtx_->toVidsVar : pathCtx_->fromVidsVar;
     const auto* src = reverse ? pathCtx_->to.src : pathCtx_->from.src;
+    auto qctx = pathCtx_->qctx;
 
-    auto* gn = GetNeighbors::make(pathCtx_->qctx, dep, pathCtx_->space.id);
+    auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
     gn->setEdgeProps(buildEdgeProps(reverse));
-    gn->setInputVar(startVidsVar);
+    gn->setInputVar(vidsVar);
     gn->setDedup();
 
-    auto* path = BFSShortestPath::make(pathCtx_->qctx, gn);
-    path->setOutputVar(startVidsVar);
+    auto* path = BFSShortestPath::make(qctx, gn);
+    path->setOutputVar(vidsVar);
     path->setColNames({kVid, "edge"});
 
-    // build original value
+    // build first dataset
     DataSet ds;
     ds.colNames = {kVid, "edge"};
     Row row;
-    row.values.emplace_back();
+    row.values.emplace_back(vidsVar.vids.front());
+    row.values.emplace_back(Value::kEmpty);
+    ds.rows.emplace_back(std::move(row));
+    qctx->ectx()->setResult(vidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
     return path;
 }
 
@@ -219,6 +223,7 @@ SubPlan PathPlanner::singlePairPlan(PlanNode* dep) {
     auto* forwardPath = singlePairPath(dep, false);
     auto* backwardPath = singlePairPath(dep, true);
     auto qctx = pathCtx_->qctx;
+
     auto* conjunct = ConjunctPath::make(
         qctx, forwardPath, backwardPath, ConjunctPath::PathKind::kBiBFS, pathCtx_->steps.steps);
     conjunct->setColNames({"path"});
@@ -230,6 +235,7 @@ SubPlan PathPlanner::singlePairPlan(PlanNode* dep) {
     dc->setInputVar({conjunct->outputVar()});
     dc->addDep(loop);
     dc->setColNames({"path"});
+
     SubPlan subPlan;
     subPlan.root = dc;
     subPlan.tail = loop;
@@ -237,16 +243,18 @@ SubPlan PathPlanner::singlePairPlan(PlanNode* dep) {
 }
 
 PlanNode* PathPlanner::allPairPath(PlanNode* dep, bool reverse) {
-    const auto& startVidsVar = reverse ? pathCtx_->toStartVidsVar : pathCtx_->fromStartVidsVar;
+    const auto& vidsVar = reverse ? pathCtx_->toVidsVar : pathCtx_->fromVidsVar;
     const auto* src = reverse ? pathCtx_->to.src : pathCtx_->from.src;
-    auto* gn = GetNeighbors::make(pathCtx_->qctx, dep, pathCtx_->space.id);
+    auto qctx = pathCtx_->qctx;
+
+    auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
     gn->setEdgeProps(buildEdgeProps(reverse));
-    gn->setInputVar(startVidsVar);
+    gn->setInputVar(vidsVar);
     gn->setDedup();
 
-    auto* path = ProduceAllPaths::make(pathCtx_->qctx, gn);
-    path->setOutputVar(startVidsVar);
+    auto* path = ProduceAllPaths::make(qctx, gn);
+    path->setOutputVar(vidsVar);
     path->setColNames({kVid, "path"});
     return path;
 }
@@ -255,6 +263,7 @@ SubPlan PathPlanner::allPairPlan(PlanNode* dep) {
     auto* forwardPath = allPairPath(dep, false);
     auto* backwardPath = allPairPath(dep, true);
     auto qctx = pathCtx_->qctx;
+
     auto* conjunct = ConjunctPath::make(
         qctx, forwardPath, backwardPath, ConjunctPath::PathKind::kAllPaths, pathCtx_->steps.steps);
     conjunct->setNoLoop(pathCtx_->noLoop);
@@ -276,15 +285,17 @@ SubPlan PathPlanner::allPairPlan(PlanNode* dep) {
 }
 
 PlanNode* PathPlanner::multiPairPath(PlanNode* dep, bool reverse) {
-    const auto& startVidsVar = reverse ? pathCtx_->toStartVidsVar : pathCtx_->fromStartVidsVar;
+    const auto& vidsVar = reverse ? pathCtx_->toVidsVar : pathCtx_->fromVidsVar;
     const auto* src = reverse ? pathCtx_->to.src : pathCtx_->from.src;
-    auto* gn = GetNeighbors::make(pathCtx_->qctx, dep, pathCtx_->space.id);
+    auto qctx = pathCtx_->qctx;
+
+    auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
     gn->setEdgeProps(buildEdgeProps(reverse));
-    gn->setInputVar(startVidsVar);
+    gn->setInputVar(vidsVar);
     gn->setDedup();
 
-    auto* path = ProduceSemiShortestPath::make(pathCtx_->qctx, gn);
+    auto* path = ProduceSemiShortestPath::make(qctx, gn);
     path->setColNames({kDst, kSrc, "cost", "paths"});
     return path;
 }
@@ -292,8 +303,8 @@ PlanNode* PathPlanner::multiPairPath(PlanNode* dep, bool reverse) {
 SubPlan PathPlanner::multiPairPlan(PlanNode* dep) {
     auto* forwardPath = multiPairPath(dep, false);
     auto* backwardPath = multiPairPath(dep, true);
-
     auto qctx = pathCtx_->qctx;
+
     auto* conjunct = ConjunctPath::make(
         qctx, forwardPath, backwardPath, ConjunctPath::PathKind::kFloyd, pathCtx_->steps.steps);
 
@@ -315,8 +326,8 @@ SubPlan PathPlanner::multiPairPlan(PlanNode* dep) {
 StatusOr<SubPlan> PathPlanner::transform(AstContext* astCtx) {
     pathCtx_ = static_cast<PathContext *>(astCtx);
 
-    buildStart(pathCtx_->from, pathCtx_->fromStartVidsVar, false);
-    buildStart(pathCtx_->to, pathCtx_->toStartVidsVar, true);
+    buildStart(pathCtx_->from, pathCtx_->fromVidsVar, false);
+    buildStart(pathCtx_->to, pathCtx_->toVidsVar, true);
 
     auto* startNode = StartNode::make(pathCtx_->qctx);
     auto* pt = PassThroughNode::make(pathCtx_->qctx, startNode);
