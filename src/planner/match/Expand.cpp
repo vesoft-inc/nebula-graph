@@ -264,13 +264,13 @@ Expression* Expand::buildExpandCondition(const std::string& lastStepResult,
     auto loopSteps = matchCtx_->qctx->vctx()->anonVarGen()->getVar();
     matchCtx_->qctx->ectx()->setValue(loopSteps, startIndex);
     // ++loopSteps{startIndex} << maxHop
-    auto* stepCondition = ExpressionUtils::stepCondition(loopSteps, maxHop);
+    auto stepCondition = ExpressionUtils::stepCondition(loopSteps, maxHop);
     // lastStepResult == empty || size(lastStepReult) != 0
     auto* eqEmpty = ExpressionUtils::Eq(new VariableExpression(new std::string(lastStepResult)),
                                         new ConstantExpression(Value()));
-    auto* neZero = ExpressionUtils::neZeroCondition(lastStepResult);
-    auto* existValCondition = ExpressionUtils::Or(eqEmpty, neZero);
-    return ExpressionUtils::And(stepCondition, existValCondition);
+    auto neZero = ExpressionUtils::neZeroCondition(lastStepResult);
+    auto* existValCondition = ExpressionUtils::Or(eqEmpty, neZero.release());
+    return ExpressionUtils::And(stepCondition.release(), existValCondition);
 }
 
 }   // namespace graph

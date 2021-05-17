@@ -129,13 +129,13 @@ public:
 
     // loop condition
     // ++loopSteps <= steps
-    static Expression* stepCondition(const std::string& loopStep, uint32_t steps);
+    static std::unique_ptr<Expression> stepCondition(const std::string& loopStep, uint32_t steps);
 
     // size(var) == 0
-    static Expression* zeroCondition(const std::string& var);
+    static std::unique_ptr<Expression> zeroCondition(const std::string& var);
 
     // size(var) != 0
-    static Expression* neZeroCondition(const std::string& var);
+    static std::unique_ptr<Expression> neZeroCondition(const std::string& var);
 };
 
 }   // namespace graph

@@ -508,8 +508,9 @@ Expression::Kind ExpressionUtils::getNegatedLogicalExprKind(const Expression::Ki
 }
 
 // ++loopStep <= steps
-Expression* ExpressionUtils::stepCondition(const std::string &loopStep, uint32_t steps) {
-    return new RelationalExpression(
+std::unique_ptr<Expression> ExpressionUtils::stepCondition(const std::string &loopStep,
+                                                           uint32_t steps) {
+    return std::make_unique<RelationalExpression>(
         Expression::Kind::kRelLE,
         new UnaryExpression(Expression::Kind::kUnaryIncr,
                             new VariableExpression(new std::string(loopStep))),
@@ -517,21 +518,23 @@ Expression* ExpressionUtils::stepCondition(const std::string &loopStep, uint32_t
 }
 
 // size(var) != 0
-Expression* ExpressionUtils::neZeroCondition(const std::string &var) {
+std::unique_ptr<Expression> ExpressionUtils::neZeroCondition(const std::string &var) {
     auto *args = new ArgumentList();
     args->addArgument(std::make_unique<VariableExpression>(new std::string(var)));
-    return new RelationalExpression(Expression::Kind::kRelNE,
-                                    new FunctionCallExpression(new std::string("size"), args),
-                                    new ConstantExpression(0));
+    return std::make_unique<RelationalExpression>(
+        Expression::Kind::kRelNE,
+        new FunctionCallExpression(new std::string("size"), args),
+        new ConstantExpression(0));
 }
 
 // size(var) == 0
-Expression* ExpressionUtils::zeroCondition(const std::string &var) {
+std::unique_ptr<Expression> ExpressionUtils::zeroCondition(const std::string &var) {
     auto *args = new ArgumentList();
     args->addArgument(std::make_unique<VariableExpression>(new std::string(var)));
-    return new RelationalExpression(Expression::Kind::kRelEQ,
-                                    new FunctionCallExpression(new std::string("size"), args),
-                                    new ConstantExpression(0));
+    return std::make_unique<RelationalExpression>(
+        Expression::Kind::kRelEQ,
+        new FunctionCallExpression(new std::string("size"), args),
+        new ConstantExpression(0));
 }
 
 }   // namespace graph
