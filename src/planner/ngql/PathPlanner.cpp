@@ -3,7 +3,7 @@
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
-#include "planner/planners/PathPlanner.h"
+#include "planner/ngql/PathPlanner.h"
 #include "validator/Validator.h"
 #include "planner/plan/Logic.h"
 
@@ -90,22 +90,24 @@ Expression* PathPlanner::multiPairLoopCondition(uint32_t steps, const std:string
 
 SubPlan buildRuntimeVidPlan() {
     SubPlan subPlan;
-    if (!pathCtx_->from.vids.empty() && pathCtx_->from.originalSrc == nullptr) {
-        if (!pathCtx_->to.vids.empty() && pathCtx_->to.originalSrc == nullptr) {
+    const auto& from = pathCtx_->from;
+    const auto& to = pathCtx_->to;
+    if (!from.vids.empty() && from.originalSrc == nullptr) {
+        if (!to.vids.empty() && to.originalSrc == nullptr) {
             return subPlan;
         }
         subPlan.tail = pathCtx_->runtimeToProject;
         subPlan.root = pathCtx_->runtimeToDedup;
     } else {
-        if (!pathCtx_->to.vids.empty() && pathCtx_->to.originalSrc == nullptr) {
+        if (!to.vids.empty() && to.originalSrc == nullptr) {
             subPlan.tail = pathCtx_->runtimeFromProject;
             subPlan.root = pathCtx_->runtimeFromDedup;
         } else {
             auto* toProject = static_cast<SingleInputNode*>(pathCtx_->runtimeToProject);
             toProject->dependsOn(pathCtx_->runtimeFromDedup);
-            // TODO
-            // auto inputName = pathCtx_->to.fromType == kPikp ?
-            // toProject->setInputVar(inputVarName); //todo
+            // set <to>'s input
+            auto& inputName = to.fromType == kPipe ? pathCtx_->inputVarName : to.userDefinedVarName;
+            toProject->setInputVar(inputName);
             subPlan.tail = pathCtx_->runtimeFromProject;
             subPlan.root = pathCtx_->runtimeToDedup;
         }
@@ -195,8 +197,8 @@ SubPlan PathPlanner::multiPairLoopDepPlan() {
 
 PlanNode* PathPlanner::singlePairPath(PlanNode* dep, bool reverse) {
     const auto& vidsVar = reverse ? pathCtx_->toVidsVar : pathCtx_->fromVidsVar;
-    const auto* src = reverse ? pathCtx_->to.src : pathCtx_->from.src;
     auto qctx = pathCtx_->qctx;
+    auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
@@ -244,8 +246,8 @@ SubPlan PathPlanner::singlePairPlan(PlanNode* dep) {
 
 PlanNode* PathPlanner::allPairPath(PlanNode* dep, bool reverse) {
     const auto& vidsVar = reverse ? pathCtx_->toVidsVar : pathCtx_->fromVidsVar;
-    const auto* src = reverse ? pathCtx_->to.src : pathCtx_->from.src;
     auto qctx = pathCtx_->qctx;
+    auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
@@ -286,8 +288,8 @@ SubPlan PathPlanner::allPairPlan(PlanNode* dep) {
 
 PlanNode* PathPlanner::multiPairPath(PlanNode* dep, bool reverse) {
     const auto& vidsVar = reverse ? pathCtx_->toVidsVar : pathCtx_->fromVidsVar;
-    const auto* src = reverse ? pathCtx_->to.src : pathCtx_->from.src;
     auto qctx = pathCtx_->qctx;
+    auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
@@ -296,7 +298,9 @@ PlanNode* PathPlanner::multiPairPath(PlanNode* dep, bool reverse) {
     gn->setDedup();
 
     auto* path = ProduceSemiShortestPath::make(qctx, gn);
+    path->setOutputVar(vidsVar);
     path->setColNames({kDst, kSrc, "cost", "paths"});
+
     return path;
 }
 
@@ -307,9 +311,14 @@ SubPlan PathPlanner::multiPairPlan(PlanNode* dep) {
 
     auto* conjunct = ConjunctPath::make(
         qctx, forwardPath, backwardPath, ConjunctPath::PathKind::kFloyd, pathCtx_->steps.steps);
+    conjunct->setColNames({"_path", "cost"});
 
     SubPlan loopDepPlan = multiPairLoopDepPlan();
-    auto* loopCondition = qctx->objPool()->add(multiPairLoopCondition(pathCtx_->steps.steps));
+    // loopDepPlan.root is cartesianProduct
+    const auto& endConditionVar = loopDepPlan.root->outputVar();
+    conjunct->setConditionalVar(endConditionVar);
+    auto* loopCondition =
+        qctx->objPool()->add(multiPairLoopCondition(pathCtx_->steps.steps, endConditionVar));
     auto* loop = Loop::make(qctx, loopDepPlan.root, conjunct, loopCondition);
 
     auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kAllPaths);

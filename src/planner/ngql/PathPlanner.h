@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef NGQUERY_PLANNERS_PATHPLANNER_H
-#define NGQUERY_PLANNERS_PATHPLANNER_H
+#ifndef NGQL_PLANNERS_PATHPLANNER_H
+#define NGQL_PLANNERS_PATHPLANNER_H
 
 #include "context/QueryContext.h"
 #include "context/ast/QueryAstContext.h"
@@ -89,4 +89,4 @@ private:
 
 }  // namespace graph
 }  // namespace nebula
-#endif  //  NGQUERY_PLANNERS_PATHPLANNER_H
+#endif  //  NGQL_PLANNERS_PATHPLANNER_H
