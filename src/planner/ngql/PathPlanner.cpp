@@ -182,8 +182,8 @@ SubPlan PathPlanner::multiPairLoopDepPlan() {
     subPlan.root = multiPairStartVidDataSet(subPlan.root, pathCtx_->toVidsVar);
 
     /*
-    *  Create the Cartesian product of the start point set and the end point set.
-    *  When a pair of paths (start->end) is found,
+    *  Create the Cartesian product of the fromVid set and the toVid set.
+    *  When a pair of paths (<from>-[]-><to>) is found,
     *  delete it from the DataSet of cartesianProduct->outputVar().
     *  When the DataSet of cartesianProduct->outputVar() is empty
     *  terminate the execution early
@@ -332,6 +332,92 @@ SubPlan PathPlanner::multiPairPlan(PlanNode* dep) {
     return subPlan;
 }
 
+// project<-- unwind <-- getVertices
+PlanNode* PathPlanner::buildNodePlan(PlanNode* dep, const std::string& input) {
+    auto qctx = pathCtx_->qctx;
+
+    auto args = new ArgumentList();
+    args->addArgument(new ColumnExpression(0));
+    auto nodesExpr = new FunctionCallExpression(new std::string("nodes"), args);
+
+    auto* column = new YieldColumn(nodesExpr, new std::string("nodes"));
+    auto* columns = pathCtx_->qctx->objPool()->add(new YieldColumns());
+    columns->addColumn(column);
+
+    auto* project = Project::make(qctx, dep, columns);
+    project->setColNames({"nodes"});
+    project->setInputVar(input);
+
+    auto* unwindExpr = qctx->objPool()->add(new ColumnExpression(0));
+    auto* unwind = Unwind::make(qctx, project, unwindExpr);
+    unwind->setColNames({"nodes"});
+
+    // todo
+    auto* getVertices = GetVertices::make(qctx, unwind);
+    return getVertices;
+}
+
+PlanNode* PathPlanner::buildEdgePlan(PlanNode* dep, con std::string& input) {
+    auto qctx = pathCtx_->qctx;
+
+    auto args = new ArgumentList();
+    args->addArgument(new ColumnExpression(0));
+    auto edgesExpr = new FunctionCallExpression(new std::string("edges"), args);
+
+    auto* column = new YieldColumn(edgesExpr, new std::string("edges"));
+    auto* columns = pathCtx_->qctx->objPool()->add(new YieldColumns());
+    columns->addColumn(column);
+
+    auto* project = Project::make(qctx, dep, columns);
+    project->setColNames({"edges"});
+    project->setInputVar(input);
+
+    auto* unwindExpr = qctx->objPool()->add(new ColumnExpression(0));
+    auto* unwind = Unwind::make(qctx, project, unwindExpr);
+    unwind->setColNames({"edges"});
+
+    // todo
+    auto* getEdge = GetEdges::make(qctx, unwind);
+    return getEdge;
+}
+/*
+          The Plan looks like this:
+                 +--------+---------+
+             +-->+   PassThrough    +<----+
+             |   +------------------+     |
+    +--------+---------+        +---------+------------+
+    |  Project(Nodes)  |        |Project(RelationShips)|
+    +--------+---------+        +---------+------------+
+             |                            |
+    +--------+---------+        +---------+--------+
+    |      Unwind      |        |      Unwind      |
+    +--------+---------+        +---------+--------+
+             |                            |
+    +--------+---------+        +---------+--------+
+    |   GetVertices    |        |    GetEdges      |
+    +--------+---------+        +---------+--------+
+             |                            |
+             +------------+---------------+
+                          |
+                 +--------+---------+
+                 |   DataCollect    |
+                 +--------+---------+
+*/
+PlanNode* PathPlanner::buildPathProp(PlanNode* dep) {
+    auto qctx = pathCtx_->qctx;
+    auto* pt = PassThroughNode::make(qctx, dep);
+    // node plan
+    auto* nodePlan = buildNodePlan(pt, dep->outputVar());
+    // edge Plan
+    auto* edgePlan = buildEdgePlan(pt, dep->outputVar());
+    auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kPathProp);
+    dc->addDep(nodePlan);
+    dc->addDep(edgePlan);
+    dc->setInputVar({nodePlan->outputVar(), edgePlan->outputVar()});
+    dc->setColNames({"path"});
+    return dc;
+}
+
 StatusOr<SubPlan> PathPlanner::transform(AstContext* astCtx) {
     pathCtx_ = static_cast<PathContext *>(astCtx);
 
@@ -354,6 +440,8 @@ StatusOr<SubPlan> PathPlanner::transform(AstContext* astCtx) {
         subPlan = multiPairPlan(pt);
     } while (0);
     // get path's property
+    subPlan.root = buildPathProp(subPlan.root);
+
     return subPlan;
 }
 
