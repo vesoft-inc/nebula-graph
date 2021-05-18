@@ -526,7 +526,12 @@ expression
     | MINUS {
         scanner.setUnaryMinus(true);
     } expression %prec UNARY_MINUS {
-        $$ = new UnaryExpression(Expression::Kind::kUnaryNegate, $3);
+        if (scanner.isMin()) {
+            $$ = $3;
+            scanner.setIsMin(false);
+        } else {
+            $$ = new UnaryExpression(Expression::Kind::kUnaryNegate, $3);
+        }
         scanner.setUnaryMinus(false);
     }
     | PLUS expression %prec UNARY_PLUS {

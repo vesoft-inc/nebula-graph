@@ -84,9 +84,9 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     outputColumnNames_.emplace_back(name);
 
     // Constant expression folding must be after type deduction
-    auto foldedExpr = ExpressionUtils::foldConstantExpr(expr);
+    auto foldedExpr = ExpressionUtils::foldConstantExpr(expr, qctx()->objPool());
     QueryExpressionContext ctx;
-    auto val = Expression::eval(column->expr(), ctx(nullptr));
+    auto val = Expression::eval(foldedExpr, ctx(nullptr));
     if (val.type() == Value::Type::NULLVALUE) {
         switch (val.getNull()) {
             case NullType::DIV_BY_ZERO:

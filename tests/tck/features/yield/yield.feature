@@ -371,8 +371,13 @@ Feature: Yield Sentence
       YIELD -9223372036854775808
       """
     Then the result should be, in any order, with relax comparison:
-      | -(9223372036854775808) |
-      | -9223372036854775808   |
+      | -9223372036854775808 |
+      | -9223372036854775808 |
+    When executing query:
+      """
+      YIELD --9223372036854775808
+      """
+    Then a ExecutionError should be raised at runtime: -(-9223372036854775808) cannot be represented as an integer
     When executing query:
       """
       YIELD -9223372036854775809
