@@ -6,6 +6,7 @@
 #include "planner/ngql/PathPlanner.h"
 #include "validator/Validator.h"
 #include "planner/plan/Logic.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -400,9 +401,22 @@ PlanNode* PathPlanner::buildEdgePlan(PlanNode* dep, con std::string& input) {
     auto* rank =
         qctx->objPool()->add(new FunctionCallExpression(new std::string("rank"), rankArgs));
     // type
-    auto* type = qctx->objPool()->add(new ConstantExpression(0));
-    auto* getEdge = GetEdges::make(qctx, unwind, pathCtx_->space.id);
-    getEdge->setColNames({"edges"});
+    auto typeArgs = new ArgumentList();
+    typeArgs->addArgument(new ColumnExpression(0));
+    auto* type =
+        qctx->objPool()->add(new FunctionCallExpression(new std::string("typeid"), typeArgs));
+    // prepare edgetype
+    auto edgeProp = SchemaUtil::getEdgeProp(qctx, pathCtx_->space, pathCtx_->over.edgeTypes);
+    auto* getEdge = GetEdges::make(qctx,
+                                   unwind,
+                                   pathCtx_->space.id,
+                                   src,
+                                   type,
+                                   rank,
+                                   dst,
+                                   std::move(edgeProp).value(),
+                                   {},
+                                   true);
 
     return getEdge;
 }
