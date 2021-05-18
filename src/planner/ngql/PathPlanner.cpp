@@ -51,14 +51,19 @@ void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
 }
 
 void PathPlanner::buildStart(Starts& starts, std::string& vidsVar, bool reverse) {
+    auto qctx = pathCtx_->qctx;
     if (!starts.vids.empty() && starts.originalSrc == nullptr) {
-        buildConstantInput(starts, vidsVar);
+        QueryUtil::buildConstantInput(qctx, starts, vidsVar);
     } else {
         if (reverse) {
-            pathCtx_->runtimeToDedup = buildRuntimeInput(starts, pathCtx_->runtimeToProject);
+            auto subPlan = QueryUtil::buildRuntimeInput(qctx, starts);
+            pathCtx_->runtimeToProject = subPlan.tail;
+            pathCtx_->runtimeToDedup = subPlan.root;
             vidsVar = pathCtx_->runtimeToDedup->outputVar();
         } else {
-            pathCtx_->runtimeFromDedup = buildRuntimeInput(starts, pathCtx_->runtimeFromProject);
+            auto subPlan = QueryUtil::buildRuntimeInput(qctx, starts);
+            pathCtx_->runtimeFromProject = subPlan.tail;
+            pathCtx_->runtimeFromDedup = subPlan.root;
             vidsVar = pathCtx_->runtimeFromDedup->outputVar();
         }
     }
