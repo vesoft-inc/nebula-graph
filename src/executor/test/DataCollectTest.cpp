@@ -134,7 +134,7 @@ protected:
             // for path with prop
             // <("0")-[:like]->("1")>
             DataSet vertices;
-            vertices.colNames = {kVid, "play.name", "play.age"};
+            vertices.colNames = {kVid, "player.name", "player.age"};
             for (auto i = 0; i < 2; ++i) {
                 Row row;
                 row.values.emplace_back(folly::to<std::string>(i));
@@ -276,9 +276,9 @@ TEST_F(DataCollectTest, EmptyResult) {
 }
 
 TEST_F(DataCollectTest, PathWithProp) {
-    auto* dc = DataCollect::make(qctx_.get(), DataCollect::DCKind::kPathProps);
-    dc->setInputVar({"vertices", "edges", "paths"});
-    dc->setColNames(std::vector<std::string>{"paths"});
+    auto* dc = DataCollect::make(qctx_.get(), DataCollect::DCKind::kPathProp);
+    dc->setInputVars({"vertices", "edges", "paths"});
+    dc->setColNames({"paths"});
 
     auto dcExe = std::make_unique<DataCollectExecutor>(dc, qctx_.get());
     auto future = dcExe->execute();
@@ -288,10 +288,10 @@ TEST_F(DataCollectTest, PathWithProp) {
 
     DataSet expected;
     expected.colNames = {"paths"};
-    Vertex src("0", {Tag("player", {{"name", Value("0")}, {"age", Value(20)}})});
-    Vertex dst("1", {Tag("player", {{"name", Value("1")}, {"age", Value(21)}})});
+    Vertex src("0", {Tag("player", {{"age", Value(20)}, {"name", Value("0")}})});
+    Vertex dst("1", {Tag("player", {{"age", Value(21)}, {"name", Value("1")}})});
     Step step(std::move(dst), 15, "like", 0, {{"likeness", 90}});
-    Path path(std::move(src), {step});
+    Path path(std::move(src), {std::move(step)});
     Row row;
     row.values.emplace_back(std::move(path));
     expected.rows.emplace_back(std::move(row));

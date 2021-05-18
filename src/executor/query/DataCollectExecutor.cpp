@@ -49,6 +49,10 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
             NG_RETURN_IF_ERROR(collectMultiplePairShortestPath(vars));
             break;
         }
+        case DataCollect::DCKind::kPathProp: {
+            NG_RETURN_IF_ERROR(collectPathProp(vars));
+            break;
+        }
         default:
             LOG(FATAL) << "Unknown data collect type: " << static_cast<int64_t>(dc->kind());
     }
