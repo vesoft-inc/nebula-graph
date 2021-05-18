@@ -210,7 +210,7 @@ PlanNode* PathPlanner::singlePairPath(PlanNode* dep, bool reverse) {
     path->setOutputVar(vidsVar);
     path->setColNames({kVid, "edge"});
 
-    // build first dataset
+    // singlePair startVid dataset
     DataSet ds;
     ds.colNames = {kVid, "edge"};
     Row row;
@@ -332,54 +332,81 @@ SubPlan PathPlanner::multiPairPlan(PlanNode* dep) {
     return subPlan;
 }
 
-// project<-- unwind <-- getVertices
-PlanNode* PathPlanner::buildNodePlan(PlanNode* dep, const std::string& input) {
+PlanNode* PathPlanner::buildVertexPlan(PlanNode* dep, const std::string& input) {
     auto qctx = pathCtx_->qctx;
 
+    // col 0 of the input is path
     auto args = new ArgumentList();
     args->addArgument(new ColumnExpression(0));
-    auto nodesExpr = new FunctionCallExpression(new std::string("nodes"), args);
+    auto funNodes = new FunctionCallExpression(new std::string("nodes"), args);
 
-    auto* column = new YieldColumn(nodesExpr, new std::string("nodes"));
-    auto* columns = pathCtx_->qctx->objPool()->add(new YieldColumns());
+    auto* column = new YieldColumn(funNodes, new std::string("nodes"));
+    auto* columns = qctx->objPool()->add(new YieldColumns());
     columns->addColumn(column);
 
     auto* project = Project::make(qctx, dep, columns);
     project->setColNames({"nodes"});
     project->setInputVar(input);
 
+    // col 0 of the project->output is [node...]
     auto* unwindExpr = qctx->objPool()->add(new ColumnExpression(0));
     auto* unwind = Unwind::make(qctx, project, unwindExpr);
     unwind->setColNames({"nodes"});
 
-    // todo
-    auto* getVertices = GetVertices::make(qctx, unwind);
+    // extract vid from vertex, col 0 is vertex
+    auto idArgs = new ArgumentList();
+    idArgs->addArgument(new ColumnExpression(0));
+    auto* src = qctx->objPool()->add(new FunctionCallExpression(new std::string("id"), idArgs));
+    // get all vertexprop
+    auto vertexProp = SchemaUtil::getVertexProp(qctx, pathCtx_->space);
+    auto* getVertices = GetVertices::make(
+        qctx, unwind, pathCtx_->space.id, src, std::move(vertexProp).value(), {}, true);
+
     return getVertices;
 }
 
 PlanNode* PathPlanner::buildEdgePlan(PlanNode* dep, con std::string& input) {
     auto qctx = pathCtx_->qctx;
 
+    // col 0 of the input is path
     auto args = new ArgumentList();
     args->addArgument(new ColumnExpression(0));
-    auto edgesExpr = new FunctionCallExpression(new std::string("edges"), args);
+    auto funEdges = new FunctionCallExpression(new std::string("edges"), args);
 
-    auto* column = new YieldColumn(edgesExpr, new std::string("edges"));
-    auto* columns = pathCtx_->qctx->objPool()->add(new YieldColumns());
+    auto* column = new YieldColumn(funEdges, new std::string("edges"));
+    auto* columns = qctx->objPool()->add(new YieldColumns());
     columns->addColumn(column);
 
     auto* project = Project::make(qctx, dep, columns);
     project->setColNames({"edges"});
     project->setInputVar(input);
 
+    // col 0 of the project->output() is [edge...]
     auto* unwindExpr = qctx->objPool()->add(new ColumnExpression(0));
     auto* unwind = Unwind::make(qctx, project, unwindExpr);
     unwind->setColNames({"edges"});
 
-    // todo
-    auto* getEdge = GetEdges::make(qctx, unwind);
+    // extract src from edge
+    auto srcArgs = new ArgumentList();
+    srcArgs->addArgument(new ColumnExpression(0));
+    auto* src = qctx->objPool()->add(new FunctionCallExpression(new std::string("src"), srcArgs));
+    // extract dst from edge
+    auto dstArgs = new ArgumentList();
+    dstArgs->addArgument(new ColumnExpression(0));
+    auto* dst = qctx->objPool()->add(new FunctionCallExpression(new std::string("dst"), dstArgs));
+    // extract rank from edge
+    auto rankArgs = new ArgumentList();
+    rankArgs->addArgument(new ColumnExpression(0));
+    auto* rank =
+        qctx->objPool()->add(new FunctionCallExpression(new std::string("rank"), rankArgs));
+    // type
+    auto* type = qctx->objPool()->add(new ConstantExpression(0));
+    auto* getEdge = GetEdges::make(qctx, unwind, pathCtx_->space.id);
+    getEdge->setColNames({"edges"});
+
     return getEdge;
 }
+
 /*
           The Plan looks like this:
                  +--------+---------+
@@ -406,14 +433,14 @@ PlanNode* PathPlanner::buildEdgePlan(PlanNode* dep, con std::string& input) {
 PlanNode* PathPlanner::buildPathProp(PlanNode* dep) {
     auto qctx = pathCtx_->qctx;
     auto* pt = PassThroughNode::make(qctx, dep);
-    // node plan
-    auto* nodePlan = buildNodePlan(pt, dep->outputVar());
-    // edge Plan
+
+    auto* vertexPlan = buildVertexPlan(pt, dep->outputVar());
     auto* edgePlan = buildEdgePlan(pt, dep->outputVar());
+
     auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kPathProp);
-    dc->addDep(nodePlan);
+    dc->addDep(vertexPlan);
     dc->addDep(edgePlan);
-    dc->setInputVar({nodePlan->outputVar(), edgePlan->outputVar()});
+    dc->setInputVar({vertexPlan->outputVar(), edgePlan->outputVar()});
     dc->setColNames({"path"});
     return dc;
 }
@@ -440,7 +467,9 @@ StatusOr<SubPlan> PathPlanner::transform(AstContext* astCtx) {
         subPlan = multiPairPlan(pt);
     } while (0);
     // get path's property
-    subPlan.root = buildPathProp(subPlan.root);
+    if (pathCtx_->withProp) {
+        subPlan.root = buildPathProp(subPlan.root);
+    }
 
     return subPlan;
 }

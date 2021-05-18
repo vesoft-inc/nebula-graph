@@ -41,7 +41,7 @@ private:
     PlanNode* buildPathProp(PlanNode* dep);
 
     // get the attributes of the vertices of the path
-    PlanNode* buildNodePlan(PlanNode* dep, const std::string& input);
+    PlanNode* buildVertexPlan(PlanNode* dep, const std::string& input);
 
     // get the attributes of the edges of the path
     PlanNode* buildEdgePlan(PlanNode* dep, const std::string& input);
