@@ -312,8 +312,8 @@ bool SchemaUtil::isValidVid(const Value &value) {
     return value.isStr() || value.isInt();
 }
 
-StatusOr<std::vector<storage::cpp2::VertexProp>> SchemaUtil::getVertexProp(QueryContext *qctx,
-                                                                           const SpaceInfo &space) {
+StatusOr<std::vector<storage::cpp2::VertexProp>>
+SchemaUtil::getAllVertexProp(QueryContext *qctx, const SpaceInfo &space) {
     // Get all tags in the space
     const auto allTagsResult = qctx->schemaMng()->getAllLatestVerTagSchema(space.id);
     NG_RETURN_IF_ERROR(allTagsResult);
@@ -342,5 +342,23 @@ StatusOr<std::vector<storage::cpp2::VertexProp>> SchemaUtil::getVertexProp(Query
     return props;
 }
 
+StatusOr<std::vector<storage::cpp2::EdgeProp>> SchemaUtil::getEdgeProp(
+    QueryContext *qctx,
+    const SpaceInfo &space,
+    const std::vector<EdgeType> &edgeTypes) {
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
+    for (const auto& edgeType : edgeTypes) {
+        std::vector<std::string> propNames = {kSrc, kType, kRank, kDst};
+        auto edgeSchema = qctx->schemaMng()->getEdgeSchema(space.id, edgeType);
+        for (size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
+            propNames.emplace_back(edgeSchema->getFieldName(i));
+        }
+        storage::cpp2::EdgeProp prop;
+        prop.set_type(edgeType);
+        prop.set_props(std::move(propNames));
+        edgeProps.emplace_back(std::move(prop));
+    }
+    return edgeProps;
+}
 }  // namespace graph
 }  // namespace nebula
