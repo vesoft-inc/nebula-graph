@@ -56,6 +56,10 @@ public:
     static bool isValidVid(const Value& value, meta::cpp2::PropertyType type);
 
     static bool isValidVid(const Value& value);
+
+    // Fetch all tags in the space and retrieve props from tags
+    static StatusOr<std::vector<storage::cpp2::VertexProp>> getVertexProp(QueryContext *qctx,
+                                                                          const SpaceInfo &space);
 };
 
 }  // namespace graph
