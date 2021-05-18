@@ -241,11 +241,13 @@ Status GoValidator::buildNStepsPlan() {
         loopBody = projectFromJoin;
     }
 
+    auto *condition = buildExpandCondition(gn->outputVar(), steps_.steps - 1);
+    qctx_->objPool()->add(condition);
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
         loopBody,                                                                   // body
-        buildNStepLoopCondition(steps_.steps - 1));
+        condition);
 
     NG_RETURN_IF_ERROR(oneStep(loop, dedupDstVids->outputVar(), projectFromJoin));
     // reset tail_
@@ -364,11 +366,15 @@ Status GoValidator::buildMToNPlan() {
         dedupNode->setColNames(std::move(colNames_));
     }
 
+    PlanNode *body = dedupNode == nullptr ? projectResult : dedupNode;
+    auto *condition = buildExpandCondition(body->outputVar(),
+                                           steps_.mToN->nSteps);
+    qctx_->objPool()->add(condition);
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
-        dedupNode == nullptr ? projectResult : dedupNode,                           // body
-        buildNStepLoopCondition(steps_.mToN->nSteps));
+        body,  // body
+        condition);
 
     if (projectStartVid_ != nullptr) {
         tail_ = projectStartVid_;
@@ -382,12 +388,13 @@ Status GoValidator::buildMToNPlan() {
     } else {
         collectVars = {dedupNode->outputVar()};
     }
-    auto* dataCollect =
-        DataCollect::make(qctx_, loop, DataCollect::CollectKind::kMToN, collectVars);
-    dataCollect->setMToN(steps_.mToN);
-    dataCollect->setDistinct(distinct_);
-    dataCollect->setColNames(projectResult->colNames());
-    root_ = dataCollect;
+    auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kMToN);
+    dc->addDep(loop);
+    dc->setInputVars(collectVars);
+    dc->setMToN(steps_.mToN);
+    dc->setDistinct(distinct_);
+    dc->setColNames(projectResult->colNames());
+    root_ = dc;
     return Status::OK();
 }
 
