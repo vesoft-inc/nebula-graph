@@ -8,6 +8,7 @@
 
 #include "common/base/Base.h"
 #include "util/SchemaUtil.h"
+#include "context/QueryContext.h"
 #include "context/QueryExpressionContext.h"
 
 namespace nebula {

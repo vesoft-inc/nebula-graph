@@ -18,7 +18,8 @@
 
 namespace nebula {
 namespace graph {
-
+class QueryContext;
+struct SpaceInfo;
 class SchemaUtil final {
 public:
     SchemaUtil() = delete;

@@ -12,6 +12,7 @@
 #include "planner/Planner.h"
 #include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
+#include "util/SchemaUtil.h"
 #include "visitor/RewriteVisitor.h"
 
 namespace nebula {
