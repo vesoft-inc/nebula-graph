@@ -95,6 +95,9 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
                                      matchClauseCtx->sentence->toString().c_str());
     }
 
+    // record the resolved node
+    matchClauseCtx->filledNodeId.emplace(*DCHECK_NOTNULL(nodeInfos[startIndex].alias),
+                                          std::pair(matchClausePlan.root, initialExpr_->clone()));
     return Status::OK();
 }
 
@@ -157,7 +160,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                           ->depends(subplan.root)
                           ->inputVar(inputVar)
                           ->reversely()
-                          ->doExpand(nodeInfos[i], edgeInfos[i - 1], &subplan);
+                          ->doExpand(nodeInfos[i], edgeInfos[i - 1], nodeInfos[i-1], &subplan);
         if (!status.ok()) {
             return status;
         }
@@ -171,6 +174,10 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             subplan.root->setColNames(joinColNames);
         }
         inputVar = subplan.root->outputVar();
+        fillNodeId(matchClauseCtx,
+                  *nodeInfos[i].alias,
+                   subplan.root,
+                   folly::stringPrintf("%s_%lu", kPathStr, i));
     }
 
     VLOG(1) << subplan;
@@ -190,6 +197,10 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex));
         subplan.root->setColNames(joinColNames);
     }
+    fillNodeId(matchClauseCtx,
+              *nodeInfos.front().alias,
+               subplan.root,
+               folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex));
 
     VLOG(1) << subplan;
     return Status::OK();
@@ -207,7 +218,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
                                                i == startIndex ? initialExpr_->clone() : nullptr)
                           ->depends(subplan.root)
                           ->inputVar(subplan.root->outputVar())
-                          ->doExpand(nodeInfos[i], edgeInfos[i], &subplan);
+                          ->doExpand(nodeInfos[i], edgeInfos[i], nodeInfos[i+1], &subplan);
         if (!status.ok()) {
             return status;
         }
@@ -219,6 +230,11 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
             joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, i));
             subplan.root->setColNames(joinColNames);
         }
+        // fill the expand node alias
+        fillNodeId(matchClauseCtx,
+                  *nodeInfos[i].alias,
+                   subplan.root,
+                   folly::stringPrintf("%s_%lu", kPathStr, i));
     }
 
     VLOG(1) << subplan;
@@ -237,6 +253,10 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
         joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, edgeInfos.size()));
         subplan.root->setColNames(joinColNames);
     }
+    fillNodeId(matchClauseCtx,
+              *nodeInfos.back().alias,
+              subplan.root,
+              folly::stringPrintf("%s_%lu", kPathStr, edgeInfos.size()));
 
     VLOG(1) << subplan;
     return Status::OK();
@@ -398,5 +418,22 @@ Status MatchClausePlanner::appendFilterPlan(MatchClauseContext* matchClauseCtx, 
     VLOG(1) << subplan;
     return Status::OK();
 }
+
+void MatchClausePlanner::fillNodeId(MatchClauseContext *matchCtx,
+                                    const std::string &alias,
+                                    const PlanNode *input,
+                                    const std::string &colName) {
+    // id(startNode($-.<colName>))
+    auto pathExpr = ExpressionUtils::inputPropExpr(colName);
+    auto *args = new ArgumentList();
+    args->addArgument(std::move(pathExpr));
+    auto startNode = std::make_unique<FunctionCallExpression>(new std::string("startNode"), args);
+    auto *idArgs = new ArgumentList();
+    idArgs->addArgument(std::move(startNode));
+    auto id = std::make_unique<FunctionCallExpression>(new std::string("id"), idArgs);
+    matchCtx->filledNodeId.emplace(alias, std::pair(input, std::move(id)));
+}
+
+
 }   // namespace graph
 }   // namespace nebula

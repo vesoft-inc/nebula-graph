@@ -13,6 +13,7 @@
 #include "common/datatypes/Vertex.h"
 #include "context/QueryContext.h"
 #include "util/ScopedTimer.h"
+#include "util/SchemaUtil.h"
 #include "service/GraphFlags.h"
 
 using nebula::storage::StorageRpcResponse;
@@ -27,7 +28,7 @@ DataSet GetNeighborsExecutor::buildRequestDataSet() {
     auto inputVar = gn_->inputVar();
     VLOG(1) << node()->outputVar() << " : " << inputVar;
     auto iter = ectx_->getResult(inputVar).iter();
-    return buildRequestDataSetByVidType(iter.get(), gn_->src(), gn_->dedup());
+    return buildRequestDataSetByVidType(iter.get(), gn_->dedup());
 }
 
 folly::Future<Status> GetNeighborsExecutor::execute() {
@@ -101,6 +102,68 @@ Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
     }
     builder.value(Value(std::move(list)));
     return finish(builder.iter(Iterator::Kind::kGetNeighbors).finish());
+}
+
+DataSet GetNeighborsExecutor::buildRequestDataSet(const SpaceInfo &space,
+                                                  QueryExpressionContext &exprCtx,
+                                                  Iterator *iter,
+                                                  const std::vector<std::string> &colNames,
+                                                  const std::vector<Expression *> &exprs,
+                                                  bool dedup) {
+    DCHECK(iter) << "iter=" << iter;
+    DCHECK_EQ(colNames.size(), exprs.size());
+    nebula::DataSet vertices(colNames);
+    vertices.rows.reserve(iter->size());
+
+    std::unordered_set<Row> uniqueSet;
+    uniqueSet.reserve(iter->size());
+
+    const auto &vidType = *(space.spaceDesc.vid_type_ref());
+
+    for (; iter->valid(); iter->next()) {
+        Row row;
+        for (const auto &expr : exprs) {
+            auto vid = expr->eval(exprCtx(iter));
+            if (!SchemaUtil::isValidVid(vid, vidType)) {
+                LOG(WARNING) << "Mismatched vid type: " << vid.type()
+                            << ", space vid type: " << SchemaUtil::typeToString(vidType);
+                continue;
+            }
+            row.emplace_back(std::move(vid));
+        }
+        if (row.size() != vertices.colSize()) {
+            // Contains invalid data
+            continue;
+        }
+        if (dedup && !uniqueSet.emplace(row).second) {
+            continue;
+        }
+        vertices.emplace_back(std::move(row));
+    }
+    return vertices;
+}
+
+bool GetNeighborsExecutor::isIntVidType(const SpaceInfo &space) const {
+    return (*space.spaceDesc.vid_type_ref()).type == meta::cpp2::PropertyType::INT64;
+}
+
+DataSet GetNeighborsExecutor::buildRequestDataSetByVidType(Iterator *iter,
+                                                            bool dedup) {
+    const auto &space = qctx()->rctx()->session()->space();
+    QueryExpressionContext exprCtx(qctx()->ectx());
+    std::vector<std::string> colNames{kVid};
+    if (gn_->dst() != nullptr) {
+        colNames.emplace_back(kDst);
+    }
+    std::vector<Expression*> exprs{gn_->src()};
+    if (gn_->dst() != nullptr) {
+        exprs.emplace_back(gn_->dst());
+    }
+
+    if (isIntVidType(space)) {
+        return buildRequestDataSet(space, exprCtx, iter, colNames, exprs, dedup);
+    }
+    return buildRequestDataSet(space, exprCtx, iter, colNames, exprs, dedup);
 }
 
 }   // namespace graph

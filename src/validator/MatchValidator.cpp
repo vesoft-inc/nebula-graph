@@ -177,6 +177,8 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
     auto *sm = qctx_->schemaMng();
     auto steps = path->steps();
     nodeInfos.resize(steps + 1);
+    std::vector<std::string> nodeAliases;
+    nodeAliases.reserve(steps + 1);
 
     for (auto i = 0u; i <= steps; i++) {
         auto *node = path->node(i);
@@ -197,13 +199,14 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
                 }
             }
         }
+        // The redefined node alias is allowed
         if (alias == nullptr) {
             anonymous = true;
             alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
-        }
-        if (!aliases.emplace(*alias, AliasType::kNode).second) {
+        } else if (aliases.find(*alias) != aliases.end()) {
             return Status::SemanticError("`%s': Redefined alias", alias->c_str());
         }
+        nodeAliases.emplace_back(*alias);
         Expression *filter = nullptr;
         if (props != nullptr) {
             auto result = makeSubFilterWithoutSave(*alias, props);
@@ -222,6 +225,9 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
         nodeInfos[i].alias = alias;
         nodeInfos[i].props = props;
         nodeInfos[i].filter = filter;
+    }
+    for (auto& nodeAlias : nodeAliases) {
+        aliases.emplace(std::move(nodeAlias), AliasType::kNode);
     }
 
     return Status::OK();

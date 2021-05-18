@@ -82,15 +82,21 @@ static Expression* buildPathExpr() {
     return expr.release();
 }
 
-Status Expand::doExpand(const NodeInfo& node, const EdgeInfo& edge, SubPlan* plan) {
-    NG_RETURN_IF_ERROR(expandSteps(node, edge, plan));
+Status Expand::doExpand(const NodeInfo& node,
+                        const EdgeInfo& edge,
+                        const NodeInfo &dstNode,
+                        SubPlan* plan) {
+    NG_RETURN_IF_ERROR(expandSteps(node, edge, dstNode, plan));
     NG_RETURN_IF_ERROR(filterDatasetByPathLength(edge, plan->root, plan));
     return Status::OK();
 }
 
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project2->
 // DataJoin->Project3->[Filter]->Passthrough->Loop->UnionAllVer
-Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* plan) {
+Status Expand::expandSteps(const NodeInfo& node,
+                           const EdgeInfo& edge,
+                           const NodeInfo &dstNode,
+                           SubPlan* plan) {
     SubPlan subplan;
     int64_t startIndex = 0;
     auto minHop = edge.range ? edge.range->min() : 1;
@@ -111,7 +117,7 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
     } else {   // Case 1 to n steps
         startIndex = 1;
         // Expand first step from src
-        NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, &subplan));
+        NG_RETURN_IF_ERROR(expand(edge, dstNode, dependency_, inputVar_, node.filter, &subplan));
     }
     // No need to further expand if maxHop is the start Index
     if (maxHop == startIndex) {
@@ -130,7 +136,8 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
     loopBodyPlan.root = startNode;
 
     // Construct loop body
-    NG_RETURN_IF_ERROR(expandStep(edge,
+    NG_RETURN_IF_ERROR(expand(edge,
+                              dstNode,
                                   startNode,                // dep
                                   startNode->outputVar(),   // inputVar
                                   nullptr,
@@ -159,18 +166,44 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
     return Status::OK();
 }
 
+Status Expand::expand(const EdgeInfo& edge,
+                      const NodeInfo& dstNode,
+                      PlanNode* dep,
+                      const std::string& inputVar,
+                      const Expression* nodeFilter,
+                      SubPlan* plan) {
+    if (matchCtx_->filledNodeId.find(*dstNode.alias) != matchCtx_->filledNodeId.end()) {
+        return expandStep(edge, dep, inputVar, nodeFilter, plan, dstNode, true);
+    } else {
+        return expandStep(edge, dep, inputVar, nodeFilter, plan, dstNode);
+    }
+}
+
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
 Status Expand::expandStep(const EdgeInfo& edge,
                           PlanNode* dep,
                           const std::string& inputVar,
                           const Expression* nodeFilter,
-                          SubPlan* plan) {
+                          SubPlan* plan,
+                          const NodeInfo& dstNode,
+                          bool withDst) {
     auto qctx = matchCtx_->qctx;
 
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
     curr.root = dep;
-    MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_.release(), dep, inputVar, curr);
+    if (withDst) {
+        // _vid|_dst
+        extractAndDedupVidDstColumns(qctx,
+                                     initialExpr_.release(),
+                                     dep,
+                                     inputVar,
+                                     curr,
+                                    *dstNode.alias);
+    } else {
+        // _vid
+        MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_.release(), dep, inputVar, curr);
+    }
     // [GetNeighbors]
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
@@ -178,6 +211,10 @@ Status Expand::expandStep(const EdgeInfo& edge,
     gn->setVertexProps(genVertexProps());
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
+    if (withDst) {
+        auto dstExpr = ExpressionUtils::inputPropExpr(kDst);
+        gn->setDst(qctx->objPool()->add(dstExpr.release()));
+    }
 
     PlanNode* root = gn;
     if (nodeFilter != nullptr) {
@@ -265,6 +302,40 @@ Expression* Expand::buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) 
         new UnaryExpression(Expression::Kind::kUnaryIncr,
                             new VariableExpression(new std::string(loopSteps))),
         new ConstantExpression(static_cast<int64_t>(maxHop))));
+}
+
+void Expand::extractAndDedupVidDstColumns(QueryContext* qctx,
+                                          Expression* initialExpr,
+                                          PlanNode* dep,
+                                          const std::string& inputVar,
+                                          SubPlan& plan,
+                                          const std::string &dstNodeAlias) {
+    auto columns = qctx->objPool()->add(new YieldColumns);
+    auto* var = qctx->symTable()->getVar(inputVar);
+    Expression* vidExpr = MatchSolver::initialExprOrEdgeDstExpr(initialExpr, var->colNames.back());
+    Expression* dstExpr = initialExprOrExpandDstExpr(initialExpr, inputVar, dstNodeAlias);
+    columns->addColumn(new YieldColumn(vidExpr));
+    columns->addColumn(new YieldColumn(dstExpr));
+    auto project = Project::make(qctx, dep, columns);
+    project->setInputVar(inputVar);
+    project->setColNames({kVid, kDst});
+    auto dedup = Dedup::make(qctx, project);
+    dedup->setColNames({kVid, kDst});
+
+    plan.root = dedup;
+}
+
+Expression* Expand::initialExprOrExpandDstExpr(Expression* initialExpr,
+                                               const std::string& inputVar,
+                                               const std::string &dstNodeAlias) {
+    if (initialExpr != nullptr) {
+        return initialExpr;
+    } else {
+        auto find = matchCtx_->filledNodeId.find(dstNodeAlias);
+        DCHECK(find != matchCtx_->filledNodeId.end());
+        CHECK_EQ(inputVar, find->second.first->outputVar());
+        return find->second.second.get();
+    }
 }
 
 }   // namespace graph

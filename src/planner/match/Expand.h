@@ -39,18 +39,29 @@ public:
 
     Status doExpand(const NodeInfo& node,
                     const EdgeInfo& edge,
+                    const NodeInfo& dstNode,
                     SubPlan* plan);
 
 private:
     Status expandSteps(const NodeInfo& node,
                        const EdgeInfo& edge,
+                       const NodeInfo& dstNode,
                        SubPlan* plan);
+
+    Status expand(const EdgeInfo& edge,
+                  const NodeInfo& dstNode,
+                  PlanNode* dep,
+                  const std::string& inputVar,
+                  const Expression* nodeFilter,
+                  SubPlan* plan);
 
     Status expandStep(const EdgeInfo& edge,
                       PlanNode* dep,
                       const std::string& inputVar,
                       const Expression* nodeFilter,
-                      SubPlan* plan);
+                      SubPlan* plan,
+                      const NodeInfo& dstNode,
+                      bool withDst = false);
 
     Status collectData(const PlanNode* joinLeft,
                        const PlanNode* joinRight,
@@ -69,6 +80,17 @@ private:
     }
 
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
+
+    void extractAndDedupVidDstColumns(QueryContext* qctx,
+                                      Expression* initialExpr,
+                                      PlanNode* dep,
+                                      const std::string& inputVar,
+                                      SubPlan& plan,
+                                      const std::string &dstNodeAlias);
+
+    Expression* initialExprOrExpandDstExpr(Expression* initialExpr,
+                                           const std::string& inputVar,
+                                           const std::string &dstNodeAlias);
 
     MatchClauseContext*                 matchCtx_;
     std::unique_ptr<Expression>         initialExpr_;

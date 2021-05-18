@@ -75,6 +75,13 @@ private:
 
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
 
+    // @param input, the plan generate a path of current expand
+    void fillNodeId(MatchClauseContext *matchCtx,
+                    const std::string &alias,
+                    const PlanNode *input,
+                    const std::string &colName);
+
+
 private:
     std::unique_ptr<Expression> initialExpr_;
 };

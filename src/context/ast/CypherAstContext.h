@@ -138,6 +138,10 @@ struct MatchClauseContext final : CypherClauseContextBase {
     std::unique_ptr<WhereClauseContext>         where;
     std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
     std::unordered_map<std::string, AliasType>  aliasesGenerated;
+    // nodeAlias -> <Input, nodeIdExpr>
+    // Record the evaluated node when expand
+    std::unordered_map<std::string, std::pair<const PlanNode*, std::unique_ptr<Expression>>>
+                                                filledNodeId;
 };
 
 struct UnwindClauseContext final : CypherClauseContextBase {

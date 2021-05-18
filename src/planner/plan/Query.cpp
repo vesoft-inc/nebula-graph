@@ -70,6 +70,9 @@ void GetNeighbors::cloneMembers(const GetNeighbors& g) {
     setEdgeTypes(g.edgeTypes_);
     setEdgeDirection(g.edgeDirection_);
     setRandom(g.random_);
+    if (g.dst_) {
+        setDst(qctx_->objPool()->add(g.dst_->clone().release()));
+    }
     if (g.vertexProps_) {
         auto vertexProps = *g.vertexProps_;
         auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(vertexProps);

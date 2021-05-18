@@ -30,6 +30,17 @@ private:
     using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
     Status handleResponse(RpcResponse& resps);
 
+    DataSet buildRequestDataSet(const SpaceInfo &space,
+                                QueryExpressionContext &exprCtx,
+                                Iterator *iter,
+                                const std::vector<std::string> &,
+                                const std::vector<Expression*> &,
+                                bool dedup);
+
+    bool isIntVidType(const SpaceInfo &space) const;
+
+    DataSet buildRequestDataSetByVidType(Iterator *iter, bool dedup);
+
 private:
     const GetNeighbors*     gn_;
 };
