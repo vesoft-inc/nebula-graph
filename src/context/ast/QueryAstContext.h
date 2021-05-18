@@ -54,6 +54,7 @@ struct PathContext final : AstContext {
     bool            isShortest{false};
     bool            isWeight{false};
     bool            noLoop{false};
+    bool            withProp{false};
 
     /*
     * runtime
