@@ -12,7 +12,6 @@
 #include "parser/TraverseSentences.h"
 #include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
-#include "visitor/FoldConstantExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -85,20 +84,8 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
 
     // Constant expression folding must be after type deduction
     auto foldedExpr = ExpressionUtils::foldConstantExpr(expr, qctx()->objPool());
-    QueryExpressionContext ctx;
-    auto val = Expression::eval(foldedExpr, ctx(nullptr));
-    if (val.type() == Value::Type::NULLVALUE) {
-        switch (val.getNull()) {
-            case NullType::DIV_BY_ZERO:
-                return Status::Error("/ by zero");
-            case NullType::ERR_OVERFLOW:
-                return Status::Error("%s cannot be represented as an integer",
-                                     expr->toString().c_str());
-            default:
-                break;
-        }
-    }
-    column->setExpr(foldedExpr->clone().release());
+    NG_RETURN_IF_ERROR(foldedExpr);
+    column->setExpr(foldedExpr.value()->clone().release());
     outputs_.emplace_back(name, type);
     return Status::OK();
 }
@@ -190,8 +177,9 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
     if (filter != nullptr) {
         NG_RETURN_IF_ERROR(deduceProps(filter, exprProps_));
         auto pool = qctx_->objPool();
-        auto newFilter = ExpressionUtils::foldConstantExpr(filter, pool);
-        filterCondition_ = newFilter;
+        auto foldRes = ExpressionUtils::foldConstantExpr(filter, pool);
+        NG_RETURN_IF_ERROR(foldRes);
+        filterCondition_ = foldRes.value();
     }
     return Status::OK();
 }

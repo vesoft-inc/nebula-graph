@@ -330,32 +330,32 @@ Feature: Yield Sentence
       """
       YIELD 9223372036854775807+1
       """
-    Then a ExecutionError should be raised at runtime: (9223372036854775807+1) cannot be represented as an integer
+    Then a ExecutionError should be raised at runtime: result of (9223372036854775807+1) cannot be represented as an integer
     When executing query:
       """
       YIELD -9223372036854775807-2
       """
-    Then a ExecutionError should be raised at runtime: (-(9223372036854775807)-2) cannot be represented as an integer
+    Then a ExecutionError should be raised at runtime: result of (-9223372036854775807-2) cannot be represented as an integer
     When executing query:
       """
       YIELD -9223372036854775807+-2
       """
-    Then a ExecutionError should be raised at runtime: (-(9223372036854775807)+-(2)) cannot be represented as an integer
+    Then a ExecutionError should be raised at runtime: result of (-9223372036854775807+-2) cannot be represented as an integer
     When executing query:
       """
       YIELD 9223372036854775807*2
       """
-    Then a ExecutionError should be raised at runtime:  (9223372036854775807*2) cannot be represented as an integer
+    Then a ExecutionError should be raised at runtime: result of (9223372036854775807*2) cannot be represented as an integer
     When executing query:
       """
       YIELD -9223372036854775807*-2
       """
-    Then a ExecutionError should be raised at runtime: (-(9223372036854775807)*-(2)) cannot be represented as an integer
+    Then a ExecutionError should be raised at runtime: result of (-9223372036854775807*-2) cannot be represented as an integer
     When executing query:
       """
       YIELD 9223372036854775807*-2
       """
-    Then a ExecutionError should be raised at runtime: (9223372036854775807*-(2)) cannot be represented as an integer
+    Then a ExecutionError should be raised at runtime: result of (9223372036854775807*-2) cannot be represented as an integer
     When executing query:
       """
       YIELD 1/0
@@ -377,7 +377,7 @@ Feature: Yield Sentence
       """
       YIELD --9223372036854775808
       """
-    Then a ExecutionError should be raised at runtime: -(-9223372036854775808) cannot be represented as an integer
+    Then a ExecutionError should be raised at runtime: result of -(-9223372036854775808) cannot be represented as an integer
     When executing query:
       """
       YIELD -9223372036854775809
