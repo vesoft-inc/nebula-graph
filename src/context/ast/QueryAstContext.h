@@ -26,7 +26,7 @@ struct Starts {
     Expression*             src{nullptr};
     Expression*             originalSrc{nullptr};
     std::string             userDefinedVarName;
-    std::string             firstBeginningSrcVidColName;
+    std::string             runtimeVidName;
     std::vector<Value>      vids;
 };
 
@@ -73,6 +73,32 @@ struct PathContext final : AstContext {
     // store the result of the previous sentence
     std::string     inputVarName;
     ExpressionProps exprProps;
+};
+
+struct GoContext final : AstContext {
+    Starts                      from;
+    StepClause                  steps;
+    Over                        over;
+    Expression*                 filter{nullptr};
+    bool                        distinct{false};
+
+    std::string                 vidsVar;
+    //
+    bool                        joinInput{false};
+    bool                        joinDst{false};
+
+    ExpressionProps             exprProps;
+
+    // runtime
+    YieldColumns*               dstPropsExpr;
+    YieldColumns*               srcEdgePropsExpr;
+
+    std::string                 srcVidColName;
+    std::string                 dstVidColName;
+
+    // store the result of the previous sentence
+    std::string                 inputVarName;
+    std::vector<std::string>    colNames;
 };
 
 }  // namespace graph

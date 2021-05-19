@@ -21,6 +21,7 @@ void PlannersRegister::registPlanners() {
     registSequential();
     registMatch();
     registPath();
+    registGo();
 }
 
 void PlannersRegister::registSequential() {
@@ -52,5 +53,11 @@ void PlannersRegister::registPath() {
     auto& planners = Planner::plannersMap()[Sentence::Kind::kFindPath];
     planners.emplace_back(&PathPlanner::match, &PathPlanner::make);
 }
+
+void PlannersRegister::registGo() {
+    auto& planners = Planner::plannersMap()[Sentence::Kind::kGo];
+    planners.emplace_back(&GoPlanner::match, &GoPlanner::make);
+}
+
 }  // namespace graph
 }  // namespace nebula
