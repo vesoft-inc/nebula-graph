@@ -40,11 +40,6 @@ protected:
         std::vector<std::string>        allEdges;
     };
 
-    struct Steps {
-        StepClause::MToN*     mToN{nullptr};
-        uint32_t              steps{1};
-    };
-
 protected:
     TraversalValidator(Sentence* sentence, QueryContext* qctx) : Validator(sentence, qctx) {
         startVidList_.reset(new ExpressionList());
@@ -55,7 +50,7 @@ protected:
 
     Status validateOver(const OverClause* clause, Over& over);
 
-    Status validateStep(const StepClause* clause, Steps& step);
+    Status validateStep(const StepClause* clause, StepClause& step);
 
     PlanNode* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
 
