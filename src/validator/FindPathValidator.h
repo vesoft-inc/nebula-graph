@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "validator/TraversalValidator.h"
+#include "context/ast/QueryAstContext.h"
 
 namespace nebula {
 namespace graph {

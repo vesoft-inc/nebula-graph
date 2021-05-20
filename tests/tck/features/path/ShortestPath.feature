@@ -448,7 +448,6 @@ Feature: Shortest Path
       | <("Tony Parker")-[:like]->("Manu Ginobili")>                                                       |
       | <("Tony Parker")-[:teammate]->("Manu Ginobili")>                                                   |
 
-  @skip
   Scenario: Shortest Path With PROP
     When executing query:
       """

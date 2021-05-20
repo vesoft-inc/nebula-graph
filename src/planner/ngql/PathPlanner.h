@@ -21,7 +21,9 @@ public:
         return std::unique_ptr<PathPlanner>(new PathPlanner());
     }
 
-    static bool match(AstContext* astCtx);
+    static bool match(AstContext* astCtx) {
+        return astCtx->sentence->kind() == Sentence::Kind::kFindPath;
+    }
 
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
@@ -53,9 +55,9 @@ private:
 
     void buildStart(Starts& starts, std::string& startVidsVar, bool reverse);
 
-    Expression* singlePairLoopCondition(uint32_t steps, const std:string& pathVar);
+    Expression* singlePairLoopCondition(uint32_t steps, const std::string& pathVar);
 
-    Expression* multiPairLoopCondition(uint32_t steps, const std:string& pathVar);
+    Expression* multiPairLoopCondition(uint32_t steps, const std::string& pathVar);
 
     Expression* allPairLoopCondition(uint32_t steps);
 

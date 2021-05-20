@@ -5,6 +5,12 @@
  */
 
 #include "util/QueryUtil.h"
+#include "common/base/Base.h"
+#include "common/expression/ColumnExpression.h"
+#include "context/QueryContext.h"
+#include "context/ast/QueryAstContext.h"
+#include "planner/plan/Query.h"
+#include "planner/Planner.h"
 
 namespace nebula {
 namespace graph {

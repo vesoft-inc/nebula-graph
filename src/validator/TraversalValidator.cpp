@@ -60,7 +60,6 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                 return Status::SemanticError(ss.str());
             }
             starts.vids.emplace_back(std::move(vid));
-            startVidList_->add(expr->clone().release());
         }
     }
     return Status::OK();

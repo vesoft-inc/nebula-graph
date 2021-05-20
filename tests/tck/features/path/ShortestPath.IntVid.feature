@@ -448,7 +448,6 @@ Feature: Integer Vid Shortest Path
       | <("Tony Parker")-[:like]->("Manu Ginobili")>                                                       |
       | <("Tony Parker")-[:teammate]->("Manu Ginobili")>                                                   |
 
-  @skip
   Scenario: Integer Vid Shortest Path With PROP
     When executing query:
       """
