@@ -24,7 +24,7 @@ public:
     }
 
     uint32_t steps() const {
-        return steps_;
+        return mSteps_;
     }
 
     bool isMToN() const {
