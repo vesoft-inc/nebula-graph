@@ -69,7 +69,7 @@ protected:
 
 protected:
     Starts                from_;
-    Steps                 steps_;
+    StepClause           steps_;
     std::string           srcVidColName_;
     PlanNode*             projectStartVid_{nullptr};
     std::string           loopSteps_;

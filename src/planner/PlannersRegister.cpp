@@ -13,7 +13,7 @@
 #include "planner/match/PropIndexSeek.h"
 #include "planner/match/VertexIdSeek.h"
 #include "planner/match/LabelIndexSeek.h"
-#include "planner/planners/PathPlanner.h"
+#include "planner/ngql/PathPlanner.h"
 
 namespace nebula {
 namespace graph {

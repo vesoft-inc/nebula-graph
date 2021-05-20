@@ -7,14 +7,11 @@
 #include "validator/Validator.h"
 #include "planner/plan/Logic.h"
 #include "util/SchemaUtil.h"
+#include "util/QueryUtil.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 namespace graph {
-
-bool PathPlanner::match(AstContext* astCtx) {
-    return astCtx->sentence->kind() == Sentence::Kind::kFindPath;
-}
-
 GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     switch (pathCtx_->over.direction) {
@@ -39,7 +36,7 @@ void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
                                    bool reverse,
                                    bool isInEdge) {
     for (const auto& e : pathCtx_->over.edgeTypes) {
-        stroage::cpp2::EdgeProp ep;
+        storage::cpp2::EdgeProp ep;
         if (reverse == isInEdge) {
             ep.set_type(e);
         } else {
@@ -70,12 +67,12 @@ void PathPlanner::buildStart(Starts& starts, std::string& vidsVar, bool reverse)
 }
 
 // loopSteps{0} <= (steps / 2 + steps % 2) && size(pathVar) == 0
-Expression* PathPlanner::singlePairLoopCondition(uint32_t steps, const std:string& pathVar) {
+Expression* PathPlanner::singlePairLoopCondition(uint32_t steps, const std::string& pathVar) {
     auto loopSteps = pathCtx_->qctx->vctx()->anonVarGen()->getVar();
     pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
-    auto stepLimit = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
-    auto zero = ExpressionUtils::zeroCondition(pathVar)
-    return ExpressionUtils::And(stepLimit.release(), zero.release());
+    auto step = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
+    auto zero = ExpressionUtils::zeroCondition(pathVar);
+    return ExpressionUtils::And(step.release(), zero.release());
 }
 
 // loopSteps{0} <= (steps / 2 + steps % 2)
@@ -86,15 +83,15 @@ Expression* PathPlanner::allPairLoopCondition(uint32_t steps) {
 }
 
 // loopSteps{0} <= (steps / 2 + steps % 2) && size(pathVar) != 0
-Expression* PathPlanner::multiPairLoopCondition(uint32_t steps, const std:string& pathVar) {
+Expression* PathPlanner::multiPairLoopCondition(uint32_t steps, const std::string& pathVar) {
     auto loopSteps = pathCtx_->qctx->vctx()->anonVarGen()->getVar();
     pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
     auto stepLimit = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
-    auto neZero = ExpressionUtils::neZeroCondition(pathVar)
+    auto neZero = ExpressionUtils::neZeroCondition(pathVar);
     return ExpressionUtils::And(stepLimit.release(), neZero.release());
 }
 
-SubPlan buildRuntimeVidPlan() {
+SubPlan PathPlanner::buildRuntimeVidPlan() {
     SubPlan subPlan;
     const auto& from = pathCtx_->from;
     const auto& to = pathCtx_->to;
@@ -126,7 +123,7 @@ PlanNode* PathPlanner::allPairStartVidDataSet(PlanNode* dep, const std::string& 
     auto* vid = new YieldColumn(new ColumnExpression(0), new std::string(kVid));
     // col 1 is list<path(only contain src)>
     auto* pathExpr = new PathBuildExpression();
-    pathExpr->add(new ColumnExpression(0));
+    pathExpr->add(std::make_unique<ColumnExpression>(0));
 
     auto* exprList = new ExpressionList();
     exprList->add(pathExpr);
@@ -154,7 +151,7 @@ PlanNode* PathPlanner::multiPairStartVidDataSet(PlanNode* dep, const std::string
     auto* cost = new YieldColumn(new ConstantExpression(0), new std::string("cost"));
     // col 3 is list<path(only contain dst)>
     auto* pathExpr = new PathBuildExpression();
-    pathExpr->add(new ColumnExpression(0));
+    pathExpr->add(std::make_unique<ColumnExpression>(0));
 
     auto* exprList = new ExpressionList();
     exprList->add(pathExpr);
@@ -164,7 +161,7 @@ PlanNode* PathPlanner::multiPairStartVidDataSet(PlanNode* dep, const std::string
     auto* columns = pathCtx_->qctx->objPool()->add(new YieldColumns());
     columns->addColumn(dst);
     columns->addColumn(src);
-    columns->addColumn(cost)
+    columns->addColumn(cost);
     columns->addColumn(path);
 
     auto* project = Project::make(pathCtx_->qctx, dep, columns);
@@ -217,10 +214,11 @@ PlanNode* PathPlanner::singlePairPath(PlanNode* dep, bool reverse) {
     path->setColNames({kVid, "edge"});
 
     // singlePair startVid dataset
+    const auto& starts = reverse ? pathCtx_->to : pathCtx_->from;
     DataSet ds;
     ds.colNames = {kVid, "edge"};
     Row row;
-    row.values.emplace_back(vidsVar.vids.front());
+    row.values.emplace_back(starts.vids.front());
     row.values.emplace_back(Value::kEmpty);
     ds.rows.emplace_back(std::move(row));
     qctx->ectx()->setResult(vidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
@@ -240,7 +238,7 @@ SubPlan PathPlanner::singlePairPlan(PlanNode* dep) {
         qctx->objPool()->add(singlePairLoopCondition(pathCtx_->steps.steps, conjunct->outputVar()));
     auto* loop = Loop::make(qctx, nullptr, conjunct, loopCondition);
     auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kBFSShortest);
-    dc->setInputVar({conjunct->outputVar()});
+    dc->setInputVars({conjunct->outputVar()});
     dc->addDep(loop);
     dc->setColNames({"path"});
 
@@ -283,7 +281,7 @@ SubPlan PathPlanner::allPairPlan(PlanNode* dep) {
 
     auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kAllPaths);
     dc->addDep(loop);
-    dc->setInputVar({conjunct->outputVar()});
+    dc->setInputVars({conjunct->outputVar()});
     dc->setColNames({"path"});
 
     SubPlan subPlan;
@@ -329,7 +327,7 @@ SubPlan PathPlanner::multiPairPlan(PlanNode* dep) {
 
     auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kAllPaths);
     dc->addDep(loop);
-    dc->setInputVar({conjunct->outputVar()});
+    dc->setInputVars({conjunct->outputVar()});
     dc->setColNames({"path"});
 
     SubPlan subPlan;
@@ -343,7 +341,7 @@ PlanNode* PathPlanner::buildVertexPlan(PlanNode* dep, const std::string& input) 
 
     // col 0 of the input is path
     auto args = new ArgumentList();
-    args->addArgument(new ColumnExpression(0));
+    args->addArgument(std::make_unique<ColumnExpression>(0));
     auto funNodes = new FunctionCallExpression(new std::string("nodes"), args);
 
     auto* column = new YieldColumn(funNodes, new std::string("nodes"));

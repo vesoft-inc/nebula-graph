@@ -6,12 +6,13 @@
 
 #ifndef UTIL_QUERYUTIL_H_
 #define UTIL_QUERYUTIL_H_
-
-#include "common/base/StatusOr.h"
+#include "common/base/Base.h"
 
 namespace nebula {
 namespace graph {
-
+class QueryContext;
+struct Starts;
+struct SubPlan;
 class QueryUtil final {
 public:
     QueryUtil() = delete;
