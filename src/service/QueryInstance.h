@@ -13,6 +13,7 @@
 #include "optimizer/Optimizer.h"
 #include "parser/GQLParser.h"
 #include "scheduler/Scheduler.h"
+#include "scheduler/NewScheduler.h"
 
 /**
  * QueryInstance coordinates the execution process,
@@ -58,6 +59,7 @@ private:
     std::unique_ptr<Sentence>                   sentence_;
     std::unique_ptr<QueryContext>               qctx_;
     std::unique_ptr<Scheduler>                  scheduler_;
+    std::unique_ptr<NewScheduler>               newScheduler_;
     opt::Optimizer*                             optimizer_{nullptr};
 };
 
