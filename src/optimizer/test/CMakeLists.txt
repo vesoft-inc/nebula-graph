@@ -32,9 +32,18 @@ set(OPTIMIZER_TEST_LIB
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
     $<TARGET_OBJECTS:common_ws_common_obj>
     $<TARGET_OBJECTS:common_version_obj>
+    $<TARGET_OBJECTS:common_stats_obj>
+    $<TARGET_OBJECTS:common_graph_thrift_obj>
+    $<TARGET_OBJECTS:common_storage_client_base_obj>
+    $<TARGET_OBJECTS:common_graph_storage_client_obj>
+    $<TARGET_OBJECTS:common_storage_thrift_obj>
+    $<TARGET_OBJECTS:common_meta_client_obj>
+    $<TARGET_OBJECTS:common_network_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:expr_visitor_obj>
     $<TARGET_OBJECTS:session_obj>
+    $<TARGET_OBJECTS:query_engine_obj>
+    $<TARGET_OBJECTS:stats_def_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:util_obj>
@@ -43,6 +52,8 @@ set(OPTIMIZER_TEST_LIB
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:optimizer_obj>
+    $<TARGET_OBJECTS:scheduler_obj>
+    $<TARGET_OBJECTS:executor_obj>
 )
 
 nebula_add_test(

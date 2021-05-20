@@ -32,6 +32,32 @@ SessionManager::~SessionManager() {
 }
 
 
+void SessionManager::findSession(
+        SessionID id,
+        folly::Executor* runner,
+        std::unique_ptr<RequestContext<ExecutionResponse>> rctx,
+        QueryEngine *queryEngine) {
+    // When the sessionId is 0, it means the clients to ping the connection is ok
+    if (id == 0) {
+        rctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+        rctx->resp().errorMsg = std::make_unique<std::string>("Invalid session id");
+        rctx->finish();
+        return;
+    }
+
+    auto session = findSessionFromCache(id);
+    if (session != nullptr) {
+        session->updateGraphAddr(myAddr_);
+        rctx->setSession(std::move(session));
+        queryEngine->execute(std::move(rctx));
+    } else {
+        auto cb = [queryEngine](std::unique_ptr<RequestContext<ExecutionResponse>> ctx){
+            queryEngine->execute(std::move(ctx));
+        };
+        findSessionFromMetad(id, runner, std::move(rctx), cb);
+    }
+}
+
 std::shared_ptr<ClientSession> SessionManager::findSessionFromCache(SessionID id) {
     folly::RWSpinLock::ReadHolder rHolder(rwlock_);
     auto iter = activeSessions_.find(id);

@@ -16,6 +16,7 @@
 
 #include "session/ClientSession.h"
 #include "service/RequestContext.h"
+#include "service/QueryEngine.h"
 
 /**
  * SessionManager manages the client sessions, e.g. create new, find existing and drop expired.
@@ -29,17 +30,6 @@ public:
     SessionManager(meta::MetaClient* metaClient, const HostAddr &hostAddr);
     ~SessionManager();
 
-    using SessionPtr = std::shared_ptr<ClientSession>;
-    /**
-     * Find an existing session
-     */
-    SessionPtr findSessionFromCache(SessionID id);
-
-    using ExecFunc = std::function<void(std::unique_ptr<RequestContext<ExecutionResponse>>)>;
-    void findSessionFromMetad(SessionID id,
-                              folly::Executor* runner,
-                              std::unique_ptr<RequestContext<ExecutionResponse>> rctx,
-                              ExecFunc execFunc);
     /**
      * Create a new session
      */
@@ -52,7 +42,27 @@ public:
      */
     void removeSession(SessionID id);
 
+    /**
+     * Find a session
+     */
+    void findSession(SessionID id,
+                     folly::Executor* runner,
+                     std::unique_ptr<RequestContext<ExecutionResponse>> rctx,
+                     QueryEngine *queryEngine);
+
 private:
+    using SessionPtr = std::shared_ptr<ClientSession>;
+    /**
+     * Find an existing session
+     */
+    SessionPtr findSessionFromCache(SessionID id);
+
+    using ExecFunc = std::function<void(std::unique_ptr<RequestContext<ExecutionResponse>>)>;
+    void findSessionFromMetad(SessionID id,
+                              folly::Executor* runner,
+                              std::unique_ptr<RequestContext<ExecutionResponse>> rctx,
+                              ExecFunc execFunc);
+
     void threadFunc();
 
     void reclaimExpiredSessions();

@@ -87,30 +87,7 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     ctx->setRunner(getThreadManager());
     auto future = ctx->future();
     stats::StatsManager::addValue(kNumQueries);
-
-    // When the sessionId is 0, it means the clients to ping the connection is ok
-    if (sessionId == 0) {
-        ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-        ctx->resp().errorMsg = std::make_unique<std::string>("Invalid session id");
-        ctx->finish();
-        return future;
-    }
-
-    auto session = sessionManager_->findSessionFromCache(sessionId);
-    if (session != nullptr) {
-        session->updateGraphAddr(myAddr_);
-        ctx->setSession(std::move(session));
-        queryEngine_->execute(std::move(ctx));
-    } else {
-        auto cb = [this](std::unique_ptr<RequestContext<ExecutionResponse>> rctx){
-            queryEngine_->execute(std::move(rctx));
-        };
-        sessionManager_->findSessionFromMetad(sessionId,
-                                              getThreadManager(),
-                                              std::move(ctx),
-                                              cb);
-    }
-
+    sessionManager_->findSession(sessionId, getThreadManager(), std::move(ctx), queryEngine_.get());
     return future;
 }
 
