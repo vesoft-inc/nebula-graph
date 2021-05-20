@@ -15,7 +15,7 @@ from nebula2.fbthrift.transport import TTransport
 from nebula2.fbthrift.protocol import TBinaryProtocol
 
 from nebula2.graph import GraphService
-from nebula2.graph import ttypes
+from nebula2.common import ttypes
 from nebula2.data.ResultSet import ResultSet
 from tests.common.nebula_test_suite import NebulaTestSuite
 
