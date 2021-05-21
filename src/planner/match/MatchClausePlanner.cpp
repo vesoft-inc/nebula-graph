@@ -152,7 +152,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                                               std::string inputVar,
                                               SubPlan& subplan) {
     std::vector<std::string> joinColNames = {
-        folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size())};
+        folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex)};
     for (size_t i = startIndex; i > 0; --i) {
         bool expandInto = matchClauseCtx->filledNodeId.find(*nodeInfos[i-1].alias)
                           != matchClauseCtx->filledNodeId.end();
@@ -212,13 +212,13 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                 << " right: " << folly::join(",", right->colNames());
         subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
         joinColNames.emplace_back(
-            folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex));
+            folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size()));
         subplan.root->setColNames(joinColNames);
     }
     fillNodeId(matchClauseCtx,
               *nodeInfos.front().alias,
                subplan.root,
-               folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex));
+               folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size()));
 
     VLOG(1) << subplan;
     return Status::OK();

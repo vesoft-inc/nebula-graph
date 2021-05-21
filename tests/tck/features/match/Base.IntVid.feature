@@ -431,6 +431,36 @@ Feature: Basic match
       | "Hornets"   | "Marco Belinelli" |
       | "Cavaliers" | "LeBron James"    |
       | "Cavaliers" | "LeBron James"    |
+    When executing query:
+      """
+      match (v)-[]->(t)<-[]-(v:player) return v.name, t.name
+      """
+    Then the result should be, in any order:
+      | v.name            | t.name              |
+      | "LeBron James"    | "Cavaliers"         |
+      | "LeBron James"    | "Cavaliers"         |
+      | "Marco Belinelli" | "Hornets"           |
+      | "Marco Belinelli" | "Spurs"             |
+      | "Marco Belinelli" | "Hornets"           |
+      | "Marco Belinelli" | "Spurs"             |
+      | "Tony Parker"     | "Tim Duncan"        |
+      | "Tony Parker"     | "LaMarcus Aldridge" |
+      | "Tony Parker"     | "Manu Ginobili"     |
+      | "Tony Parker"     | "LaMarcus Aldridge" |
+      | "Tony Parker"     | "Manu Ginobili"     |
+      | "Tony Parker"     | "Tim Duncan"        |
+      | "Tim Duncan"      | "Manu Ginobili"     |
+      | "Tim Duncan"      | "Tony Parker"       |
+      | "Tim Duncan"      | "Manu Ginobili"     |
+      | "Tim Duncan"      | "Tony Parker"       |
+      | "Manu Ginobili"   | "Tim Duncan"        |
+      | "Manu Ginobili"   | "Tim Duncan"        |
+      | "Dwyane Wade"     | "Heat"              |
+      | "Dwyane Wade"     | "Heat"              |
+      | "Steve Nash"      | "Suns"              |
+      | "Steve Nash"      | "Suns"              |
+      | "Jason Kidd"      | "Mavericks"         |
+      | "Jason Kidd"      | "Mavericks"         |
 
   Scenario: No return
     When executing query:
