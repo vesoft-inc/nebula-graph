@@ -58,6 +58,7 @@ TEST_F(MatchValidatorTest, SeekByTagIndex) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -87,6 +88,7 @@ TEST_F(MatchValidatorTest, SeekByEdgeIndex) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kGetNeighbors,
@@ -211,6 +213,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -239,6 +242,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -268,6 +272,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -300,6 +305,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -331,6 +337,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -364,6 +371,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -400,6 +408,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -435,6 +444,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -477,6 +487,7 @@ TEST_F(MatchValidatorTest, groupby) {
                                                 PlanNode::Kind::kGetNeighbors,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -504,6 +515,7 @@ TEST_F(MatchValidatorTest, with) {
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
@@ -639,6 +651,57 @@ TEST_F(MatchValidatorTest, validateAlias) {
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
                   "SemanticError: Path `p' does not have the type attribute");
+    }
+}
+
+TEST_F(MatchValidatorTest, RedefinedNodeAlias) {
+    {
+        std::string query = "MATCH (v:person)-[:like]->(v) RETURN v.name AS name";
+        std::vector<PlanNode::Kind> expected = {PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kInnerJoin,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kGetVertices,
+                                                PlanNode::Kind::kDedup,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kGetNeighbors,
+                                                PlanNode::Kind::kDedup,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kIndexScan,
+                                                PlanNode::Kind::kStart};
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "MATCH (v:person)-[:like]->(t)<-[:like]-(v) RETURN v.name, t.name";
+        std::vector<PlanNode::Kind> expected = {PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kInnerJoin,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kGetVertices,
+                                                PlanNode::Kind::kDedup,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kInnerJoin,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kGetNeighbors,
+                                                PlanNode::Kind::kDedup,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataCollect,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kGetNeighbors,
+                                                PlanNode::Kind::kDedup,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kIndexScan,
+                                                PlanNode::Kind::kStart};
+        EXPECT_TRUE(checkResult(query, expected));
     }
 }
 

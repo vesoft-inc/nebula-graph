@@ -330,7 +330,11 @@ void Expand::extractAndDedupVidDstColumns(QueryContext* qctx,
     Expression* vidExpr = MatchSolver::initialExprOrEdgeDstExpr(initialExpr, var->colNames.back());
     Expression* dstExpr = initialExprOrExpandDstExpr(initialExpr, inputVar, dstNodeAlias);
     columns->addColumn(new YieldColumn(vidExpr));
-    columns->addColumn(new YieldColumn(dstExpr));
+    if (vidExpr == dstExpr) {
+        columns->addColumn(new YieldColumn(dstExpr->clone().release()));
+    } else {
+        columns->addColumn(new YieldColumn(dstExpr));
+    }
     auto project = Project::make(qctx, dep, columns);
     project->setInputVar(inputVar);
     project->setColNames({kVid, kDst});
@@ -349,7 +353,7 @@ Expression* Expand::initialExprOrExpandDstExpr(Expression* initialExpr,
         auto find = matchCtx_->filledNodeId.find(dstNodeAlias);
         DCHECK(find != matchCtx_->filledNodeId.end());
         CHECK_EQ(inputVar, find->second.first->outputVar());
-        return find->second.second.get();
+        return find->second.second->clone().release();
     }
 }
 

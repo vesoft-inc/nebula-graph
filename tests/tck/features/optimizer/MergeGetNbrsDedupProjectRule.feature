@@ -26,17 +26,18 @@ Feature: merge get neighbors, dedup and project rule
       | 3  | InnerJoin          | 4            |                                                     |
       | 4  | Project            | 5            |                                                     |
       | 5  | GetVertices        | 6            | {"dedup": "true"}                                   |
-      | 6  | Filter             | 7            |                                                     |
-      | 7  | UnionAllVersionVar | 8            |                                                     |
-      | 8  | Loop               | 15           | {"loopBody": "9"}                                   |
-      | 9  | Filter             | 10           |                                                     |
-      | 10 | Project            | 11           |                                                     |
-      | 11 | InnerJoin          | 12           | {"inputVar": {"rightVar":{"__Project_11":"0"}}}     |
-      | 12 | Project            | 13           |                                                     |
-      | 13 | GetNeighbors       | 14           | {"dedup": "true"}                                   |
-      | 14 | Start              |              |                                                     |
-      | 15 | Project            | 16           |                                                     |
-      | 16 | Filter             | 17           |                                                     |
-      | 17 | GetVertices        | 18           | {"dedup": "true"}                                   |
-      | 18 | IndexScan          | 19           | {"indexCtx": {"columnHints":{"scanType":"PREFIX"}}} |
-      | 19 | Start              |              |                                                     |
+      | 6  | DataCollect        | 7            |                                                     |
+      | 7  | Filter             | 8            |                                                     |
+      | 8  | UnionAllVersionVar | 9            |                                                     |
+      | 9  | Loop               | 16           | {"loopBody": "9"}                                   |
+      | 10 | Filter             | 11           |                                                     |
+      | 11 | Project            | 12           |                                                     |
+      | 12 | InnerJoin          | 13           | {"inputVar": {"rightVar":{"__Project_11":"0"}}}     |
+      | 13 | Project            | 14           |                                                     |
+      | 14 | GetNeighbors       | 15           | {"dedup": "true"}                                   |
+      | 15 | Start              |              |                                                     |
+      | 16 | Project            | 17           |                                                     |
+      | 17 | Filter             | 18           |                                                     |
+      | 18 | GetVertices        | 19           | {"dedup": "true"}                                   |
+      | 19 | IndexScan          | 20           | {"indexCtx": {"columnHints":{"scanType":"PREFIX"}}} |
+      | 20 | Start              |              |                                                     |

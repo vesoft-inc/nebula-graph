@@ -5,6 +5,7 @@
  */
 
 #include "planner/match/InnerJoinStrategy.h"
+#include <vector>
 
 #include "common/expression/AttributeExpression.h"
 #include "planner/plan/Query.h"
@@ -26,24 +27,45 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
         auto& leftKey = left->colNamesRef().back();
         buildExpr = MatchSolver::getEndVidInPath(leftKey);
     }
+    std::vector<Expression*> buildExprs{buildExpr};
+    if (dstNodeId_ != nullptr) {
+        buildExprs.emplace_back(dstNodeId_);
+    }
 
+    std::vector<Expression*> probeExprs;
     Expression* probeExpr = nullptr;
     if (rightPos_ == JoinPos::kStart) {
         auto& rightKey = right->colNamesRef().front();
         probeExpr = MatchSolver::getStartVidInPath(rightKey);
+        probeExprs.emplace_back(probeExpr);
+        if (dstNodeId_ != nullptr) {
+            auto& dstKey = right->colNamesRef().back();
+            auto dstIdExpr = MatchSolver::getEndVidInPath(dstKey);
+            probeExprs.emplace_back(dstIdExpr);
+        }
     } else {
         auto& rightKey = right->colNamesRef().back();
         probeExpr = MatchSolver::getEndVidInPath(rightKey);
+        probeExprs.emplace_back(probeExpr);
+        if (dstNodeId_ != nullptr) {
+            auto& dstKey = right->colNamesRef().front();
+            auto dstIdExpr = MatchSolver::getStartVidInPath(dstKey);
+            probeExprs.emplace_back(dstIdExpr);
+        }
     }
 
-    qctx_->objPool()->add(buildExpr);
-    qctx_->objPool()->add(probeExpr);
+    for (const auto &expr : buildExprs) {
+        qctx_->objPool()->add(expr);
+    }
+    for (const auto &expr : probeExprs) {
+        qctx_->objPool()->add(expr);
+    }
     auto join = InnerJoin::make(qctx_,
                                const_cast<PlanNode*>(right),
                                {left->outputVar(), 0},
                                {right->outputVar(), 0},
-                               {buildExpr},
-                               {probeExpr});
+                               std::move(buildExprs),
+                               std::move(probeExprs));
     std::vector<std::string> colNames = left->colNames();
     const auto& rightColNames = right->colNamesRef();
     colNames.insert(colNames.end(), rightColNames.begin(), rightColNames.end());

@@ -34,6 +34,11 @@ public:
         return this;
     }
 
+    InnerJoinStrategy* dstNodeId(Expression *expr) {
+        dstNodeId_ = expr;
+        return this;
+    }
+
     PlanNode* connect(const PlanNode* left, const PlanNode* right) override;
 
 private:
@@ -41,6 +46,7 @@ private:
 
     JoinPos     leftPos_{JoinPos::kEnd};
     JoinPos     rightPos_{JoinPos::kStart};
+    Expression *dstNodeId_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

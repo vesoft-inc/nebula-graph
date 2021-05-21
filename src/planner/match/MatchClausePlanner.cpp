@@ -154,6 +154,8 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
     std::vector<std::string> joinColNames = {
         folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size())};
     for (size_t i = startIndex; i > 0; --i) {
+        bool expandInto = matchClauseCtx->filledNodeId.find(*nodeInfos[i-1].alias)
+                          != matchClauseCtx->filledNodeId.end();
         auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx,
                                                i == startIndex ? initialExpr_->clone() : nullptr)
@@ -168,16 +170,32 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             auto right = subplan.root;
             VLOG(1) << "left: " << folly::join(",", left->colNames())
                     << " right: " << folly::join(",", right->colNames());
-            subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
+            if (expandInto) {
+                auto *dstId = previousNodeId(matchClauseCtx,
+                                            *nodeInfos[i-1].alias, left->outputVar());
+                subplan.root = SegmentsConnector::innerJoinSegments(
+                    matchClauseCtx->qctx, left, right, InnerJoinStrategy::JoinPos::kEnd,
+                    InnerJoinStrategy::JoinPos::kStart, dstId);
+            } else {
+                subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx,
+                                                                    left, right);
+            }
             joinColNames.emplace_back(
                 folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + i));
             subplan.root->setColNames(joinColNames);
+        } else {
+            // keep the column name format by step
+            auto* dc = DataCollect::make(matchClauseCtx->qctx, DataCollect::DCKind::kRowBasedMove);
+            dc->addDep(subplan.root);
+            dc->setInputVars({subplan.root->outputVar()});
+            dc->setColNames(joinColNames);
+            subplan.root = dc;
         }
         inputVar = subplan.root->outputVar();
         fillNodeId(matchClauseCtx,
                   *nodeInfos[i].alias,
                    subplan.root,
-                   folly::stringPrintf("%s_%lu", kPathStr, i));
+                   folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + i));
     }
 
     VLOG(1) << subplan;
@@ -213,6 +231,8 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
                                                SubPlan& subplan) {
     std::vector<std::string> joinColNames = {folly::stringPrintf("%s_%lu", kPathStr, startIndex)};
     for (size_t i = startIndex; i < edgeInfos.size(); ++i) {
+        bool expandInto = matchClauseCtx->filledNodeId.find(*nodeInfos[i+1].alias)
+                          != matchClauseCtx->filledNodeId.end();
         auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx,
                                                i == startIndex ? initialExpr_->clone() : nullptr)
@@ -226,9 +246,25 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
             auto right = subplan.root;
             VLOG(1) << "left: " << folly::join(",", left->colNames())
                     << " right: " << folly::join(",", right->colNames());
-            subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
+            if (expandInto) {
+                auto *dstId = previousNodeId(matchClauseCtx,
+                                            *nodeInfos[i+1].alias, left->outputVar());
+                subplan.root = SegmentsConnector::innerJoinSegments(
+                    matchClauseCtx->qctx, left, right, InnerJoinStrategy::JoinPos::kEnd,
+                    InnerJoinStrategy::JoinPos::kStart, dstId);
+            } else {
+                subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx,
+                                                                    left, right);
+            }
             joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, i));
             subplan.root->setColNames(joinColNames);
+        } else {
+            // keep the column name format by step
+            auto* dc = DataCollect::make(matchClauseCtx->qctx, DataCollect::DCKind::kRowBasedMove);
+            dc->addDep(subplan.root);
+            dc->setInputVars({subplan.root->outputVar()});
+            dc->setColNames(joinColNames);
+            subplan.root = dc;
         }
         // fill the expand node alias
         fillNodeId(matchClauseCtx,
@@ -431,7 +467,17 @@ void MatchClausePlanner::fillNodeId(MatchClauseContext *matchCtx,
     auto *idArgs = new ArgumentList();
     idArgs->addArgument(std::move(startNode));
     auto id = std::make_unique<FunctionCallExpression>(new std::string("id"), idArgs);
-    matchCtx->filledNodeId.emplace(alias, std::pair(input, std::move(id)));
+    matchCtx->filledNodeId[alias] = std::pair(input, std::move(id));
+}
+
+Expression*
+MatchClausePlanner::previousNodeId(const MatchClauseContext* matchClauseCtx,
+                                   const std::string &dstNodeAlias,
+                                   const std::string &inputVar) {
+    auto find = matchClauseCtx->filledNodeId.find(dstNodeAlias);
+    DCHECK(find != matchClauseCtx->filledNodeId.end());
+    CHECK_EQ(inputVar, find->second.first->outputVar());
+    return find->second.second->clone().release();
 }
 
 

@@ -81,6 +81,9 @@ private:
                     const PlanNode *input,
                     const std::string &colName);
 
+    Expression* previousNodeId(const MatchClauseContext* matchClauseCtx,
+                               const std::string &dstNodeAlias,
+                               const std::string &inputVar);
 
 private:
     std::unique_ptr<Expression> initialExpr_;

@@ -34,10 +34,12 @@ PlanNode* SegmentsConnector::innerJoinSegments(QueryContext* qctx,
                                                const PlanNode* left,
                                                const PlanNode* right,
                                                InnerJoinStrategy::JoinPos leftPos,
-                                               InnerJoinStrategy::JoinPos rightPos) {
+                                               InnerJoinStrategy::JoinPos rightPos,
+                                               Expression* dstNodeId) {
     return std::make_unique<InnerJoinStrategy>(qctx)
                 ->leftPos(leftPos)
                 ->rightPos(rightPos)
+                ->dstNodeId(dstNodeId)
                 ->connect(left, right);
 }
 

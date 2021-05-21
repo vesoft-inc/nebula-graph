@@ -26,7 +26,8 @@ Feature: combine filters
       | 13 | Project      | 12           |                                                                                        |
       | 12 | InnerJoin    | 11           |                                                                                        |
       | 11 | Project      | 20           |                                                                                        |
-      | 20 | GetVertices  | 7            |                                                                                        |
+      | 20 | GetVertices  | 8            |                                                                                        |
+      | 8  | DataCollect  | 7            |                                                                                        |
       | 7  | Filter       | 6            |                                                                                        |
       | 6  | Project      | 5            |                                                                                        |
       | 5  | Filter       | 22           |                                                                                        |

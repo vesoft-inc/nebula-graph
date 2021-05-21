@@ -445,6 +445,32 @@ Feature: Basic match
       | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]                             |
       | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]                                |
 
+  Scenario: Redefined node alias
+    When executing query:
+      """
+      match (v:player)-[:like]->(v) return v.name AS name
+      """
+    Then the result should be, in any order:
+      | name |
+    When executing query:
+      """
+      match (v)-[:serve]->(t)<-[:serve]-(v) return t.name, v.name
+      """
+    Then the result should be, in any order:
+      | t.name      | v.name            |
+      | "Mavericks" | "Jason Kidd"      |
+      | "Mavericks" | "Jason Kidd"      |
+      | "Spurs"     | "Marco Belinelli" |
+      | "Spurs"     | "Marco Belinelli" |
+      | "Heat"      | "Dwyane Wade"     |
+      | "Heat"      | "Dwyane Wade"     |
+      | "Suns"      | "Steve Nash"      |
+      | "Suns"      | "Steve Nash"      |
+      | "Hornets"   | "Marco Belinelli" |
+      | "Hornets"   | "Marco Belinelli" |
+      | "Cavaliers" | "LeBron James"    |
+      | "Cavaliers" | "LeBron James"    |
+
   Scenario: No return
     When executing query:
       """

@@ -66,6 +66,7 @@ Feature: Match index selection
       | 11 | IndexScan   | 0            |                                                  |
       | 0  | Start       |              |                                                  |
 
+  @skip
   Scenario: degenerate to full tag scan
     When profiling query:
       """
@@ -88,7 +89,8 @@ Feature: Match index selection
       | 13 | Project      | 12           |                                                                                                      |
       | 12 | InnerJoin    | 11           |                                                                                                      |
       | 11 | Project      | 21           |                                                                                                      |
-      | 21 | GetVertices  | 7            |                                                                                                      |
+      | 21 | GetVertices  | 8            |                                                                                                      |
+      | 8  | DataCollect  | 7            |                                                                                                      |
       | 7  | Filter       | 6            |                                                                                                      |
       | 6  | Project      | 5            |                                                                                                      |
       | 5  | Filter       | 23           |                                                                                                      |
