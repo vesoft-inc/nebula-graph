@@ -9,6 +9,7 @@
 #include <folly/String.h>
 #include <folly/executors/InlineExecutor.h>
 
+#include "common/base/Memory.h"
 #include "common/base/ObjectPool.h"
 #include "common/interface/gen-cpp2/graph_types.h"
 #include "context/ExecutionContext.h"
@@ -88,6 +89,7 @@
 #include "planner/plan/Mutate.h"
 #include "planner/plan/PlanNode.h"
 #include "planner/plan/Query.h"
+#include "service/GraphFlags.h"
 #include "util/ScopedTimer.h"
 
 using folly::stringPrintf;
@@ -500,6 +502,14 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 Executor::~Executor() {}
 
 Status Executor::open() {
+    MemInfo memInfo;
+    if (memInfo.hitsHighWatermark(FLAGS_system_memory_high_watermark_ratio)) {
+        return Status::Error(
+            "Used memory(%ldKB) hits the high watermark(%lf) of total system memory(%ldKB).",
+            memInfo.usedInKB(),
+            FLAGS_system_memory_high_watermark_ratio,
+            memInfo.totalInKB());
+    }
     numRows_ = 0;
     execTime_ = 0;
     totalDuration_.reset();
