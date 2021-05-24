@@ -138,10 +138,10 @@ Status Expand::expandSteps(const NodeInfo& node,
     // Construct loop body
     NG_RETURN_IF_ERROR(expand(edge,
                               dstNode,
-                                  startNode,                // dep
-                                  startNode->outputVar(),   // inputVar
-                                  nullptr,
-                                  &loopBodyPlan));
+                              startNode,                // dep
+                              startNode->outputVar(),   // inputVar
+                              nullptr,
+                              &loopBodyPlan));
 
     NG_RETURN_IF_ERROR(collectData(startNode,           // left join node
                                    loopBodyPlan.root,   // right join node
