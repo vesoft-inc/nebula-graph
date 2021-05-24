@@ -23,6 +23,8 @@ folly::Future<Status> NewScheduler::doSchedule(Executor* root) const {
     queue.push(root);
     auto* runner = qctx_->rctx()->runner();
     auto result = folly::makeFuture(Status::OK());
+    folly::Promise<Status> promiseForRoot;
+    auto resultFuture = promiseForRoot.getFuture();
     while (!queue.empty()) {
         auto* exe = queue.front();
         queue.pop();
@@ -39,15 +41,13 @@ folly::Future<Status> NewScheduler::doSchedule(Executor* root) const {
         auto currentPromisesFound = promiseMap.find(exe->id());
         if (currentPromisesFound != promiseMap.end()) {
             currentExePromises = std::move(currentPromisesFound->second);
+        } else {
+            currentExePromises.emplace_back(std::move(promiseForRoot));
         }
-        auto resultFuture =
             scheduleExecutor(std::move(futures), exe, runner, std::move(currentExePromises));
-        if (exe == root) {
-            result = std::move(resultFuture);
-        }
     }
 
-    return result;
+    return resultFuture;
 }
 
 folly::Future<Status> NewScheduler::scheduleExecutor(
@@ -92,8 +92,8 @@ folly::Future<Status> NewScheduler::runExecutor(
                 notifyError(pros, depStatus);
                 return depStatus;
             }
-            auto f = execute(exe);
-            std::move(f).via(runner).thenValue(
+            // Execute in current thread.
+            std::move(execute(exe)).thenValue(
                 [pros = std::move(pros), this](Status exeStatus) mutable {
                     if (!exeStatus.ok()) {
                         notifyError(pros, exeStatus);
@@ -117,6 +117,7 @@ folly::Future<Status> NewScheduler::runLeafExecutor(
                 notifyError(pros, s);
                 return s;
             }
+            notifyOK(pros);
             return Status::OK();
         });
 }
@@ -154,6 +155,8 @@ folly::Future<Status> NewScheduler::runLoop(std::vector<folly::Future<Status>>&&
                         std::vector<folly::Future<Status>> fs;
                         fs.emplace_back(std::move(scheduleFuture));
                         runLoop(std::move(fs), loop, runner, std::move(pros));
+                    } else {
+                        notifyOK(pros);
                     }
                     return Status::OK();
                 });
