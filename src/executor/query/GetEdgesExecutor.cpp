@@ -37,6 +37,7 @@ DataSet GetEdgesExecutor::buildRequestDataSet(const GetEdges* ge) {
         if (type < 0) {
             src = ge->dst()->eval(exprCtx(valueIter.get()));
             dst = ge->src()->eval(exprCtx(valueIter.get()));
+            type = -type;
         } else {
             src = ge->src()->eval(exprCtx(valueIter.get()));
             dst = ge->dst()->eval(exprCtx(valueIter.get()));
