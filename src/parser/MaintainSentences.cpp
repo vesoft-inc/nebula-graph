@@ -445,14 +445,15 @@ std::string DropHostFromZoneSentence::toString() const {
 std::string CreateFTIndexSentence::toString() const {
     std::string buf;
     buf.reserve(256);
-    buf += "CREATE FULLTEXT INDEX ";
+    buf += "CREATE FULLTEXT ";
+    if (isEdge_) {
+        buf += "EDGE";
+    } else {
+        buf += "TAG";
+    }
+    buf += " INDEX ";
     buf += *indexName_;
     buf += " ON ";
-    if (isEdge_) {
-        buf += " EDGE ";
-    } else {
-        buf += " TAG ";
-    }
     buf += *schemaName_;
     buf += "(";
     std::vector<std::string> fieldDefs;

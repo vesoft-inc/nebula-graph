@@ -2278,11 +2278,11 @@ create_edge_index_sentence
     ;
 
 create_fulltext_index_sentence
-    : KW_CREATE KW_FULLTEXT KW_INDEX name_label KW_ON KW_TAG name_label L_PAREN name_label_list R_PAREN {
-        $$ = new CreateFTIndexSentence(false, $4, $7, $9);
+    : KW_CREATE KW_FULLTEXT KW_TAG KW_INDEX name_label KW_ON name_label L_PAREN name_label_list R_PAREN {
+        $$ = new CreateFTIndexSentence(false, $5, $7, $9);
     }
-    | KW_CREATE KW_FULLTEXT KW_INDEX name_label KW_ON KW_EDGE name_label L_PAREN name_label_list R_PAREN {
-        $$ = new CreateFTIndexSentence(true, $4, $7, $9);
+    | KW_CREATE KW_FULLTEXT KW_EDGE KW_INDEX name_label KW_ON name_label L_PAREN name_label_list R_PAREN {
+        $$ = new CreateFTIndexSentence(true, $5, $7, $9);
     }
     ;
 

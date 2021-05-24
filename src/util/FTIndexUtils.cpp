@@ -50,32 +50,30 @@ StatusOr<bool>
 FTIndexUtils::checkTSIndex(const std::vector<nebula::plugin::HttpClient>& tsClients,
                            const std::string& index) {
     auto retryCnt = FLAGS_ft_request_retry_times;
-    StatusOr<bool> ret = Status::Error("fulltext index get failed : %s", index.c_str());
     while (--retryCnt > 0) {
-        ret = nebula::plugin::ESGraphAdapter::kAdapter->indexExists(randomFTClient(tsClients),
-                                                                    index);
+        auto ret = nebula::plugin::ESGraphAdapter::kAdapter->indexExists(randomFTClient(tsClients),
+                                                                         index);
         if (!ret.ok()) {
             continue;
         }
-        return ret.value();
+        return std::move(ret).value();
     }
-    return ret.status();
+    return Status::Error("fulltext index get failed : %s", index.c_str());
 }
 
 StatusOr<bool>
 FTIndexUtils::dropTSIndex(const std::vector<nebula::plugin::HttpClient>& tsClients,
                           const std::string& index) {
     auto retryCnt = FLAGS_ft_request_retry_times;
-    StatusOr<bool> ret = Status::Error("drop fulltext index failed : %s", index.c_str());
     while (--retryCnt > 0) {
-        ret = nebula::plugin::ESGraphAdapter::kAdapter->dropIndex(randomFTClient(tsClients),
-                                                                  index);
+        auto ret = nebula::plugin::ESGraphAdapter::kAdapter->dropIndex(randomFTClient(tsClients),
+                                                                       index);
         if (!ret.ok()) {
             continue;
         }
-        return ret.value();
+        return std::move(ret).value();
     }
-    return ret.status();
+    return Status::Error("drop fulltext index failed : %s", index.c_str());
 }
 
 StatusOr<std::string> FTIndexUtils::rewriteTSFilter(bool isEdge, Expression* expr,
