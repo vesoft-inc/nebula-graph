@@ -34,41 +34,55 @@ const Pattern& PushFilterDownProjectRule::pattern() const {
 StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
     OptContext* octx,
     const MatchedResult& matched) const {
-    auto filterGroupNode = matched.node;
-    auto oldFilterNode = filterGroupNode->node();
-    auto projGroupNode = matched.dependencies.front().node;
-    auto oldProjNode = projGroupNode->node();
+    const auto* filterGroupNode = matched.node;
+    const auto* oldFilterNode = filterGroupNode->node();
+    const auto* projGroupNode = matched.dependencies.front().node;
+    const auto* oldProjNode = projGroupNode->node();
 
-    auto newFilterNode = static_cast<graph::Filter*>(oldFilterNode->clone());
-    auto newProjNode = static_cast<graph::Project*>(oldProjNode->clone());
-    const auto condition = newFilterNode->condition();
+    auto* newFilterNode = static_cast<graph::Filter*>(oldFilterNode->clone());
+    auto* newProjNode = static_cast<graph::Project*>(oldProjNode->clone());
+    const auto* condition = newFilterNode->condition();
 
     auto varProps = graph::ExpressionUtils::collectAll(condition, {Expression::Kind::kVarProperty});
     if (varProps.empty()) {
         return TransformResult::noTransform();
     }
+
     std::vector<std::string> propNames;
     for (auto expr : varProps) {
-        DCHECK(expr->kind() == Expression::Kind::kVarProperty);
+        DCHECK_EQ(expr->kind(), Expression::Kind::kVarProperty);
         propNames.emplace_back(*static_cast<const VariablePropertyExpression*>(expr)->prop());
     }
 
     auto projColNames = newProjNode->colNames();
     auto projColumns = newProjNode->columns()->columns();
+    std::unordered_map<std::string, Expression*> rewriteMap;
     for (size_t i = 0; i < projColNames.size(); ++i) {
-        auto column = projColumns[i];
         auto colName = projColNames[i];
         auto iter = std::find_if(propNames.begin(), propNames.end(), [&colName](const auto& name) {
             return !colName.compare(name);
         });
         if (iter == propNames.end()) continue;
-        if (!column->alias() && column->expr()->kind() == Expression::Kind::kVarProperty) {
-            continue;
-        } else {
-            // project column contains computing expression, need to rewrite
-            return TransformResult::noTransform();
-        }
+        rewriteMap[colName] = projColumns[i]->expr();
     }
+
+    // Rewrite VariablePropertyExpr in filter's condition
+    auto matcher = [&rewriteMap](const Expression* e) -> bool {
+        if (e->kind() != Expression::Kind::kVarProperty) {
+            return false;
+        }
+        auto* propName = static_cast<const VariablePropertyExpression*>(e)->prop();
+        return rewriteMap[*propName];
+    };
+    auto rewriter = [&rewriteMap](const Expression* e) -> Expression* {
+        DCHECK_EQ(e->kind(), Expression::Kind::kVarProperty);
+        auto* propName = static_cast<const VariablePropertyExpression*>(e)->prop();
+        return rewriteMap[*propName]->clone().release();
+    };
+    auto* newCondition =
+        graph::RewriteVisitor::transform(condition, std::move(matcher), std::move(rewriter));
+    octx->qctx()->objPool()->add(newCondition);
+    newFilterNode->setCondition(newCondition);
 
     // Exchange planNode
     newProjNode->setOutputVar(oldFilterNode->outputVar());
