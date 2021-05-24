@@ -7,6 +7,7 @@
 #ifndef PLANNER_PLANNERS_MATCH_INNERJOINSTRATEGY_H_
 #define PLANNER_PLANNERS_MATCH_INNERJOINSTRATEGY_H_
 
+#include <vector>
 #include "planner/plan/PlanNode.h"
 #include "planner/match/SegmentsConnectStrategy.h"
 
@@ -39,6 +40,12 @@ public:
         return this;
     }
 
+    InnerJoinStrategy*
+    extraJoinExprs(std::vector<std::pair<Expression*, Expression*>> extraJoinExprs) {
+        extraJoinExprs_ = std::move(extraJoinExprs);
+        return this;
+    }
+
     PlanNode* connect(const PlanNode* left, const PlanNode* right) override;
 
 private:
@@ -47,6 +54,7 @@ private:
     JoinPos     leftPos_{JoinPos::kEnd};
     JoinPos     rightPos_{JoinPos::kStart};
     Expression *dstNodeId_{nullptr};
+    std::vector<std::pair<Expression*, Expression*>> extraJoinExprs_;
 };
 }  // namespace graph
 }  // namespace nebula

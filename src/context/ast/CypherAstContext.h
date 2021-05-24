@@ -141,7 +141,9 @@ struct MatchClauseContext final : CypherClauseContextBase {
     // nodeAlias -> <Input, nodeIdExpr>
     // Record the evaluated node when expand
     std::unordered_map<std::string, std::pair<const PlanNode*, std::unique_ptr<Expression>>>
-                                                filledNodeId;
+                                                leftExpandFilledNodeId;
+    std::unordered_map<std::string, std::pair<const PlanNode*, std::unique_ptr<Expression>>>
+                                                rightExpandFilledNodeId;
 };
 
 struct UnwindClauseContext final : CypherClauseContextBase {

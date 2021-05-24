@@ -102,6 +102,26 @@ private:
                                            const std::string& inputVar,
                                            const std::string &dstNodeAlias);
 
+    Expression* expandDstExpr(const std::string &inputVar, const std::string &dstNodeAlias) {
+        auto find = reversely_ ?
+                    matchCtx_->leftExpandFilledNodeId.find(dstNodeAlias) :
+                    matchCtx_->rightExpandFilledNodeId.find(dstNodeAlias);
+        DCHECK(find != matchCtx_->leftExpandFilledNodeId.end());
+        DCHECK(find != matchCtx_->rightExpandFilledNodeId.end());
+        CHECK_EQ(inputVar, find->second.first->outputVar());
+        return find->second.second->clone().release();
+    }
+
+    bool expandInto(const std::string &dstNodeAlias) {
+        if (reversely_) {
+            return matchCtx_->leftExpandFilledNodeId.find(dstNodeAlias) !=
+                   matchCtx_->leftExpandFilledNodeId.end();
+        } else {
+            return matchCtx_->rightExpandFilledNodeId.find(dstNodeAlias) !=
+                   matchCtx_->rightExpandFilledNodeId.end();
+        }
+    }
+
     MatchClauseContext*                 matchCtx_;
     std::unique_ptr<Expression>         initialExpr_;
     bool                                reversely_{false};

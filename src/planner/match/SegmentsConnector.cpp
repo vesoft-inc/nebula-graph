@@ -43,6 +43,20 @@ PlanNode* SegmentsConnector::innerJoinSegments(QueryContext* qctx,
                 ->connect(left, right);
 }
 
+/*static*/ PlanNode* SegmentsConnector::innerJoinSegmentsWithExtra(
+    QueryContext* qctx,
+    const PlanNode* left,
+    const PlanNode* right,
+    InnerJoinStrategy::JoinPos leftPos,
+    InnerJoinStrategy::JoinPos rightPos,
+    std::vector<std::pair<Expression*, Expression*>> extraJoinExprs) {
+    return std::make_unique<InnerJoinStrategy>(qctx)
+                ->leftPos(leftPos)
+                ->rightPos(rightPos)
+                ->extraJoinExprs(std::move(extraJoinExprs))
+                ->connect(left, right);
+}
+
 PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,
                                                       const PlanNode* left,
                                                       const PlanNode* right) {

@@ -96,8 +96,12 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
     }
 
     // record the resolved node
-    matchClauseCtx->filledNodeId.emplace(*DCHECK_NOTNULL(nodeInfos[startIndex].alias),
-                                          std::pair(matchClausePlan.root, initialExpr_->clone()));
+    matchClauseCtx->leftExpandFilledNodeId.emplace(
+        *DCHECK_NOTNULL(nodeInfos[startIndex].alias),
+        std::pair(matchClausePlan.root, initialExpr_->clone()));
+    matchClauseCtx->rightExpandFilledNodeId.emplace(
+        *DCHECK_NOTNULL(nodeInfos[startIndex].alias),
+        std::pair(matchClausePlan.root, initialExpr_->clone()));
     return Status::OK();
 }
 
@@ -140,8 +144,11 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
 
     // Connect the left expand and right expand part.
     auto right = subplan.root;
-    subplan.root = SegmentsConnector::innerJoinSegments(
-        matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart);
+    // subplan.root = SegmentsConnector::innerJoinSegments(
+        // matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart);
+    subplan.root = SegmentsConnector::innerJoinSegmentsWithExtra(
+        matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart,
+        leftRightExpandJoinNodeId(matchClauseCtx, right, left, *nodeInfos[startIndex].alias));
     return Status::OK();
 }
 
@@ -154,8 +161,8 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
     std::vector<std::string> joinColNames = {
         folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex)};
     for (size_t i = startIndex; i > 0; --i) {
-        bool expandInto = matchClauseCtx->filledNodeId.find(*nodeInfos[i-1].alias)
-                          != matchClauseCtx->filledNodeId.end();
+        bool expandInto = matchClauseCtx->leftExpandFilledNodeId.find(*nodeInfos[i-1].alias)
+                          != matchClauseCtx->leftExpandFilledNodeId.end();
         auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx,
                                                i == startIndex ? initialExpr_->clone() : nullptr)
@@ -171,7 +178,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             VLOG(1) << "left: " << folly::join(",", left->colNames())
                     << " right: " << folly::join(",", right->colNames());
             if (expandInto) {
-                auto *dstId = previousNodeId(matchClauseCtx,
+                auto *dstId = leftExpandPreviousNodeId(matchClauseCtx,
                                             *nodeInfos[i-1].alias, left->outputVar());
                 subplan.root = SegmentsConnector::innerJoinSegments(
                     matchClauseCtx->qctx, left, right, InnerJoinStrategy::JoinPos::kEnd,
@@ -192,7 +199,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             subplan.root = dc;
         }
         inputVar = subplan.root->outputVar();
-        fillNodeId(matchClauseCtx,
+        leftExpandFillNodeId(matchClauseCtx,
                   *nodeInfos[i].alias,
                    subplan.root,
                    folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + i));
@@ -215,7 +222,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size()));
         subplan.root->setColNames(joinColNames);
     }
-    fillNodeId(matchClauseCtx,
+    leftExpandFillNodeId(matchClauseCtx,
               *nodeInfos.front().alias,
                subplan.root,
                folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size()));
@@ -231,8 +238,8 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
                                                SubPlan& subplan) {
     std::vector<std::string> joinColNames = {folly::stringPrintf("%s_%lu", kPathStr, startIndex)};
     for (size_t i = startIndex; i < edgeInfos.size(); ++i) {
-        bool expandInto = matchClauseCtx->filledNodeId.find(*nodeInfos[i+1].alias)
-                          != matchClauseCtx->filledNodeId.end();
+        bool expandInto = matchClauseCtx->rightExpandFilledNodeId.find(*nodeInfos[i+1].alias)
+                          != matchClauseCtx->rightExpandFilledNodeId.end();
         auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx,
                                                i == startIndex ? initialExpr_->clone() : nullptr)
@@ -247,7 +254,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
             VLOG(1) << "left: " << folly::join(",", left->colNames())
                     << " right: " << folly::join(",", right->colNames());
             if (expandInto) {
-                auto *dstId = previousNodeId(matchClauseCtx,
+                auto *dstId = rightExpandPreviousNodeId(matchClauseCtx,
                                             *nodeInfos[i+1].alias, left->outputVar());
                 subplan.root = SegmentsConnector::innerJoinSegments(
                     matchClauseCtx->qctx, left, right, InnerJoinStrategy::JoinPos::kEnd,
@@ -267,7 +274,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
             subplan.root = dc;
         }
         // fill the expand node alias
-        fillNodeId(matchClauseCtx,
+        rightExpandFillNodeId(matchClauseCtx,
                   *nodeInfos[i].alias,
                    subplan.root,
                    folly::stringPrintf("%s_%lu", kPathStr, i));
@@ -289,7 +296,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
         joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, edgeInfos.size()));
         subplan.root->setColNames(joinColNames);
     }
-    fillNodeId(matchClauseCtx,
+    rightExpandFillNodeId(matchClauseCtx,
               *nodeInfos.back().alias,
               subplan.root,
               folly::stringPrintf("%s_%lu", kPathStr, edgeInfos.size()));
@@ -455,7 +462,7 @@ Status MatchClausePlanner::appendFilterPlan(MatchClauseContext* matchClauseCtx, 
     return Status::OK();
 }
 
-void MatchClausePlanner::fillNodeId(MatchClauseContext *matchCtx,
+void MatchClausePlanner::fillNodeId(FillNodeId &filledNodeId,
                                     const std::string &alias,
                                     const PlanNode *input,
                                     const std::string &colName) {
@@ -467,17 +474,40 @@ void MatchClausePlanner::fillNodeId(MatchClauseContext *matchCtx,
     auto *idArgs = new ArgumentList();
     idArgs->addArgument(std::move(startNode));
     auto id = std::make_unique<FunctionCallExpression>(new std::string("id"), idArgs);
-    matchCtx->filledNodeId[alias] = std::pair(input, std::move(id));
+    filledNodeId[alias] = std::pair(input, std::move(id));
 }
 
 Expression*
-MatchClausePlanner::previousNodeId(const MatchClauseContext* matchClauseCtx,
+MatchClausePlanner::previousNodeId(const FillNodeId &filledNodeId,
                                    const std::string &dstNodeAlias,
                                    const std::string &inputVar) {
-    auto find = matchClauseCtx->filledNodeId.find(dstNodeAlias);
-    DCHECK(find != matchClauseCtx->filledNodeId.end());
+    auto find = filledNodeId.find(dstNodeAlias);
+    DCHECK(find != filledNodeId.end());
     CHECK_EQ(inputVar, find->second.first->outputVar());
     return find->second.second->clone().release();
+}
+
+std::vector<std::pair<Expression*, Expression*>>
+MatchClausePlanner::leftRightExpandJoinNodeId(const MatchClauseContext* matchClauseCtx,
+                                              const PlanNode *left,
+                                              const PlanNode *right,
+                                              const std::string &midNodeAlias) {
+    UNUSED(left);
+    UNUSED(right);
+    std::vector<std::pair<Expression*, Expression*>> result;
+    for (const auto &l : matchClauseCtx->leftExpandFilledNodeId) {
+        if (midNodeAlias == l.first) {
+            continue;
+        }
+        const auto &find = matchClauseCtx->rightExpandFilledNodeId.find(l.first);
+        if (find != matchClauseCtx->rightExpandFilledNodeId.end()) {
+            DCHECK_EQ(left->outputVar(), l.second.first->outputVar());
+            DCHECK_EQ(right->outputVar(), find->second.first->outputVar());
+            result.emplace_back(find->second.second->clone().release(),
+                                l.second.second->clone().release());
+        }
+    }
+    return result;
 }
 
 

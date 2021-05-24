@@ -500,6 +500,24 @@ Feature: Basic match
       | "Steve Nash"      | "Suns"              |
       | "Jason Kidd"      | "Mavericks"         |
       | "Jason Kidd"      | "Mavericks"         |
+    When executing query:
+      """
+      match (v)-[]->(t)<-[:serve]-(v) return t.name, v.name
+      """
+    Then the result should be, in any order:
+      | t.name      | v.name            |
+      | "Mavericks" | "Jason Kidd"      |
+      | "Mavericks" | "Jason Kidd"      |
+      | "Spurs"     | "Marco Belinelli" |
+      | "Spurs"     | "Marco Belinelli" |
+      | "Heat"      | "Dwyane Wade"     |
+      | "Heat"      | "Dwyane Wade"     |
+      | "Suns"      | "Steve Nash"      |
+      | "Suns"      | "Steve Nash"      |
+      | "Hornets"   | "Marco Belinelli" |
+      | "Hornets"   | "Marco Belinelli" |
+      | "Cavaliers" | "LeBron James"    |
+      | "Cavaliers" | "LeBron James"    |
 
   Scenario: No return
     When executing query:

@@ -53,6 +53,10 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
             probeExprs.emplace_back(dstIdExpr);
         }
     }
+    for (const auto &eje : extraJoinExprs_) {
+        buildExprs.emplace_back(eje.first);
+        probeExprs.emplace_back(eje.second);
+    }
 
     for (const auto &expr : buildExprs) {
         qctx_->objPool()->add(expr);

@@ -173,7 +173,7 @@ Status Expand::expand(const EdgeInfo& edge,
                       const std::string& inputVar,
                       const Expression* nodeFilter,
                       SubPlan* plan) {
-    if (matchCtx_->filledNodeId.find(*dstNode.alias) != matchCtx_->filledNodeId.end()) {
+    if (expandInto(*dstNode.alias)) {
         return expandStep(edge, dep, inputVar, nodeFilter, plan, dstNode, true);
     } else {
         return expandStep(edge, dep, inputVar, nodeFilter, plan, dstNode);
@@ -350,10 +350,7 @@ Expression* Expand::initialExprOrExpandDstExpr(Expression* initialExpr,
     if (initialExpr != nullptr) {
         return initialExpr;
     } else {
-        auto find = matchCtx_->filledNodeId.find(dstNodeAlias);
-        DCHECK(find != matchCtx_->filledNodeId.end());
-        CHECK_EQ(inputVar, find->second.first->outputVar());
-        return find->second.second->clone().release();
+        return expandDstExpr(inputVar, dstNodeAlias);
     }
 }
 

@@ -45,6 +45,14 @@ public:
         InnerJoinStrategy::JoinPos rightPos = InnerJoinStrategy::JoinPos::kStart,
         Expression* dstNodeId = nullptr);
 
+    static PlanNode* innerJoinSegmentsWithExtra(
+        QueryContext* qctx,
+        const PlanNode* left,
+        const PlanNode* right,
+        InnerJoinStrategy::JoinPos leftPos = InnerJoinStrategy::JoinPos::kEnd,
+        InnerJoinStrategy::JoinPos rightPos = InnerJoinStrategy::JoinPos::kStart,
+        std::vector<std::pair<Expression*, Expression*>> extraJoinExprs = {});
+
     static PlanNode* cartesianProductSegments(QueryContext* qctx,
                                               const PlanNode* left,
                                               const PlanNode* right);
