@@ -29,7 +29,6 @@ macro(nebula_fetch_module)
             message(FATAL_ERROR "Cloning failed")
         endif()
     else()
-        message(STATUS "Updating from ${module_URL}")
         if (${module_CHECKOUT})
             execute_process(
                 COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
