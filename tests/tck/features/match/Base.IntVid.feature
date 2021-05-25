@@ -525,3 +525,8 @@ Feature: Basic match
       MATCH (p)-[:serve*0..3]->(t) RETURN p
       """
     Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (p)-[:serve*0..3]->(t) RETURN p
+    When executing query:
+      """
+      match (v)-[:serve]->(t)<-[:serve*0..1]-(v) return t.name, v.name
+      """
+    Then a SemanticError should be raised at runtime: Vairable expand to resolved node is not supported.

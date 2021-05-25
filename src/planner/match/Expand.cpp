@@ -5,6 +5,7 @@
  */
 
 #include "planner/match/Expand.h"
+#include <memory>
 
 #include "planner/plan/Logic.h"
 #include "planner/plan/Query.h"
@@ -128,6 +129,10 @@ Status Expand::expandSteps(const NodeInfo& node,
     PlanNode* firstStep = subplan.root;
 
     // Build Start node from first step
+    if (expandInto(*dstNode.alias)) {
+        return Status::SemanticError("Vairable expand to resolved node is not supported.");
+    }
+
     SubPlan loopBodyPlan;
     PlanNode* startNode = StartNode::make(matchCtx_->qctx);
     startNode->setOutputVar(firstStep->outputVar());
@@ -136,12 +141,13 @@ Status Expand::expandSteps(const NodeInfo& node,
     loopBodyPlan.root = startNode;
 
     // Construct loop body
-    NG_RETURN_IF_ERROR(expand(edge,
-                              dstNode,
-                              startNode,                // dep
-                              startNode->outputVar(),   // inputVar
-                              nullptr,
-                              &loopBodyPlan));
+    NG_RETURN_IF_ERROR(expandStep(edge,
+                                  startNode,                // dep
+                                  startNode->outputVar(),   // inputVar
+                                  nullptr,
+                                  &loopBodyPlan,
+                                  dstNode,
+                                  false));
 
     NG_RETURN_IF_ERROR(collectData(startNode,           // left join node
                                    loopBodyPlan.root,   // right join node
