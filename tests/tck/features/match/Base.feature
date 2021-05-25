@@ -531,6 +531,13 @@ Feature: Basic match
       """
     Then a ExecutionError should be raised at runtime: Internal Error: Wrong type result, the type should be NULL,EMPTY or BOOL
 
+  Scenario: Redefined edge alias
+    When executing query:
+      """
+      MATCH (v:player{name:"abc"})-[e:like]->(v1)-[e:like]->(v2) RETURN *
+      """
+    Then a SemanticError should be raised at runtime: `e': Redefined alias
+
   Scenario: Unimplemented features
     When executing query:
       """

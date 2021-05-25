@@ -487,6 +487,13 @@ Feature: Basic match
       """
     Then a SyntaxError should be raised at runtime: syntax error near `)'
 
+  Scenario: Redefined edge alias
+    When executing query:
+      """
+      MATCH (v:player{name:"abc"})-[e:like]->(v1)-[e:like]->(v2) RETURN *
+      """
+    Then a SemanticError should be raised at runtime: `e': Redefined alias
+
   Scenario: Unimplemented features
     When executing query:
       """
