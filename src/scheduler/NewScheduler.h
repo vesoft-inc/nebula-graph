@@ -23,21 +23,21 @@ public:
 
     folly::Future<Status> doSchedule(Executor* root) const;
 
-    folly::Future<Status> scheduleExecutor(std::vector<folly::Future<Status>>&& futures,
+    void scheduleExecutor(std::vector<folly::Future<Status>>&& futures,
                                            Executor* exe,
                                            folly::Executor* runner,
                                            std::vector<folly::Promise<Status>>&& promises) const;
 
-    folly::Future<Status> runExecutor(std::vector<folly::Future<Status>>&& futures,
+    void runExecutor(std::vector<folly::Future<Status>>&& futures,
                                       Executor* exe,
                                       folly::Executor* runner,
                                       std::vector<folly::Promise<Status>>&& promises) const;
 
-    folly::Future<Status> runLeafExecutor(Executor* exe,
+    void runLeafExecutor(Executor* exe,
                                           folly::Executor* runner,
                                           std::vector<folly::Promise<Status>>&& promises) const;
 
-    folly::Future<Status> runLoop(std::vector<folly::Future<Status>>&& futures,
+    void runLoop(std::vector<folly::Future<Status>>&& futures,
                                   LoopExecutor* loop,
                                   folly::Executor* runner,
                                   std::vector<folly::Promise<Status>>&& promises) const;
