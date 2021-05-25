@@ -192,7 +192,7 @@ Status YieldValidator::toPlan() {
     auto yield = static_cast<const YieldSentence *>(sentence_);
 
     std::string inputVar;
-    std::vector<std::string> colNames;
+    std::vector<std::string> colNames(inputs_.size());
     if (!userDefinedVarName_.empty()) {
         inputVar = userDefinedVarName_;
         colNames = qctx_->symTable()->getVar(inputVar)->colNames;
