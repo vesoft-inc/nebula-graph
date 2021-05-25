@@ -144,8 +144,6 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
 
     // Connect the left expand and right expand part.
     auto right = subplan.root;
-    // subplan.root = SegmentsConnector::innerJoinSegments(
-        // matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart);
     subplan.root = SegmentsConnector::innerJoinSegmentsWithExtra(
         matchClauseCtx->qctx, left, right, JoinStrategyPos::kStart, JoinStrategyPos::kStart,
         leftRightExpandJoinNodeId(matchClauseCtx, right, left, *nodeInfos[startIndex].alias));
