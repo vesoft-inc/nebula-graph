@@ -29,7 +29,7 @@ Feature: merge get neighbors, dedup and project rule
       | 6  | Filter             | 7            |                                                     |
       | 7  | UnionAllVersionVar | 8            |                                                     |
       | 8  | Loop               | 15           | {"loopBody": "9"}                                   |
-      | 9  | Filter             | 10          |                                                     |
+      | 9  | Filter             | 10           |                                                     |
       | 10 | Project            | 11           |                                                     |
       | 11 | InnerJoin          | 12           | {"inputVar": {"rightVar":{"__Project_11":"0"}}}     |
       | 12 | Project            | 13           |                                                     |
