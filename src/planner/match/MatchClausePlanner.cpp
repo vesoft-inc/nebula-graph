@@ -168,6 +168,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                                                i == startIndex ? initialExpr_->clone() : nullptr)
                           ->depends(subplan.root)
                           ->inputVar(inputVar)
+                          ->colNumber(nodeInfos.size() + i)
                           ->reversely()
                           ->doExpand(nodeInfos[i], edgeInfos[i - 1], nodeInfos[i-1], &subplan);
         if (!status.ok()) {
@@ -190,15 +191,9 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             joinColNames.emplace_back(
                 folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + i));
             subplan.root->setColNames(joinColNames);
-        } else {
-            // keep the column name format by step
-            auto* dc = DataCollect::make(matchClauseCtx->qctx, DataCollect::DCKind::kRowBasedMove);
-            dc->addDep(subplan.root);
-            dc->setInputVars({subplan.root->outputVar()});
-            dc->setColNames(joinColNames);
-            subplan.root = dc;
         }
         inputVar = subplan.root->outputVar();
+        // fill the expand node alias
         leftExpandFillNodeId(matchClauseCtx,
                   *nodeInfos[i].alias,
                    subplan.root,
@@ -245,6 +240,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
                                                i == startIndex ? initialExpr_->clone() : nullptr)
                           ->depends(subplan.root)
                           ->inputVar(subplan.root->outputVar())
+                          ->colNumber(i)
                           ->doExpand(nodeInfos[i], edgeInfos[i], nodeInfos[i+1], &subplan);
         if (!status.ok()) {
             return status;
@@ -265,13 +261,6 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
             }
             joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, i));
             subplan.root->setColNames(joinColNames);
-        } else {
-            // keep the column name format by step
-            auto* dc = DataCollect::make(matchClauseCtx->qctx, DataCollect::DCKind::kRowBasedMove);
-            dc->addDep(subplan.root);
-            dc->setInputVars({subplan.root->outputVar()});
-            dc->setColNames(joinColNames);
-            subplan.root = dc;
         }
         // fill the expand node alias
         rightExpandFillNodeId(matchClauseCtx,

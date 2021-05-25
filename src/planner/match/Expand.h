@@ -38,6 +38,11 @@ public:
         return this;
     }
 
+    Expand* colNumber(std::size_t i) {
+        colName_ = folly::stringPrintf("%s_%lu", kPathStr, i);
+        return this;
+    }
+
     Status doExpand(const NodeInfo& node,
                     const EdgeInfo& edge,
                     const NodeInfo& dstNode,
@@ -127,6 +132,7 @@ private:
     bool                                reversely_{false};
     PlanNode*                           dependency_{nullptr};
     std::string                         inputVar_;
+    std::string                         colName_;
 };
 }   // namespace graph
 }   // namespace nebula

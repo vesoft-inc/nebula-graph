@@ -115,6 +115,7 @@ Status Expand::expandSteps(const NodeInfo& node,
                                                               initialExpr_.release(),
                                                               inputVar_,
                                                               subplan));
+        subplan.root->setColNames({colName_});
     } else {   // Case 1 to n steps
         startIndex = 1;
         // Expand first step from src
@@ -166,7 +167,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     // Unionize the results of each expansion which are stored in the firstStep node
     auto uResNode = UnionAllVersionVar::make(matchCtx_->qctx, loop);
     uResNode->setInputVar(firstStep->outputVar());
-    uResNode->setColNames({kPathStr});
+    uResNode->setColNames({colName_});
 
     subplan.root = uResNode;
     plan->root = subplan.root;
@@ -241,10 +242,10 @@ Status Expand::expandStep(const EdgeInfo& edge,
     }
 
     auto listColumns = saveObject(new YieldColumns);
-    listColumns->addColumn(new YieldColumn(buildPathExpr(), new std::string(kPathStr)));
+    listColumns->addColumn(new YieldColumn(buildPathExpr(), new std::string(colName_)));
     // [Project]
     root = Project::make(qctx, root, listColumns);
-    root->setColNames({kPathStr});
+    root->setColNames({colName_});
 
     plan->root = root;
     plan->tail = curr.tail;
@@ -269,9 +270,9 @@ Status Expand::collectData(const PlanNode* joinLeft,
     columns->addColumn(new YieldColumn(listExpr));
     // [Project]
     auto project = Project::make(qctx, join, columns);
-    project->setColNames({kPathStr});
+    project->setColNames({colName_});
     // [Filter]
-    auto filter = MatchSolver::filtPathHasSameEdge(project, kPathStr, qctx);
+    auto filter = MatchSolver::filtPathHasSameEdge(project, colName_, qctx);
     // Update start node
     filter->setOutputVar((*passThrough)->outputVar());
     plan->root = filter;
@@ -284,7 +285,7 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, 
     // Filter rows whose edges number less than min hop
     auto args = std::make_unique<ArgumentList>();
     // Expr: length(relationships(p)) >= minHop
-    auto pathExpr = ExpressionUtils::inputPropExpr(kPathStr);
+    auto pathExpr = ExpressionUtils::inputPropExpr(colName_);
     args->addArgument(std::move(pathExpr));
     auto fn = std::make_unique<std::string>("length");
     auto edgeExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
