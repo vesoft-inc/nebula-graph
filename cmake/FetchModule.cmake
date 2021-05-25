@@ -7,10 +7,10 @@
 find_package(Git)
 macro(nebula_fetch_module)
     cmake_parse_arguments(
-        module                      # <prefix>
-        ""                          # <options>
+        module                               # <prefix>
+        ""                                   # <options>
         "URL;TAG;UPDATE;NAME;CHECKOUT"       # <one_value_args>
-        ""                          # <multi_value_args>
+        ""                                   # <multi_value_args>
         ${ARGN}
     )
     set(module_dir ${CMAKE_SOURCE_DIR}/modules/${module_NAME})
