@@ -196,10 +196,6 @@ public:
         return outputVars_[0]->colNames;
     }
 
-    void setId(int64_t id) {
-        id_ = id;
-    }
-
     void setColNames(std::vector<std::string>&& cols) {
         DCHECK(!outputVars_.empty());
         outputVars_[0]->colNames = std::move(cols);
@@ -257,7 +253,10 @@ protected:
 
     void readVariable(const std::string& varname);
     void readVariable(Variable* varPtr);
-    void cloneMembers(const PlanNode &node) {
+    void deleteReadVariable(const std::string& varname);
+    void deleteReadVariable(Variable* varPtr);
+
+    void cloneMembers(const PlanNode& node) {
         // TODO maybe shall copy cost_ and dependencies_ too
         inputVars_ = node.inputVars_;
         outputVars_ = node.outputVars_;

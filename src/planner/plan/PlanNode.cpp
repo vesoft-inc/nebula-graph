@@ -295,6 +295,21 @@ void PlanNode::readVariable(Variable* varPtr) {
     qctx_->symTable()->readBy(varPtr->name, this);
 }
 
+void PlanNode::deleteReadVariable(const std::string& varname) {
+    VLOG(2) << "delete " << toString() << " read variable: " << varname;
+    auto iter = std::find_if(
+        inputVars_.begin(), inputVars_.end(), [&](auto vptr) { return vptr->name == varname; });
+    if (iter != inputVars_.end()) {
+        inputVars_.erase(iter);
+    }
+    qctx_->symTable()->deleteReadBy(varname, this);
+}
+
+void PlanNode::deleteReadVariable(Variable* varPtr) {
+    DCHECK(varPtr != nullptr);
+    deleteReadVariable(varPtr->name);
+}
+
 void PlanNode::calcCost() {
     VLOG(1) << "unimplemented cost calculation.";
 }

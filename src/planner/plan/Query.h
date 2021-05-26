@@ -1010,11 +1010,15 @@ public:
     }
 
     void setLeftVar(std::pair<std::string, int64_t> lvar) {
+        deleteReadVariable(leftVar_.first);
         leftVar_ = lvar;
+        readVariable(leftVar_.first);
     }
 
     void setRightVar(std::pair<std::string, int64_t> rvar) {
+        deleteReadVariable(rightVar_.first);
         rightVar_ = rvar;
+        readVariable(rightVar_.first);
     }
 
     const std::vector<Expression*>& hashKeys() const {
