@@ -12,6 +12,7 @@
 #include "executor/Executor.h"
 #include "planner/plan/PlanNode.h"
 #include "executor/logic/LoopExecutor.h"
+#include "executor/logic/SelectExecutor.h"
 
 namespace nebula {
 namespace graph {
@@ -35,6 +36,11 @@ private:
                           Executor* exe,
                           folly::Executor* runner,
                           std::vector<folly::Promise<Status>>&& promises) const;
+
+    void runSelect(std::vector<folly::Future<Status>>&& futures,
+                   SelectExecutor* select,
+                   folly::Executor* runner,
+                   std::vector<folly::Promise<Status>>&& promises) const;
 
     void runExecutor(std::vector<folly::Future<Status>>&& futures,
                      Executor* exe,
