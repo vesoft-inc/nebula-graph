@@ -106,7 +106,7 @@ void ExtractFilterExprVisitor::visit(LogicalExpression *expr) {
         remainedExpr->addOperand(operands[i]->clone());
         expr->setOperand(i, ConstantExpression::make(pool_, true));
     }
-    if (remainedExpr->operands().size() > 0) {
+    if (!remainedExpr->operands().empty()) {
         remainedExpr_ = std::move(remainedExpr);
     }
 }
