@@ -238,13 +238,13 @@ TEST(IndexBoundValueTest, DateTimeTest) {
     }
     DateTime maxDT;
     {
-        maxDT.microsec = std::numeric_limits<int32_t>::max();
-        maxDT.sec = 60;
-        maxDT.minute = 60;
-        maxDT.hour = 24;
-        maxDT.day = 31;
-        maxDT.month = 12;
-        maxDT.year = std::numeric_limits<int16_t>::max();
+        maxDT.t.microsec = std::numeric_limits<int32_t>::max();
+        maxDT.t.sec = 60;
+        maxDT.t.minute = 60;
+        maxDT.t.hour = 24;
+        maxDT.d.day = 31;
+        maxDT.d.month = 12;
+        maxDT.d.year = std::numeric_limits<int16_t>::max();
     }
 
     DateTime minDT = DateTime();
@@ -255,41 +255,41 @@ TEST(IndexBoundValueTest, DateTimeTest) {
 
     {
         DateTime actual, expect;
-        actual.microsec = std::numeric_limits<int32_t>::max();
-        actual.sec = 60;
-        actual.minute = 60;
-        actual.hour = 24;
-        actual.day = 31;
-        actual.month = 12;
-        actual.year = 2020;
+        actual.t.microsec = std::numeric_limits<int32_t>::max();
+        actual.t.sec = 60;
+        actual.t.minute = 60;
+        actual.t.hour = 24;
+        actual.d.day = 31;
+        actual.d.month = 12;
+        actual.d.year = 2020;
 
-        expect.microsec = 1;
-        expect.sec = 1;
-        expect.minute = 1;
-        expect.hour = 1;
-        expect.day = 1;
-        expect.month = 1;
-        expect.year = 2021;
+        expect.t.microsec = 1;
+        expect.t.sec = 1;
+        expect.t.minute = 1;
+        expect.t.hour = 1;
+        expect.d.day = 1;
+        expect.d.month = 1;
+        expect.d.year = 2021;
         EXPECT_EQ(expect,
                   OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(actual)).getDateTime());
     }
     {
         DateTime actual, expect;
-        actual.microsec = std::numeric_limits<int32_t>::max();
-        actual.sec = 34;
-        actual.minute = 60;
-        actual.hour = 24;
-        actual.day = 31;
-        actual.month = 12;
-        actual.year = 2020;
+        actual.t.microsec = std::numeric_limits<int32_t>::max();
+        actual.t.sec = 34;
+        actual.t.minute = 60;
+        actual.t.hour = 24;
+        actual.d.day = 31;
+        actual.d.month = 12;
+        actual.d.year = 2020;
 
-        expect.microsec = 1;
-        expect.sec = 35;
-        expect.minute = 60;
-        expect.hour = 24;
-        expect.day = 31;
-        expect.month = 12;
-        expect.year = 2020;
+        expect.t.microsec = 1;
+        expect.t.sec = 35;
+        expect.t.minute = 60;
+        expect.t.hour = 24;
+        expect.d.day = 31;
+        expect.d.month = 12;
+        expect.d.year = 2020;
         EXPECT_EQ(expect,
                   OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(actual)).getDateTime());
     }
@@ -299,21 +299,21 @@ TEST(IndexBoundValueTest, DateTimeTest) {
     }
     {
         DateTime actual, expect;
-        actual.microsec = std::numeric_limits<int32_t>::max();
-        actual.sec = 34;
-        actual.minute = 60;
-        actual.hour = 24;
-        actual.day = 31;
-        actual.month = 12;
-        actual.year = 2020;
+        actual.t.microsec = std::numeric_limits<int32_t>::max();
+        actual.t.sec = 34;
+        actual.t.minute = 60;
+        actual.t.hour = 24;
+        actual.d.day = 31;
+        actual.d.month = 12;
+        actual.d.year = 2020;
 
-        expect.microsec = std::numeric_limits<int32_t>::max() - 1;
-        expect.sec = 34;
-        expect.minute = 60;
-        expect.hour = 24;
-        expect.day = 31;
-        expect.month = 12;
-        expect.year = 2020;
+        expect.t.microsec = std::numeric_limits<int32_t>::max() - 1;
+        expect.t.sec = 34;
+        expect.t.minute = 60;
+        expect.t.hour = 24;
+        expect.d.day = 31;
+        expect.d.month = 12;
+        expect.d.year = 2020;
         EXPECT_EQ(expect,
                   OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(actual)).getDateTime());
     }

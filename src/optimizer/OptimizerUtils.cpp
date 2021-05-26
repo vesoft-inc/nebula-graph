@@ -120,32 +120,32 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
         case Value::Type::DATETIME : {
             auto dt = v.getDateTime();
             // Ignore the time zone.
-            if (dt.microsec < std::numeric_limits<int32_t>::max()) {
-                dt.microsec = dt.microsec + 1;
+            if (dt.t.microsec < std::numeric_limits<int32_t>::max()) {
+                dt.t.microsec = dt.t.microsec + 1;
             } else {
-                dt.microsec = 1;
-                if (dt.sec < 60) {
-                    dt.sec += 1;
+                dt.t.microsec = 1;
+                if (dt.t.sec < 60) {
+                    dt.t.sec += 1;
                 } else {
-                    dt.sec = 1;
-                    if (dt.minute < 60) {
-                        dt.minute += 1;
+                    dt.t.sec = 1;
+                    if (dt.t.minute < 60) {
+                        dt.t.minute += 1;
                     } else {
-                        dt.minute = 1;
-                        if (dt.hour < 24) {
-                            dt.hour += 1;
+                        dt.t.minute = 1;
+                        if (dt.t.hour < 24) {
+                            dt.t.hour += 1;
                         } else {
-                            dt.hour = 1;
-                            if (dt.day < 31) {
-                                dt.day += 1;
+                            dt.t.hour = 1;
+                            if (dt.d.day < 31) {
+                                dt.d.day += 1;
                             } else {
-                                dt.day = 1;
-                                if (dt.month < 12) {
-                                    dt.month += 1;
+                                dt.d.day = 1;
+                                if (dt.d.month < 12) {
+                                    dt.d.month += 1;
                                 } else {
-                                    dt.month = 1;
-                                    if (dt.year < std::numeric_limits<int16_t>::max()) {
-                                        dt.year += 1;
+                                    dt.d.month = 1;
+                                    if (dt.d.year < std::numeric_limits<int16_t>::max()) {
+                                        dt.d.year += 1;
                                     } else {
                                         return v.getDateTime();
                                     }
@@ -267,32 +267,32 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
                 return v.getDateTime();
             }
             auto dt = v.getDateTime();
-            if (dt.microsec > 1) {
-                dt.microsec -= 1;
+            if (dt.t.microsec > 1) {
+                dt.t.microsec -= 1;
             } else {
-                dt.microsec = std::numeric_limits<int32_t>::max();
-                if (dt.sec > 1) {
-                    dt.sec -= 1;
+                dt.t.microsec = std::numeric_limits<int32_t>::max();
+                if (dt.t.sec > 1) {
+                    dt.t.sec -= 1;
                 } else {
-                    dt.sec = 60;
-                    if (dt.minute > 1) {
-                        dt.minute -= 1;
+                    dt.t.sec = 60;
+                    if (dt.t.minute > 1) {
+                        dt.t.minute -= 1;
                     } else {
-                        dt.minute = 60;
-                        if (dt.hour > 1) {
-                            dt.hour -= 1;
+                        dt.t.minute = 60;
+                        if (dt.t.hour > 1) {
+                            dt.t.hour -= 1;
                         } else {
-                            dt.hour = 24;
-                            if (dt.day > 1) {
-                                dt.day -= 1;
+                            dt.t.hour = 24;
+                            if (dt.d.day > 1) {
+                                dt.d.day -= 1;
                             } else {
-                                dt.day = 31;
-                                if (dt.month > 1) {
-                                    dt.month -= 1;
+                                dt.d.day = 31;
+                                if (dt.d.month > 1) {
+                                    dt.d.month -= 1;
                                 } else {
-                                    dt.month = 12;
-                                    if (dt.year > 1) {
-                                        dt.year -= 1;
+                                    dt.d.month = 12;
+                                    if (dt.d.year > 1) {
+                                        dt.d.year -= 1;
                                     } else {
                                         return v.getDateTime();
                                     }
@@ -355,13 +355,13 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col) {
         }
         case Value::Type::DATETIME: {
             DateTime dt;
-            dt.year = std::numeric_limits<int16_t>::max();
-            dt.month = 12;
-            dt.day = 31;
-            dt.hour = 24;
-            dt.minute = 60;
-            dt.sec = 60;
-            dt.microsec = std::numeric_limits<int32_t>::max();
+            dt.d.year = std::numeric_limits<int16_t>::max();
+            dt.d.month = 12;
+            dt.d.day = 31;
+            dt.t.hour = 24;
+            dt.t.minute = 60;
+            dt.t.sec = 60;
+            dt.t.microsec = std::numeric_limits<int32_t>::max();
             return Value(dt);
         }
         case Value::Type::__EMPTY__:
