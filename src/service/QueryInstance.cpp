@@ -30,7 +30,6 @@ QueryInstance::QueryInstance(std::unique_ptr<QueryContext> qctx, Optimizer *opti
     qctx_ = std::move(qctx);
     optimizer_ = DCHECK_NOTNULL(optimizer);
     scheduler_ = std::make_unique<Scheduler>(qctx_.get());
-    newScheduler_ = std::make_unique<NewScheduler>(qctx_.get());
 }
 
 void QueryInstance::execute() {
@@ -45,7 +44,7 @@ void QueryInstance::execute() {
         return;
     }
 
-    newScheduler_->schedule()
+    scheduler_->schedule()
         .thenValue([this](Status s) {
             if (s.ok()) {
                 this->onFinish();

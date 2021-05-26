@@ -7,79 +7,65 @@
 #ifndef SCHEDULER_SCHEDULER_H_
 #define SCHEDULER_SCHEDULER_H_
 
-#include <set>
-#include <string>
-#include <unordered_map>
-
-#include <folly/SpinLock.h>
-#include <folly/futures/Future.h>
-#include <folly/futures/SharedPromise.h>
-
+#include "common/base/Base.h"
 #include "common/base/Status.h"
-#include "common/cpp/helpers.h"
+#include "executor/Executor.h"
+#include "planner/plan/PlanNode.h"
+#include "executor/logic/LoopExecutor.h"
+#include "executor/logic/SelectExecutor.h"
 
 namespace nebula {
 namespace graph {
-
-class Executor;
-class QueryContext;
-class LoopExecutor;
-
 class Scheduler final : private cpp::NonCopyable, private cpp::NonMovable {
 public:
-    // check whether a task is a Scheduler::Task by std::is_base_of<>::value in thread pool
-    struct Task {
-        int64_t planId;
-        explicit Task(const Executor *e);
-    };
-
-    explicit Scheduler(QueryContext *qctx);
-    ~Scheduler() = default;
+    explicit Scheduler(QueryContext* qctx);
 
     folly::Future<Status> schedule();
 
 private:
-    // Enable thread pool check the query plan id of each callback registered in future. The functor
-    // is only the proxy of the invocable function `fn'.
-    template <typename F>
-    struct ExecTask : Task {
-        using Extract = folly::futures::detail::Extract<F>;
-        using Return = typename Extract::Return;
-        using FirstArg = typename Extract::FirstArg;
+    folly::Future<Status> doSchedule(Executor* root) const;
 
-        F fn;
+    /**
+     *  futures: current executor will be triggered when all the futures are notified.
+     *  exe: current executor
+     *  runner: a thread-pool
+     *  promises: the promises will be set a value which triggers the other executors
+     *            if current executor is done working.
+     */
+    void scheduleExecutor(std::vector<folly::Future<Status>>&& futures,
+                          Executor* exe,
+                          folly::Executor* runner,
+                          std::vector<folly::Promise<Status>>&& promises) const;
 
-        ExecTask(const Executor *e, F f) : Task(e), fn(std::move(f)) {}
+    void runSelect(std::vector<folly::Future<Status>>&& futures,
+                   SelectExecutor* select,
+                   folly::Executor* runner,
+                   std::vector<folly::Promise<Status>>&& promises) const;
 
-        Return operator()(FirstArg &&arg) {
-            return fn(std::forward<FirstArg>(arg));
-        }
-    };
+    void runExecutor(std::vector<folly::Future<Status>>&& futures,
+                     Executor* exe,
+                     folly::Executor* runner,
+                     std::vector<folly::Promise<Status>>&& promises) const;
 
-    template <typename Fn>
-    ExecTask<Fn> task(Executor *e, Fn &&f) const {
-        return ExecTask<Fn>(e, std::forward<Fn>(f));
-    }
+    void runLeafExecutor(Executor* exe,
+                         folly::Executor* runner,
+                         std::vector<folly::Promise<Status>>&& promises) const;
 
-    void analyze(Executor *executor);
-    folly::Future<Status> doSchedule(Executor *executor);
-    folly::Future<Status> doScheduleParallel(const std::set<Executor *> &dependents);
-    folly::Future<Status> iterate(LoopExecutor *loop);
-    folly::Future<Status> execute(Executor *executor);
+    void runLoop(std::vector<folly::Future<Status>>&& futures,
+                 LoopExecutor* loop,
+                 folly::Executor* runner,
+                 std::vector<folly::Promise<Status>>&& promises) const;
 
-    struct PassThroughData {
-        folly::SpinLock lock;
-        std::unique_ptr<folly::SharedPromise<Status>> promise;
-        int32_t numOutputs;
+    Status checkStatus(std::vector<Status>&& status) const;
 
-        explicit PassThroughData(int32_t outputs);
-    };
+    void notifyOK(std::vector<folly::Promise<Status>>& promises) const;
+
+    void notifyError(std::vector<folly::Promise<Status>>& promises, Status status) const;
+
+    folly::Future<Status> execute(Executor *executor) const;
 
     QueryContext *qctx_{nullptr};
-    std::unordered_map<int64_t, PassThroughData> passThroughPromiseMap_;
 };
-
-}   // namespace graph
-}   // namespace nebula
-
-#endif   // SCHEDULER_SCHEDULER_H_
+}  // namespace graph
+}  // namespace nebula
+#endif  // SCHEDULER_SCHEDULER_H_

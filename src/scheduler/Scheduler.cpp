@@ -6,167 +6,231 @@
 
 #include "scheduler/Scheduler.h"
 
-#include "context/QueryContext.h"
-#include "executor/ExecutionError.h"
-#include "executor/Executor.h"
-#include "executor/logic/LoopExecutor.h"
-#include "executor/logic/PassThroughExecutor.h"
-#include "executor/logic/SelectExecutor.h"
-#include "planner/plan/PlanNode.h"
-
 namespace nebula {
 namespace graph {
-
-Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id()) {}
-
-Scheduler::PassThroughData::PassThroughData(int32_t outputs)
-    : promise(std::make_unique<folly::SharedPromise<Status>>()), numOutputs(outputs) {}
-
-Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
+Scheduler::Scheduler(QueryContext* qctx) {
+    qctx_ = qctx;
+}
 
 folly::Future<Status> Scheduler::schedule() {
     auto executor = Executor::create(qctx_->plan()->root(), qctx_);
-    analyze(executor);
     return doSchedule(executor);
 }
 
-void Scheduler::analyze(Executor *executor) {
-    switch (executor->node()->kind()) {
-        case PlanNode::Kind::kPassThrough: {
-            // Use id to identify different passThrough nodes to prevent dead lock
-            auto id = executor->node()->id();
-            auto it = passThroughPromiseMap_.find(id);
-            if (it == passThroughPromiseMap_.end()) {
-                PassThroughData data(executor->successors().size());
-                passThroughPromiseMap_.emplace(id, std::move(data));
+folly::Future<Status> Scheduler::doSchedule(Executor* root) const {
+    std::unordered_map<int64_t, std::vector<folly::Promise<Status>>> promiseMap;
+    std::unordered_map<int64_t, std::vector<folly::Future<Status>>> futureMap;
+    std::queue<Executor*> queue;
+    std::queue<Executor*> queue2;
+    std::unordered_set<Executor*> visited;
+
+    auto* runner = qctx_->rctx()->runner();
+    folly::Promise<Status> promiseForRoot;
+    auto resultFuture = promiseForRoot.getFuture();
+    promiseMap[root->id()].emplace_back(std::move(promiseForRoot));
+    queue.push(root);
+    visited.emplace(root);
+    while (!queue.empty()) {
+        auto* exe = queue.front();
+        queue.pop();
+        queue2.push(exe);
+
+        std::vector<folly::Future<Status>> futures;
+        for (auto* dep : exe->depends()) {
+            auto notVisited = visited.emplace(dep).second;
+            if (notVisited) {
+                queue.push(dep);
             }
-            break;
+            folly::Promise<Status> p;
+            futures.emplace_back(p.getFuture());
+            auto& promises = promiseMap[dep->id()];
+            promises.emplace_back(std::move(p));
         }
-        case PlanNode::Kind::kSelect: {
-            auto sel = static_cast<SelectExecutor *>(executor);
-            analyze(sel->thenBody());
-            analyze(sel->elseBody());
-            break;
-        }
-        case PlanNode::Kind::kLoop: {
-            auto loop = static_cast<LoopExecutor *>(executor);
-            analyze(loop->loopBody());
-            break;
-        }
-        default:
-            break;
+        futureMap.emplace(exe->id(), std::move(futures));
     }
 
-    for (auto dep : executor->depends()) {
-        analyze(dep);
+    while (!queue2.empty()) {
+        auto* exe = queue2.front();
+        queue2.pop();
+
+        auto currentFuturesFound = futureMap.find(exe->id());
+        DCHECK(currentFuturesFound != futureMap.end());
+        auto currentExeFutures = std::move(currentFuturesFound->second);
+
+        auto currentPromisesFound = promiseMap.find(exe->id());
+        DCHECK(currentPromisesFound != promiseMap.end());
+        auto currentExePromises = std::move(currentPromisesFound->second);
+
+        scheduleExecutor(std::move(currentExeFutures), exe, runner, std::move(currentExePromises));
     }
+
+    return resultFuture;
 }
 
-folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
-    switch (executor->node()->kind()) {
+void Scheduler::scheduleExecutor(
+    std::vector<folly::Future<Status>>&& futures,
+    Executor* exe,
+    folly::Executor* runner,
+    std::vector<folly::Promise<Status>>&& promises) const {
+    switch (exe->node()->kind()) {
         case PlanNode::Kind::kSelect: {
-            auto sel = static_cast<SelectExecutor *>(executor);
-            return doScheduleParallel(sel->depends())
-                .thenValue(task(sel,
-                           [sel, this](Status status) {
-                               if (!status.ok()) return sel->error(std::move(status));
-                               return execute(sel);
-                           }))
-                .thenValue(task(sel, [sel, this](Status status) {
-                    if (!status.ok()) return sel->error(std::move(status));
-
-                    auto val = qctx_->ectx()->getValue(sel->node()->outputVar());
-                    auto cond = val.moveBool();
-                    return doSchedule(cond ? sel->thenBody() : sel->elseBody());
-                }));
+            auto select = static_cast<SelectExecutor*>(exe);
+            runSelect(std::move(futures), select, runner, std::move(promises));
+            break;
         }
         case PlanNode::Kind::kLoop: {
-            auto loop = static_cast<LoopExecutor *>(executor);
-            return doScheduleParallel(loop->depends())
-                .thenValue(task(loop, [loop, this](Status status) {
-                    if (!status.ok()) return loop->error(std::move(status));
-                    return iterate(loop);
-            }));
-        }
-        case PlanNode::Kind::kPassThrough: {
-            auto mout = static_cast<PassThroughExecutor *>(executor);
-            auto it = passThroughPromiseMap_.find(mout->node()->id());
-            CHECK(it != passThroughPromiseMap_.end());
-
-            auto &data = it->second;
-
-            folly::SpinLockGuard g(data.lock);
-            if (data.numOutputs == 0) {
-                // Reset promise of output executors when it's in loop
-                data.numOutputs = static_cast<int32_t>(mout->successors().size());
-                data.promise = std::make_unique<folly::SharedPromise<Status>>();
-            }
-
-            data.numOutputs--;
-            if (data.numOutputs > 0) {
-                return data.promise->getFuture();
-            }
-
-            return doScheduleParallel(mout->depends())
-                .thenValue(task(mout, [&data, mout, this](Status status) {
-                    // Notify and wake up all waited tasks
-                    data.promise->setValue(status);
-
-                    if (!status.ok()) return mout->error(std::move(status));
-                    return execute(mout);
-                }));
+            auto loop = static_cast<LoopExecutor*>(exe);
+            runLoop(std::move(futures), loop, runner, std::move(promises));
+            break;
         }
         default: {
-            auto deps = executor->depends();
-            if (deps.empty()) {
-                return execute(executor);
+            if (exe->depends().empty()) {
+                runLeafExecutor(exe, runner, std::move(promises));
+            } else {
+                runExecutor(std::move(futures), exe, runner, std::move(promises));
+            }
+            break;
+        }
+    }
+}
+
+void Scheduler::runSelect(std::vector<folly::Future<Status>>&& futures,
+                             SelectExecutor* select,
+                             folly::Executor* runner,
+                             std::vector<folly::Promise<Status>>&& promises) const {
+    folly::collect(futures).via(runner).thenValue(
+        [select, runner, pros = std::move(promises), this](std::vector<Status>&& status) mutable {
+            auto s = checkStatus(std::move(status));
+            if (!s.ok()) {
+                return notifyError(pros, s);
             }
 
-            return doScheduleParallel(deps)
-                .thenValue(task(executor, [executor, this](Status stats) {
-                    if (!stats.ok()) return executor->error(std::move(stats));
-                    return execute(executor);
-            }));
+            std::move(execute(select))
+                .thenValue(
+                    [select, runner, pros = std::move(pros), this](Status selectStatus) mutable {
+                        if (!selectStatus.ok()) {
+                            return notifyError(pros, selectStatus);
+                        }
+                        auto val = qctx_->ectx()->getValue(select->node()->outputVar());
+                        if (!val.isBool()) {
+                            std::stringstream ss;
+                            ss << "Loop produces a bad condition result: " << val
+                               << " type: " << val.type();
+                            return notifyError(pros, Status::Error(ss.str()));
+                        }
+
+                        auto selectFuture = folly::makeFuture<Status>(Status::OK());
+                        if (val.getBool()) {
+                            selectFuture = doSchedule(select->thenBody());
+                        } else {
+                            selectFuture = doSchedule(select->elseBody());
+                        }
+                        std::move(selectFuture)
+                            .thenValue([pros = std::move(pros), this](Status thenStatus) mutable {
+                                if (!thenStatus.ok()) {
+                                    return notifyError(pros, thenStatus);
+                                } else {
+                                    return notifyOK(pros);
+                                }
+                            });
+                    });
+        });
+}
+
+void Scheduler::runExecutor(
+    std::vector<folly::Future<Status>>&& futures,
+    Executor* exe,
+    folly::Executor* runner,
+    std::vector<folly::Promise<Status>>&& promises) const {
+    folly::collect(futures).via(runner).thenValue(
+        [exe, runner, pros = std::move(promises), this](std::vector<Status>&& status) mutable {
+            auto depStatus = checkStatus(std::move(status));
+            if (!depStatus.ok()) {
+                return notifyError(pros, depStatus);
+            }
+            // Execute in current thread.
+            std::move(execute(exe)).thenValue(
+                [pros = std::move(pros), this](Status exeStatus) mutable {
+                    if (!exeStatus.ok()) {
+                        return notifyError(pros, exeStatus);
+                    }
+                    return notifyOK(pros);
+                });
+        });
+}
+
+void Scheduler::runLeafExecutor(
+    Executor* exe,
+    folly::Executor* runner,
+    std::vector<folly::Promise<Status>>&& promises) const {
+    std::move(execute(exe))
+        .via(runner)
+        .thenValue([pros = std::move(promises), this](Status s) mutable {
+            if (!s.ok()) {
+                return notifyError(pros, s);
+            }
+            return notifyOK(pros);
+        });
+}
+
+void Scheduler::runLoop(std::vector<folly::Future<Status>>&& futures,
+                                            LoopExecutor* loop,
+                                            folly::Executor* runner,
+                                            std::vector<folly::Promise<Status>>&& promises) const {
+    folly::collect(futures).via(runner).thenValue(
+        [loop, runner, pros = std::move(promises), this](std::vector<Status>&& status) mutable {
+            auto s = checkStatus(std::move(status));
+            if (!s.ok()) {
+                return notifyError(pros, s);
+            }
+
+            std::move(execute(loop)).thenValue(
+                [loop, runner, pros = std::move(pros), this](Status loopStatus) mutable {
+                    if (!loopStatus.ok()) {
+                        return notifyError(pros, loopStatus);
+                    }
+                    auto val = qctx_->ectx()->getValue(loop->node()->outputVar());
+                    if (!val.isBool()) {
+                        std::stringstream ss;
+                        ss << "Loop produces a bad condition result: " << val
+                           << " type: " << val.type();
+                        return notifyError(pros, Status::Error(ss.str()));
+                    }
+                    if (val.getBool()) {
+                        auto loopBody = loop->loopBody();
+                        auto scheduleFuture = doSchedule(loopBody);
+                        std::vector<folly::Future<Status>> fs;
+                        fs.emplace_back(std::move(scheduleFuture));
+                        runLoop(std::move(fs), loop, runner, std::move(pros));
+                    } else {
+                        return notifyOK(pros);
+                    }
+                });
+        });
+}
+
+Status Scheduler::checkStatus(std::vector<Status>&& status) const {
+    for (auto& s : status) {
+        if (!s.ok()) {
+            return s;
         }
+    }
+    return Status::OK();
+}
+
+void Scheduler::notifyOK(std::vector<folly::Promise<Status>>& promises) const {
+    for (auto& p : promises) {
+        p.setValue(Status::OK());
     }
 }
 
-folly::Future<Status> Scheduler::doScheduleParallel(const std::set<Executor *> &dependents) {
-    CHECK(!dependents.empty());
-
-    std::vector<folly::Future<Status>> futures;
-    for (auto dep : dependents) {
-        futures.emplace_back(doSchedule(dep));
+void Scheduler::notifyError(std::vector<folly::Promise<Status>>& promises, Status status) const {
+    for (auto& p : promises) {
+        p.setValue(status);
     }
-    auto *runner = qctx_->rctx()->runner();
-    return folly::collect(futures).via(runner).thenValue([](std::vector<Status> stats) {
-        for (auto &s : stats) {
-            if (!s.ok()) return s;
-        }
-        return Status::OK();
-    });
 }
 
-folly::Future<Status> Scheduler::iterate(LoopExecutor *loop) {
-    return execute(loop).thenValue(task(loop, [loop, this](Status status) {
-        if (!status.ok()) return loop->error(std::move(status));
-
-        auto val = qctx_->ectx()->getValue(loop->node()->outputVar());
-        if (!val.isBool()) {
-            std::stringstream ss;
-            ss << "Loop produces a bad condition result: " << val << " type: " << val.type();
-            return loop->error(Status::Error(ss.str()));
-        }
-        auto cond = val.moveBool();
-        if (!cond) return folly::makeFuture(Status::OK());
-        return doSchedule(loop->loopBody()).thenValue(task(loop, [loop, this](Status s) {
-            if (!s.ok()) return loop->error(std::move(s));
-            return iterate(loop);
-        }));
-    }));
-}
-
-folly::Future<Status> Scheduler::execute(Executor *executor) {
+folly::Future<Status> Scheduler::execute(Executor *executor) const {
     auto status = executor->open();
     if (!status.ok()) {
         return executor->error(std::move(status));
@@ -177,5 +241,5 @@ folly::Future<Status> Scheduler::execute(Executor *executor) {
     });
 }
 
-}   // namespace graph
-}   // namespace nebula
+}  // namespace graph
+}  // namespace nebula
