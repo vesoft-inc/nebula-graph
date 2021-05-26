@@ -24,24 +24,31 @@ public:
 private:
     folly::Future<Status> doSchedule(Executor* root) const;
 
+    /**
+     *  futures: current executor will be triggered when all the futures are notified.
+     *  exe: current executor
+     *  runner: a thread-pool
+     *  promises: the promises will be set a value which triggers the other executors
+     *            if current executor is done working.
+     */
     void scheduleExecutor(std::vector<folly::Future<Status>>&& futures,
-                                           Executor* exe,
-                                           folly::Executor* runner,
-                                           std::vector<folly::Promise<Status>>&& promises) const;
+                          Executor* exe,
+                          folly::Executor* runner,
+                          std::vector<folly::Promise<Status>>&& promises) const;
 
     void runExecutor(std::vector<folly::Future<Status>>&& futures,
-                                      Executor* exe,
-                                      folly::Executor* runner,
-                                      std::vector<folly::Promise<Status>>&& promises) const;
+                     Executor* exe,
+                     folly::Executor* runner,
+                     std::vector<folly::Promise<Status>>&& promises) const;
 
     void runLeafExecutor(Executor* exe,
-                                          folly::Executor* runner,
-                                          std::vector<folly::Promise<Status>>&& promises) const;
+                         folly::Executor* runner,
+                         std::vector<folly::Promise<Status>>&& promises) const;
 
     void runLoop(std::vector<folly::Future<Status>>&& futures,
-                                  LoopExecutor* loop,
-                                  folly::Executor* runner,
-                                  std::vector<folly::Promise<Status>>&& promises) const;
+                 LoopExecutor* loop,
+                 folly::Executor* runner,
+                 std::vector<folly::Promise<Status>>&& promises) const;
 
     Status checkStatus(std::vector<Status>&& status) const;
 
