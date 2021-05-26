@@ -296,7 +296,6 @@ void PlanNode::readVariable(Variable* varPtr) {
 }
 
 void PlanNode::deleteReadVariable(const std::string& varname) {
-    VLOG(2) << "delete " << toString() << " read variable: " << varname;
     auto iter = std::find_if(
         inputVars_.begin(), inputVars_.end(), [&](auto vptr) { return vptr->name == varname; });
     if (iter != inputVars_.end()) {
