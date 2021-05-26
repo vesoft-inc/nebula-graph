@@ -21,6 +21,7 @@ public:
 
     folly::Future<Status> schedule();
 
+private:
     folly::Future<Status> doSchedule(Executor* root) const;
 
     void scheduleExecutor(std::vector<folly::Future<Status>>&& futures,
@@ -50,7 +51,6 @@ public:
 
     folly::Future<Status> execute(Executor *executor) const;
 
-private:
     QueryContext *qctx_{nullptr};
 };
 }  // namespace graph

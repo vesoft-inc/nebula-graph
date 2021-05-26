@@ -19,24 +19,46 @@ folly::Future<Status> NewScheduler::schedule() {
 
 folly::Future<Status> NewScheduler::doSchedule(Executor* root) const {
     std::unordered_map<int64_t, std::vector<folly::Promise<Status>>> promiseMap;
+    std::unordered_map<int64_t, std::vector<folly::Future<Status>>> futureMap;
     std::queue<Executor*> queue;
+    std::queue<Executor*> queue2;
+    std::unordered_set<Executor*> visited;
     queue.push(root);
+    visited.emplace(root);
     auto* runner = qctx_->rctx()->runner();
-    auto result = folly::makeFuture(Status::OK());
     folly::Promise<Status> promiseForRoot;
     auto resultFuture = promiseForRoot.getFuture();
     while (!queue.empty()) {
         auto* exe = queue.front();
         queue.pop();
+        queue2.push(exe);
 
         std::vector<folly::Future<Status>> futures;
         for (auto* dep : exe->depends()) {
-            queue.push(dep);
+            auto notVisited = visited.emplace(dep).second;
+            if (notVisited) {
+                queue.push(dep);
+            }
             folly::Promise<Status> p;
             futures.emplace_back(p.getFuture());
             auto& promises = promiseMap[dep->id()];
             promises.emplace_back(std::move(p));
         }
+        futureMap.emplace(exe->id(), std::move(futures));
+    }
+
+    while (!queue2.empty()) {
+        auto* exe = queue2.front();
+        queue2.pop();
+
+        std::vector<folly::Future<Status>> currentExeFutures;
+        auto currentFuturesFound = futureMap.find(exe->id());
+        if (currentFuturesFound != futureMap.end()) {
+            currentExeFutures = std::move(currentFuturesFound->second);
+        } else {
+            return Status::Error();
+        }
+
         std::vector<folly::Promise<Status>> currentExePromises;
         auto currentPromisesFound = promiseMap.find(exe->id());
         if (currentPromisesFound != promiseMap.end()) {
@@ -44,7 +66,7 @@ folly::Future<Status> NewScheduler::doSchedule(Executor* root) const {
         } else {
             currentExePromises.emplace_back(std::move(promiseForRoot));
         }
-        scheduleExecutor(std::move(futures), exe, runner, std::move(currentExePromises));
+        scheduleExecutor(std::move(currentExeFutures), exe, runner, std::move(currentExePromises));
     }
 
     return resultFuture;
