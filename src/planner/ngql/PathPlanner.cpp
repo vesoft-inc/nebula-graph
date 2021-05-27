@@ -67,29 +67,29 @@ void PathPlanner::buildStart(Starts& starts, std::string& vidsVar, bool reverse)
     }
 }
 
-// loopSteps{0} <= (steps / 2 + steps % 2) && (pathVar is Empty || size(pathVar) == 0)
+// loopSteps{0} <= ((steps + 1) / 2)  && (pathVar is Empty || size(pathVar) == 0)
 Expression* PathPlanner::singlePairLoopCondition(uint32_t steps, const std::string& pathVar) {
     auto loopSteps = pathCtx_->qctx->vctx()->anonVarGen()->getVar();
     pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
-    auto step = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
+    auto step = ExpressionUtils::stepCondition(loopSteps, ((steps + 1) / 2));
     auto empty = ExpressionUtils::equalCondition(pathVar, Value::kEmpty);
     auto zero = ExpressionUtils::zeroCondition(pathVar);
     auto* noFound = ExpressionUtils::Or(empty.release(), zero.release());
     return ExpressionUtils::And(step.release(), noFound);
 }
 
-// loopSteps{0} <= (steps / 2 + steps % 2)
+// loopSteps{0} <= (steps + 1) / 2
 Expression* PathPlanner::allPairLoopCondition(uint32_t steps) {
     auto loopSteps = pathCtx_->qctx->vctx()->anonVarGen()->getVar();
     pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
-    return ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2)).release();
+    return ExpressionUtils::stepCondition(loopSteps, ((steps + 1) / 2)).release();
 }
 
-// loopSteps{0} <= (steps / 2 + steps % 2) && (size(pathVar) != 0)
+// loopSteps{0} <= ((steps + 1) / 2) && (size(pathVar) != 0)
 Expression* PathPlanner::multiPairLoopCondition(uint32_t steps, const std::string& pathVar) {
     auto loopSteps = pathCtx_->qctx->vctx()->anonVarGen()->getVar();
     pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
-    auto step = ExpressionUtils::stepCondition(loopSteps, (steps / 2 + steps % 2));
+    auto step = ExpressionUtils::stepCondition(loopSteps, ((steps + 1) / 2));
     auto neZero = ExpressionUtils::neZeroCondition(pathVar);
     return ExpressionUtils::And(step.release(), neZero.release());
 }

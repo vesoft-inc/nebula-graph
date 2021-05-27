@@ -131,7 +131,7 @@ Status DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {
 }
 
 Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
-                                        StepClause mToN,
+                                        const StepClause& mToN,
                                         bool distinct) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
