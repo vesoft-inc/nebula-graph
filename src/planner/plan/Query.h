@@ -1010,10 +1010,12 @@ public:
     }
 
     void setLeftVar(std::pair<std::string, int64_t> lvar) {
+        setInputVar(lvar.first, 0);
         leftVar_ = lvar;
     }
 
     void setRightVar(std::pair<std::string, int64_t> rvar) {
+        setInputVar(rvar.first, 1);
         rightVar_ = rvar;
     }
 
@@ -1061,7 +1063,7 @@ class LeftJoin final : public Join {
 public:
     static LeftJoin* make(QueryContext* qctx,
                           PlanNode* input,
-                          std::pair<std::string, int64_t> leftVar ,
+                          std::pair<std::string, int64_t> leftVar,
                           std::pair<std::string, int64_t> rightVar,
                           std::vector<Expression*> hashKeys = {},
                           std::vector<Expression*> probeKeys = {}) {
