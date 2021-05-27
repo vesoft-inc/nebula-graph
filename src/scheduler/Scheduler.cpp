@@ -17,6 +17,8 @@
 namespace nebula {
 namespace graph {
 
+static constexpr int64_t kMaxDepthOfExecPlan = 1024;
+
 Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id()) {}
 
 Scheduler::PassThroughData::PassThroughData(int32_t outputs)
@@ -25,7 +27,12 @@ Scheduler::PassThroughData::PassThroughData(int32_t outputs)
 Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
 
 folly::Future<Status> Scheduler::schedule() {
-    auto executor = Executor::create(qctx_->plan()->root(), qctx_);
+    int64_t depth = 1;
+    auto executor = Executor::create(qctx_->plan()->root(), qctx_, &depth);
+    if (depth > kMaxDepthOfExecPlan) {
+        return Status::Error(
+            "The depth(%ld) of execution plan has exceeded %ld", depth, kMaxDepthOfExecPlan);
+    }
     analyze(executor);
     return doSchedule(executor);
 }
@@ -68,10 +75,10 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
             auto sel = static_cast<SelectExecutor *>(executor);
             return doScheduleParallel(sel->depends())
                 .thenValue(task(sel,
-                           [sel, this](Status status) {
-                               if (!status.ok()) return sel->error(std::move(status));
-                               return execute(sel);
-                           }))
+                                [sel, this](Status status) {
+                                    if (!status.ok()) return sel->error(std::move(status));
+                                    return execute(sel);
+                                }))
                 .thenValue(task(sel, [sel, this](Status status) {
                     if (!status.ok()) return sel->error(std::move(status));
 
@@ -86,7 +93,7 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
                 .thenValue(task(loop, [loop, this](Status status) {
                     if (!status.ok()) return loop->error(std::move(status));
                     return iterate(loop);
-            }));
+                }));
         }
         case PlanNode::Kind::kPassThrough: {
             auto mout = static_cast<PassThroughExecutor *>(executor);
@@ -122,11 +129,11 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
                 return execute(executor);
             }
 
-            return doScheduleParallel(deps)
-                .thenValue(task(executor, [executor, this](Status stats) {
+            return doScheduleParallel(deps).thenValue(
+                task(executor, [executor, this](Status stats) {
                     if (!stats.ok()) return executor->error(std::move(stats));
                     return execute(executor);
-            }));
+                }));
         }
     }
 }

@@ -29,7 +29,7 @@ class QueryContext;
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
     // Create executor according to plan node
-    static Executor *create(const PlanNode *node, QueryContext *qctx);
+    static Executor *create(const PlanNode *node, QueryContext *qctx, int64_t *depth = nullptr);
 
     virtual ~Executor();
 
@@ -85,7 +85,8 @@ public:
 protected:
     static Executor *makeExecutor(const PlanNode *node,
                                   QueryContext *qctx,
-                                  std::unordered_map<int64_t, Executor *> *visited);
+                                  std::unordered_map<int64_t, Executor *> *visited,
+                                  int64_t *depth = nullptr);
 
     static Executor *makeExecutor(QueryContext *qctx, const PlanNode *node);
 
