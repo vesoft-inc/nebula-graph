@@ -124,27 +124,6 @@ public:
         return symTable_.get();
     }
 
-    struct VarUser {
-        int64_t id;
-        bool    inLoop;
-    };
-
-    void addLastUser(const std::string &var, int64_t id) {
-        auto find = lastUser_.find(var);
-        if (find == lastUser_.end()) {
-            lastUser_.emplace(var, id);
-        }
-    }
-
-    StatusOr<int64_t> lastUser(const std::string &var) const {
-        auto find = lastUser_.find(var);
-        if (find == lastUser_.end()) {
-            return Status::Error("Can't find variable in user table.");
-        } else {
-            return find->second;
-        }
-    }
-
     void setPartialSuccess() {
         DCHECK(rctx_ != nullptr);
         rctx_->resp().errorCode = ErrorCode::E_PARTIAL_SUCCEEDED;
@@ -168,9 +147,6 @@ private:
     std::unique_ptr<ObjectPool>                             objPool_;
     std::unique_ptr<IdGenerator>                            idGen_;
     std::unique_ptr<SymbolTable>                            symTable_;
-
-    // last used map
-    std::unordered_map<std::string, int64_t>                lastUser_;
 };
 
 }   // namespace graph

@@ -554,7 +554,7 @@ folly::Future<Status> Executor::error(Status status) const {
 void Executor::drop() {
     for (const auto &inputVar : node()->inputVars()) {
         if (inputVar != nullptr) {
-            auto findResult = qctx_->lastUser(inputVar->name);
+            auto findResult = qctx_->symTable()->lastUser(inputVar->name);
             if (findResult.ok()) {
                 if (findResult.value() == node()->id()) {
                     ectx_->dropResult(inputVar->name);
@@ -565,7 +565,7 @@ void Executor::drop() {
 }
 
 Status Executor::finish(Result &&result) {
-    if (!FLAGS_enable_lifetime_optimize || qctx_->lastUser(node()->outputVar()).ok()) {
+    if (!FLAGS_enable_lifetime_optimize || qctx_->symTable()->lastUser(node()->outputVar()).ok()) {
         numRows_ = result.size();
         ectx_->setResult(node()->outputVar(), std::move(result));
     }
