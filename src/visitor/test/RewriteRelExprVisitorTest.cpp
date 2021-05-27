@@ -13,7 +13,15 @@
 
 namespace nebula {
 namespace graph {
-class RewriteRelExprVisitorTest : public ValidatorTestBase {};
+class RewriteRelExprVisitorTest : public VisitorTestBase {
+public:
+    void TearDown() override {
+        pool.clear();
+    }
+
+protected:
+    ObjectPool pool;
+};
 
 TEST_F(RewriteRelExprVisitorTest, TestArithmeticalExpr) {
     // (label + 1 < 40)  =>  (label < 40 - 1)

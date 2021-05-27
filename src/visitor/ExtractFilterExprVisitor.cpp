@@ -100,14 +100,22 @@ void ExtractFilterExprVisitor::visit(LogicalExpression *expr) {
     if (!canBePushed_) {
         return;
     }
-    auto remainedExpr = LogicalExpression::makeAnd(pool_);
+    std::vector<Expression*> remainedOperands;
     for (auto i = 0u; i < operands.size(); i++) {
-        if (flags[i]) continue;
-        remainedExpr->addOperand(operands[i]->clone());
-        expr->setOperand(i, ConstantExpression::make(pool_, true));
+        if (!flags[i]) {
+            remainedOperands.emplace_back(operands[i]);
+            expr->setOperand(i, ConstantExpression::make(pool_, true));
+        }
     }
-    if (!remainedExpr->operands().empty()) {
+    if (remainedOperands.empty()) {
+        return;
+    }
+    if (remainedOperands.size() > 1) {
+        auto remainedExpr = LogicalExpression::makeAnd(pool_);
+        remainedExpr->setOperands(std::move(remainedOperands));
         remainedExpr_ = std::move(remainedExpr);
+    } else {
+        remainedExpr_ = std::move(remainedOperands[0]);
     }
 }
 

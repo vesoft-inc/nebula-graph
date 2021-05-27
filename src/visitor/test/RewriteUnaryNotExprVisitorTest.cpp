@@ -14,7 +14,15 @@
 
 namespace nebula {
 namespace graph {
-class RewriteUnaryNotExprVisitorTest : public ValidatorTestBase {};
+class RewriteUnaryNotExprVisitorTest : public VisitorTestBase {
+public:
+    void TearDown() override {
+        pool.clear();
+    }
+
+protected:
+    ObjectPool pool;
+};
 
 TEST_F(RewriteUnaryNotExprVisitorTest, TestNestedMultipleUnaryNotExpr) {
     // !!(5 == 10)  =>  (5 == 10)

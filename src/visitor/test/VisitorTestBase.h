@@ -11,12 +11,10 @@
 
 #include "common/expression/ExprVisitor.h"
 
-using Type = nebula::Value::Type;
-
 namespace nebula {
 namespace graph {
 
-class ValidatorTestBase : public ::testing::Test {
+class VisitorTestBase : public ::testing::Test {
     void SetUp() override {
         pool_ = std::make_unique<ObjectPool>();
         pool = pool_.get();

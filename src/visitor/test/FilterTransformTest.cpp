@@ -14,7 +14,15 @@
 
 namespace nebula {
 namespace graph {
-class FilterTransformTest : public ValidatorTestBase {};
+class FilterTransformTest : public VisitorTestBase {
+public:
+    void TearDown() override {
+        pool.clear();
+    }
+
+protected:
+    ObjectPool pool;
+};
 
 TEST_F(FilterTransformTest, TestComplexExprRewrite) {
     // !!!(v.age - 1 < 40)  =>  (v.age >= 41)

@@ -14,7 +14,15 @@
 namespace nebula {
 namespace graph {
 
-class FoldConstantExprVisitorTest : public ValidatorTestBase {};
+class FoldConstantExprVisitorTest : public VisitorTestBase {
+public:
+    void TearDown() override {
+        pool.clear();
+    }
+
+protected:
+    ObjectPool pool;
+};
 
 TEST_F(FoldConstantExprVisitorTest, TestArithmeticExpr) {
     // (5 - 1) + 2 => 4 + 2
