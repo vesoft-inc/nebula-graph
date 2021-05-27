@@ -13,6 +13,24 @@
 
 namespace nebula {
 namespace graph {
+GetNeighbors::VertexProps PathPlanner::buildSrcVertexProps() {
+    GetNeighbors::VertexProps vertexProps;
+    auto& srcTagProps = pathCtx_->exprProps.srcTagProps();
+    if (srcTagProps.empty()) {
+        return vertexProps;
+    }
+    vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(srcTagProps.size());
+    auto fun = [] (auto& tag) {
+        storage::cpp2::VertexProp vp;
+        vp.set_tag(tag.first);
+        std::vector<std::string>props(tag.second.begin(), tag.second.end());
+        vp.set_props(std::move(props));
+        return vp;
+    };
+    std::transform(srcTagProps.begin(), srcTagProps.end(), vertexProps->begin(), fun);
+    return vertexProps;
+}
+
 GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     switch (pathCtx_->over.direction) {
@@ -36,6 +54,7 @@ GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
 void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
                                    bool reverse,
                                    bool isInEdge) {
+    const auto& exprProps = pathCtx_->exprProps;
     for (const auto& e : pathCtx_->over.edgeTypes) {
         storage::cpp2::EdgeProp ep;
         if (reverse == isInEdge) {
@@ -43,7 +62,16 @@ void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
         } else {
             ep.set_type(-e);
         }
-        ep.set_props({kDst, kType, kRank});
+        const auto& found = exprProps.edgeProps().find(e);
+        if (found == exprProps.edgeProps().end()) {
+            ep.set_props({kDst, kType, kRank});
+        } else {
+            std::set<std::string> props(found->second.begin(), found->second.end());
+            props.emplace(kDst);
+            props.emplace(kType);
+            props.emplace(kRank);
+            ep.set_props(std::vector<std::string>(props.begin(), props.end()));
+        }
         edgeProps->emplace_back(std::move(ep));
     }
 }
@@ -208,13 +236,22 @@ PlanNode* PathPlanner::singlePairPath(PlanNode* dep, bool reverse) {
     auto qctx = pathCtx_->qctx;
     auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
+    PlanNode* pathDep = nullptr;
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
+    gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();
+    pathDep = gn;
 
-    auto* path = BFSShortestPath::make(qctx, gn);
+    if (pathCtx_->filter != nullptr) {
+        auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
+        auto* filter = Filter::make(qctx, gn, filterExpr);
+        pathDep = filter;
+    }
+
+    auto* path = BFSShortestPath::make(qctx, pathDep);
     path->setOutputVar(vidsVar);
     path->setColNames({kVid, kEdgeStr});
 
@@ -258,13 +295,22 @@ PlanNode* PathPlanner::allPairPath(PlanNode* dep, bool reverse) {
     auto qctx = pathCtx_->qctx;
     auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
+    PlanNode* pathDep = nullptr;
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
+    gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();
+    pathDep = gn;
 
-    auto* path = ProduceAllPaths::make(qctx, gn);
+    if (pathCtx_->filter != nullptr) {
+        auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
+        auto* filter = Filter::make(qctx, gn, filterExpr);
+        pathDep = filter;
+    }
+
+    auto* path = ProduceAllPaths::make(qctx, pathDep);
     path->setOutputVar(vidsVar);
     path->setColNames({kVid, kPathStr});
     return path;
@@ -303,13 +349,22 @@ PlanNode* PathPlanner::multiPairPath(PlanNode* dep, bool reverse) {
     auto qctx = pathCtx_->qctx;
     auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
+    PlanNode* pathDep = nullptr;
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
+    gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();
+    pathDep = gn;
 
-    auto* path = ProduceSemiShortestPath::make(qctx, gn);
+    if (pathCtx_->filter != nullptr) {
+        auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
+        auto* filter = Filter::make(qctx, gn, filterExpr);
+        pathDep = filter;
+    }
+
+    auto* path = ProduceSemiShortestPath::make(qctx, pathDep);
     path->setOutputVar(vidsVar);
     path->setColNames({kDst, kSrc, kCostStr, kPathStr});
 
