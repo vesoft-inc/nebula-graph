@@ -10,7 +10,7 @@
 #include "context/QueryContext.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/FoldConstantExprVisitor.h"
 
@@ -181,8 +181,9 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
     }
     if (filter != nullptr) {
         NG_RETURN_IF_ERROR(deduceProps(filter, exprProps_));
-        auto newFilter = ExpressionUtils::foldConstantExpr(filter);
-        filterCondition_ = qctx_->objPool()->add(newFilter.release());
+        auto pool = qctx_->objPool();
+        auto newFilter = ExpressionUtils::foldConstantExpr(filter, pool);
+        filterCondition_ = newFilter;
     }
     return Status::OK();
 }
@@ -191,18 +192,20 @@ Status YieldValidator::toPlan() {
     auto yield = static_cast<const YieldSentence *>(sentence_);
 
     std::string inputVar;
+    std::vector<std::string> colNames(inputs_.size());
     if (!userDefinedVarName_.empty()) {
         inputVar = userDefinedVarName_;
+        colNames = qctx_->symTable()->getVar(inputVar)->colNames;
     } else if (!constantExprVar_.empty()) {
         inputVar = constantExprVar_;
+    } else {
+        std::transform(
+            inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &col) { return col.name; });
     }
 
     Filter *filter = nullptr;
     if (yield->where()) {
         filter = Filter::make(qctx_, nullptr, filterCondition_);
-        std::vector<std::string> colNames(inputs_.size());
-        std::transform(
-            inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &col) { return col.name; });
         filter->setColNames(std::move(colNames));
     }
 
@@ -243,7 +246,6 @@ Status YieldValidator::toPlan() {
             static_cast<SingleInputNode *>(tail_)->setInputVar(inputVar);
         }
     }
-
 
     if (yield->yield()->isDistinct()) {
         auto dedup = Dedup::make(qctx_, dedupDep);

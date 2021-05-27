@@ -6,6 +6,7 @@
 #ifndef PARSER_MAINTAINSENTENCES_H_
 #define PARSER_MAINTAINSENTENCES_H_
 
+#include <string>
 #include "common/interface/gen-cpp2/common_types.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/base/Base.h"
@@ -18,19 +19,87 @@ namespace nebula {
 
 std::ostream& operator<<(std::ostream& os, meta::cpp2::PropertyType type);
 
+class ColumnProperty final {
+public:
+    using Value = std::variant<bool, std::unique_ptr<Expression>, std::unique_ptr<std::string>>;
+
+    explicit ColumnProperty(bool nullable = true)
+        : v_(nullable) {}
+
+    explicit ColumnProperty(Expression *defaultValue = nullptr)
+        : v_(std::unique_ptr<Expression>(defaultValue)) {}
+
+    explicit ColumnProperty(std::string *comment = nullptr)
+        : v_(std::unique_ptr<std::string>(comment)) {}
+
+    bool isNullable() const {
+        return std::holds_alternative<bool>(v_);
+    }
+
+    bool nullable() const {
+        DCHECK(isNullable());
+        return std::get<bool>(v_);
+    }
+
+    bool isDefaultValue() const {
+        return std::holds_alternative<std::unique_ptr<Expression>>(v_);
+    }
+
+    const auto* defaultValue() const {
+        DCHECK(isDefaultValue());
+        return std::get<std::unique_ptr<Expression>>(v_).get();
+    }
+
+    bool isComment() const {
+        return std::holds_alternative<std::unique_ptr<std::string>>(v_);
+    }
+
+    const auto* comment() const {
+        DCHECK(isComment());
+        return std::get<std::unique_ptr<std::string>>(v_).get();
+    }
+
+    std::string toString() const;
+
+private:
+    Value v_;
+};
+
+class ColumnProperties final {
+public:
+    ColumnProperties() = default;
+
+    void addProperty(ColumnProperty *property) {
+        properties_.emplace_back(property);
+    }
+
+    auto& properties() const {
+        return properties_;
+    }
+
+    std::string toString() const {
+        std::stringstream str;
+        for (const auto &property : properties_) {
+            str << property->toString();
+            str << " ";
+        }
+        return str.str();
+    }
+
+private:
+    std::vector<std::unique_ptr<ColumnProperty>> properties_;
+};
+
 class ColumnSpecification final {
 public:
     ColumnSpecification(std::string *name,
                         meta::cpp2::PropertyType type,
-                        bool isNull,
-                        Expression *defaultVaule,
-                        int16_t typeLen = 0) {
-        name_.reset(name);
-        type_ = type;
-        isNull_ = isNull;
-        defaultValue_.reset(defaultVaule);
-        typeLen_ = typeLen;
-    }
+                        ColumnProperties *properties,
+                        int16_t typeLen = 0)
+        : name_(name),
+          type_(type),
+          properties_(DCHECK_NOTNULL(properties)),
+          typeLen_(typeLen) {}
 
     meta::cpp2::PropertyType type() const {
         return type_;
@@ -40,29 +109,20 @@ public:
         return name_.get();
     }
 
-    bool isNull() const {
-        return isNull_;
-    }
-
     int16_t typeLen() const {
         return typeLen_;
     }
 
-    bool hasDefaultValue() const {
-        return defaultValue_ != nullptr;
-    }
-
-    Expression* getDefaultValue() const {
-        return defaultValue_.get();
+    auto& properties() const {
+        return properties_;
     }
 
     std::string toString() const;
 
 private:
-    meta::cpp2::PropertyType                    type_;
     std::unique_ptr<std::string>                name_;
-    bool                                        isNull_;
-    std::unique_ptr<Expression>                 defaultValue_;
+    meta::cpp2::PropertyType                    type_;
+    std::unique_ptr<ColumnProperties>           properties_{nullptr};
     int16_t                                     typeLen_{0};
 };
 
@@ -130,7 +190,8 @@ public:
 
     enum PropType : uint8_t {
         TTL_DURATION,
-        TTL_COL
+        TTL_COL,
+        COMMENT
     };
 
     SchemaPropItem(PropType op, int64_t val) {
@@ -163,6 +224,14 @@ public:
         } else {
             LOG(ERROR) << "Ttl_col value illegal: " << propValue_;
             return Status::Error("Ttl_col value illegal");
+        }
+    }
+
+    StatusOr<std::string> getComment() {
+        if (propType_ == COMMENT) {
+            return asString();
+        } else {
+            return Status::Error("Not exists comment.");
         }
     }
 
@@ -527,7 +596,8 @@ public:
     CreateTagIndexSentence(std::string *indexName,
                            std::string *tagName,
                            IndexFieldList *fields,
-                           bool ifNotExists)
+                           bool ifNotExists,
+                           std::string *comment)
         : CreateSentence(ifNotExists) {
         indexName_.reset(indexName);
         tagName_.reset(tagName);
@@ -536,6 +606,7 @@ public:
         } else {
             fields_.reset(fields);
         }
+        comment_.reset(comment);
         kind_ = Kind::kCreateTagIndex;
     }
 
@@ -558,10 +629,15 @@ public:
         return result;
     }
 
+    const std::string* comment() const {
+        return comment_.get();
+    }
+
 private:
     std::unique_ptr<std::string>                indexName_;
     std::unique_ptr<std::string>                tagName_;
     std::unique_ptr<IndexFieldList>             fields_;
+    std::unique_ptr<std::string>                comment_;
 };
 
 
@@ -570,7 +646,8 @@ public:
     CreateEdgeIndexSentence(std::string *indexName,
                             std::string *edgeName,
                             IndexFieldList *fields,
-                            bool ifNotExists)
+                            bool ifNotExists,
+                            std::string *comment)
         : CreateSentence(ifNotExists) {
         indexName_.reset(indexName);
         edgeName_.reset(edgeName);
@@ -579,6 +656,7 @@ public:
         } else {
             fields_.reset(fields);
         }
+        comment_.reset(comment);
         kind_ = Kind::kCreateEdgeIndex;
     }
 
@@ -601,10 +679,15 @@ public:
         return result;
     }
 
+    const std::string* comment() const {
+        return comment_.get();
+    }
+
 private:
     std::unique_ptr<std::string>                indexName_;
     std::unique_ptr<std::string>                edgeName_;
     std::unique_ptr<IndexFieldList>             fields_;
+    std::unique_ptr<std::string>                comment_;
 };
 
 
@@ -1058,6 +1141,75 @@ public:
 private:
     std::unique_ptr<std::string>                zoneName_;
     std::unique_ptr<HostAddr>                   address_;
+};
+
+#ifndef FULLTEXT_INDEX_NAME_PREFIX
+#define FULLTEXT_INDEX_NAME_PREFIX "nebula_"
+#endif
+class CreateFTIndexSentence final : public Sentence {
+public:
+    CreateFTIndexSentence(bool isEdge,
+                          std::string* indexName,
+                          std::string* schemaName,
+                          NameLabelList *fields) {
+        isEdge_ = isEdge;
+        indexName_.reset(indexName);
+        schemaName_.reset(schemaName);
+        fields_.reset(fields);
+        kind_ = Kind::kCreateFTIndex;
+    }
+
+    std::string toString() const override;
+
+    bool isEdge() {
+        return isEdge_;
+    }
+    const std::string* indexName() const {
+        return indexName_.get();
+    }
+
+    const std::string* schemaName() const {
+        return schemaName_.get();
+    }
+
+    std::vector<std::string> fields() const {
+        std::vector<std::string> result;
+        auto fields = fields_->labels();
+        result.resize(fields.size());
+        auto get = [] (auto ptr) { return *ptr; };
+        std::transform(fields.begin(), fields.end(), result.begin(), get);
+        return result;
+    }
+
+private:
+    bool                             isEdge_;
+    std::unique_ptr<std::string>     indexName_;
+    std::unique_ptr<std::string>     schemaName_;
+    std::unique_ptr<NameLabelList>   fields_;
+};
+class DropFTIndexSentence final : public Sentence {
+public:
+    explicit DropFTIndexSentence(std::string *indexName) {
+        indexName_.reset(indexName);
+        kind_ = Kind::kDropFTIndex;
+    }
+
+    std::string toString() const override;
+
+    const std::string* name() const {
+        return indexName_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>     indexName_;
+};
+
+class ShowFTIndexesSentence final : public Sentence {
+public:
+    ShowFTIndexesSentence() {
+        kind_ = Kind::kShowFTIndexes;
+    }
+    std::string toString() const override;
 };
 
 

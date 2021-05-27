@@ -9,7 +9,6 @@
 #include "planner/match/MatchSolver.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteVisitor.h"
-#include "visitor/RewriteUnaryNotExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -80,18 +79,7 @@ Status MatchValidator::validateImpl() {
                 unwindClauseCtx->aliasesUsed = aliasesUsed;
                 NG_RETURN_IF_ERROR(validateUnwind(unwindClause, *unwindClauseCtx));
 
-                if (aliasesUsed) {
-                    NG_RETURN_IF_ERROR(
-                        combineAliases(unwindClauseCtx->aliasesGenerated, *aliasesUsed));
-                }
-                aliasesUsed = &unwindClauseCtx->aliasesGenerated;
-                if (prevYieldColumns) {
-                    NG_RETURN_IF_ERROR(combineYieldColumns(
-                        const_cast<YieldColumns *>(unwindClauseCtx->yieldColumns),
-                        prevYieldColumns));
-                }
-                prevYieldColumns = const_cast<YieldColumns *>(unwindClauseCtx->yieldColumns);
-
+                aliasesUsed = unwindClauseCtx->aliasesUsed;
                 if (i == clauses.size() - 1) {
                     retClauseCtx->yield->aliasesUsed = aliasesUsed;
                     NG_RETURN_IF_ERROR(
@@ -99,6 +87,8 @@ Status MatchValidator::validateImpl() {
                 }
                 matchCtx_->clauses.emplace_back(std::move(unwindClauseCtx));
 
+                // TODO: delete prevYieldColumns
+                UNUSED(prevYieldColumns);
                 break;
             }
             case ReadingClause::Kind::kWith: {
@@ -249,7 +239,7 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
                     return Status::SemanticError("`%s': Unknown edge type", type->c_str());
                 }
                 edgeInfos[i].edgeTypes.emplace_back(etype.value());
-                edgeInfos[i].types.emplace_back(*type);
+                edgeInfos[i].types.emplace_back(type.get());
             }
         } else {
             const auto allEdgesResult =
@@ -292,11 +282,8 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
 
 Status MatchValidator::validateFilter(const Expression *filter,
                                       WhereClauseContext &whereClauseCtx) const {
-    // Fold constant expr
-    auto newFilter = ExpressionUtils::foldConstantExpr(filter);
-    // Reduce Unary expr
     auto pool = whereClauseCtx.qctx->objPool();
-    whereClauseCtx.filter = ExpressionUtils::reduceUnaryNotExpr(newFilter.get(), pool);
+    whereClauseCtx.filter = ExpressionUtils::filterTransform(filter, pool);
 
     auto typeStatus = deduceExprType(whereClauseCtx.filter);
     NG_RETURN_IF_ERROR(typeStatus);
@@ -357,7 +344,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
         } else if (kind == CypherClauseKind::kUnwind) {
             auto unwindClauseCtx = static_cast<const UnwindClauseContext *>(cypherClauseCtx);
             columns = saveObject(new YieldColumns());
-            columns->addColumn(makeColumn(unwindClauseCtx->aliasesGenerated.begin()->first));
+            columns->addColumn(makeColumn(unwindClauseCtx->alias));
         } else {
             // kWith
             auto withClauseCtx = static_cast<const WithClauseContext *>(cypherClauseCtx);
@@ -410,7 +397,12 @@ Status MatchValidator::validateAliases(
     const std::vector<const Expression *> &exprs,
     const std::unordered_map<std::string, AliasType> *aliasesUsed) const {
     static const std::unordered_set<Expression::Kind> kinds = {Expression::Kind::kLabel,
-                                                               Expression::Kind::kLabelAttribute};
+                                                               Expression::Kind::kLabelAttribute,
+                                                               // primitive props
+                                                               Expression::Kind::kEdgeSrc,
+                                                               Expression::Kind::kEdgeDst,
+                                                               Expression::Kind::kEdgeRank,
+                                                               Expression::Kind::kEdgeType};
 
     for (auto *expr : exprs) {
         auto refExprs = ExpressionUtils::collectAll(expr, kinds);
@@ -418,18 +410,7 @@ Status MatchValidator::validateAliases(
             continue;
         }
         for (auto *refExpr : refExprs) {
-            auto kind = refExpr->kind();
-            const std::string *name = nullptr;
-            if (kind == Expression::Kind::kLabel) {
-                name = static_cast<const LabelExpression *>(refExpr)->name();
-            } else {
-                DCHECK(kind == Expression::Kind::kLabelAttribute);
-                name = static_cast<const LabelAttributeExpression *>(refExpr)->left()->name();
-            }
-            DCHECK(name != nullptr);
-            if (!aliasesUsed || aliasesUsed->count(*name) != 1) {
-                return Status::SemanticError("Alias used but not defined: `%s'", name->c_str());
-            }
+            NG_RETURN_IF_ERROR(checkAlias(refExpr, aliasesUsed));
         }
     }
     return Status::OK();
@@ -493,22 +474,27 @@ Status MatchValidator::validateWith(const WithClause *with,
     return Status::OK();
 }
 
-Status MatchValidator::validateUnwind(const UnwindClause *unwind,
-                                      UnwindClauseContext &unwindClauseCtx) const {
-    if (unwind->alias() == nullptr) {
+Status MatchValidator::validateUnwind(const UnwindClause *unwindClause,
+                                      UnwindClauseContext &unwindCtx) const {
+    if (unwindClause->alias() == nullptr) {
         return Status::SemanticError("Expression in UNWIND must be aliased (use AS)");
     }
-    YieldColumns *columns = saveObject(new YieldColumns());
-    auto *expr = unwind->expr()->clone().release();
-    auto *alias = new std::string(*unwind->alias());
-    columns->addColumn(new YieldColumn(expr, alias));
-    NG_RETURN_IF_ERROR(
-        validateAliases(std::vector<const Expression *>{expr}, unwindClauseCtx.aliasesUsed));
+    unwindCtx.alias = *unwindClause->alias();
+    unwindCtx.unwindExpr = unwindCtx.qctx->objPool()->add(unwindClause->expr()->clone().release());
 
-    unwindClauseCtx.yieldColumns = columns;
-
-    if (!unwindClauseCtx.aliasesGenerated.emplace(*unwind->alias(), AliasType::kDefault).second) {
-        return Status::SemanticError("`%s': Redefined alias", unwind->alias()->c_str());
+    auto labelExprs = ExpressionUtils::collectAll(unwindCtx.unwindExpr, {Expression::Kind::kLabel});
+    for (auto *labelExpr : labelExprs) {
+        DCHECK_EQ(labelExpr->kind(), Expression::Kind::kLabel);
+        auto label = *(static_cast<const LabelExpression *>(labelExpr)->name());
+        if (!unwindCtx.aliasesUsed || !unwindCtx.aliasesUsed->count(label)) {
+            return Status::SemanticError("Variable `%s` not defined", label.c_str());
+        }
+    }
+    unwindCtx.aliasesGenerated.emplace(unwindCtx.alias, AliasType::kDefault);
+    if (!unwindCtx.aliasesUsed) {
+        unwindCtx.aliasesUsed = &unwindCtx.aliasesGenerated;
+    } else if (!unwindCtx.aliasesUsed->emplace(unwindCtx.alias, AliasType::kDefault).second) {
+        return Status::SemanticError("Variable `%s` already declared", unwindCtx.alias.c_str());
     }
 
     return Status::OK();
@@ -685,30 +671,35 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
     auto cols = yieldCtx.yieldColumns->columns();
     DCHECK(!cols.empty());
     for (auto *col : cols) {
-        auto rewrited = false;
+        auto *colExpr = col->expr();
         auto colOldName = deduceColName(col);
-        if (col->expr()->kind() != Expression::Kind::kAggregate) {
-            auto collectAggCol = col->expr()->clone();
+        if (colExpr->kind() != Expression::Kind::kAggregate) {
+            auto collectAggCol = colExpr->clone();
             auto aggs =
                 ExpressionUtils::collectAll(collectAggCol.get(), {Expression::Kind::kAggregate});
-            auto size = aggs.size();
-            if (size > 1) {
-                return Status::SemanticError("Aggregate function nesting is not allowed: `%s'",
-                                             collectAggCol->toString().c_str());
-            }
-            if (size == 1) {
-                // rewrite inner aggExpr to variablePropertyExpr
-                auto *rewritedExpr = ExpressionUtils::rewriteAgg2VarProp(col->expr());
-                rewrited = true;
+            for (auto *agg : aggs) {
+                DCHECK_EQ(agg->kind(), Expression::Kind::kAggregate);
+                if (!ExpressionUtils::checkAggExpr(static_cast<const AggregateExpression *>(agg))
+                         .ok()) {
+                    return Status::SemanticError("Aggregate function nesting is not allowed: `%s'",
+                                                 colExpr->toString().c_str());
+                }
+
+                yieldCtx.groupItems_.emplace_back(
+                    yieldCtx.qctx->objPool()->add(agg->clone().release()));
+
                 yieldCtx.needGenProject_ = true;
+                yieldCtx.aggOutputColumnNames_.emplace_back(agg->toString());
+            }
+            if (!aggs.empty()) {
+                auto *rewritedExpr = ExpressionUtils::rewriteAgg2VarProp(colExpr);
                 yieldCtx.projCols_->addColumn(
                     new YieldColumn(rewritedExpr, new std::string(colOldName)));
-
-                col->setExpr(aggs[0]->clone().release());
+                yieldCtx.projOutputColumnNames_.emplace_back(colOldName);
+                continue;
             }
         }
 
-        auto colExpr = col->expr();
         if (colExpr->kind() == Expression::Kind::kAggregate) {
             auto *aggExpr = static_cast<AggregateExpression *>(colExpr);
             NG_RETURN_IF_ERROR(ExpressionUtils::checkAggExpr(aggExpr));
@@ -717,17 +708,12 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
         }
 
         yieldCtx.groupItems_.emplace_back(colExpr);
-        std::string colNewName;
-        if (!rewrited) {
-            colNewName = deduceColName(col);
-            yieldCtx.projCols_->addColumn(new YieldColumn(
-                new VariablePropertyExpression(new std::string(), new std::string(colNewName)),
-                new std::string(colOldName)));
-        } else {
-            colNewName = colExpr->toString();
-        }
+
+        yieldCtx.projCols_->addColumn(new YieldColumn(
+            new VariablePropertyExpression(new std::string(), new std::string(colOldName)),
+            new std::string(colOldName)));
         yieldCtx.projOutputColumnNames_.emplace_back(colOldName);
-        yieldCtx.aggOutputColumnNames_.emplace_back(colNewName);
+        yieldCtx.aggOutputColumnNames_.emplace_back(colOldName);
     }
 
     return Status::OK();
@@ -753,6 +739,134 @@ Status MatchValidator::validateYield(YieldClauseContext &yieldCtx) const {
     } else {
         return validateGroup(yieldCtx);
     }
+}
+
+StatusOr<AliasType> MatchValidator::getAliasType(
+    const std::unordered_map<std::string, AliasType> *aliasesUsed,
+    const std::string *name) const {
+    auto iter = aliasesUsed->find(*name);
+    if (iter == aliasesUsed->end()) {
+        return Status::SemanticError("Alias used but not defined: `%s'", name->c_str());
+    }
+    return iter->second;
+}
+
+Status MatchValidator::checkAlias(
+    const Expression *refExpr,
+    const std::unordered_map<std::string, AliasType> *aliasesUsed) const {
+    auto kind = refExpr->kind();
+    AliasType aliasType = AliasType::kDefault;
+
+    switch (kind) {
+        case Expression::Kind::kLabel: {
+            auto name = static_cast<const LabelExpression *>(refExpr)->name();
+            auto res = getAliasType(aliasesUsed, name);
+            if (!res.ok()) {
+                return res.status();
+            }
+            return Status::OK();
+        }
+        case Expression::Kind::kLabelAttribute: {
+            auto name = static_cast<const LabelAttributeExpression *>(refExpr)->left()->name();
+            auto res = getAliasType(aliasesUsed, name);
+            if (!res.ok()) {
+                return res.status();
+            }
+            return Status::OK();
+        }
+        case Expression::Kind::kEdgeSrc: {
+            auto name = static_cast<const EdgeSrcIdExpression *>(refExpr)->sym();
+            auto res = getAliasType(aliasesUsed, name);
+            if (!res.ok()) {
+                return res.status();
+            }
+            aliasType = res.value();
+            switch (aliasType) {
+                case AliasType::kNode:
+                    return Status::SemanticError("Vertex `%s' does not have the src attribute",
+                                                 name->c_str());
+                case AliasType::kEdge:
+                    return Status::SemanticError("To get the src vid of the edge, use src(%s)",
+                                                 name->c_str());
+                case AliasType::kPath:
+                    return Status::SemanticError(
+                        "To get the start node of the path, use startNode(%s)", name->c_str());
+                default:
+                    return Status::SemanticError("Alias `%s' does not have the edge property src",
+                                                 name->c_str());
+            }
+        }
+        case Expression::Kind::kEdgeDst: {
+            auto name = static_cast<const EdgeDstIdExpression *>(refExpr)->sym();
+            auto res = getAliasType(aliasesUsed, name);
+            if (!res.ok()) {
+                return res.status();
+            }
+            aliasType = res.value();
+            switch (aliasType) {
+                case AliasType::kNode:
+                    return Status::SemanticError("Vertex `%s' does not have the dst attribute",
+                                                 name->c_str());
+                case AliasType::kEdge:
+                    return Status::SemanticError("To get the dst vid of the edge, use dst(%s)",
+                                                 name->c_str());
+                case AliasType::kPath:
+                    return Status::SemanticError("To get the end node of the path, use endNode(%s)",
+                                                 name->c_str());
+                default:
+                    return Status::SemanticError("Alias `%s' does not have the edge property dst",
+                                                 name->c_str());
+            }
+        }
+        case Expression::Kind::kEdgeRank: {
+            auto name = static_cast<const EdgeRankExpression *>(refExpr)->sym();
+            auto res = getAliasType(aliasesUsed, name);
+            if (!res.ok()) {
+                return res.status();
+            }
+            aliasType = res.value();
+            switch (aliasType) {
+                case AliasType::kNode:
+                    return Status::SemanticError("Vertex `%s' does not have the ranking attribute",
+                                                 name->c_str());
+                case AliasType::kEdge:
+                    return Status::SemanticError("To get the ranking of the edge, use rank(%s)",
+                                                 name->c_str());
+                case AliasType::kPath:
+                    return Status::SemanticError("Path `%s' does not have the ranking attribute",
+                                                 name->c_str());
+                default:
+                    return Status::SemanticError(
+                        "Alias `%s' does not have the edge property ranking", name->c_str());
+            }
+        }
+        case Expression::Kind::kEdgeType: {
+            auto name = static_cast<const EdgeTypeExpression *>(refExpr)->sym();
+            auto res = getAliasType(aliasesUsed, name);
+            if (!res.ok()) {
+                return res.status();
+            }
+            aliasType = res.value();
+            switch (aliasType) {
+                case AliasType::kNode:
+                    return Status::SemanticError("Vertex `%s' does not have the type attribute",
+                                                 name->c_str());
+                case AliasType::kEdge:
+                    return Status::SemanticError("To get the type of the edge, use type(%s)",
+                                                 name->c_str());
+                case AliasType::kPath:
+                    return Status::SemanticError("Path `%s' does not have the type attribute",
+                                                 name->c_str());
+                default:
+                    return Status::SemanticError(
+                        "Alias `%s' does not have the edge property ranking", name->c_str());
+            }
+        }
+        default:   // refExpr must satisfy one of cases and should never hit this branch
+            break;
+    }
+    return Status::SemanticError("Invalid expression `%s' does not contain alias",
+                                 refExpr->toString().c_str());
 }
 
 Status MatchValidator::buildOutputs(const YieldColumns *yields) {

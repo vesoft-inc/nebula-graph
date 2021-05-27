@@ -8,7 +8,7 @@
 
 #include "common/function/FunctionManager.h"
 #include "parser/Sentence.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 #include "util/SchemaUtil.h"
 #include "validator/ACLValidator.h"
@@ -231,6 +231,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<ShowStatusValidator>(sentence, context);
         case Sentence::Kind::kShowTSClients:
             return std::make_unique<ShowTSClientsValidator>(sentence, context);
+        case Sentence::Kind::kShowFTIndexes:
+            return std::make_unique<ShowFTIndexesValidator>(sentence, context);
         case Sentence::Kind::kSignInTSService:
             return std::make_unique<SignInTSServiceValidator>(sentence, context);
         case Sentence::Kind::kSignOutTSService:
@@ -239,6 +241,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DownloadValidator>(sentence, context);
         case Sentence::Kind::kIngest:
             return std::make_unique<IngestValidator>(sentence, context);
+        case Sentence::Kind::kCreateFTIndex:
+            return std::make_unique<CreateFTIndexValidator>(sentence, context);
+        case Sentence::Kind::kDropFTIndex:
+            return std::make_unique<DropFTIndexValidator>(sentence, context);
         case Sentence::Kind::kShowGroups:
         case Sentence::Kind::kShowZones:
         case Sentence::Kind::kUnknown:

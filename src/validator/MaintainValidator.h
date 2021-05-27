@@ -7,7 +7,6 @@
 #ifndef VALIDATOR_MAINTAINVALIDATOR_H_
 #define VALIDATOR_MAINTAINVALIDATOR_H_
 
-#include "common/base/Base.h"
 #include "validator/Validator.h"
 #include "parser/MaintainSentences.h"
 #include "parser/AdminSentences.h"
@@ -499,6 +498,41 @@ public:
         : Validator(sentence, context) {
         setNoSpaceRequired();
     }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class CreateFTIndexValidator final : public Validator {
+public:
+    CreateFTIndexValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    meta::cpp2::FTIndex               index_;
+};
+
+class DropFTIndexValidator final : public Validator {
+public:
+    DropFTIndexValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+class ShowFTIndexesValidator final : public Validator {
+public:
+    ShowFTIndexesValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;

@@ -8,8 +8,8 @@
 
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
-#include "planner/PlanNode.h"
-#include "planner/Query.h"
+#include "planner/plan/PlanNode.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/ExtractFilterExprVisitor.h"
 #include "visitor/RewriteVisitor.h"
@@ -43,18 +43,21 @@ StatusOr<OptRule::TransformResult> PushFilterDownAggregateRule::transform(
     DCHECK_EQ(deps.size(), 1);
     auto aggGroupNode = deps.front().node;
     auto* oldAggNode = aggGroupNode->node();
-    DCHECK(oldFilterNode->kind() == PlanNode::Kind::kFilter);
-    DCHECK(oldAggNode->kind() == PlanNode::Kind::kAggregate);
-    auto* newFilterNode = static_cast<const graph::Filter*>(oldFilterNode)->clone(qctx);
-    auto* newAggNode = static_cast<const graph::Aggregate*>(oldAggNode)->clone(qctx);
+    DCHECK_EQ(oldFilterNode->kind(), PlanNode::Kind::kFilter);
+    DCHECK_EQ(oldAggNode->kind(), PlanNode::Kind::kAggregate);
+    auto* newFilterNode = static_cast<graph::Filter*>(oldFilterNode->clone());
+    auto* newAggNode = static_cast<graph::Aggregate*>(oldAggNode->clone());
     const auto* condition = newFilterNode->condition();
     auto& groupItems = newAggNode->groupItems();
 
     // Check expression recursively to ensure no aggregate items in the filter
     auto varProps = graph::ExpressionUtils::collectAll(condition, {Expression::Kind::kVarProperty});
+    if (varProps.empty()) {
+        return TransformResult::noTransform();
+    }
     std::vector<std::string> propNames;
     for (auto* expr : varProps) {
-        DCHECK(expr->kind() == Expression::Kind::kVarProperty);
+        DCHECK_EQ(expr->kind(), Expression::Kind::kVarProperty);
         propNames.emplace_back(*static_cast<const VariablePropertyExpression*>(expr)->prop());
     }
     std::unordered_map<std::string, Expression*> rewriteMap;
@@ -92,7 +95,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownAggregateRule::transform(
     // Exchange planNode
     newAggNode->setOutputVar(oldFilterNode->outputVar());
     newFilterNode->setInputVar(oldAggNode->inputVar());
-    DCHECK(oldAggNode->outputVar() == oldFilterNode->inputVar());
+    DCHECK_EQ(oldAggNode->outputVar(), oldFilterNode->inputVar());
     newAggNode->setInputVar(oldAggNode->outputVar());
     newFilterNode->setOutputVar(oldAggNode->outputVar());
 

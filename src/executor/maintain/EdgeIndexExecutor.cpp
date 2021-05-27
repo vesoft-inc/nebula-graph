@@ -5,7 +5,7 @@
  */
 
 #include "executor/maintain/EdgeIndexExecutor.h"
-#include "planner/Maintain.h"
+#include "planner/plan/Maintain.h"
 #include "util/IndexUtil.h"
 
 namespace nebula {
@@ -22,7 +22,8 @@ folly::Future<Status> CreateEdgeIndexExecutor::execute() {
                           ceiNode->getIndexName(),
                           ceiNode->getSchemaName(),
                           ceiNode->getFields(),
-                          ceiNode->getIfNotExists())
+                          ceiNode->getIfNotExists(),
+                          ceiNode->getComment())
         .via(runner())
         .thenValue([ceiNode, spaceId](StatusOr<IndexID> resp) {
             if (!resp.ok()) {

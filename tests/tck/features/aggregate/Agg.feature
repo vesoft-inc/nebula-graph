@@ -384,6 +384,18 @@ Feature: Basic Aggregate and GroupBy
       | dst             | count |
       | "Tony Parker"   | 1     |
       | "Manu Ginobili" | 1     |
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
+      | GROUP BY $-.dst
+      YIELD
+        $-.dst AS dst,
+        (INT)(sum($-.age)/count($-.age))+avg(distinct $-.age+1)+1 AS statistics
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst             | statistics |
+      | "Tony Parker"   | 74.0       |
+      | "Manu Ginobili" | 84.0       |
 
   Scenario: Match Implicit GroupBy
     When executing query:
@@ -420,6 +432,17 @@ Feature: Basic Aggregate and GroupBy
       | 47  | 3     |
     When executing query:
       """
+      MATCH (v:player{name:"Tim Duncan"})-[:like]->(m)
+      RETURN
+        m.name as dst,
+        (INT)(sum(m.age)/count(m.age))+avg(distinct m.age+1)+1 AS statistics
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst             | statistics |
+      | "Tony Parker"   | 74.0       |
+      | "Manu Ginobili" | 84.0       |
+    When executing query:
+      """
       MATCH (v:player {name:"noexist"})-[:like]-(m:player)
       WITH m.age AS age, count(m.age) AS count
       RETURN age, count
@@ -443,6 +466,20 @@ Feature: Basic Aggregate and GroupBy
     Then the result should be, in order, with relax comparison:
       | count | sum | avg  | min  | max  | std  | b1   | b2   | b3   |
       | 0     | 0   | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+    When executing query:
+      """
+      UNWIND [1,2,3] AS d RETURN d | YIELD 1 IN COLLECT($-.d) AS b
+      """
+    Then the result should be, in order, with relax comparison:
+      | b    |
+      | True |
+    When executing query:
+      """
+      UNWIND [1,2,3] AS d RETURN d | YIELD ANY(l IN COLLECT($-.d) WHERE l==1) AS b
+      """
+    Then the result should be, in order, with relax comparison:
+      | b    |
+      | True |
 
   Scenario: Empty input
     When executing query:
@@ -542,6 +579,15 @@ Feature: Basic Aggregate and GroupBy
       | "Carmelo Anthony" | 1.5 | 1     |
       | "Dwyane Wade"     | 1.5 | 1     |
 
+  Scenario: Distinct sum
+    When executing query:
+      """
+      UNWIND [1,2,3,3] AS d RETURN d | YIELD sum(distinct $-.d) AS sum
+      """
+    Then the result should be, in any order:
+      | sum |
+      | 6   |
+
   Scenario: Error Check
     When executing query:
       """
@@ -608,7 +654,7 @@ Feature: Basic Aggregate and GroupBy
       """
       GO FROM "Tim Duncan" OVER like YIELD count(*)
       """
-    Then a SemanticError should be raised at runtime: `COUNT(*)', not support aggregate function in go sentence.
+    Then a SemanticError should be raised at runtime: `count(*)', not support aggregate function in go sentence.
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like where COUNT(*) > 2

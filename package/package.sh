@@ -88,6 +88,7 @@ function _build_storage {
         git clone --single-branch --branch ${branch} https://github.com/vesoft-inc/nebula-storage.git ${storage_dir}
     fi
 
+    pushd ${storage_build_dir}
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
           -DENABLE_ASAN=${san} \
@@ -98,17 +99,18 @@ function _build_storage {
           -DNEBULA_COMMON_REPO_TAG=${branch} \
           -DENABLE_TESTING=OFF \
           -DENABLE_PACK_ONE=${package_one} \
-          -S ${storage_dir} \
-          -B ${storage_build_dir}
+          ${storage_dir}
 
-    if ! ( cmake --build ${storage_build_dir} -j ${jobs} ); then
+    if ! ( make -j ${jobs} ); then
         echo ">>> build nebula storage failed <<<"
         exit 1
     fi
+    popd
     echo ">>> build nebula storage successfully <<<"
 }
 
 function _build_graph {
+    pushd ${build_dir}
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
           -DENABLE_ASAN=${san} \
@@ -120,13 +122,13 @@ function _build_graph {
           -DENABLE_TESTING=OFF \
           -DENABLE_BUILD_STORAGE=OFF \
           -DENABLE_PACK_ONE=${package_one} \
-          -S ${project_dir} \
-          -B ${build_dir}
+          ${project_dir}
 
-    if ! ( cmake --build ${build_dir} -j ${jobs} ); then
+    if ! ( make -j ${jobs} ); then
         echo ">>> build nebula graph failed <<<"
         exit 1
     fi
+    popd
     echo ">>> build nebula graph successfully <<<"
 }
 
@@ -171,25 +173,7 @@ function package {
     args=""
     [[ $strip_enable == TRUE ]] && args="-D CPACK_STRIP_FILES=TRUE -D CPACK_RPM_SPEC_MORE_DEFINE="
 
-    sys_ver=""
-    pType="RPM"
-    if [[ -f "/etc/redhat-release" ]]; then
-        sys_name=$(< /etc/redhat-release cut -d ' ' -f1)
-        if [[ ${sys_name} == "CentOS" ]]; then
-            sys_ver=$(< /etc/redhat-release tr -dc '0-9.' | cut -d \. -f1)
-            sys_ver=.el${sys_ver}.x86_64
-        elif [[ ${sys_name} == "Fedora" ]]; then
-            sys_ver=$(< /etc/redhat-release cut -d ' ' -f3)
-            sys_ver=.fc${sys_ver}.x86_64
-        fi
-        pType="RPM"
-    elif [[ -f "/etc/lsb-release" ]]; then
-        sys_ver=$(< /etc/lsb-release grep DISTRIB_RELEASE | cut -d "=" -f 2 | sed 's/\.//')
-        sys_ver=.ubuntu${sys_ver}.amd64
-        pType="DEB"
-    fi
-
-    if ! ( cpack -G ${pType} --verbose $args ); then
+    if ! ( cpack --verbose $args ); then
         echo ">>> package nebula failed <<<"
         exit 1
     else
@@ -197,9 +181,8 @@ function package {
         outputDir=$build_dir/cpack_output
         mkdir -p ${outputDir}
         for pkg_name in $(ls ./*nebula*-${version}*); do
-            new_pkg_name=${pkg_name/\-Linux/${sys_ver}}
-            mv ${pkg_name} ${outputDir}/${new_pkg_name}
-            echo "####### taget package file is ${outputDir}/${new_pkg_name}"
+            mv ${pkg_name} ${outputDir}/
+            echo "####### taget package file is ${outputDir}/${pkg_name}"
         done
     fi
 

@@ -8,8 +8,8 @@
 #include "common/expression/LabelAttributeExpression.h"
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
-#include "planner/PlanNode.h"
-#include "planner/Query.h"
+#include "planner/plan/PlanNode.h"
+#include "planner/plan/Query.h"
 
 using nebula::graph::IndexScan;
 using nebula::graph::OptimizerUtils;
@@ -49,7 +49,9 @@ StatusOr<OptRule::TransformResult> IndexScanRule::transform(OptContext* ctx,
         NG_RETURN_IF_ERROR(createIndexQueryCtx(iqctx, kind, items, qctx, groupNode));
     }
 
-    auto newIN = static_cast<const IndexScan*>(groupNode->node())->clone(qctx);
+    const auto* oldIN = groupNode->node();
+    DCHECK_EQ(oldIN->kind(), graph::PlanNode::Kind::kIndexScan);
+    auto* newIN = static_cast<IndexScan*>(oldIN->clone());
     newIN->setIndexQueryContext(std::move(iqctx));
     auto newGroupNode = OptGroupNode::create(ctx, newIN, groupNode->group());
     if (groupNode->dependencies().size() != 1) {
@@ -343,9 +345,9 @@ Status IndexScanRule::analyzeExpression(Expression* expr,
                                                    expr->toString().c_str());
                 return Status::NotSupported(errorMsg);
             }
-            // TODO(dutor) Deal with n-ary operands
-            NG_RETURN_IF_ERROR(analyzeExpression(lExpr->operand(0), items, kind, isEdge));
-            NG_RETURN_IF_ERROR(analyzeExpression(lExpr->operand(1), items, kind, isEdge));
+            for (size_t i = 0; i < lExpr->operands().size(); ++i) {
+                NG_RETURN_IF_ERROR(analyzeExpression(lExpr->operand(i), items, kind, isEdge));
+            }
             break;
         }
         case Expression::Kind::kRelLE:

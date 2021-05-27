@@ -6,7 +6,7 @@
 
 #include "executor/query/FilterExecutor.h"
 
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 #include "context/QueryExpressionContext.h"
 #include "util/ScopedTimer.h"
@@ -33,7 +33,7 @@ folly::Future<Status> FilterExecutor::execute() {
     auto condition = filter->condition();
     while (iter->valid()) {
         auto val = condition->eval(ctx(iter.get()));
-        if (!val.empty() && !val.isBool() && !val.isNull()) {
+        if (val.isBadNull() || (!val.empty() && !val.isBool() && !val.isNull())) {
             return Status::Error("Internal Error: Wrong type result, "
                                  "the type should be NULL,EMPTY or BOOL");
         }

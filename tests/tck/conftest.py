@@ -11,8 +11,7 @@ import io
 import csv
 import re
 
-from nebula2.common.ttypes import Value
-from nebula2.graph.ttypes import ErrorCode
+from nebula2.common.ttypes import Value, ErrorCode
 from pytest_bdd import given, parsers, then, when
 
 from tests.common.dataset_printer import DataSetPrinter
@@ -150,6 +149,20 @@ def new_space(request, options, session, graph_spaces):
     graph_spaces["space_desc"] = space_desc
     graph_spaces["drop_space"] = True
 
+@given(parse("Any graph"))
+def new_space(request, session, graph_spaces):
+    name = "EmptyGraph_" + space_generator()
+    space_desc = SpaceDesc(
+        name=name,
+        partition_num=9,
+        replica_factor=1,
+        vid_type="FIXED_STRING(30)",
+        charset="utf8",
+        collate="utf8_bin",
+    )
+    create_space(space_desc, session)
+    graph_spaces["space_desc"] = space_desc
+    graph_spaces["drop_space"] = True
 
 @given(parse('load "{data}" csv data to a new space'))
 def import_csv_data(request, data, graph_spaces, session, pytestconfig):

@@ -6,7 +6,7 @@
 #ifndef _VALIDATOR_INDEXSCAN_VALIDATOR_H_
 #define _VALIDATOR_INDEXSCAN_VALIDATOR_H_
 
-#include <planner/Query.h>
+#include "planner/plan/Query.h"
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
@@ -32,28 +32,19 @@ private:
 
     Status prepareFilter();
 
-    StatusOr<std::string> rewriteTSFilter(Expression* expr);
+    StatusOr<Expression*> checkFilter(Expression* expr);
 
-    StatusOr<std::vector<std::string>> textSearch(TextSearchExpression* expr);
+    StatusOr<Expression*> checkRelExpr(RelationalExpression* expr);
 
-    bool needTextSearch(Expression* expr);
-
-    Status checkFilter(Expression* expr);
-
-    Status checkRelExpr(RelationalExpression* expr);
-
-    Status rewriteRelExpr(RelationalExpression* expr);
+    StatusOr<Expression*> rewriteRelExpr(RelationalExpression* expr);
 
     StatusOr<Value> checkConstExpr(Expression* expr,
                                    const std::string& prop,
-                                   const Expression::Kind kind,
-                                   bool leftIsAE);
+                                   const Expression::Kind kind);
 
-    Status checkTSService();
+    StatusOr<std::string> checkTSExpr(Expression* expr);
 
-    Status checkTSIndex();
-
-    const nebula::plugin::HttpClient& randomFTClient() const;
+    std::unique_ptr<Expression> reverseRelKind(RelationalExpression* expr);
 
 private:
     static constexpr char kSrcVID[] = "SrcVID";
@@ -68,9 +59,8 @@ private:
     bool                              isEdge_{false};
     int32_t                           schemaId_;
     bool                              isEmptyResultSet_{false};
-    bool                              textSearchReady_{false};
     std::string                       from_;
-    std::vector<nebula::plugin::HttpClient> esClients_;
+    std::vector<nebula::plugin::HttpClient> tsClients_;
     std::vector<std::string>          idxScanColNames_;
     std::vector<std::string>          colNames_;
     bool                              withProject_{false};

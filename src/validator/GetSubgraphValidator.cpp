@@ -12,9 +12,9 @@
 #include "common/expression/VertexExpression.h"
 #include "context/QueryExpressionContext.h"
 #include "parser/TraverseSentences.h"
-#include "planner/Logic.h"
-#include "planner/Query.h"
-#include "planner/Algo.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/Query.h"
+#include "planner/plan/Algo.h"
 
 namespace nebula {
 namespace graph {
@@ -228,12 +228,13 @@ Status GetSubgraphValidator::toPlan() {
     subgraph->setOutputVar(startVidsVar);
     subgraph->setColNames({nebula::kVid});
 
-    auto* loopCondition = buildNStepLoopCondition(steps_.steps + 1);
+    auto* loopCondition = buildExpandCondition(gn->outputVar(), steps_.steps + 1);
+    qctx_->objPool()->add(loopCondition);
     auto* loop = Loop::make(qctx_, loopDep, subgraph, loopCondition);
 
-    std::vector<std::string> collects = {gn->outputVar(), oneMoreStepOutput};
-    auto* dc =
-        DataCollect::make(qctx_, loop, DataCollect::CollectKind::kSubgraph, std::move(collects));
+    auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kSubgraph);
+    dc->addDep(loop);
+    dc->setInputVars({gn->outputVar(), oneMoreStepOutput});
     dc->setColNames({"_vertices", "_edges"});
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;

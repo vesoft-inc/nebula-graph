@@ -12,8 +12,8 @@
 #include "common/charset/Charset.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "parser/MaintainSentences.h"
-#include "planner/Admin.h"
-#include "planner/Query.h"
+#include "planner/plan/Admin.h"
+#include "planner/plan/Query.h"
 #include "service/GraphFlags.h"
 #include "util/SchemaUtil.h"
 
@@ -92,11 +92,20 @@ Status CreateSpaceValidator::validateImpl() {
                 } else {
                     spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::DEFAULT);
                 }
+                break;
             }
             case SpaceOptItem::GROUP_NAME: {
                 break;
             }
         }
+    }
+    // check comment
+    if (sentence->comment() != nullptr) {
+        spaceDesc_.set_comment(*sentence->comment());
+    }
+
+    if (sentence->groupName() != nullptr && *sentence->groupName() == "default") {
+        return Status::SemanticError("Group default conflict");
     }
 
     // if charset and collate are not specified, set default value

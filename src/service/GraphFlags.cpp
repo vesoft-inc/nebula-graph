@@ -4,7 +4,6 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "common/base/Base.h"
 #include "service/GraphFlags.h"
 
 DEFINE_int32(port, 3699, "Nebula Graph daemon's listen port");
@@ -53,3 +52,5 @@ DEFINE_bool(enable_optimizer, false, "Whether to enable optimizer");
 DEFINE_uint32(ft_request_retry_times, 3, "Retry times if fulltext request failed");
 
 DEFINE_bool(accept_partial_success, false, "Whether to accept partial success, default false");
+
+DEFINE_double(system_memory_high_watermark_ratio, 0.8, "high watermark ratio of system memory");

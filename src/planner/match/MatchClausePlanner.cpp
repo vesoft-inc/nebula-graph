@@ -6,8 +6,8 @@
 
 #include "planner/match/MatchClausePlanner.h"
 
-#include "context/ast/QueryAstContext.h"
-#include "planner/Query.h"
+#include "context/ast/CypherAstContext.h"
+#include "planner/plan/Query.h"
 #include "planner/match/Expand.h"
 #include "planner/match/MatchSolver.h"
 #include "planner/match/SegmentsConnector.h"
@@ -81,6 +81,7 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
                     startFromEdge = true;
                     startIndex = i;
                     foundStart = true;
+                    initialExpr_ = edgeCtx.initialExpr->clone();
                     break;
                 }
             }
@@ -246,12 +247,7 @@ Status MatchClausePlanner::expandFromEdge(const std::vector<NodeInfo>& nodeInfos
                                           MatchClauseContext* matchClauseCtx,
                                           size_t startIndex,
                                           SubPlan& subplan) {
-    UNUSED(nodeInfos);
-    UNUSED(edgeInfos);
-    UNUSED(matchClauseCtx);
-    UNUSED(startIndex);
-    UNUSED(subplan);
-    return Status::Error("Expand from edge has not been implemented yet.");
+    return expandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, subplan);
 }
 
 Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClauseCtx,

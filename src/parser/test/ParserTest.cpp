@@ -898,7 +898,7 @@ TEST(Parser, InsertEdge) {
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
-        std::string query = "INSERT EDGE NO OVERWRITE transfer(amount, time_) "
+        std::string query = "INSERT EDGE IF NOT EXISTS transfer(amount, time_) "
                             "VALUES \"-12345\"->\"54321\":(3.75, 1537408527)";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
@@ -910,14 +910,14 @@ TEST(Parser, InsertEdge) {
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
-        std::string query = "INSERT EDGE NO OVERWRITE transfer(amount, time_) "
+        std::string query = "INSERT EDGE IF NOT EXISTS transfer(amount, time_) "
                             "VALUES \"12345\"->\"54321@1537408527\":(3.75, 1537408527)";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     // Test insert empty value
     {
-        std::string query = "INSERT EDGE NO OVERWRITE transfer() "
+        std::string query = "INSERT EDGE IF NOT EXISTS transfer() "
                             "VALUES \"12345\"->\"54321@1537408527\":()";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
@@ -2480,6 +2480,24 @@ TEST(Parser, MatchMultipleTags) {
     }
     {
         std::string query = "MATCH () --> (:person {name: 'Jerry'}:player) RETURN *";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+}
+
+TEST(Parser, MatchListSubscriptRange) {
+    {
+        std::string query = "WITH [0, 1, 2] AS list RETURN list[0..] AS l";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "RETURN [0, 1, 2][0..] AS l";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "RETURN [0, 1, 2][0..1] AS l";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }

@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "validator/FetchEdgesValidator.h"
 #include "validator/test/ValidatorTestBase.h"
 
@@ -317,8 +317,9 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         dedup->setColNames(colNames);
 
         // data collect
-        auto *dataCollect = DataCollect::make(
-            qctx, dedup, DataCollect::CollectKind::kRowBasedMove, {dedup->outputVar()});
+        auto *dataCollect = DataCollect::make(qctx, DataCollect::DCKind::kRowBasedMove);
+        dataCollect->addDep(dedup);
+        dataCollect->setInputVars({dedup->outputVar()});
         dataCollect->setColNames(colNames);
 
         auto result = Eq(qctx->plan()->root(), dataCollect);

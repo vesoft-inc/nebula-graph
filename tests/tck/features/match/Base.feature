@@ -480,11 +480,6 @@ Feature: Basic match
     Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player{age:23}:bachelor) RETURN v
     When executing query:
       """
-      MATCH () -[r:serve]-> () return *
-      """
-    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-[r:serve]->() RETURN *
-    When executing query:
-      """
       MATCH () -[]-> (v) return *
       """
     Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v) RETURN *
@@ -493,3 +488,10 @@ Feature: Basic match
       MATCH () --> (v) --> () return *
       """
     Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *
+    # The 0 step means node scan in fact, but p and t has no label or properties for index seek
+    # So it's not workable now
+    When executing query:
+      """
+      MATCH (p)-[:serve*0..3]->(t) RETURN p
+      """
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (p)-[:serve*0..3]->(t) RETURN p

@@ -7,8 +7,7 @@
 #ifndef VALIDATOR_GOVALIDATOR_H_
 #define VALIDATOR_GOVALIDATOR_H_
 
-#include "common/base/Base.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "validator/TraversalValidator.h"
 
 namespace nebula {
@@ -29,7 +28,7 @@ private:
 
     void extractPropExprs(const Expression* expr);
 
-    Expression* rewriteToInputProp(const Expression* expr);
+    Expression* rewrite2VarProp(const Expression* expr);
 
     Status buildColumns();
 

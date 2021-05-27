@@ -10,12 +10,12 @@
 #include "context/QueryContext.h"
 #include "context/ValidateContext.h"
 #include "parser/GQLParser.h"
-#include "planner/Admin.h"
-#include "planner/ExecutionPlan.h"
-#include "planner/Maintain.h"
-#include "planner/Mutate.h"
-#include "planner/PlanNode.h"
-#include "planner/Query.h"
+#include "planner/plan/Admin.h"
+#include "planner/plan/ExecutionPlan.h"
+#include "planner/plan/Maintain.h"
+#include "planner/plan/Mutate.h"
+#include "planner/plan/PlanNode.h"
+#include "planner/plan/Query.h"
 #include "util/Utils.h"
 
 namespace nebula {
@@ -87,7 +87,7 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
         case PlanNode::Kind::kDataCollect: {
             const auto *lDC = static_cast<const DataCollect*>(l);
             const auto *rDC = static_cast<const DataCollect*>(r);
-            if (lDC->collectKind() != rDC->collectKind()) {
+            if (lDC->kind() != rDC->kind()) {
                 return Status::Error(
                     "%s.collectKind_ != %s.collectKind_",
                     l->outputVar().c_str(), r->outputVar().c_str());
@@ -220,8 +220,8 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
         return Eq(lDep, rDep);
     }
 
-    const auto *lBi = dynamic_cast<const BiInputNode *>(l);
-    const auto *rBi = dynamic_cast<const BiInputNode *>(r);
+    const auto *lBi = dynamic_cast<const BinaryInputNode *>(l);
+    const auto *rBi = dynamic_cast<const BinaryInputNode *>(r);
     if (lBi != nullptr) {
         const auto *llInput = lBi->left();
         const auto *rlInput = CHECK_NOTNULL(rBi)->left();

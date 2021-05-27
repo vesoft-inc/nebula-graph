@@ -7,9 +7,10 @@
 #include "executor/admin/SpaceExecutor.h"
 #include "context/QueryContext.h"
 #include "service/PermissionManager.h"
-#include "planner/Admin.h"
+#include "planner/plan/Admin.h"
 #include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
+#include "util/FTIndexUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -57,7 +58,8 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                                     "Collate",
                                     "Vid Type",
                                     "Atomic Edge",
-                                    "Group"};
+                                    "Group",
+                                    "Comment"};
                 Row row;
                 row.values.emplace_back(spaceId);
                 row.values.emplace_back(properties.get_space_name());
@@ -66,16 +68,21 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 row.values.emplace_back(properties.get_charset_name());
                 row.values.emplace_back(properties.get_collate_name());
                 row.values.emplace_back(SchemaUtil::typeToString(properties.get_vid_type()));
-                std::string sAtomicEdge{"false"};
+                bool sAtomicEdge{false};
                 if (properties.isolation_level_ref().has_value()  &&
                     (*properties.isolation_level_ref() == meta::cpp2::IsolationLevel::TOSS)) {
-                    sAtomicEdge = "true";
+                    sAtomicEdge = true;
                 }
                 row.values.emplace_back(sAtomicEdge);
                 if (properties.group_name_ref().has_value()) {
                     row.values.emplace_back(*properties.group_name_ref());
                 } else {
                     row.values.emplace_back("default");
+                }
+                if (properties.comment_ref().has_value()) {
+                    row.values.emplace_back(*properties.comment_ref());
+                } else {
+                    row.values.emplace_back();
                 }
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
@@ -89,9 +96,22 @@ folly::Future<Status> DropSpaceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *dsNode = asNode<DropSpace>(node());
+
+    // prepare text search index before drop meta data.
+    std::vector<std::string> ftIndexes;
+    auto spaceIdRet = qctx()->getMetaClient()->getSpaceIdByNameFromCache(dsNode->getSpaceName());
+    if (spaceIdRet.ok()) {
+        auto ftIndexesRet = qctx()->getMetaClient()->getFTIndexBySpaceFromCache(spaceIdRet.value());
+        NG_RETURN_IF_ERROR(ftIndexesRet);
+        auto map = std::move(ftIndexesRet).value();
+        transform(map.begin(), map.end(), ftIndexes.begin(), [](auto pair) { return pair.first; });
+    } else {
+        LOG(WARNING) << "Get space ID failed when prepare text index: " << dsNode->getSpaceName();
+    }
+
     return qctx()->getMetaClient()->dropSpace(dsNode->getSpaceName(), dsNode->getIfExists())
             .via(runner())
-            .thenValue([this, dsNode](StatusOr<bool> resp) {
+            .thenValue([this, dsNode, spaceIdRet, ftIndexes](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "Drop space `" << dsNode->getSpaceName()
                                << "' failed: " << resp.status();
@@ -102,6 +122,20 @@ folly::Future<Status> DropSpaceExecutor::execute() {
                     spaceInfo.name = "";
                     spaceInfo.id = -1;
                     qctx()->rctx()->session()->setSpace(std::move(spaceInfo));
+                }
+                if (!ftIndexes.empty()) {
+                    auto tsRet = FTIndexUtils::getTSClients(qctx()->getMetaClient());
+                    if (!tsRet.ok()) {
+                        LOG(WARNING) << "Get text search clients failed";
+                        return Status::OK();
+                    }
+                    for (const auto& ftindex : ftIndexes) {
+                        auto ftRet = FTIndexUtils::dropTSIndex(std::move(tsRet).value(), ftindex);
+                        if (!ftRet.ok()) {
+                            LOG(WARNING) << "Drop fulltext index `"
+                                         << ftindex << "' failed: " << ftRet.status();
+                        }
+                    }
                 }
                 return Status::OK();
             });
@@ -161,19 +195,42 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                     (*properties.isolation_level_ref() == meta::cpp2::IsolationLevel::TOSS)) {
                     sAtomicEdge = "true";
                 }
-                auto fmt = "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
-                           "charset = %s, collate = %s, vid_type = %s, atomic_edge = %s) ON %s";
-                row.values.emplace_back(folly::stringPrintf(
-                    fmt,
-                    properties.get_space_name().c_str(),
-                    properties.get_partition_num(),
-                    properties.get_replica_factor(),
-                    properties.get_charset_name().c_str(),
-                    properties.get_collate_name().c_str(),
-                    SchemaUtil::typeToString(properties.get_vid_type()).c_str(),
-                    sAtomicEdge.c_str(),
-                    properties.group_name_ref().has_value() ?
-                        (*properties.group_name_ref()).c_str() : "default"));
+                auto fmt = properties.comment_ref().has_value() ?
+                           "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
+                           "charset = %s, collate = %s, vid_type = %s, atomic_edge = %s"
+                           ") ON %s"
+                           " comment = '%s'" :
+                           "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
+                           "charset = %s, collate = %s, vid_type = %s, atomic_edge = %s"
+                           ") ON %s";
+                if (properties.comment_ref().has_value()) {
+                    row.values.emplace_back(folly::stringPrintf(
+                        fmt,
+                        properties.get_space_name().c_str(),
+                        properties.get_partition_num(),
+                        properties.get_replica_factor(),
+                        properties.get_charset_name().c_str(),
+                        properties.get_collate_name().c_str(),
+                        SchemaUtil::typeToString(properties.get_vid_type()).c_str(),
+                        sAtomicEdge.c_str(),
+                        properties.group_name_ref().has_value() ?
+                            properties.get_group_name()->c_str() :
+                            "default",
+                        properties.comment_ref()->c_str()));
+                } else {
+                    row.values.emplace_back(folly::stringPrintf(
+                        fmt,
+                        properties.get_space_name().c_str(),
+                        properties.get_partition_num(),
+                        properties.get_replica_factor(),
+                        properties.get_charset_name().c_str(),
+                        properties.get_collate_name().c_str(),
+                        SchemaUtil::typeToString(properties.get_vid_type()).c_str(),
+                        sAtomicEdge.c_str(),
+                        properties.group_name_ref().has_value() ?
+                            properties.group_name_ref()->c_str() :
+                            "default"));
+                }
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
                                   .value(Value(std::move(dataSet)))

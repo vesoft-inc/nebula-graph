@@ -12,7 +12,7 @@
 #include "common/expression/VariableExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/TraverseSentences.h"
-#include "planner/Logic.h"
+#include "planner/plan/Logic.h"
 #include "visitor/ExtractPropExprVisitor.h"
 
 namespace nebula {
@@ -96,8 +96,8 @@ Status GoValidator::validateYield(YieldClause* yield) {
         yields_ = newCols;
     } else {
         for (auto col : cols) {
-            NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
             col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
+            NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
 
             auto* colExpr = col->expr();
             if (graph::ExpressionUtils::findAny(colExpr, {Expression::Kind::kAggregate})) {
@@ -241,11 +241,13 @@ Status GoValidator::buildNStepsPlan() {
         loopBody = projectFromJoin;
     }
 
+    auto *condition = buildExpandCondition(gn->outputVar(), steps_.steps - 1);
+    qctx_->objPool()->add(condition);
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
         loopBody,                                                                   // body
-        buildNStepLoopCondition(steps_.steps - 1));
+        condition);
 
     NG_RETURN_IF_ERROR(oneStep(loop, dedupDstVids->outputVar(), projectFromJoin));
     // reset tail_
@@ -364,11 +366,15 @@ Status GoValidator::buildMToNPlan() {
         dedupNode->setColNames(std::move(colNames_));
     }
 
+    PlanNode *body = dedupNode == nullptr ? projectResult : dedupNode;
+    auto *condition = buildExpandCondition(body->outputVar(),
+                                           steps_.mToN->nSteps);
+    qctx_->objPool()->add(condition);
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
-        dedupNode == nullptr ? projectResult : dedupNode,                           // body
-        buildNStepLoopCondition(steps_.mToN->nSteps));
+        body,  // body
+        condition);
 
     if (projectStartVid_ != nullptr) {
         tail_ = projectStartVid_;
@@ -382,12 +388,13 @@ Status GoValidator::buildMToNPlan() {
     } else {
         collectVars = {dedupNode->outputVar()};
     }
-    auto* dataCollect =
-        DataCollect::make(qctx_, loop, DataCollect::CollectKind::kMToN, collectVars);
-    dataCollect->setMToN(steps_.mToN);
-    dataCollect->setDistinct(distinct_);
-    dataCollect->setColNames(projectResult->colNames());
-    root_ = dataCollect;
+    auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kMToN);
+    dc->addDep(loop);
+    dc->setInputVars(collectVars);
+    dc->setMToN(steps_.mToN);
+    dc->setDistinct(distinct_);
+    dc->setColNames(projectResult->colNames());
+    root_ = dc;
     return Status::OK();
 }
 
@@ -745,14 +752,15 @@ void GoValidator::extractPropExprs(const Expression* expr) {
     const_cast<Expression*>(expr)->accept(&visitor);
 }
 
-Expression* GoValidator::rewriteToInputProp(const Expression* expr) {
+Expression* GoValidator::rewrite2VarProp(const Expression* expr) {
     auto matcher = [this](const Expression* e) -> bool {
         return propExprColMap_.find(e->toString()) != propExprColMap_.end();
     };
     auto rewriter = [this](const Expression* e) -> Expression* {
         auto iter = propExprColMap_.find(e->toString());
         DCHECK(iter != propExprColMap_.end());
-        return new InputPropertyExpression(new std::string(*(iter->second->alias())));
+        return new VariablePropertyExpression(new std::string(""),
+                                              new std::string(*(iter->second->alias())));
     };
 
     return RewriteVisitor::transform(expr, matcher, rewriter);
@@ -781,7 +789,7 @@ Status GoValidator::buildColumns() {
         extractPropExprs(filter_);
         auto newFilter = filter_->clone();
         DCHECK(!newFilter_);
-        newFilter_ = rewriteToInputProp(newFilter.get());
+        newFilter_ = rewrite2VarProp(newFilter.get());
         pool->add(newFilter_);
     }
 
@@ -789,7 +797,7 @@ Status GoValidator::buildColumns() {
     for (auto* yield : yields_->columns()) {
         extractPropExprs(yield->expr());
         auto* alias = yield->alias() == nullptr ? nullptr : new std::string(*(yield->alias()));
-        newYieldCols_->addColumn(new YieldColumn(rewriteToInputProp(yield->expr()), alias));
+        newYieldCols_->addColumn(new YieldColumn(rewrite2VarProp(yield->expr()), alias));
     }
 
     return Status::OK();

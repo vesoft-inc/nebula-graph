@@ -348,7 +348,7 @@ Feature: IntegerVid Go  Sentence
       """
       YIELD serve.start_year, like.likeness, serve._type, like._type
       """
-    Then a SemanticError should be raised at runtime: Not supported expression `serve.start_year' for props deduction.
+    Then a SemanticError should be raised at runtime: Invalid label identifiers: serve
     When executing query:
       """
       GO FROM hash("Russell Westbrook") OVER serve, like REVERSELY
@@ -1595,23 +1595,23 @@ Feature: IntegerVid Go  Sentence
     When executing query:
       """
       $a = GO FROM hash('Tony Parker') OVER like YIELD like._src as src, like._dst as dst;
-      GO 2 STEPS FROM $a.src OVER like YIELD $a.src as src, $a.dst, like._src, like._dst
-      | ORDER BY $-.src | OFFSET 1 LIMIT 2
+      GO 2 STEPS FROM $a.src OVER like YIELD $a.src as src, $a.dst, like._src AS like_src, like._dst AS like_dst
+      | ORDER BY $-.src,$-.like_src,$-.like_dst | OFFSET 1 LIMIT 2
       """
     Then the result should be, in any order, with relax comparison, and the columns 0,1,2,3 should be hashed:
-      | src           | $a.dst          | like._src       | like._dst    |
-      | "Tony Parker" | "Manu Ginobili" | "Manu Ginobili" | "Tim Duncan" |
-      | "Tony Parker" | "Tim Duncan"    | "Manu Ginobili" | "Tim Duncan" |
+      | src           | $a.dst          | like_src            | like_dst      |
+      | "Tony Parker" | "Manu Ginobili" | "LaMarcus Aldridge" | "Tony Parker" |
+      | "Tony Parker" | "Tim Duncan"    | "LaMarcus Aldridge" | "Tony Parker" |
     When executing query:
       """
       $a = GO FROM hash('Tony Parker') OVER like YIELD like._src as src, like._dst as dst;
-      GO 2 STEPS FROM $a.src OVER like YIELD $a.src as src, $a.dst, like._src, like._dst
-      | ORDER BY $-.src | LIMIT 2 OFFSET 1
+      GO 2 STEPS FROM $a.src OVER like YIELD $a.src as src, $a.dst, like._src AS like_src, like._dst AS like_dst
+      | ORDER BY $-.src,$-.like_src,$-.like_dst | LIMIT 2 OFFSET 1
       """
     Then the result should be, in any order, with relax comparison, and the columns 0,1,2,3 should be hashed:
-      | src           | $a.dst          | like._src       | like._dst    |
-      | "Tony Parker" | "Manu Ginobili" | "Manu Ginobili" | "Tim Duncan" |
-      | "Tony Parker" | "Tim Duncan"    | "Manu Ginobili" | "Tim Duncan" |
+      | src           | $a.dst          | like_src            | like_dst      |
+      | "Tony Parker" | "Manu Ginobili" | "LaMarcus Aldridge" | "Tony Parker" |
+      | "Tony Parker" | "Tim Duncan"    | "LaMarcus Aldridge" | "Tony Parker" |
 
   Scenario: Integer Vid GroupBy and Count
     When executing query:
@@ -1631,3 +1631,42 @@ Feature: IntegerVid Go  Sentence
     Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
       | like._dst     |
       | "Tony Parker" |
+
+  Scenario: Step over end
+    When executing query:
+      """
+      GO 2 STEPS FROM hash("Tim Duncan") OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+    When executing query:
+      """
+      GO 10 STEPS FROM hash("Tim Duncan") OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+    When executing query:
+      """
+      GO 10000000000000 STEPS FROM hash("Tim Duncan") OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+    When executing query:
+      """
+      GO 1 TO 10 STEPS FROM hash("Tim Duncan") OVER serve;
+      """
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | serve._dst |
+      | "Spurs"    |
+    When executing query:
+      """
+      GO 2 TO 10 STEPS FROM hash("Tim Duncan") OVER serve;
+      """
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | serve._dst |
+    When executing query:
+      """
+      GO 10000000000 TO 10000000002 STEPS FROM hash("Tim Duncan") OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |

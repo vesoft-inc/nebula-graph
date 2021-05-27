@@ -8,9 +8,10 @@
 #define PLANNER_MATCH_EXPAND_H_
 
 #include "common/base/Base.h"
-#include "context/ast/QueryAstContext.h"
-#include "planner/PlanNode.h"
+#include "context/ast/CypherAstContext.h"
+#include "planner/plan/PlanNode.h"
 #include "planner/Planner.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -61,7 +62,9 @@ private:
                                      PlanNode* input,
                                      SubPlan* plan);
 
-    Expression* buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) const;
+    Expression* buildExpandCondition(const std::string& lastStepResult,
+                                     int64_t startIndex,
+                                     int64_t maxHop) const;
 
     template <typename T>
     T* saveObject(T* obj) const {

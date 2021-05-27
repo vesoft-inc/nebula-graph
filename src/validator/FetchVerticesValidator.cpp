@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 #include "validator/FetchVerticesValidator.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 #include "util/SchemaUtil.h"
 #include "visitor/DeducePropsVisitor.h"
@@ -159,8 +159,8 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     ExpressionProps exprProps;
     DeducePropsVisitor deducePropsVisitor(qctx_, space_.id, &exprProps, &userDefinedVarNameList_);
     for (auto col : yield->columns()) {
-        NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
         col->setExpr(ExpressionUtils::rewriteLabelAttr2TagProp(col->expr()));
+        NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
         col->expr()->accept(&deducePropsVisitor);
         if (!deducePropsVisitor.ok()) {
             return std::move(deducePropsVisitor).status();
