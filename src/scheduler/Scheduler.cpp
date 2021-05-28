@@ -99,7 +99,7 @@ void Scheduler::runSelect(std::vector<folly::Future<Status>>&& futures,
                              folly::Executor* runner,
                              std::vector<folly::Promise<Status>>&& promises) const {
     folly::collect(futures).via(runner).thenValue(
-        [select, runner, pros = std::move(promises), this](std::vector<Status>&& status) mutable {
+        [select, pros = std::move(promises), this](std::vector<Status>&& status) mutable {
             auto s = checkStatus(std::move(status));
             if (!s.ok()) {
                 return notifyError(pros, s);
@@ -107,7 +107,7 @@ void Scheduler::runSelect(std::vector<folly::Future<Status>>&& futures,
 
             std::move(execute(select))
                 .thenValue(
-                    [select, runner, pros = std::move(pros), this](Status selectStatus) mutable {
+                    [select, pros = std::move(pros), this](Status selectStatus) mutable {
                         if (!selectStatus.ok()) {
                             return notifyError(pros, selectStatus);
                         }
@@ -143,7 +143,7 @@ void Scheduler::runExecutor(
     folly::Executor* runner,
     std::vector<folly::Promise<Status>>&& promises) const {
     folly::collect(futures).via(runner).thenValue(
-        [exe, runner, pros = std::move(promises), this](std::vector<Status>&& status) mutable {
+        [exe, pros = std::move(promises), this](std::vector<Status>&& status) mutable {
             auto depStatus = checkStatus(std::move(status));
             if (!depStatus.ok()) {
                 return notifyError(pros, depStatus);
