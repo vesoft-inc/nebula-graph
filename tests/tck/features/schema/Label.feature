@@ -37,6 +37,14 @@ Feature: Multi language label
       | "张三"   | "张三" | 22            |
     When executing query:
       """
+      FETCH PROP ON `个人信息` "张三" YIELD `个人信息`.`姓名` AS `姓名`
+      | FETCH PROP ON `个人信息` $-.`姓名` YIELD `个人信息`.`姓名` AS `姓名`, `个人信息`.`年龄`
+      """
+    Then the result should be, in any order:
+      | VertexID | 姓名   | 个人信息.年龄 |
+      | "张三"   | "张三" | 22            |
+    When executing query:
+      """
       CREATE TAG ` 中文 `();
       """
     Then the execution should be successful
