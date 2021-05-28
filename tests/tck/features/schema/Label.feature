@@ -10,10 +10,9 @@ Feature: Multi language label
       | partition_num  | 9                |
       | replica_factor | 1                |
       | vid_type       | FIXED_STRING(20) |
-    # empty prop
     When executing query:
       """
-      CREATE TAG `中文`();
+      CREATE TAG `中文`(`姓名` string, `年龄` int);
       """
     Then the execution should be successful
     When executing query:
@@ -21,8 +20,21 @@ Feature: Multi language label
       SHOW CREATE TAG `中文`;
       """
     Then the result should be, in any order:
-      | Tag    | Create Tag                                              |
-      | "中文" | 'CREATE TAG `中文` (\n) ttl_duration = 0, ttl_col = ""' |
+      | Tag    | Create Tag                                                                                        |
+      | "中文" | 'CREATE TAG `中文` (\n `姓名` string NULL,\n `年龄` int64 NULL\n) ttl_duration = 0, ttl_col = ""' |
+    # insert data
+    When try to execute query:
+      """
+      INSERT VERTEX `中文`(`姓名`, `年龄`) VALUES "张三":("张三", 22);
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      FETCH PROP ON `中文` "张三" YIELD `中文`.`姓名` AS `姓名`, `中文`.`年龄`
+      """
+    Then the result should be, in any order:
+      | VertexID | 姓名   | 中文.年龄 |
+      | "张三"   | "张三" | 22        |
     When executing query:
       """
       CREATE TAG ` 中文 `();
