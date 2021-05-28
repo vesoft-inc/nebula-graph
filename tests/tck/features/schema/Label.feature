@@ -35,3 +35,25 @@ Feature: Multi language label
     Then the result should be, in any order:
       | Tag      | Create Tag                                                |
       | " 中文 " | 'CREATE TAG ` 中文 ` (\n) ttl_duration = 0, ttl_col = ""' |
+
+  Scenario: Invalid escaped label
+    Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(20) |
+    When executing query:
+      """
+      CREATE TAG `_中文`();
+      """
+    Then a SyntaxError should be raised at runtime: Label can't start with `_' near ``_中文`'
+    When executing query:
+      """
+      CREATE TAG `*中文`();
+      """
+    Then a SyntaxError should be raised at runtime: Label can't start with `*' near ``*中文`'
+    When executing query:
+      """
+      CREATE TAG `*`();
+      """
+    Then a SyntaxError should be raised at runtime: Label can't start with `*' near ``*`'

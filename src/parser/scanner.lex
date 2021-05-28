@@ -306,6 +306,12 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                                 return TokenType::LABEL;
                             }
 \`{EXTEND_LABEL}\`          {
+                                if (*(yytext + 1) == '_') {
+                                    throw GraphParser::syntax_error(*yylloc, "Label can't start with `_'");
+                                }
+                                if (*(yytext + 1) == '*') {
+                                    throw GraphParser::syntax_error(*yylloc, "Label can't start with `*'");
+                                }
                                 yylval->strval = new std::string(yytext + 1, yyleng - 2);
                                 if (yylval->strval->size() > MAX_STRING) {
                                     auto error = "Out of range of the LABEL length, "
