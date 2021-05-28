@@ -129,7 +129,6 @@ public:
         kSignOutTSService,
         kCreateFTIndex,
         kDropFTIndex,
-        kGetSession,
         kShowSessions,
     };
 
