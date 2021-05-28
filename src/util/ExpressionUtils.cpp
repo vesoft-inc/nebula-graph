@@ -17,6 +17,18 @@
 namespace nebula {
 namespace graph {
 
+bool ExpressionUtils::isPropertyExpr(const Expression *expr) {
+    auto kind = expr->kind();
+
+    return std::unordered_set<Expression::Kind>{Expression::Kind::kTagProperty,
+                                                Expression::Kind::kEdgeProperty,
+                                                Expression::Kind::kInputProperty,
+                                                Expression::Kind::kVarProperty,
+                                                Expression::Kind::kDstProperty,
+                                                Expression::Kind::kSrcProperty}
+        .count(kind);
+}
+
 const Expression *ExpressionUtils::findAny(const Expression *self,
                                      const std::unordered_set<Expression::Kind> &expected) {
     auto finder = [&expected](const Expression *expr) -> bool {
@@ -603,6 +615,26 @@ Status ExpressionUtils::checkAggExpr(const AggregateExpression *aggExpr) {
     return Status::OK();
 }
 
+bool ExpressionUtils::findInnerRandFunction(const Expression *expr) {
+    auto finder = [](const Expression *e) -> bool {
+        if (e->kind() == Expression::Kind::kFunctionCall) {
+            auto func = *static_cast<const FunctionCallExpression *>(e)->name();
+            std::transform(func.begin(), func.end(), func.begin(), ::tolower);
+            return !func.compare("rand") || !func.compare("rand32") || !func.compare("rand64");
+        }
+        return false;
+    };
+    if (finder(expr)) {
+        return true;
+    }
+    FindVisitor visitor(finder);
+    const_cast<Expression *>(expr)->accept(&visitor);
+    if (!visitor.results().empty()) {
+        return true;
+    }
+    return false;
+}
+
 // Negate the given relational expr
 std::unique_ptr<RelationalExpression> ExpressionUtils::reverseRelExpr(RelationalExpression *expr) {
     auto left = static_cast<RelationalExpression *>(expr)->left();
@@ -734,6 +766,14 @@ std::unique_ptr<Expression> ExpressionUtils::zeroCondition(const std::string &va
         Expression::Kind::kRelEQ,
         new FunctionCallExpression(new std::string("size"), args),
         new ConstantExpression(0));
+}
+
+// var == value
+std::unique_ptr<Expression> ExpressionUtils::equalCondition(const std::string &var,
+                                                            const Value &value) {
+    return std::make_unique<RelationalExpression>(Expression::Kind::kRelEQ,
+                                                  new VariableExpression(new std::string(var)),
+                                                  new ConstantExpression(value));
 }
 
 }   // namespace graph
