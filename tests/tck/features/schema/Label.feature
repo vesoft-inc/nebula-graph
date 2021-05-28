@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: Multi language label
 
-  Scenario: Schema Label
+  Scenario: Escaped Schema Label
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9                |
