@@ -14,6 +14,7 @@
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"
 #include "stats/StatsDef.h"
+#include "common/time/TimeUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -141,6 +142,10 @@ void GraphService::onHandle(RequestContext<AuthResponse>& ctx, ErrorCode code) {
         ctx.resp().errorMsg.reset(new std::string(getErrorStr(code)));
     } else {
         ctx.resp().sessionId.reset(new int64_t(ctx.session()->id()));
+        ctx.resp().timeZoneOffsetSeconds.reset(
+            new int32_t(time::TimeUtils::getGlobalTimezone().utcOffsetSecs()));
+        ctx.resp().timeZoneName.reset(
+            new std::string(time::TimeUtils::getGlobalTimezone().stdZoneName()));
     }
 }
 
