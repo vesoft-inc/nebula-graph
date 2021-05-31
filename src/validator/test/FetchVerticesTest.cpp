@@ -40,7 +40,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(
-            new YieldColumn(new VertexExpression(), "vertices_"));
+            new YieldColumn(new VertexExpression("vertices_"), "vertices_"));
         auto *project = Project::make(qctx, gv, yieldColumns.get());
         project->setColNames({"vertices_"});
         auto result = Eq(qctx->plan()->root(), project);
@@ -75,7 +75,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(
-            new YieldColumn(new VertexExpression(), "vertices_"));
+            new YieldColumn(new VertexExpression("vertices_"), "vertices_"));
         auto *project = Project::make(qctx, gv, yieldColumns.get());
         project->setColNames({"vertices_"});
         auto result = Eq(qctx->plan()->root(), project);
@@ -410,7 +410,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(
-            new YieldColumn(new VertexExpression(), "vertices_"));
+            new YieldColumn(new VertexExpression("vertices_"), "vertices_"));
         auto *project = Project::make(qctx, gv, yieldColumns.get());
         project->setColNames({"vertices_"});
         auto result = Eq(qctx->plan()->root(), project);
@@ -426,7 +426,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(
-            new YieldColumn(new VertexExpression(), "vertices_"));
+            new YieldColumn(new VertexExpression("vertices_"), "vertices_"));
         auto *project = Project::make(qctx, gv, yieldColumns.get());
         project->setColNames({"vertices_"});
         auto result = Eq(qctx->plan()->root(), project);

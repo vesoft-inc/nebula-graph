@@ -27,9 +27,11 @@ Expression* MatchSolver::rewriteLabel2Vertex(const Expression* expr) {
                e->kind() == Expression::Kind::kLabel);
         if (e->kind() == Expression::Kind::kLabelAttribute) {
             auto la = static_cast<const LabelAttributeExpression*>(e);
-            return new AttributeExpression(new VertexExpression(), la->right()->clone().release());
+            return new AttributeExpression(new VertexExpression(la->left()->name()),
+                                           la->right()->clone().release());
         }
-        return new VertexExpression();
+        auto lb = static_cast<const LabelExpression*>(e);
+        return new VertexExpression(lb->name());
     };
 
     return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
@@ -45,9 +47,11 @@ Expression* MatchSolver::rewriteLabel2Edge(const Expression* expr) {
                e->kind() == Expression::Kind::kLabel);
         if (e->kind() == Expression::Kind::kLabelAttribute) {
             auto la = static_cast<const LabelAttributeExpression*>(e);
-            return new AttributeExpression(new EdgeExpression(), la->right()->clone().release());
+            return new AttributeExpression(new EdgeExpression(la->left()->name()),
+                                           la->right()->clone().release());
         }
-        return new EdgeExpression();
+        auto lb = static_cast<const LabelExpression*>(e);
+        return new EdgeExpression(lb->name());
     };
 
     return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
@@ -290,7 +294,7 @@ Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
     // Normalize all columns to one
     auto columns = qctx->objPool()->add(new YieldColumns);
     auto pathExpr = std::make_unique<PathBuildExpression>();
-    pathExpr->add(std::make_unique<VertexExpression>());
+    pathExpr->add(std::make_unique<VertexExpression>("VERTEX"));
     columns->addColumn(new YieldColumn(pathExpr.release()));
     plan.root = Project::make(qctx, root, columns);
     plan.root->setColNames({kPathStr});

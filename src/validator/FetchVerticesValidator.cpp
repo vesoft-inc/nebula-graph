@@ -57,7 +57,7 @@ Status FetchVerticesValidator::toPlan() {
         }
     } else {
         auto *columns = qctx_->objPool()->add(new YieldColumns());
-        columns->addColumn(new YieldColumn(new VertexExpression(), "vertices_"));
+        columns->addColumn(new YieldColumn(new VertexExpression("vertices_"), "vertices_"));
         auto *projectNode = Project::make(qctx_, current, columns);
         projectNode->setInputVar(current->outputVar());
         projectNode->setColNames(colNames_);

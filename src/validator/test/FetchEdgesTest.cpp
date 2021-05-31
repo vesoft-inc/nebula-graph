@@ -55,7 +55,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
 
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(new EdgeExpression(), "edges_"));
+        yieldColumns->addColumn(new YieldColumn(new EdgeExpression("edges_"), "edges_"));
         auto *project = Project::make(qctx, filter, yieldColumns.get());
         project->setColNames({"edges_"});
         auto result = Eq(qctx->plan()->root(), project);

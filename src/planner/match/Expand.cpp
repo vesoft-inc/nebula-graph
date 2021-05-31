@@ -77,8 +77,8 @@ static Expression* mergePathColumnsExpr(const std::string& lcol, const std::stri
 
 static Expression* buildPathExpr() {
     auto expr = std::make_unique<PathBuildExpression>();
-    expr->add(std::make_unique<VertexExpression>());
-    expr->add(std::make_unique<EdgeExpression>());
+    expr->add(std::make_unique<VertexExpression>("VERTEX"));
+    expr->add(std::make_unique<EdgeExpression>("EDGE"));
     return expr.release();
 }
 
