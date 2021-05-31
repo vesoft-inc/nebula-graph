@@ -216,10 +216,10 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
             propsName.emplace_back(expr->prop());
             geColNames_.emplace_back(expr->sym() + "." + expr->prop());
         }
-        colNames_.emplace_back(deduceColName(col));
+        colNames_.emplace_back(col->name());
         auto typeResult = deduceExprType(col->expr());
         NG_RETURN_IF_ERROR(typeResult);
-        outputs_.emplace_back(colNames_.back(), typeResult.value());
+        outputs_.emplace_back(col->name(), typeResult.value());
         // TODO(shylock) think about the push-down expr
     }
     prop.set_props(std::move(propsName));

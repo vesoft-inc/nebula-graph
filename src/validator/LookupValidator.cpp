@@ -150,11 +150,12 @@ Status LookupValidator::prepareYield() {
             }
             returnCols_->emplace_back(colName);
             idxScanColNames_.emplace_back(from_ + "." + colName);
-            colNames_.emplace_back(deduceColName(newYieldColumns_->back()));
-            outputs_.emplace_back(colNames_.back(), SchemaUtil::propTypeToValueType(ret));
+            auto column = newYieldColumns_->back()->name();
+            colNames_.emplace_back(column);
+            outputs_.emplace_back(column, SchemaUtil::propTypeToValueType(ret));
         } else {
-            return Status::SemanticError("Yield clauses are not supported : %s",
-                                         col->expr()->toString().c_str());
+            return Status::SemanticError("Yield clauses are not supported: %s",
+                                         col->toString().c_str());
         }
     }
     return Status::OK();

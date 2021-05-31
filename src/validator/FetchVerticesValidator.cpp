@@ -176,7 +176,7 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
             return Status::SemanticError("Unsupported src/dst property expression in yield.");
         }
 
-        colNames_.emplace_back(deduceColName(col));
+        colNames_.emplace_back(col->name());
         auto typeResult = deduceExprType(col->expr());
         NG_RETURN_IF_ERROR(typeResult);
         outputs_.emplace_back(colNames_.back(), typeResult.value());

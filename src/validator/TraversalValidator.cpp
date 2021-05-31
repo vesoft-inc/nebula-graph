@@ -131,7 +131,7 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
 
     project = Project::make(qctx_, gn, columns);
     project->setInputVar(gn->outputVar());
-    project->setColNames(deduceColNames(columns));
+    project->setColNames(columns->names());
     VLOG(1) << project->outputVar();
 
     auto* dedupDstVids = Dedup::make(qctx_, project);

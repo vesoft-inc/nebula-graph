@@ -80,7 +80,7 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     NG_RETURN_IF_ERROR(status);
     auto type = std::move(status).value();
 
-    auto name = deduceColName(column);
+    auto name = column->name();
     outputColumnNames_.emplace_back(name);
 
     // Constant expression folding must be after type deduction

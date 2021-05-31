@@ -34,7 +34,7 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
 
     projCols_ = qctx_->objPool()->add(new YieldColumns);
     for (auto* col : columns) {
-        auto colOldName = deduceColName(col);
+        auto colOldName = col->name();
         auto* colExpr = col->expr();
         if (col->expr()->kind() != Expression::Kind::kAggregate) {
             auto collectAggCol = colExpr->clone();
@@ -133,7 +133,7 @@ Status GroupByValidator::validateGroup(const GroupClause* groupClause) {
 
 Status GroupByValidator::toPlan() {
     auto* groupBy = Aggregate::make(qctx_, nullptr, std::move(groupKeys_), std::move(groupItems_));
-    groupBy->setColNames(std::vector<std::string>(outputColumnNames_));
+    groupBy->setColNames(outputColumnNames_);
     if (needGenProject_) {
         // rewrite Expr which has inner aggExpr and push it up to Project.
         auto* project = Project::make(qctx_, groupBy, projCols_);

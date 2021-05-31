@@ -87,7 +87,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
         for (auto& e : over_.allEdges) {
             auto* col = new YieldColumn(new EdgeDstIdExpression(e));
             newCols->addColumn(col);
-            auto colName = deduceColName(col);
+            auto colName = col->name();
             colNames_.emplace_back(colName);
             outputs_.emplace_back(colName, vidType_);
             NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
@@ -104,7 +104,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
                 return Status::SemanticError("`%s', not support aggregate function in go sentence.",
                                              col->toString().c_str());
             }
-            auto colName = deduceColName(col);
+            auto colName = col->name();
             colNames_.emplace_back(colName);
             // check input var expression
             auto typeStatus = deduceExprType(colExpr);
@@ -417,7 +417,7 @@ PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode
 
     auto* project = Project::make(qctx_, dependency, srcAndEdgePropCols_);
     project->setInputVar(gnVar);
-    project->setColNames(deduceColNames(srcAndEdgePropCols_));
+    project->setColNames(srcAndEdgePropCols_->names());
     VLOG(1) << project->outputVar();
 
     return project;
@@ -442,7 +442,7 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
     dstPropCols_->addColumn(vidCol);
     auto* project = Project::make(qctx_, getDstVertices, dstPropCols_);
     project->setInputVar(getDstVertices->outputVar());
-    project->setColNames(deduceColNames(dstPropCols_));
+    project->setColNames(dstPropCols_->names());
 
     auto* joinHashKey = objPool->makeAndAdd<VariablePropertyExpression>(
         projectSrcDstProps->outputVar(), joinDstVidColName_);
@@ -550,7 +550,7 @@ PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode
     columns->addColumn(column);
     auto* projectJoin = Project::make(qctx_, join, columns);
     projectJoin->setInputVar(join->outputVar());
-    projectJoin->setColNames(deduceColNames(columns));
+    projectJoin->setColNames(columns->names());
     VLOG(1) << projectJoin->outputVar();
 
     auto* dedup = Dedup::make(qctx_, projectJoin);
@@ -573,7 +573,7 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
     auto* projectLeftVarForJoin = Project::make(qctx_, dedupStartVid, columns);
     projectLeftVarForJoin->setInputVar(from_.fromType == kPipe ? inputVarName_
                                                                : from_.userDefinedVarName);
-    projectLeftVarForJoin->setColNames(deduceColNames(columns));
+    projectLeftVarForJoin->setColNames(columns->names());
 
     auto* dedup = Dedup::make(qctx_, projectLeftVarForJoin);
     dedup->setInputVar(projectLeftVarForJoin->outputVar());
@@ -803,7 +803,7 @@ PlanNode* GoValidator::projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn) {
 
     project = Project::make(qctx_, dep, columns);
     project->setInputVar(gn->outputVar());
-    project->setColNames(deduceColNames(columns));
+    project->setColNames(columns->names());
     VLOG(1) << project->outputVar();
 
     auto* dedupSrcDstVids = Dedup::make(qctx_, project);

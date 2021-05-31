@@ -140,10 +140,6 @@ protected:
         return nullptr;
     }
 
-    std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
-
-    std::string deduceColName(const YieldColumn* col) const;
-
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
 
     Status deduceProps(const Expression* expr, ExpressionProps& exprProps);

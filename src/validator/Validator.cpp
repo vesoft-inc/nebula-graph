@@ -339,18 +339,6 @@ bool Validator::spaceChosen() {
     return vctx_->spaceChosen();
 }
 
-std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) const {
-    std::vector<std::string> colNames;
-    for (auto col : cols->columns()) {
-        colNames.emplace_back(deduceColName(col));
-    }
-    return colNames;
-}
-
-std::string Validator::deduceColName(const YieldColumn* col) const {
-    return col->name();
-}
-
 StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
     DeduceTypeVisitor visitor(qctx_, vctx_, inputs_, space_.id);
     const_cast<Expression*>(expr)->accept(&visitor);
