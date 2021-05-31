@@ -263,6 +263,12 @@ void Minus::cloneMembers(const Minus& f) {
     SetOp::cloneMembers(f);
 }
 
+Project::Project(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
+    : SingleInputNode(qctx, Kind::kProject, input), cols_(cols) {
+    if (cols_ != nullptr) {
+        setColNames(cols_->names());
+    }
+}
 
 std::unique_ptr<PlanNodeDescription> Project::explain() const {
     auto desc = SingleInputNode::explain();

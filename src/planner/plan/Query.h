@@ -658,8 +658,7 @@ public:
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
-    Project(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
-      : SingleInputNode(qctx, Kind::kProject, input), cols_(cols) { }
+    Project(QueryContext* qctx, PlanNode* input, YieldColumns* cols);
 
     void cloneMembers(const Project&);
 

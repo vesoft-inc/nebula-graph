@@ -320,14 +320,7 @@ protected:
         SingleDependencyNode::cloneMembers(node);
     }
 
-    SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
-        : SingleDependencyNode(qctx, kind, dep) {
-        if (dep != nullptr) {
-            readVariable(dep->outputVarPtr());
-        } else {
-            inputVars_.emplace_back(nullptr);
-        }
-    }
+    SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep);
 };
 
 class BinaryInputNode : public PlanNode {
