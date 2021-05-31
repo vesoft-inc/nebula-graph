@@ -11,60 +11,15 @@
 #include "common/base/Status.h"
 #include "executor/Executor.h"
 #include "planner/plan/PlanNode.h"
-#include "executor/logic/LoopExecutor.h"
-#include "executor/logic/SelectExecutor.h"
 
 namespace nebula {
 namespace graph {
-class Scheduler final : private cpp::NonCopyable, private cpp::NonMovable {
+class Scheduler : private cpp::NonCopyable, private cpp::NonMovable {
 public:
-    explicit Scheduler(QueryContext* qctx);
+    Scheduler() = default;
+    virtual ~Scheduler() = default;
 
-    folly::Future<Status> schedule();
-
-private:
-    folly::Future<Status> doSchedule(Executor* root) const;
-
-    /**
-     *  futures: current executor will be triggered when all the futures are notified.
-     *  exe: current executor
-     *  runner: a thread-pool
-     *  promises: the promises will be set a value which triggers the other executors
-     *            if current executor is done working.
-     */
-    void scheduleExecutor(std::vector<folly::Future<Status>>&& futures,
-                          Executor* exe,
-                          folly::Executor* runner,
-                          std::vector<folly::Promise<Status>>&& promises) const;
-
-    void runSelect(std::vector<folly::Future<Status>>&& futures,
-                   SelectExecutor* select,
-                   folly::Executor* runner,
-                   std::vector<folly::Promise<Status>>&& promises) const;
-
-    void runExecutor(std::vector<folly::Future<Status>>&& futures,
-                     Executor* exe,
-                     folly::Executor* runner,
-                     std::vector<folly::Promise<Status>>&& promises) const;
-
-    void runLeafExecutor(Executor* exe,
-                         folly::Executor* runner,
-                         std::vector<folly::Promise<Status>>&& promises) const;
-
-    void runLoop(std::vector<folly::Future<Status>>&& futures,
-                 LoopExecutor* loop,
-                 folly::Executor* runner,
-                 std::vector<folly::Promise<Status>>&& promises) const;
-
-    Status checkStatus(std::vector<Status>&& status) const;
-
-    void notifyOK(std::vector<folly::Promise<Status>>& promises) const;
-
-    void notifyError(std::vector<folly::Promise<Status>>& promises, Status status) const;
-
-    folly::Future<Status> execute(Executor *executor) const;
-
-    QueryContext *qctx_{nullptr};
+    virtual folly::Future<Status> schedule() = 0;
 };
 }  // namespace graph
 }  // namespace nebula

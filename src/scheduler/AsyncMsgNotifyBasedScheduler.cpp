@@ -4,20 +4,20 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "scheduler/Scheduler.h"
+#include "scheduler/AsyncMsgNotifyBasedScheduler.h"
 
 namespace nebula {
 namespace graph {
-Scheduler::Scheduler(QueryContext* qctx) {
+AsyncMsgNotifyBasedScheduler::AsyncMsgNotifyBasedScheduler(QueryContext* qctx) : Scheduler() {
     qctx_ = qctx;
 }
 
-folly::Future<Status> Scheduler::schedule() {
+folly::Future<Status> AsyncMsgNotifyBasedScheduler::schedule() {
     auto executor = Executor::create(qctx_->plan()->root(), qctx_);
     return doSchedule(executor);
 }
 
-folly::Future<Status> Scheduler::doSchedule(Executor* root) const {
+folly::Future<Status> AsyncMsgNotifyBasedScheduler::doSchedule(Executor* root) const {
     std::unordered_map<int64_t, std::vector<folly::Promise<Status>>> promiseMap;
     std::unordered_map<int64_t, std::vector<folly::Future<Status>>> futureMap;
     std::queue<Executor*> queue;
@@ -67,7 +67,7 @@ folly::Future<Status> Scheduler::doSchedule(Executor* root) const {
     return resultFuture;
 }
 
-void Scheduler::scheduleExecutor(
+void AsyncMsgNotifyBasedScheduler::scheduleExecutor(
     std::vector<folly::Future<Status>>&& futures,
     Executor* exe,
     folly::Executor* runner,
@@ -94,7 +94,7 @@ void Scheduler::scheduleExecutor(
     }
 }
 
-void Scheduler::runSelect(std::vector<folly::Future<Status>>&& futures,
+void AsyncMsgNotifyBasedScheduler::runSelect(std::vector<folly::Future<Status>>&& futures,
                              SelectExecutor* select,
                              folly::Executor* runner,
                              std::vector<folly::Promise<Status>>&& promises) const {
@@ -137,7 +137,7 @@ void Scheduler::runSelect(std::vector<folly::Future<Status>>&& futures,
         });
 }
 
-void Scheduler::runExecutor(
+void AsyncMsgNotifyBasedScheduler::runExecutor(
     std::vector<folly::Future<Status>>&& futures,
     Executor* exe,
     folly::Executor* runner,
@@ -159,7 +159,7 @@ void Scheduler::runExecutor(
         });
 }
 
-void Scheduler::runLeafExecutor(
+void AsyncMsgNotifyBasedScheduler::runLeafExecutor(
     Executor* exe,
     folly::Executor* runner,
     std::vector<folly::Promise<Status>>&& promises) const {
@@ -173,7 +173,7 @@ void Scheduler::runLeafExecutor(
         });
 }
 
-void Scheduler::runLoop(std::vector<folly::Future<Status>>&& futures,
+void AsyncMsgNotifyBasedScheduler::runLoop(std::vector<folly::Future<Status>>&& futures,
                                             LoopExecutor* loop,
                                             folly::Executor* runner,
                                             std::vector<folly::Promise<Status>>&& promises) const {
@@ -209,7 +209,7 @@ void Scheduler::runLoop(std::vector<folly::Future<Status>>&& futures,
         });
 }
 
-Status Scheduler::checkStatus(std::vector<Status>&& status) const {
+Status AsyncMsgNotifyBasedScheduler::checkStatus(std::vector<Status>&& status) const {
     for (auto& s : status) {
         if (!s.ok()) {
             return s;
@@ -218,19 +218,20 @@ Status Scheduler::checkStatus(std::vector<Status>&& status) const {
     return Status::OK();
 }
 
-void Scheduler::notifyOK(std::vector<folly::Promise<Status>>& promises) const {
+void AsyncMsgNotifyBasedScheduler::notifyOK(std::vector<folly::Promise<Status>>& promises) const {
     for (auto& p : promises) {
         p.setValue(Status::OK());
     }
 }
 
-void Scheduler::notifyError(std::vector<folly::Promise<Status>>& promises, Status status) const {
+void AsyncMsgNotifyBasedScheduler::notifyError(std::vector<folly::Promise<Status>>& promises,
+                                               Status status) const {
     for (auto& p : promises) {
         p.setValue(status);
     }
 }
 
-folly::Future<Status> Scheduler::execute(Executor *executor) const {
+folly::Future<Status> AsyncMsgNotifyBasedScheduler::execute(Executor *executor) const {
     auto status = executor->open();
     if (!status.ok()) {
         return executor->error(std::move(status));
