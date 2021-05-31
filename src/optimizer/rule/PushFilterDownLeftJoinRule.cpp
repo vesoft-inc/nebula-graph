@@ -53,10 +53,13 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
     // split the `condition` based on whether the varPropExpr comes from the left child
     auto picker = [&leftVarColNames](const Expression* e) -> bool {
         auto varProps = graph::ExpressionUtils::collectAll(e, {Expression::Kind::kVarProperty});
+        if (varProps.empty()) {
+            return false;
+        }
         std::vector<std::string> propNames;
         for (auto* expr : varProps) {
             DCHECK(expr->kind() == Expression::Kind::kVarProperty);
-            propNames.emplace_back(*static_cast<const VariablePropertyExpression*>(expr)->prop());
+            propNames.emplace_back(static_cast<const VariablePropertyExpression*>(expr)->prop());
         }
         for (auto prop : propNames) {
             auto iter = std::find_if(leftVarColNames.begin(),
@@ -118,6 +121,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
         result.newGroupNodes.emplace_back(newAboveFilterGroupNode);
     } else {
         newLeftJoinNode->setOutputVar(oldFilterNode->outputVar());
+        newLeftJoinNode->setColNames(oldLeftJoinNode->colNames());
         auto newLeftJoinGroupNode =
             OptGroupNode::create(octx, newLeftJoinNode, filterGroupNode->group());
         newLeftJoinGroupNode->setDeps({newFilterGroup});

@@ -7,10 +7,10 @@
 find_package(Git)
 macro(nebula_fetch_module)
     cmake_parse_arguments(
-        module                      # <prefix>
-        ""                          # <options>
+        module                               # <prefix>
+        ""                                   # <options>
         "URL;TAG;UPDATE;NAME;CHECKOUT"       # <one_value_args>
-        ""                          # <multi_value_args>
+        ""                                   # <multi_value_args>
         ${ARGN}
     )
     set(module_dir ${CMAKE_SOURCE_DIR}/modules/${module_NAME})
@@ -29,7 +29,6 @@ macro(nebula_fetch_module)
             message(FATAL_ERROR "Cloning failed")
         endif()
     else()
-        message(STATUS "Updating from ${module_URL}")
         if (${module_CHECKOUT})
             execute_process(
                 COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD

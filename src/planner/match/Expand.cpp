@@ -130,7 +130,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     PlanNode* firstStep = subplan.root;
 
     // Build Start node from first step
-    if (expandInto(*dstNode.alias)) {
+    if (expandInto(dstNode.alias)) {
         return Status::SemanticError("Vairable expand to resolved node is not supported.");
     }
 
@@ -180,7 +180,7 @@ Status Expand::expand(const EdgeInfo& edge,
                       const std::string& inputVar,
                       const Expression* nodeFilter,
                       SubPlan* plan) {
-    if (expandInto(*dstNode.alias)) {
+    if (expandInto(dstNode.alias)) {
         return expandStep(edge, dep, inputVar, nodeFilter, plan, dstNode, true);
     } else {
         return expandStep(edge, dep, inputVar, nodeFilter, plan, dstNode);
@@ -207,7 +207,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
                                      dep,
                                      inputVar,
                                      curr,
-                                    *dstNode.alias);
+                                     dstNode.alias);
     } else {
         // _vid
         MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_.release(), dep, inputVar, curr);
@@ -242,7 +242,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     }
 
     auto listColumns = saveObject(new YieldColumns);
-    listColumns->addColumn(new YieldColumn(buildPathExpr(), new std::string(colName_)));
+    listColumns->addColumn(new YieldColumn(buildPathExpr(), colName_));
     // [Project]
     root = Project::make(qctx, root, listColumns);
     root->setColNames({colName_});
@@ -287,8 +287,7 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, 
     // Expr: length(relationships(p)) >= minHop
     auto pathExpr = ExpressionUtils::inputPropExpr(colName_);
     args->addArgument(std::move(pathExpr));
-    auto fn = std::make_unique<std::string>("length");
-    auto edgeExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    auto edgeExpr = std::make_unique<FunctionCallExpression>("length", args.release());
     auto minHop = edge.range == nullptr ? 1 : edge.range->min();
     auto minHopExpr = std::make_unique<ConstantExpression>(minHop);
     auto expr = std::make_unique<RelationalExpression>(
@@ -310,7 +309,7 @@ Expression* Expand::buildExpandCondition(const std::string& lastStepResult,
     // ++loopSteps{startIndex} << maxHop
     auto stepCondition = ExpressionUtils::stepCondition(loopSteps, maxHop);
     // lastStepResult == empty || size(lastStepReult) != 0
-    auto* eqEmpty = ExpressionUtils::Eq(new VariableExpression(new std::string(lastStepResult)),
+    auto* eqEmpty = ExpressionUtils::Eq(new VariableExpression(lastStepResult),
                                         new ConstantExpression(Value()));
     auto neZero = ExpressionUtils::neZeroCondition(lastStepResult);
     auto* existValCondition = ExpressionUtils::Or(eqEmpty, neZero.release());
