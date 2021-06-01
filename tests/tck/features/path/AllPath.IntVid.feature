@@ -217,7 +217,7 @@ Feature: Integer Vid All Path
       | <("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"})<-[:like@0 {likeness: 80}]-("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})<-[:like@0 {likeness: 90}]-("Yao Ming" :player{age: 38, name: "Yao Ming"})> |
     When executing query:
       """
-      FIND ALL PATH WITH PROP FROM hash("Tim Duncan") TO hash("Yao Ming") OVER * BIDIRECT
+      FIND ALL PATH WITH PROP FROM hash("Tony Parker") TO hash("Yao Ming") OVER * BIDIRECT
       WHERE  teammate.start_year > 2000 OR (like.likeness is not EMPTY AND like.likeness >= 80) UPTO 3 STEPS
       """
     Then the result should be, in any order, with relax comparison:

@@ -2,6 +2,7 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
+@jmq
 Feature: All Path
 
   Background:
@@ -217,7 +218,7 @@ Feature: All Path
       | <("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"})<-[:like@0 {likeness: 80}]-("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})<-[:like@0 {likeness: 90}]-("Yao Ming" :player{age: 38, name: "Yao Ming"})> |
     When executing query:
       """
-      FIND ALL PATH WITH PROP FROM "Tim Duncan" TO "Yao Ming" OVER * BIDIRECT
+      FIND ALL PATH WITH PROP FROM "Tony Parker" TO "Yao Ming" OVER * BIDIRECT
       WHERE  teammate.start_year > 2000 OR (like.likeness is not EMPTY AND like.likeness >= 80) UPTO 3 STEPS
       """
     Then the result should be, in any order, with relax comparison:
