@@ -553,9 +553,7 @@ folly::Future<Status> Executor::start(Status status) const {
 }
 
 folly::Future<Status> Executor::error(Status status) const {
-    Status::StatusERROR err(
-        "executor: %s, err_msg: %s", node_->toString().c_str(), status.message().c_str());
-    return folly::makeFuture<Status>(ExecutionError(std::move(err))).via(runner());
+    return folly::makeFuture<Status>(ExecutionError(std::move(status))).via(runner());
 }
 
 Status Executor::finish(Result &&result) {
