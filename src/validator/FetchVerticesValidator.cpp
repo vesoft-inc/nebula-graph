@@ -40,15 +40,11 @@ Status FetchVerticesValidator::toPlan() {
     PlanNode *current = getVerticesNode;
 
     if (withYield_) {
-        auto *projectNode = Project::make(qctx_, current, newYieldColumns_);
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, newYieldColumns_);
 
         // Project select properties then dedup
         if (dedup_) {
-            auto *dedupNode = Dedup::make(qctx_, current);
-            dedupNode->setColNames(colNames_);
-            current = dedupNode;
+            current = Dedup::make(qctx_, current);
 
             // the framework will add data collect to collect the result
             // if the result is required
@@ -56,9 +52,7 @@ Status FetchVerticesValidator::toPlan() {
     } else {
         auto *columns = qctx_->objPool()->add(new YieldColumns());
         columns->addColumn(new YieldColumn(new VertexExpression(), "vertices_"));
-        auto *projectNode = Project::make(qctx_, current, columns);
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, columns);
     }
     root_ = current;
     tail_ = getVerticesNode;
@@ -146,9 +140,7 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     withYield_ = true;
     // outputs
     auto yieldSize = yield->columns().size();
-    colNames_.reserve(yieldSize + 1);
     outputs_.reserve(yieldSize + 1);
-    colNames_.emplace_back(VertexID);
     gvColNames_.emplace_back(nebula::kVid);
     outputs_.emplace_back(VertexID, vidType_);   // kVid
 
@@ -173,10 +165,9 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
             return Status::SemanticError("Unsupported src/dst property expression in yield.");
         }
 
-        colNames_.emplace_back(col->name());
         auto typeResult = deduceExprType(col->expr());
         NG_RETURN_IF_ERROR(typeResult);
-        outputs_.emplace_back(colNames_.back(), typeResult.value());
+        outputs_.emplace_back(col->name(), typeResult.value());
         // TODO(shylock) think about the push-down expr
     }
     if (exprProps.tagProps().empty()) {
@@ -215,7 +206,6 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
 
 Status FetchVerticesValidator::preparePropertiesWithoutYield() {
     props_.clear();
-    colNames_.emplace_back("vertices_");
     outputs_.emplace_back("vertices_", Value::Type::VERTEX);
     gvColNames_.emplace_back(nebula::kVid);
     for (const auto &tagSchema : tagsSchema_) {
