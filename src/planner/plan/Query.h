@@ -947,8 +947,8 @@ public:
         return qctx->objPool()->add(new DataCollect(qctx, kind));
     }
 
-    void setMToN(StepClause::MToN* mToN) {
-        mToN_ = mToN;
+    void setMToN(StepClause step) {
+        step_ = std::move(step);
     }
 
     void setDistinct(bool distinct) {
@@ -974,8 +974,8 @@ public:
         return vars;
     }
 
-    StepClause::MToN* mToN() const {
-        return mToN_;
+    StepClause step() const {
+        return step_;
     }
 
     bool distinct() const {
@@ -993,10 +993,10 @@ private:
     void cloneMembers(const DataCollect&);
 
 private:
-    DCKind kind_;
+    DCKind          kind_;
     // using for m to n steps
-    StepClause::MToN* mToN_{nullptr};
-    bool distinct_{false};
+    StepClause      step_;
+    bool            distinct_{false};
 };
 
 class Join : public SingleDependencyNode {
@@ -1009,12 +1009,30 @@ public:
         return rightVar_;
     }
 
+    void setLeftVar(std::pair<std::string, int64_t> lvar) {
+        setInputVar(lvar.first, 0);
+        leftVar_ = lvar;
+    }
+
+    void setRightVar(std::pair<std::string, int64_t> rvar) {
+        setInputVar(rvar.first, 1);
+        rightVar_ = rvar;
+    }
+
     const std::vector<Expression*>& hashKeys() const {
         return hashKeys_;
     }
 
     const std::vector<Expression*>& probeKeys() const {
         return probeKeys_;
+    }
+
+    void setHashKeys(std::vector<Expression*> newHashKeys) {
+        hashKeys_ = newHashKeys;
+    }
+
+    void setProbeKeys(std::vector<Expression*> newProbeKeys) {
+        probeKeys_ = newProbeKeys;
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;

@@ -13,38 +13,45 @@
 namespace nebula {
 class StepClause final {
 public:
-    struct MToN {
-        uint32_t mSteps;
-        uint32_t nSteps;
-    };
-
     explicit StepClause(uint32_t steps = 1) {
-        steps_ = steps;
+        mSteps_ = steps;
+        nSteps_ = steps;
     }
 
     StepClause(uint32_t m, uint32_t n) {
-        mToN_ = std::make_unique<MToN>();
-        mToN_->mSteps = m;
-        mToN_->nSteps = n;
+        mSteps_ = m;
+        nSteps_ = n;
     }
 
     uint32_t steps() const {
-        return steps_;
-    }
-
-    MToN* mToN() const {
-        return mToN_.get();
+        return mSteps_;
     }
 
     bool isMToN() const {
-        return mToN_ != nullptr;
+        return mSteps_ != nSteps_;
+    }
+
+    uint32_t mSteps() const {
+        return mSteps_;
+    }
+
+    uint32_t nSteps() const {
+        return nSteps_;
+    }
+
+    void setMSteps(uint32_t m) {
+        mSteps_ = m;
+    }
+
+    void setNSteps(uint32_t n) {
+        nSteps_ = n;
     }
 
     std::string toString() const;
 
 private:
-    uint32_t                                    steps_{1};
-    std::unique_ptr<MToN>                       mToN_;
+    uint32_t             mSteps_{0};
+    uint32_t             nSteps_{0};
 };
 
 
@@ -224,17 +231,13 @@ public:
 
 class YieldColumn final {
 public:
-    explicit YieldColumn(Expression *expr, std::string *alias = nullptr) {
+    explicit YieldColumn(Expression *expr, const std::string &alias = "") {
         expr_.reset(expr);
-        alias_.reset(alias);
+        alias_ = alias;
     }
 
     std::unique_ptr<YieldColumn> clone() const {
-        auto col = std::make_unique<YieldColumn>(expr_->clone().release());
-        if (alias_ != nullptr) {
-            col->setAlias(new std::string(*alias_));
-        }
-        return col;
+        return std::make_unique<YieldColumn>(expr_->clone().release(), alias_);
     }
 
     void setExpr(Expression* expr) {
@@ -245,19 +248,23 @@ public:
         return expr_.get();
     }
 
-    void setAlias(std::string* alias) {
-        alias_.reset(alias);
+    void setAlias(const std::string& alias) {
+        alias_ = alias;
     }
 
-    std::string* alias() const {
-        return alias_.get();
+    const std::string& alias() const {
+        return alias_;
+    }
+
+    std::string name() const {
+        return alias_.empty() ? toString() : alias();
     }
 
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 expr_;
-    std::unique_ptr<std::string>                alias_;
+    std::unique_ptr<Expression> expr_;
+    std::string alias_;
 };
 
 bool operator==(const YieldColumn &l, const YieldColumn &r);
