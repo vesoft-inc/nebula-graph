@@ -280,6 +280,15 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
     return Status::OK();
 }
 
+std::vector<std::string> Validator::getOutColNames() const {
+    std::vector<std::string> colNames;
+    colNames.reserve(outputs_.size());
+    for (const auto& col : outputs_) {
+        colNames.emplace_back(col.name);
+    }
+    return colNames;
+}
+
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     DCHECK(node != nullptr);
     DCHECK(appended != nullptr);

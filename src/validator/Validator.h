@@ -63,6 +63,8 @@ public:
         outputs_ = outputCols;
     }
 
+    std::vector<std::string> getOutColNames() const;
+
     ColsDef inputCols() const {
         return inputs_;
     }
