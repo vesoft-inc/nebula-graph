@@ -44,7 +44,8 @@ Status FindPathValidator::validateWhere(WhereClause* where) {
         return Status::SemanticError("Not support `%s' in where sentence.",
                                      expr->toString().c_str());
     }
-    auto filter = ExpressionUtils::rewriteLabelAttr2EdgeProp(expr);
+    where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(expr));
+    auto filter = where->filter();
 
     auto typeStatus = deduceExprType(filter);
     NG_RETURN_IF_ERROR(typeStatus);
