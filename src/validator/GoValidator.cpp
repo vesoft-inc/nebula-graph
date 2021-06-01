@@ -87,9 +87,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
         for (auto& e : over_.allEdges) {
             auto* col = new YieldColumn(new EdgeDstIdExpression(e));
             newCols->addColumn(col);
-            auto colName = col->name();
-            colNames_.emplace_back(colName);
-            outputs_.emplace_back(colName, vidType_);
+            outputs_.emplace_back(col->name(), vidType_);
             NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
         }
 
@@ -104,13 +102,11 @@ Status GoValidator::validateYield(YieldClause* yield) {
                 return Status::SemanticError("`%s', not support aggregate function in go sentence.",
                                              col->toString().c_str());
             }
-            auto colName = col->name();
-            colNames_.emplace_back(colName);
             // check input var expression
             auto typeStatus = deduceExprType(colExpr);
             NG_RETURN_IF_ERROR(typeStatus);
             auto type = typeStatus.value();
-            outputs_.emplace_back(colName, type);
+            outputs_.emplace_back(col->name(), type);
 
             NG_RETURN_IF_ERROR(deduceProps(colExpr, exprProps_));
         }
@@ -129,7 +125,7 @@ Status GoValidator::toPlan() {
     if (!steps_.isMToN()) {
         if (steps_.steps() == 0) {
             auto* passThrough = PassThroughNode::make(qctx_, nullptr);
-            passThrough->setColNames(std::move(colNames_));
+            passThrough->setColNames(getOutColNames());
             tail_ = passThrough;
             root_ = tail_;
             return Status::OK();
@@ -179,16 +175,12 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
     }
 
     if (filter_ != nullptr) {
-        dependencyForProjectResult = Filter::make(
-            qctx_, dependencyForProjectResult, newFilter_ != nullptr ? newFilter_ : filter_);
+        dependencyForProjectResult = Filter::make(qctx_, dependencyForProjectResult, filter());
     }
-    auto* projectResult = Project::make(
-        qctx_, dependencyForProjectResult, newYieldCols_ != nullptr ? newYieldCols_ : yields_);
-    projectResult->setColNames(colNames_);
+    auto* projectResult = Project::make(qctx_, dependencyForProjectResult, yields());
+    projectResult->setColNames(getOutColNames());
     if (distinct_) {
-        Dedup* dedupNode = Dedup::make(qctx_, projectResult);
-        dedupNode->setColNames(colNames_);
-        root_ = dedupNode;
+        root_ = Dedup::make(qctx_, projectResult);
     } else {
         root_ = projectResult;
     }
@@ -332,8 +324,7 @@ Status GoValidator::buildMToNPlan() {
     }
 
     if (filter_ != nullptr) {
-        auto* filterNode = Filter::make(
-            qctx_, dependencyForProjectResult, newFilter_ != nullptr ? newFilter_ : filter_);
+        auto* filterNode = Filter::make(qctx_, dependencyForProjectResult, filter());
         if (dependencyForProjectResult == dedupDstVids ||
             dependencyForProjectResult == dedupSrcDstVids) {
             filterNode->setInputVar(gn->outputVar());
@@ -341,18 +332,16 @@ Status GoValidator::buildMToNPlan() {
         dependencyForProjectResult = filterNode;
     }
 
-    SingleInputNode* projectResult = Project::make(
-        qctx_, dependencyForProjectResult, newYieldCols_ != nullptr ? newYieldCols_ : yields_);
+    SingleInputNode* projectResult = Project::make(qctx_, dependencyForProjectResult, yields());
     if (dependencyForProjectResult == dedupDstVids ||
         dependencyForProjectResult == dedupSrcDstVids) {
         projectResult->setInputVar(gn->outputVar());
     }
-    projectResult->setColNames(colNames_);
+    projectResult->setColNames(getOutColNames());
 
     SingleInputNode* dedupNode = nullptr;
     if (distinct_) {
         dedupNode = Dedup::make(qctx_, projectResult);
-        dedupNode->setColNames(colNames_);
     }
 
     PlanNode *body = dedupNode == nullptr ? projectResult : dedupNode;
