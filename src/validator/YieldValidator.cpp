@@ -81,8 +81,6 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     auto type = std::move(status).value();
 
     auto name = column->name();
-    outputColumnNames_.emplace_back(name);
-
     // Constant expression folding must be after type deduction
     FoldConstantExprVisitor visitor;
     expr->accept(&visitor);
@@ -97,7 +95,7 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
 void YieldValidator::genConstantExprValues() {
     constantExprVar_ = vctx_->anonVarGen()->getVar();
     DataSet ds;
-    ds.colNames = outputColumnNames_;
+    ds.colNames = getOutColNames();
     QueryExpressionContext ctx;
     Row row;
     for (auto &column : columns_->columns()) {
@@ -233,7 +231,7 @@ Status YieldValidator::toPlan() {
         }
     } else {
         dedupDep = Project::make(qctx_, filter, columns_);
-        dedupDep->setColNames(outputColumnNames_);
+        dedupDep->setColNames(getOutColNames());
         if (filter != nullptr) {
             tail_ = filter;
         } else {

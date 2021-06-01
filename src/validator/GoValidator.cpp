@@ -395,7 +395,6 @@ PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode
 
     auto* project = Project::make(qctx_, dependency, srcAndEdgePropCols_);
     project->setInputVar(gnVar);
-    project->setColNames(srcAndEdgePropCols_->names());
     VLOG(1) << project->outputVar();
 
     return project;
