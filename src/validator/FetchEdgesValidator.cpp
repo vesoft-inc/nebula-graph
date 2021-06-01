@@ -54,14 +54,10 @@ Status FetchEdgesValidator::toPlan() {
     current = notExistEdgeFilter;
 
     if (withYield_) {
-        auto *projectNode = Project::make(qctx_, current, newYield_->yields());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, newYield_->yields());
         // Project select the properties then dedup
         if (dedup_) {
-            auto *dedupNode = Dedup::make(qctx_, current);
-            dedupNode->setColNames(colNames_);
-            current = dedupNode;
+            current = Dedup::make(qctx_, current);
 
             // the framework will add data collect to collect the result
             // if the result is required
@@ -69,9 +65,7 @@ Status FetchEdgesValidator::toPlan() {
     } else {
         auto *columns = qctx_->objPool()->add(new YieldColumns());
         columns->addColumn(new YieldColumn(new EdgeExpression(), "edges_"));
-        auto *projectNode = Project::make(qctx_, current, columns);
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, columns);
     }
     root_ = current;
     tail_ = getEdgesNode;
@@ -178,7 +172,6 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
     newYield_ = qctx_->objPool()->add(new YieldClause(newYieldColumns, yield->isDistinct()));
 
     auto newYieldSize = newYield_->columns().size();
-    colNames_.reserve(newYieldSize);
     outputs_.reserve(newYieldSize);
 
     std::vector<std::string> propsName;
@@ -212,7 +205,6 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
             propsName.emplace_back(expr->prop());
             geColNames_.emplace_back(expr->sym() + "." + expr->prop());
         }
-        colNames_.emplace_back(col->name());
         auto typeResult = deduceExprType(col->expr());
         NG_RETURN_IF_ERROR(typeResult);
         outputs_.emplace_back(col->name(), typeResult.value());
@@ -225,7 +217,6 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
 
 Status FetchEdgesValidator::preparePropertiesWithoutYield() {
     // no yield
-    colNames_.emplace_back("edges_");
     outputs_.emplace_back("edges_", Value::Type::EDGE);
     storage::cpp2::EdgeProp prop;
     prop.set_type(edgeType_);

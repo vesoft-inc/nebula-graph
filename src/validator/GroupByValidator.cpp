@@ -55,7 +55,6 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
             if (!aggs.empty()) {
                 auto* colRewrited = ExpressionUtils::rewriteAgg2VarProp(colExpr);
                 projCols_->addColumn(new YieldColumn(colRewrited, colOldName));
-                projOutputColumnNames_.emplace_back(colOldName);
                 continue;
             }
         }
@@ -77,7 +76,6 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
         projCols_->addColumn(
             new YieldColumn(new VariablePropertyExpression("", colOldName), colOldName));
 
-        projOutputColumnNames_.emplace_back(colOldName);
         outputs_.emplace_back(colOldName, type);
         outputColumnNames_.emplace_back(colOldName);
 
@@ -136,9 +134,7 @@ Status GroupByValidator::toPlan() {
     groupBy->setColNames(outputColumnNames_);
     if (needGenProject_) {
         // rewrite Expr which has inner aggExpr and push it up to Project.
-        auto* project = Project::make(qctx_, groupBy, projCols_);
-        project->setColNames(projOutputColumnNames_);
-        root_ = project;
+        root_ = Project::make(qctx_, groupBy, projCols_);
     } else {
         root_ = groupBy;
     }
