@@ -236,15 +236,14 @@ PlanNode* PathPlanner::singlePairPath(PlanNode* dep, bool reverse) {
     auto qctx = pathCtx_->qctx;
     auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
-    PlanNode* pathDep = nullptr;
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
     gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();
-    pathDep = gn;
 
+    PlanNode* pathDep = gn;
     if (pathCtx_->filter != nullptr) {
         auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
         auto* filter = Filter::make(qctx, gn, filterExpr);
@@ -295,15 +294,14 @@ PlanNode* PathPlanner::allPairPath(PlanNode* dep, bool reverse) {
     auto qctx = pathCtx_->qctx;
     auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
-    PlanNode* pathDep = nullptr;
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
     gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();
-    pathDep = gn;
 
+    PlanNode* pathDep = gn;
     if (pathCtx_->filter != nullptr) {
         auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
         auto* filter = Filter::make(qctx, gn, filterExpr);
@@ -349,15 +347,14 @@ PlanNode* PathPlanner::multiPairPath(PlanNode* dep, bool reverse) {
     auto qctx = pathCtx_->qctx;
     auto* src = qctx->objPool()->add(new ColumnExpression(0));
 
-    PlanNode* pathDep = nullptr;
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
     gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();
-    pathDep = gn;
 
+    PlanNode* pathDep = gn;
     if (pathCtx_->filter != nullptr) {
         auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
         auto* filter = Filter::make(qctx, gn, filterExpr);
