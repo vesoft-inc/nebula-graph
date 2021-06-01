@@ -35,20 +35,18 @@ Status FetchVerticesValidator::toPlan() {
                                               limit_,
                                               std::move(filter_));
     getVerticesNode->setInputVar(vidsVar);
-    getVerticesNode->setColNames(std::move(gvColNames_));
+    getVerticesNode->setColNames(gvColNames_);
     // pipe will set the input variable
     PlanNode *current = getVerticesNode;
 
     if (withYield_) {
         auto *projectNode = Project::make(qctx_, current, newYieldColumns_);
-        projectNode->setInputVar(current->outputVar());
         projectNode->setColNames(colNames_);
         current = projectNode;
 
         // Project select properties then dedup
         if (dedup_) {
             auto *dedupNode = Dedup::make(qctx_, current);
-            dedupNode->setInputVar(current->outputVar());
             dedupNode->setColNames(colNames_);
             current = dedupNode;
 
@@ -59,7 +57,6 @@ Status FetchVerticesValidator::toPlan() {
         auto *columns = qctx_->objPool()->add(new YieldColumns());
         columns->addColumn(new YieldColumn(new VertexExpression(), "vertices_"));
         auto *projectNode = Project::make(qctx_, current, columns);
-        projectNode->setInputVar(current->outputVar());
         projectNode->setColNames(colNames_);
         current = projectNode;
     }

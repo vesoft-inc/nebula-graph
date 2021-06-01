@@ -186,7 +186,6 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
                         getVertex,
                         {},
                         {func});
-    collectVertex->setInputVar(getVertex->outputVar());
     collectVertex->setColNames({"_vertices"});
 
     root_ = collectVertex;

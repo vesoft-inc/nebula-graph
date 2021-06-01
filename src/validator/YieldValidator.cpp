@@ -233,9 +233,8 @@ Status YieldValidator::toPlan() {
         }
     } else {
         dedupDep = Project::make(qctx_, filter, columns_);
-        dedupDep->setColNames(std::move(outputColumnNames_));
+        dedupDep->setColNames(outputColumnNames_);
         if (filter != nullptr) {
-            dedupDep->setInputVar(filter->outputVar());
             tail_ = filter;
         } else {
             tail_ = dedupDep;
@@ -247,10 +246,7 @@ Status YieldValidator::toPlan() {
     }
 
     if (yield->yield()->isDistinct()) {
-        auto dedup = Dedup::make(qctx_, dedupDep);
-        dedup->setColNames(dedupDep->colNames());
-        dedup->setInputVar(dedupDep->outputVar());
-        root_ = dedup;
+        root_ = Dedup::make(qctx_, dedupDep);
     } else {
         root_ = dedupDep;
     }

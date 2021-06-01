@@ -50,19 +50,16 @@ Status FetchEdgesValidator::toPlan() {
 
     // filter when the edge key is empty which means not exists edge in fact
     auto *notExistEdgeFilter = Filter::make(qctx_, current, emptyEdgeKeyFilter());
-    notExistEdgeFilter->setInputVar(current->outputVar());
     notExistEdgeFilter->setColNames(geColNames_);
     current = notExistEdgeFilter;
 
     if (withYield_) {
         auto *projectNode = Project::make(qctx_, current, newYield_->yields());
-        projectNode->setInputVar(current->outputVar());
         projectNode->setColNames(colNames_);
         current = projectNode;
         // Project select the properties then dedup
         if (dedup_) {
             auto *dedupNode = Dedup::make(qctx_, current);
-            dedupNode->setInputVar(current->outputVar());
             dedupNode->setColNames(colNames_);
             current = dedupNode;
 
@@ -73,7 +70,6 @@ Status FetchEdgesValidator::toPlan() {
         auto *columns = qctx_->objPool()->add(new YieldColumns());
         columns->addColumn(new YieldColumn(new EdgeExpression(), "edges_"));
         auto *projectNode = Project::make(qctx_, current, columns);
-        projectNode->setInputVar(current->outputVar());
         projectNode->setColNames(colNames_);
         current = projectNode;
     }

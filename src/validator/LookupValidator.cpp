@@ -40,14 +40,12 @@ Status LookupValidator::toPlan() {
 
     if (withProject_) {
         auto* projectNode = Project::make(qctx_, current, newYieldColumns_);
-        projectNode->setInputVar(current->outputVar());
         projectNode->setColNames(colNames_);
         current = projectNode;
     }
 
     if (dedup_) {
         auto* dedupNode = Dedup::make(qctx_, current);
-        dedupNode->setInputVar(current->outputVar());
         dedupNode->setColNames(colNames_);
         current = dedupNode;
 

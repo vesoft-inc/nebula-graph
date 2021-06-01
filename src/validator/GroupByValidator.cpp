@@ -137,7 +137,6 @@ Status GroupByValidator::toPlan() {
     if (needGenProject_) {
         // rewrite Expr which has inner aggExpr and push it up to Project.
         auto* project = Project::make(qctx_, groupBy, projCols_);
-        project->setInputVar(groupBy->outputVar());
         project->setColNames(projOutputColumnNames_);
         root_ = project;
     } else {
