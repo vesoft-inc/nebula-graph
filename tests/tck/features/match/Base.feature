@@ -445,6 +445,37 @@ Feature: Basic match
       | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]                             |
       | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]                                |
 
+  Scenario: Not exists properties
+    # TODO
+    # When executing query:
+      # """
+      # MATCH (v:player{not_exists_property: 233}) RETURN v
+      # """
+    # Then the result should be, in any order:
+      # | v |
+    When executing query:
+      """
+      MATCH (v:player{age: 33}) RETURN v.not_exists_property
+      """
+    Then the result should be, in any order:
+      | v.not_exists_property |
+      | NULL                  |
+      | NULL                  |
+      | NULL                  |
+      | NULL                  |
+    When executing query:
+      """
+      MATCH ()-[e:like{not_exists_property: 90}]->() RETURN e.likeness
+      """
+      | e.not_exists_property |
+    When executing query:
+      """
+      MATCH (:player{name: "Tim Duncan"})-[e:like]->() RETURN e.not_exists_property
+      """
+      | e.not_exists_property |
+      | NULL                  |
+      | NULL                  |
+
   Scenario: No return
     When executing query:
       """
