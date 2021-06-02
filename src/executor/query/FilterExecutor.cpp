@@ -28,7 +28,7 @@ folly::Future<Status> FilterExecutor::execute() {
             << ", input data size: " << result.iterRef()->size();
 
     ResultBuilder builder;
-    builder.values(result.values());
+    builder.value(result.valuePtr());
     QueryExpressionContext ctx(ectx_);
     auto condition = filter->condition();
     while (result.iterRef()->valid()) {

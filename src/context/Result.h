@@ -30,15 +30,11 @@ public:
     static const std::vector<Result>& EmptyResultList();
 
     std::shared_ptr<Value> valuePtr() const {
-        return core_.values.front();
+        return core_.value;
     }
 
     const Value& value() const {
-        return *core_.values.front();
-    }
-
-    const std::vector<std::shared_ptr<Value>>& values() const {
-        return core_.values;
+        return *core_.value;
     }
 
     State state() const {
@@ -66,7 +62,7 @@ private:
     friend class ExecutionContext;
 
     Value&& moveValue() {
-        return std::move(*core_.values.front());
+        return std::move(*core_.value);
     }
 
     struct Core {
@@ -79,14 +75,14 @@ private:
         Core& operator=(const Core &c) {
             state = c.state;
             msg = c.msg;
-            values = c.values;
+            value = c.value;
             iter = c.iter->copy();
             return *this;
         }
 
         State state;
         std::string msg;
-        std::vector<std::shared_ptr<Value>> values;
+        std::shared_ptr<Value> value;
         std::unique_ptr<Iterator> iter;
     };
 
@@ -104,24 +100,17 @@ public:
 
     Result finish() {
         if (!core_.iter) iter(Iterator::Kind::kSequential);
-        if (core_.values.empty() && core_.iter) value(core_.iter->valuePtr());
+        if (!core_.value && core_.iter) value(core_.iter->valuePtr());
         return Result(std::move(core_));
     }
 
     ResultBuilder& value(Value&& value) {
-        core_.values.emplace_back(std::make_shared<Value>(std::move(value)));
+        core_.value = std::make_shared<Value>(std::move(value));
         return *this;
     }
 
     ResultBuilder& value(std::shared_ptr<Value> value) {
-        core_.values.emplace_back(value);
-        return *this;
-    }
-
-    ResultBuilder& values(std::vector<std::shared_ptr<Value>> values) {
-        core_.values.insert(core_.values.end(),
-                            std::make_move_iterator(values.begin()),
-                            std::make_move_iterator(values.end()));
+        core_.value = value;
         return *this;
     }
 

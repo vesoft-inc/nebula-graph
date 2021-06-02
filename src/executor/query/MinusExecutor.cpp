@@ -40,7 +40,7 @@ folly::Future<Status> MinusExecutor::execute() {
     }
 
     ResultBuilder builder;
-    builder.values(left.values()).iter(std::move(left).iter());
+    builder.value(left.valuePtr()).iter(std::move(left).iter());
     return finish(builder.finish());
 }
 

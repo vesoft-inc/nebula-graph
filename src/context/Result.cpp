@@ -21,17 +21,17 @@ const std::vector<Result>& Result::EmptyResultList() {
 }
 
 ResultBuilder& ResultBuilder::iter(Iterator::Kind kind) {
-    DCHECK(kind == Iterator::Kind::kDefault || !core_.values.empty())
+    DCHECK(kind == Iterator::Kind::kDefault || core_.value)
         << "Must set value when creating non-default iterator";
     switch (kind) {
         case Iterator::Kind::kDefault:
-            return iter(std::make_unique<DefaultIter>(core_.values.front()));
+            return iter(std::make_unique<DefaultIter>(core_.value));
         case Iterator::Kind::kSequential:
-            return iter(std::make_unique<SequentialIter>(core_.values.front()));
+            return iter(std::make_unique<SequentialIter>(core_.value));
         case Iterator::Kind::kGetNeighbors:
-            return iter(std::make_unique<GetNeighborsIter>(core_.values.front()));
+            return iter(std::make_unique<GetNeighborsIter>(core_.value));
         case Iterator::Kind::kProp:
-            return iter(std::make_unique<PropIter>(core_.values.front()));
+            return iter(std::make_unique<PropIter>(core_.value));
         default:
             LOG(FATAL) << "Invalid Iterator kind" << static_cast<uint8_t>(kind);
     }

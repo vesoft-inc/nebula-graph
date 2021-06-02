@@ -47,7 +47,7 @@ folly::Future<Status> IntersectExecutor::execute() {
         }
     }
 
-    builder.values(left.values()).iter(std::move(left).iter());
+    builder.value(left.valuePtr()).iter(std::move(left).iter());
     return finish(builder.finish());
 }
 

@@ -59,12 +59,12 @@ folly::Future<Status> TopNExecutor::execute() {
     if (heapSize_ == 0) {
         result.iterRef()->clear();
         return finish(ResultBuilder()
-            .values(result.values()).iter(std::move(result).iter()).finish());
+            .value(result.valuePtr()).iter(std::move(result).iter()).finish());
     }
 
     executeTopN<SequentialIter>(result.iterRef());
     result.iterRef()->eraseRange(maxCount_, size);
-    return finish(ResultBuilder().values(result.values()).iter(std::move(result).iter()).finish());
+    return finish(ResultBuilder().value(result.valuePtr()).iter(std::move(result).iter()).finish());
 }
 
 template<typename U>

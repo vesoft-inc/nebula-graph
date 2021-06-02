@@ -17,7 +17,7 @@ folly::Future<Status> LimitExecutor::execute() {
     auto* limit = asNode<Limit>(node());
     Result result = ectx_->getResult(limit->inputVar());
     ResultBuilder builder;
-    builder.values(result.values());
+    builder.value(result.valuePtr());
     auto offset = limit->offset();
     auto count = limit->count();
     auto size = result.iterRef()->size();
