@@ -32,32 +32,6 @@ SessionManager::~SessionManager() {
 }
 
 
-void SessionManager::findSession(
-        SessionID id,
-        folly::Executor* runner,
-        std::unique_ptr<RequestContext<ExecutionResponse>> rctx,
-        QueryEngine *queryEngine) {
-    // When the sessionId is 0, it means the clients to ping the connection is ok
-    if (id == 0) {
-        rctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-        rctx->resp().errorMsg = std::make_unique<std::string>("Invalid session id");
-        rctx->finish();
-        return;
-    }
-
-    auto session = findSessionFromCache(id);
-    if (session != nullptr) {
-        session->updateGraphAddr(myAddr_);
-        rctx->setSession(std::move(session));
-        queryEngine->execute(std::move(rctx));
-    } else {
-        auto cb = [queryEngine](std::unique_ptr<RequestContext<ExecutionResponse>> ctx){
-            queryEngine->execute(std::move(ctx));
-        };
-        findSessionFromMetad(id, runner, std::move(rctx), cb);
-    }
-}
-
 std::shared_ptr<ClientSession> SessionManager::findSessionFromCache(SessionID id) {
     folly::RWSpinLock::ReadHolder rHolder(rwlock_);
     auto iter = activeSessions_.find(id);
@@ -69,11 +43,8 @@ std::shared_ptr<ClientSession> SessionManager::findSessionFromCache(SessionID id
 }
 
 
-void SessionManager::findSessionFromMetad(
-        SessionID id,
-        folly::Executor* runner,
-        std::unique_ptr<RequestContext<ExecutionResponse>> rctx,
-        std::function<void(std::unique_ptr<RequestContext<ExecutionResponse>>)> execFunc) {
+folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
+SessionManager::findSessionFromMetad(SessionID id, folly::Executor* runner) {
     VLOG(1) << "Find session `" << id << "' from metad";
     // local cache not found, need to get from metad
     auto addSession = [this, id] (auto &&resp) -> StatusOr<std::shared_ptr<ClientSession>> {
@@ -90,7 +61,8 @@ void SessionManager::findSessionFromMetad(
             // get spaceInfo
             auto spaceId = metaClient_->getSpaceIdByNameFromCache(spaceName);
             if (!spaceId.ok()) {
-                LOG(ERROR) << "Get session with Unknown space: " << spaceName;
+                LOG(ERROR) << "Get session with unknown space: " << spaceName;
+                return Status::Error("Get session with unknown space: %s", spaceName.c_str());
             } else {
                 auto spaceDesc = metaClient_->getSpaceDesc(spaceId.value());
                 if (!spaceDesc.ok()) {
@@ -102,61 +74,37 @@ void SessionManager::findSessionFromMetad(
             }
         }
 
-        folly::RWSpinLock::WriteHolder wHolder(rwlock_);
-        auto findPtr = activeSessions_.find(id);
-        if (findPtr == activeSessions_.end()) {
-            VLOG(1) << "Add session id: " << id << " from metad";
-            auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
-            sessionPtr->charge();
-            activeSessions_[id] = sessionPtr;
+        {
+            folly::RWSpinLock::WriteHolder wHolder(rwlock_);
+            auto findPtr = activeSessions_.find(id);
+            if (findPtr == activeSessions_.end()) {
+                VLOG(1) << "Add session id: " << id << " from metad";
+                auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
+                sessionPtr->charge();
+                activeSessions_[id] = sessionPtr;
 
-            // update the space info to sessionPtr
-            if (!spaceName.empty()) {
-                sessionPtr->setSpace(std::move(spaceInfo));
+                // update the space info to sessionPtr
+                if (!spaceName.empty()) {
+                    sessionPtr->setSpace(std::move(spaceInfo));
+                }
+                updateSessionInfo(sessionPtr.get());
+                return sessionPtr;
             }
-
-            return sessionPtr;
+            updateSessionInfo(findPtr->second.get());
+            return findPtr->second;
         }
-        return findPtr->second;
     };
-
-
-    auto execInstance = new ExecuteInstance(std::move(rctx));
-    auto doFinish = [this, execInstance, execFunc](auto&& resp) {
-        VLOG(2) << "Find session doFinish";
-        if (!resp.ok()) {
-            execInstance->rctx()->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            execInstance->rctx()->resp().errorMsg.reset(new std::string("Session not found."));
-            execInstance->rctx()->finish();
-            return execInstance->finish();
-        }
-        auto session = std::move(resp).value();
-        session->updateGraphAddr(myAddr_);
-        auto roles = metaClient_->getRolesByUserFromCache(session->user());
-        for (const auto &role : roles) {
-            session->setRole(role.get_space_id(), role.get_role_type());
-        }
-        execInstance->rctx()->setSession(std::move(session));
-        execFunc(execInstance->moveRctx());
-        return execInstance->finish();
-    };
-
-    metaClient_->getSession(id).via(runner).thenValue(addSession).thenValue(doFinish);
+    return metaClient_->getSession(id)
+            .via(runner)
+            .thenValue(addSession);
 }
 
-void SessionManager::createSession(const std::string &userName,
-                                   const std::string& clientIp,
-                                   folly::Executor* runner,
-                                   std::unique_ptr<RequestContext<AuthResponse>> rctx) {
-    {
-        folly::RWSpinLock::ReadHolder rHolder(rwlock_);
-        if (activeSessions_.size() >= FLAGS_max_allowed_connections) {
-            return rctx->finish();
-        }
-    }
-
+folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
+SessionManager::createSession(const std::string userName,
+                              const std::string clientIp,
+                              folly::Executor* runner) {
     auto createCB = [this, userName = userName]
-        (auto && resp) -> StatusOr<std::shared_ptr<ClientSession>> {
+            (auto && resp) -> StatusOr<std::shared_ptr<ClientSession>> {
         if (!resp.ok()) {
             LOG(ERROR) << "Create session failed:" <<  resp.status();
             return Status::Error("Create session failed: %s", resp.status().toString().c_str());
@@ -172,55 +120,18 @@ void SessionManager::createSession(const std::string &userName,
                 auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
                 sessionPtr->charge();
                 activeSessions_[sid] = sessionPtr;
+                updateSessionInfo(sessionPtr.get());
                 return sessionPtr;
             }
+            updateSessionInfo(findPtr->second.get());
             return findPtr->second;
         }
     };
 
-    auto authInstance = new AuthInstance(std::move(rctx));
-    auto doFinish = [this,
-                     authInstance,
-                     userName = userName,
-                     clientIp = clientIp]
-                             (folly::Try<StatusOr<std::shared_ptr<ClientSession>>>&& t) {
-        VLOG(2) << "Create session doFinish";
-        if (t.hasException()) {
-            LOG(ERROR) << "Create session failed: " << t.exception().what();
-            authInstance->rctx()->resp().errorCode = ErrorCode::E_RPC_FAILURE;
-            std::string error = folly::stringPrintf("Create session failed: %s",
-                    t.exception().what().c_str());
-            authInstance->rctx()->resp().errorMsg.reset(new std::string(error));
-            authInstance->rctx()->finish();
-            return authInstance->finish();
-        }
-        auto ret = std::move(t).value();
-        if (!ret.ok()) {
-            LOG(ERROR) << "Create session for userName: " << userName
-                       << ", ip: " << clientIp << " failed: " << ret.status();
-            authInstance->rctx()->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            authInstance->rctx()->resp().errorMsg.reset(new std::string("Create session failed."));
-            authInstance->rctx()->finish();
-            return authInstance->finish();
-        }
-        auto session = std::move(ret).value();
-        auto sid = session->id();
-        authInstance->rctx()->setSession(std::move(session));
-        auto roles = metaClient_->getRolesByUserFromCache(userName);
-        for (const auto &role : roles) {
-            authInstance->rctx()->session()->setRole(role.get_space_id(), role.get_role_type());
-        }
-        authInstance->rctx()->resp().sessionId.reset(new SessionID(sid));
-        authInstance->rctx()->finish();
-        return authInstance->finish();
-    };
-
-    metaClient_->createSession(userName, myAddr_, clientIp)
-        .via(runner)
-        .thenValue(createCB)
-        .then(doFinish);
+    return metaClient_->createSession(userName, myAddr_, clientIp)
+            .via(runner)
+            .thenValue(createCB);
 }
-
 
 void SessionManager::removeSession(SessionID id) {
     folly::RWSpinLock::WriteHolder wHolder(rwlock_);
@@ -239,7 +150,7 @@ void SessionManager::removeSession(SessionID id) {
 
 void SessionManager::threadFunc() {
     reclaimExpiredSessions();
-    UpdateSessionsToMeta();
+    updateSessionsToMeta();
     scavenger_->addDelayTask(FLAGS_session_reclaim_interval_secs * 1000,
                              &SessionManager::threadFunc,
                              this);
@@ -278,7 +189,7 @@ void SessionManager::reclaimExpiredSessions() {
     }
 }
 
-void SessionManager::UpdateSessionsToMeta() {
+void SessionManager::updateSessionsToMeta() {
     std::vector<meta::cpp2::Session> sessions;
     {
         folly::RWSpinLock::ReadHolder rHolder(rwlock_);
@@ -299,5 +210,12 @@ void SessionManager::UpdateSessionsToMeta() {
     }
 }
 
+void SessionManager::updateSessionInfo(ClientSession* session) {
+    session->updateGraphAddr(myAddr_);
+    auto roles = metaClient_->getRolesByUserFromCache(session->user());
+    for (const auto &role : roles) {
+        session->setRole(role.get_space_id(), role.get_role_type());
+    }
+}
 }   // namespace graph
 }   // namespace nebula

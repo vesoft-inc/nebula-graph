@@ -40,8 +40,6 @@ public:
     const char* getErrorStr(ErrorCode result);
 
 private:
-    void onHandle(RequestContext<AuthResponse>& ctx, ErrorCode code);
-
     bool auth(const std::string& username, const std::string& password);
 
     std::unique_ptr<SessionManager>             sessionManager_;

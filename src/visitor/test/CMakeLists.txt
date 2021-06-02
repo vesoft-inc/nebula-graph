@@ -19,15 +19,12 @@ nebula_add_test(
         $<TARGET_OBJECTS:validator_obj>
         $<TARGET_OBJECTS:expr_visitor_obj>
         $<TARGET_OBJECTS:planner_obj>
+        $<TARGET_OBJECTS:session_obj>
         $<TARGET_OBJECTS:graph_flags_obj>
         $<TARGET_OBJECTS:parser_obj>
         $<TARGET_OBJECTS:idgenerator_obj>
         $<TARGET_OBJECTS:context_obj>
         $<TARGET_OBJECTS:graph_auth_obj>
-        $<TARGET_OBJECTS:optimizer_obj>
-        $<TARGET_OBJECTS:scheduler_obj>
-        $<TARGET_OBJECTS:executor_obj>
-        $<TARGET_OBJECTS:stats_def_obj>
         $<TARGET_OBJECTS:common_expression_obj>
         $<TARGET_OBJECTS:common_network_obj>
         $<TARGET_OBJECTS:common_fs_obj>
@@ -54,14 +51,10 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_http_client_obj>
         $<TARGET_OBJECTS:common_process_obj>
         $<TARGET_OBJECTS:common_time_utils_obj>
-        $<TARGET_OBJECTS:session_obj>
-        $<TARGET_OBJECTS:query_engine_obj>
         $<TARGET_OBJECTS:common_graph_obj>
         $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
         $<TARGET_OBJECTS:common_ws_common_obj>
         $<TARGET_OBJECTS:common_version_obj>
-        $<TARGET_OBJECTS:common_storage_client_base_obj>
-        $<TARGET_OBJECTS:common_graph_storage_client_obj>
     LIBRARIES
         gtest
         ${THRIFT_LIBRARIES}

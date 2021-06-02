@@ -16,11 +16,12 @@
 
 #include "session/ClientSession.h"
 #include "service/RequestContext.h"
-#include "service/QueryEngine.h"
 
 /**
  * SessionManager manages the client sessions, e.g. create new, find existing and drop expired.
  */
+
+DECLARE_int64(max_allowed_connections);
 
 namespace nebula {
 namespace graph {
@@ -33,89 +34,45 @@ public:
     /**
      * Create a new session
      */
-    void createSession(const std::string &userName,
-                       const std::string& clientIp,
-                       folly::Executor* runner,
-                       std::unique_ptr<RequestContext<AuthResponse>> rctx);
+    folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
+    createSession(const std::string userName,
+                  const std::string clientIp,
+                  folly::Executor* runner);
+
+    bool isOutOfConnections() {
+        folly::RWSpinLock::ReadHolder rHolder(rwlock_);
+        if (activeSessions_.size() >= static_cast<uint64_t>(FLAGS_max_allowed_connections)) {
+            LOG(INFO) << "The sessions of the cluster has more than max_allowed_connections: "
+                      << FLAGS_max_allowed_connections;
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Remove a session
      */
     void removeSession(SessionID id);
 
     /**
-     * Find a session
-     */
-    void findSession(SessionID id,
-                     folly::Executor* runner,
-                     std::unique_ptr<RequestContext<ExecutionResponse>> rctx,
-                     QueryEngine *queryEngine);
-
-private:
-    using SessionPtr = std::shared_ptr<ClientSession>;
-    /**
      * Find an existing session
      */
-    SessionPtr findSessionFromCache(SessionID id);
+    std::shared_ptr<ClientSession> findSessionFromCache(SessionID id);
 
-    using ExecFunc = std::function<void(std::unique_ptr<RequestContext<ExecutionResponse>>)>;
-    void findSessionFromMetad(SessionID id,
-                              folly::Executor* runner,
-                              std::unique_ptr<RequestContext<ExecutionResponse>> rctx,
-                              ExecFunc execFunc);
+    folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
+    findSessionFromMetad(SessionID id, folly::Executor* runner);
 
+private:
     void threadFunc();
 
     void reclaimExpiredSessions();
 
-    void UpdateSessionsToMeta();
+    void updateSessionsToMeta();
 
-
-private:
-    class AuthInstance {
-    public:
-        explicit AuthInstance(std::unique_ptr<RequestContext<AuthResponse>> rctx) {
-            rctx_ = std::move(rctx);
-        }
-
-        ~AuthInstance() = default;
-
-        RequestContext<AuthResponse>* rctx() const {
-            return rctx_.get();
-        }
-
-        void finish() {
-            delete this;
-        }
-
-    private:
-        std::unique_ptr<RequestContext<AuthResponse>>               rctx_;
-    };
-
-    class ExecuteInstance {
-    public:
-        explicit ExecuteInstance(std::unique_ptr<RequestContext<ExecutionResponse>> rctx) {
-            rctx_ = std::move(rctx);
-        }
-
-        ~ExecuteInstance() = default;
-
-        RequestContext<ExecutionResponse>* rctx() const {
-            return rctx_.get();
-        }
-
-        std::unique_ptr<RequestContext<ExecutionResponse>> moveRctx() {
-            return std::move(rctx_);
-        }
-
-        void finish() {
-            delete this;
-        }
-
-    private:
-        std::unique_ptr<RequestContext<ExecutionResponse>>               rctx_;
-    };
+    void updateSessionInfo(ClientSession* session);
 
 private:
+    using SessionPtr = std::shared_ptr<ClientSession>;
     folly::RWSpinLock                           rwlock_;        // TODO(dutor) writer might starve
     std::unordered_map<SessionID, SessionPtr>   activeSessions_;
     std::unique_ptr<thread::GenericWorker>      scavenger_;

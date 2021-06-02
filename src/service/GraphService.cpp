@@ -64,12 +64,43 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
     auto future = ctx->future();
     // check username and password failed
     if (!auth(username, password)) {
-        onHandle(*ctx, ErrorCode::E_BAD_USERNAME_PASSWORD);
+        ctx->resp().errorCode = ErrorCode::E_BAD_USERNAME_PASSWORD;
+        ctx->resp().errorMsg.reset(new std::string(getErrorStr(ctx->resp().errorCode)));
         ctx->finish();
         return future;
     }
 
-    sessionManager_->createSession(username, clientIp, getThreadManager(), std::move(ctx));
+    if (!sessionManager_->isOutOfConnections()) {
+        ctx->resp().errorCode = ErrorCode::E_TOO_MANY_CONNECTIONS;
+        ctx->resp().errorMsg.reset(new std::string(getErrorStr(ctx->resp().errorCode)));
+        ctx->finish();
+        return future;
+    }
+
+    auto cb = [this, user = username, cIp = clientIp, ctx = std::move(ctx)]
+               (StatusOr<std::shared_ptr<ClientSession>> ret) mutable {
+        VLOG(2) << "Create session doFinish";
+        if (!ret.ok()) {
+            LOG(ERROR) << "Create session for userName: " << user
+                       << ", ip: " << cIp << " failed: " << ret.status();
+            ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+            ctx->resp().errorMsg.reset(new std::string("Create session failed."));
+            return ctx->finish();
+        }
+        auto sessionPtr = std::move(ret).value();
+        if (sessionPtr == nullptr) {
+            LOG(ERROR) << "Get session for sessionId is nullptr";
+            ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+            ctx->resp().errorMsg.reset(new std::string("Get session for sessionId is nullptr"));
+            return ctx->finish();
+        }
+        ctx->setSession(sessionPtr);
+        ctx->resp().sessionId.reset(new int64_t(ctx->session()->id()));
+        return ctx->finish();
+    };
+
+    sessionManager_->createSession(username, clientIp, getThreadManager())
+            .thenValue(std::move(cb));
     return future;
 }
 
@@ -87,7 +118,43 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     ctx->setRunner(getThreadManager());
     auto future = ctx->future();
     stats::StatsManager::addValue(kNumQueries);
-    sessionManager_->findSession(sessionId, getThreadManager(), std::move(ctx), queryEngine_.get());
+    // When the sessionId is 0, it means the clients to ping the connection is ok
+    if (sessionId == 0) {
+        ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+        ctx->resp().errorMsg.reset(new std::string(getErrorStr(ctx->resp().errorCode)));
+        ctx->finish();
+        return future;
+    }
+
+    auto session = sessionManager_->findSessionFromCache(sessionId);
+    if (session != nullptr) {
+        ctx->setSession(std::move(session));
+        queryEngine_->execute(std::move(ctx));
+    } else {
+        auto cb = [this, sessionId, ctx = std::move(ctx)]
+                (StatusOr<std::shared_ptr<ClientSession>> ret) mutable {
+            if (!ret.ok()) {
+                LOG(ERROR) << "Get session for sessionId: " << sessionId
+                           << " failed: " << ret.status();
+                ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+                ctx->resp().errorMsg.reset(
+                    new std::string("SessionId[%ld] does not exist", sessionId));
+                return ctx->finish();
+            }
+            auto sessionPtr = std::move(ret).value();
+            if (sessionPtr == nullptr) {
+                LOG(ERROR) << "Get session for sessionId: " << sessionId << " is nullptr";
+                ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+                ctx->resp().errorMsg.reset(
+                    new std::string("SessionId[%ld] does not exist", sessionId));
+                return ctx->finish();
+            }
+            ctx->setSession(std::move(sessionPtr));
+            queryEngine_->execute(std::move(ctx));
+        };
+        sessionManager_->findSessionFromMetad(sessionId, getThreadManager())
+            .thenValue(std::move(cb));
+    }
     return future;
 }
 
@@ -134,14 +201,7 @@ const char* GraphService::getErrorStr(ErrorCode result) {
     return "Unknown error";
 }
 
-void GraphService::onHandle(RequestContext<AuthResponse>& ctx, ErrorCode code) {
-    ctx.resp().errorCode = code;
-    if (code != ErrorCode::SUCCEEDED) {
-        ctx.resp().errorMsg.reset(new std::string(getErrorStr(code)));
-    } else {
-        ctx.resp().sessionId.reset(new int64_t(ctx.session()->id()));
-    }
-}
+
 
 bool GraphService::auth(const std::string& username, const std::string& password) {
     if (!FLAGS_enable_authorize) {

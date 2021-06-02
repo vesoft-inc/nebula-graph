@@ -6,6 +6,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import re
+import sys
 import time
 import pytest
 import concurrent
@@ -40,6 +41,10 @@ class TestSession(NebulaTestSuite):
     @classmethod
     def cleanup(self):
         resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 0')
+        self.check_resp_succeeded(resp)
+        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 10')
+        self.check_resp_succeeded(resp)
+        resp = self.execute('UPDATE CONFIGS graph:max_allowed_connections = {}'.format(sys.maxsize))
         self.check_resp_succeeded(resp)
         resp = self.execute('DROP USER session_user')
         self.check_resp_succeeded(resp)
@@ -177,4 +182,24 @@ class TestSession(NebulaTestSuite):
         expect_result = [['a'], ['b'], ['aa0'], ['aa1'], ['aa2']]
         self.check_out_of_order_result(ResultSet(resp, 0), expect_result)
 
+    def test_out_of_max_connections(self):
+        resp = self.execute('SHOW SESSIONS')
+        self.check_resp_succeeded(resp)
+        current_sessions = len(resp.rows())
+
+        resp = self.execute('UPDATE CONFIGS graph:max_allowed_connections = {}'.format(current_sessions))
+        self.check_resp_succeeded(resp)
+        time.sleep(3)
+
+        # get new session failed
+        try:
+            self.client_pool.get_session(self.user, self.password)
+            assert False
+        except Exception as e:
+            assert True
+            assert e.message == "Auth failed: b'Too many connections in the cluster'"
+
+        resp = self.execute('UPDATE CONFIGS graph:max_allowed_connections = {}'.format(sys.maxsize))
+        self.check_resp_succeeded(resp)
+        time.sleep(3)
 

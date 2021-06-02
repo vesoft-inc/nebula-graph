@@ -35,8 +35,6 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:common_ws_common_obj>
     $<TARGET_OBJECTS:common_version_obj>
     $<TARGET_OBJECTS:session_obj>
-    $<TARGET_OBJECTS:query_engine_obj>
-    $<TARGET_OBJECTS:stats_def_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
     $<TARGET_OBJECTS:validator_obj>
@@ -48,7 +46,6 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
     $<TARGET_OBJECTS:expr_visitor_obj>
-    $<TARGET_OBJECTS:optimizer_obj>
     $<TARGET_OBJECTS:common_graph_obj>
 )
 
