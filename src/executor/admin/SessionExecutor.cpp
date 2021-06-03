@@ -47,10 +47,12 @@ folly::Future<Status> ShowSessionsExecutor::listSessions() {
                     row.emplace_back(session.get_session_id());
                     row.emplace_back(session.get_user_name());
                     row.emplace_back(session.get_space_name());
-                    // TODO(laura) format time to local time
-                    row.emplace_back(session.get_create_time());
-                    row.emplace_back(session.get_update_time());
-                    row.emplace_back(network::NetworkUtils::toHostsStr({session.get_graph_addr()}));
+                    row.emplace_back(
+                            microSecToDateTime(session.get_create_time()));
+                    row.emplace_back(
+                            microSecToDateTime(session.get_update_time()));
+                    row.emplace_back(
+                            network::NetworkUtils::toHostsStr({session.get_graph_addr()}));
                     row.emplace_back(session.get_timezone());
                     row.emplace_back(session.get_client_ip());
                     result.emplace_back(std::move(row));
@@ -71,16 +73,23 @@ folly::Future<Status> ShowSessionsExecutor::getSession(SessionID sessionId) {
                 }
                 auto session = resp.value().get_session();
                 DataSet result({"VariableName", "Value"});
-                result.emplace_back(Row({"SessionID", session.get_session_id()}));
-                result.emplace_back(Row({"UserName", session.get_user_name()}));
-                result.emplace_back(Row({"SpaceName", session.get_space_name()}));
-                result.emplace_back(Row({"CreateTime", session.get_create_time()}));
-                result.emplace_back(Row({"UpdateTime", session.get_update_time()}));
-                result.emplace_back(Row({"GraphAddr",
-                                         network::NetworkUtils::toHostsStr(
-                                             {session.get_graph_addr()})}));
-                result.emplace_back(Row({"Timezone", session.get_timezone()}));
-                result.emplace_back(Row({"ClientIp", session.get_client_ip()}));
+                result.emplace_back(
+                        Row({"SessionID", session.get_session_id()}));
+                result.emplace_back(
+                        Row({"UserName", session.get_user_name()}));
+                result.emplace_back(
+                        Row({"SpaceName", session.get_space_name()}));
+                result.emplace_back(
+                        Row({"CreateTime", microSecToDateTime(session.get_create_time())}));
+                result.emplace_back(
+                        Row({"UpdateTime", microSecToDateTime(session.get_update_time())}));
+                result.emplace_back(
+                        Row({"GraphAddr",
+                             network::NetworkUtils::toHostsStr({session.get_graph_addr()})}));
+                result.emplace_back(
+                        Row({"Timezone", session.get_timezone()}));
+                result.emplace_back(
+                        Row({"ClientIp", session.get_client_ip()}));
                 return finish(ResultBuilder().value(Value(std::move(result))).finish());
             });
 }

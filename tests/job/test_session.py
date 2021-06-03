@@ -76,21 +76,15 @@ class TestSession(NebulaTestSuite):
                             'GraphAddr',
                             'Timezone',
                             'ClientIp']
-        expect_result = [[re.compile(r'\d+'),
-                          re.compile(r'session_user'),
-                          re.compile(r''),
-                          re.compile(r'\d+'),
-                          re.compile(r'\d+'),
-                          re.compile(r'\d+.\d+.\d+.\d+:.*'),
-                          re.compile(r'\d+'),
-                          re.compile(r'\S+')]]
         self.check_column_names(resp, expect_col_names)
-        self.search_result(resp, expect_result, is_regex=True)
 
         session_id = 0
         for row in resp.rows():
             if bytes.decode(row.values[1].get_sVal()) == 'session_user':
                 session_id = row.values[0].get_iVal()
+                assert row.values[2].get_sVal() == b''
+                assert row.values[3].getType() == ttypes.Value.DTVAL
+                assert row.values[4].getType() == ttypes.Value.DTVAL
                 break
 
         assert session_id != 0
@@ -102,16 +96,18 @@ class TestSession(NebulaTestSuite):
         resp = self.execute('SHOW SESSION {}'.format(session_id))
         self.check_resp_succeeded(resp)
         expect_col_names = ['VariableName', 'Value']
-        expect_result = [[re.compile(r'SessionID'), re.compile(r'\d+')],
-                         [re.compile(r'UserName'), re.compile(r'session_user')],
-                         [re.compile(r'SpaceName'), re.compile(r'nba')],
-                         [re.compile(r'CreateTime'), re.compile(r'\d+')],
-                         [re.compile(r'UpdateTime'), re.compile(r'\d+')],
-                         [re.compile(r'GraphAddr'), re.compile(r'\d+.\d+.\d+.\d+:.*')],
-                         [re.compile(r'Timezone'), re.compile(r'\d+')],
-                         [re.compile(r'ClientIp'), re.compile(r'\S+')]]
+        expect_result = [['SessionID'],
+                         ['UserName'],
+                         ['SpaceName'],
+                         ['CreateTime'],
+                         ['UpdateTime'],
+                         ['GraphAddr'],
+                         ['Timezone'],
+                         ['ClientIp']]
         self.check_column_names(resp, expect_col_names)
-        self.search_result(resp, expect_result, is_regex=True)
+        self.check_result(resp, expect_result, ignore_col=[1])
+        assert resp.rows()[1].values[1].get_sVal() == b'session_user'
+        assert resp.rows()[2].values[1].get_sVal() == b'nba'
 
         # 5: test expired session
         time.sleep(3)
@@ -202,4 +198,5 @@ class TestSession(NebulaTestSuite):
         resp = self.execute('UPDATE CONFIGS graph:max_allowed_connections = {}'.format(sys.maxsize))
         self.check_resp_succeeded(resp)
         time.sleep(3)
+
 

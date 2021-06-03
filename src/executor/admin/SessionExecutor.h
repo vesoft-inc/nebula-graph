@@ -7,6 +7,8 @@
 #ifndef EXECUTOR_ADMIN_SESSIONEXECUTOR_H_
 #define EXECUTOR_ADMIN_SESSIONEXECUTOR_H_
 
+#include "common/time/TimeUtils.h"
+
 #include "executor/Executor.h"
 #include "service/RequestContext.h"
 
@@ -22,7 +24,14 @@ public:
 
 private:
     folly::Future<Status> listSessions();
+
     folly::Future<Status> getSession(SessionID sessionId);
+
+    DateTime microSecToDateTime(int64_t microSec) {
+        auto dateTime = time::TimeUtils::unixSecondsToDateTime(microSec / 1000000);
+        dateTime.microsec = microSec % 1000000;
+        return dateTime;
+    }
 };
 
 class UpdateSessionExecutor final : public Executor {

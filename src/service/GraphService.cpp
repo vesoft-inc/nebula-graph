@@ -77,7 +77,7 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
         return future;
     }
 
-    auto cb = [this, user = username, cIp = clientIp, ctx = std::move(ctx)]
+    auto cb = [user = username, cIp = clientIp, ctx = std::move(ctx)]
                (StatusOr<std::shared_ptr<ClientSession>> ret) mutable {
         VLOG(2) << "Create session doFinish";
         if (!ret.ok()) {
