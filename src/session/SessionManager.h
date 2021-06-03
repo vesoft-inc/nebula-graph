@@ -54,6 +54,10 @@ public:
      */
     void removeSession(SessionID id);
 
+    folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
+    findSession(SessionID id, folly::Executor* runner);
+
+private:
     /**
      * Find an existing session
      */
@@ -62,7 +66,6 @@ public:
     folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
     findSessionFromMetad(SessionID id, folly::Executor* runner);
 
-private:
     void threadFunc();
 
     void reclaimExpiredSessions();

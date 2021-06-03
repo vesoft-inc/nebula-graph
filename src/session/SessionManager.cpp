@@ -31,6 +31,20 @@ SessionManager::~SessionManager() {
     }
 }
 
+folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
+SessionManager::findSession(SessionID id, folly::Executor* runner) {
+    // When the sessionId is 0, it means the clients to ping the connection is ok
+    if (id == 0) {
+        return folly::makeFuture(Status::Error("SessionId is invalid")).via(runner);
+    }
+
+    auto sessionPtr = findSessionFromCache(id);
+    if (sessionPtr != nullptr) {
+        return folly::makeFuture(sessionPtr).via(runner);
+    }
+
+    return findSessionFromMetad(id, runner);
+}
 
 std::shared_ptr<ClientSession> SessionManager::findSessionFromCache(SessionID id) {
     folly::RWSpinLock::ReadHolder rHolder(rwlock_);

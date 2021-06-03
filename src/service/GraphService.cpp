@@ -118,43 +118,28 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     ctx->setRunner(getThreadManager());
     auto future = ctx->future();
     stats::StatsManager::addValue(kNumQueries);
-    // When the sessionId is 0, it means the clients to ping the connection is ok
-    if (sessionId == 0) {
-        ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-        ctx->resp().errorMsg.reset(new std::string(getErrorStr(ctx->resp().errorCode)));
-        ctx->finish();
-        return future;
-    }
-
-    auto session = sessionManager_->findSessionFromCache(sessionId);
-    if (session != nullptr) {
-        ctx->setSession(std::move(session));
+    auto cb = [this, sessionId, ctx = std::move(ctx)]
+            (StatusOr<std::shared_ptr<ClientSession>> ret) mutable {
+        if (!ret.ok()) {
+            LOG(ERROR) << "Get session for sessionId: " << sessionId
+                        << " failed: " << ret.status();
+            ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+            ctx->resp().errorMsg.reset(
+                new std::string("SessionId[%ld] does not exist", sessionId));
+            return ctx->finish();
+        }
+        auto sessionPtr = std::move(ret).value();
+        if (sessionPtr == nullptr) {
+            LOG(ERROR) << "Get session for sessionId: " << sessionId << " is nullptr";
+            ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+            ctx->resp().errorMsg.reset(
+                new std::string("SessionId[%ld] does not exist", sessionId));
+            return ctx->finish();
+        }
+        ctx->setSession(std::move(sessionPtr));
         queryEngine_->execute(std::move(ctx));
-    } else {
-        auto cb = [this, sessionId, ctx = std::move(ctx)]
-                (StatusOr<std::shared_ptr<ClientSession>> ret) mutable {
-            if (!ret.ok()) {
-                LOG(ERROR) << "Get session for sessionId: " << sessionId
-                           << " failed: " << ret.status();
-                ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-                ctx->resp().errorMsg.reset(
-                    new std::string("SessionId[%ld] does not exist", sessionId));
-                return ctx->finish();
-            }
-            auto sessionPtr = std::move(ret).value();
-            if (sessionPtr == nullptr) {
-                LOG(ERROR) << "Get session for sessionId: " << sessionId << " is nullptr";
-                ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-                ctx->resp().errorMsg.reset(
-                    new std::string("SessionId[%ld] does not exist", sessionId));
-                return ctx->finish();
-            }
-            ctx->setSession(std::move(sessionPtr));
-            queryEngine_->execute(std::move(ctx));
-        };
-        sessionManager_->findSessionFromMetad(sessionId, getThreadManager())
-            .thenValue(std::move(cb));
-    }
+    };
+    sessionManager_->findSession(sessionId, getThreadManager()).thenValue(std::move(cb));
     return future;
 }
 
