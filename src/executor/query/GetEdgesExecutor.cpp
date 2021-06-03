@@ -32,17 +32,10 @@ DataSet GetEdgesExecutor::buildRequestDataSet(const GetEdges* ge) {
     uniqueEdges.reserve(valueIter->size());
     for (; valueIter->valid(); valueIter->next()) {
         auto type = ge->type()->eval(exprCtx(valueIter.get()));
-        Value src;
-        Value dst;
-        if (type < 0) {
-            src = ge->dst()->eval(exprCtx(valueIter.get()));
-            dst = ge->src()->eval(exprCtx(valueIter.get()));
-        } else {
-            src = ge->src()->eval(exprCtx(valueIter.get()));
-            dst = ge->dst()->eval(exprCtx(valueIter.get()));
-        }
+        auto src = ge->src()->eval(exprCtx(valueIter.get()));
+        auto dst = ge->dst()->eval(exprCtx(valueIter.get()));
         auto rank = ge->ranking()->eval(exprCtx(valueIter.get()));
-
+        type = type < 0 ? -type : type;
         auto edgeKey = std::make_tuple(src, type, rank, dst);
         if (ge->dedup() && !uniqueEdges.emplace(std::move(edgeKey)).second) {
             continue;
@@ -96,7 +89,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         .thenValue([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
-            return handleResp(std::move(rpcResp), ge->colNamesRef());
+            return handleResp(std::move(rpcResp), ge->colNames());
         });
 }
 
