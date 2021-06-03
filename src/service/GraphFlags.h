@@ -38,6 +38,9 @@ DECLARE_string(auth_type);
 DECLARE_string(cloud_http_url);
 DECLARE_uint32(max_allowed_statements);
 DECLARE_double(system_memory_high_watermark_ratio);
+DECLARE_uint64(memory_limit_graphd);
+DECLARE_uint64(memory_stats_collect_interval);
+DECLARE_uint64(big_query_threshold);
 
 // optimizer
 DECLARE_bool(enable_optimizer);

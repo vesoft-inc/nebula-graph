@@ -9,6 +9,7 @@
 
 #include "common/datatypes/Value.h"
 #include "context/Result.h"
+#include <folly/Synchronized.h>
 
 namespace nebula {
 namespace graph {
@@ -29,7 +30,7 @@ class QueryInstance;
  * planner, the optimizer, and the executor.
  *
  **************************************************************************/
-class ExecutionContext {
+class ExecutionContext final {
 public:
     // 0 is the latest, -1 is the previous one, and so on
     // 1 is the oldest, 2 is the second elder, and so on
@@ -71,12 +72,31 @@ public:
         return valueMap_.find(name) != valueMap_.end();
     }
 
+    void setQueryStartTime(uint64_t t) {
+        queryStartTime_.exchange(t);
+    }
+
+    uint64_t queryStartTime() const {
+        return queryStartTime_.load();
+    }
+
+    void setLastStatsCollectTime(uint64_t t) {
+        lastStatsCollectTime_.exchange(t);
+    }
+
+    uint64_t lastStatsCollectTime() const {
+        return lastStatsCollectTime_.load();
+    }
+
 private:
     friend class QueryInstance;
     Value moveValue(const std::string& name);
 
     // name -> Value with multiple versions
     std::unordered_map<std::string, std::vector<Result>>     valueMap_;
+    // vars used to control memory stats collection timing
+    std::atomic<uint64_t> queryStartTime_;
+    std::atomic<uint64_t> lastStatsCollectTime_;
 };
 
 }  // namespace graph

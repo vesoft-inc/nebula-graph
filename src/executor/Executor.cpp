@@ -95,6 +95,7 @@
 #include "planner/plan/Query.h"
 #include "service/GraphFlags.h"
 #include "util/ScopedTimer.h"
+#include "common/time/Duration.h"
 
 using folly::stringPrintf;
 
@@ -541,16 +542,46 @@ Status Executor::open() {
             << "query: " << qctx()->rctx()->query();
         return Status::Error("Execution had been killed");
     }
-    auto status = MemInfo::make();
-    NG_RETURN_IF_ERROR(status);
-    auto mem = std::move(status).value();
-    if (node_->isQueryNode() && mem->hitsHighWatermark(FLAGS_system_memory_high_watermark_ratio)) {
-        return Status::Error(
-            "Used memory(%ldKB) hits the high watermark(%lf) of total system memory(%ldKB).",
-            mem->usedInKB(),
-            FLAGS_system_memory_high_watermark_ratio,
-            mem->totalInKB());
+
+    bool skipStatsCollection = true;
+    bool isBigQuery = false;
+    nebula::time::Duration d;
+    uint64_t current_time_ms = d.elapsedInMSec();
+    // ensure StartNode is always the first plan node
+    if (node_->kind() == PlanNode::Kind::kStart) {
+        ectx_->setQueryStartTime(current_time_ms);
+    } else if (current_time_ms - ectx_->queryStartTime() > FLAGS_big_query_threshold) {
+        isBigQuery = true;
+    } else {
+        if (current_time_ms - ectx_->lastStatsCollectTime() > FLAGS_memory_stats_collect_interval) {
+            skipStatsCollection = false;
+        }
     }
+
+    if (node_->isQueryNode()) {
+        auto mem = MemInfo::make();
+        if (isBigQuery || !skipStatsCollection) {
+            NG_RETURN_IF_ERROR(mem->initProcessMemInfo());
+            ectx_->setLastStatsCollectTime(current_time_ms);
+            if (FLAGS_memory_limit_graphd > 0 &&
+                mem->processResidentInByte() > FLAGS_memory_limit_graphd) {
+                return Status::Error(
+                    "Used memory(%ldB) exceeds the memory limit specified by the user(%ldB).",
+                    mem->processResidentInByte(),
+                    FLAGS_memory_limit_graphd);
+            }
+        }
+
+        NG_RETURN_IF_ERROR(mem->initSysMemInfo());
+        if (mem->hitsHighWatermark(FLAGS_system_memory_high_watermark_ratio)) {
+            return Status::Error("Used memory(%ldKB) hits the high watermark(%lf) of total "
+                                 "system memory(%ldKB).",
+                                 mem->usedInKB(),
+                                 FLAGS_system_memory_high_watermark_ratio,
+                                 mem->totalInKB());
+        }
+    }
+
     numRows_ = 0;
     execTime_ = 0;
     totalDuration_.reset();
