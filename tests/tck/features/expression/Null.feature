@@ -4,8 +4,8 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: NULL related operations
 
-  Scenario: NULL comparison 
-    Given any graph space
+  Scenario: NULL comparison
+    Given any graph
     When executing query:
       """
       RETURN NULL IS NULL AS value1, NULL == NULL AS value2, NULL != NULL AS value3, NULL >= NULL AS value4,  NULL <= NULL AS value5
@@ -14,8 +14,8 @@ Feature: NULL related operations
       | value1 | value2   | value3   | value4   | value5   |
       | true   | __NULL__ | __NULL__ | __NULL__ | __NULL__ |
 
-  Scenario: NULL with math functions 
-    Given any graph space
+  Scenario: NULL with math functions
+    Given any graph
     When executing query:
       """
       RETURN abs(NULL) AS value1, floor(NULL) AS value2, ceil(NULL) AS value3, round(NULL) AS value4, sqrt(NULL) AS value5
@@ -65,6 +65,3 @@ Feature: NULL related operations
     Then the result should be, in any order:
       | value1   | value2   | value3   | value4   | value5   |
       | __NULL__ | __NULL__ | BAD_TYPE | __NULL__ | __NULL__ |
-
-
-
