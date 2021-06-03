@@ -348,10 +348,7 @@ std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) con
 }
 
 std::string Validator::deduceColName(const YieldColumn* col) const {
-    if (col->alias() != nullptr) {
-        return *col->alias();
-    }
-    return col->toString();
+    return col->name();
 }
 
 StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
@@ -378,18 +375,18 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
-        ColDef col(*propExpr->prop(), type);
+        ColDef col(propExpr->prop(), type);
         const auto find = std::find(inputs_.begin(), inputs_.end(), col);
         if (find == inputs_.end()) {
-            return Status::SemanticError("No input property `%s'", propExpr->prop()->c_str());
+            return Status::SemanticError("No input property `%s'", propExpr->prop().c_str());
         }
         return inputVarName_;
     }
     if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
-        ColDef col(*propExpr->prop(), type);
+        ColDef col(propExpr->prop(), type);
 
-        const auto &outputVar = *propExpr->sym();
+        const auto &outputVar = propExpr->sym();
         const auto &var = vctx_->getVar(outputVar);
         if (var.empty()) {
             return Status::SemanticError("No variable `%s'", outputVar.c_str());
@@ -397,7 +394,7 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         const auto find = std::find(var.begin(), var.end(), col);
         if (find == var.end()) {
             return Status::SemanticError(
-                "No property `%s' in variable `%s'", propExpr->prop()->c_str(), outputVar.c_str());
+                "No property `%s' in variable `%s'", propExpr->prop().c_str(), outputVar.c_str());
         }
         userDefinedVarNameList_.emplace(outputVar);
         return outputVar;
