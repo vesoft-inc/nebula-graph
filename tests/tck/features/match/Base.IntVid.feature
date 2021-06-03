@@ -409,11 +409,11 @@ Feature: Basic match
   Scenario: Not exists properties
     # TODO
     # When executing query:
-      # """
-      # MATCH (v:player{not_exists_property: 233}) RETURN v
-      # """
+    # """
+    # MATCH (v:player{not_exists_property: 233}) RETURN v
+    # """
     # Then the result should be, in any order:
-      # | v |
+    # | v |
     When executing query:
       """
       MATCH (v:player{age: 33}) RETURN v.not_exists_property
@@ -424,15 +424,18 @@ Feature: Basic match
       | NULL                  |
       | NULL                  |
       | NULL                  |
-    When executing query:
-      """
-      MATCH ()-[e:like{not_exists_property: 90}]->() RETURN e.likeness
-      """
-      | e.not_exists_property |
+    # TODO
+    # When executing query:
+    # """
+    # MATCH ()-[e:like{not_exists_property: 90}]->() RETURN e.likeness
+    # """
+    # Then the result should be, in any order:
+    # | e.not_exists_property |
     When executing query:
       """
       MATCH (:player{name: "Tim Duncan"})-[e:like]->() RETURN e.not_exists_property
       """
+    Then the result should be, in any order:
       | e.not_exists_property |
       | NULL                  |
       | NULL                  |
