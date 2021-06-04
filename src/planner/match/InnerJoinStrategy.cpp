@@ -21,10 +21,10 @@ PlanNode* InnerJoinStrategy::connect(const PlanNode* left, const PlanNode* right
 PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* right) {
     Expression* buildExpr = nullptr;
     if (leftPos_ == JoinPos::kStart) {
-        auto& leftKey = left->colNamesRef().front();
+        auto& leftKey = left->colNames().front();
         buildExpr = MatchSolver::getStartVidInPath(leftKey);
     } else {
-        auto& leftKey = left->colNamesRef().back();
+        auto& leftKey = left->colNames().back();
         buildExpr = MatchSolver::getEndVidInPath(leftKey);
     }
     std::vector<Expression*> buildExprs{buildExpr};
@@ -35,7 +35,7 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
     std::vector<Expression*> probeExprs;
     Expression* probeExpr = nullptr;
     if (rightPos_ == JoinPos::kStart) {
-        auto& rightKey = right->colNamesRef().front();
+        auto& rightKey = right->colNames().front();
         probeExpr = MatchSolver::getStartVidInPath(rightKey);
         probeExprs.emplace_back(probeExpr);
         if (dstNodeId_ != nullptr) {
@@ -44,7 +44,7 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
             probeExprs.emplace_back(dstIdExpr);
         }
     } else {
-        auto& rightKey = right->colNamesRef().back();
+        auto& rightKey = right->colNames().back();
         probeExpr = MatchSolver::getEndVidInPath(rightKey);
         probeExprs.emplace_back(probeExpr);
         if (dstNodeId_ != nullptr) {
@@ -71,7 +71,7 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
                                std::move(buildExprs),
                                std::move(probeExprs));
     std::vector<std::string> colNames = left->colNames();
-    const auto& rightColNames = right->colNamesRef();
+    const auto& rightColNames = right->colNames();
     colNames.insert(colNames.end(), rightColNames.begin(), rightColNames.end());
     join->setColNames(std::move(colNames));
     return join;
