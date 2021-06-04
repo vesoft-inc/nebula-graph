@@ -75,8 +75,12 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
         case Sentence::Kind::kGetConfig:
         case Sentence::Kind::kIngest:
         case Sentence::Kind::kDownload:
+        case Sentence::Kind::kSignInTSService:
         case Sentence::Kind::kSignOutTSService:
-        case Sentence::Kind::kSignInTSService: {
+        case Sentence::Kind::kShowTSServices:
+        case Sentence::Kind::kShowStreamingServices:
+        case Sentence::Kind::kSignInStreamingService:
+        case Sentence::Kind::kSignOutStreamingService: {
             return PermissionManager::canWriteSpace(session);
         }
         case Sentence::Kind::kCreateTag:
@@ -151,7 +155,7 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
         case Sentence::Kind::kShowCreateEdge:
         case Sentence::Kind::kShowCreateTagIndex:
         case Sentence::Kind::kShowCreateEdgeIndex:
-        case Sentence::Kind::kShowListener:
+        case Sentence::Kind::kShowListeners:
         case Sentence::Kind::kShowFTIndexes: {
             /**
              * Above operations can get the space id via session,
@@ -184,7 +188,6 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
         }
         case Sentence::Kind::kShowUsers:
         case Sentence::Kind::kShowSnapshots:
-        case Sentence::Kind::kShowTSClients:
         case Sentence::Kind::kShowSessions: {
             /**
              * Only GOD role can be show.

@@ -231,8 +231,11 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "ZONES"                     { return TokenType::KW_ZONES; }
 "INTO"                      { return TokenType::KW_INTO; }
 "LISTENER"                  { return TokenType::KW_LISTENER; }
+"LISTENERS"                 { return TokenType::KW_LISTENERS; }
 "ELASTICSEARCH"             { return TokenType::KW_ELASTICSEARCH; }
+"KAFKA"                     { return TokenType::KW_KAFKA; }
 "FULLTEXT"                  { return TokenType::KW_FULLTEXT; }
+"STREAMING"                 { return TokenType::KW_STREAMING; }
 "AUTO"                      { return TokenType::KW_AUTO; }
 "FUZZY"                     { return TokenType::KW_FUZZY; }
 "PREFIX"                    { return TokenType::KW_PREFIX; }
@@ -240,9 +243,9 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "WILDCARD"                  { return TokenType::KW_WILDCARD; }
 "TEXT"                      { return TokenType::KW_TEXT; }
 "SEARCH"                    { return TokenType::KW_SEARCH; }
-"CLIENTS"                   { return TokenType::KW_CLIENTS; }
 "SIGN"                      { return TokenType::KW_SIGN; }
 "SERVICE"                   { return TokenType::KW_SERVICE; }
+"SERVICES"                  { return TokenType::KW_SERVICES; }
 "TEXT_SEARCH"               { return TokenType::KW_TEXT_SEARCH; }
 "RESET"                     { return TokenType::KW_RESET; }
 "PLAN"                      { return TokenType::KW_PLAN; }

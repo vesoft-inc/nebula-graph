@@ -37,9 +37,10 @@
 #include "executor/admin/ShowBalanceExecutor.h"
 #include "executor/admin/ShowHostsExecutor.h"
 #include "executor/admin/ShowStatsExecutor.h"
-#include "executor/admin/ShowTSClientsExecutor.h"
 #include "executor/admin/SignInTSServiceExecutor.h"
 #include "executor/admin/SignOutTSServiceExecutor.h"
+#include "executor/admin/SignInStreamingServiceExecutor.h"
+#include "executor/admin/SignOutStreamingServiceExecutor.h"
 #include "executor/admin/SnapshotExecutor.h"
 #include "executor/admin/SpaceExecutor.h"
 #include "executor/admin/StopBalanceExecutor.h"
@@ -476,14 +477,11 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kRemoveListener: {
             return pool->add(new RemoveListenerExecutor(node, qctx));
         }
-        case PlanNode::Kind::kShowListener: {
-            return pool->add(new ShowListenerExecutor(node, qctx));
+        case PlanNode::Kind::kShowListeners: {
+            return pool->add(new ShowListenersExecutor(node, qctx));
         }
         case PlanNode::Kind::kShowStats: {
             return pool->add(new ShowStatsExecutor(node, qctx));
-        }
-        case PlanNode::Kind::kShowTSClients: {
-            return pool->add(new ShowTSClientsExecutor(node, qctx));
         }
         case PlanNode::Kind::kShowFTIndexes: {
             return pool->add(new ShowFTIndexesExecutor(node, qctx));
@@ -493,6 +491,16 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kSignOutTSService: {
             return pool->add(new SignOutTSServiceExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kSignInStreamingService: {
+            return pool->add(new SignInStreamingServiceExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kSignOutStreamingService: {
+            return pool->add(new SignOutStreamingServiceExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowTSService: {
+        }
+        case PlanNode::Kind::kShowStreamingService: {
         }
         case PlanNode::Kind::kDownload: {
             return pool->add(new DownloadExecutor(node, qctx));

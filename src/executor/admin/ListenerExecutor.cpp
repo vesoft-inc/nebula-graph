@@ -44,7 +44,7 @@ folly::Future<Status> RemoveListenerExecutor::execute() {
         });
 }
 
-folly::Future<Status> ShowListenerExecutor::execute() {
+folly::Future<Status> ShowListenersExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->listListener(spaceId)

@@ -27,7 +27,8 @@ bool FTIndexUtils::needTextSearch(const Expression* expr) {
 
 StatusOr<std::vector<nebula::plugin::HttpClient>>
 FTIndexUtils::getTSClients(meta::MetaClient* client) {
-    auto tcs = client->getFTClientsFromCache();
+    auto type = nebula::meta::cpp2::ServiceType::ELASTICSEARCH;
+    auto tcs = client->getServiceClientsFromCache(type);
     if (!tcs.ok()) {
         return tcs.status();
     }

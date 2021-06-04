@@ -262,19 +262,26 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "AddListener";
         case Kind::kRemoveListener:
             return "RemoveListener";
-        case Kind::kShowListener:
-            return "ShowListener";
+        case Kind::kShowListeners:
+            return "ShowListeners";
         case Kind::kShowStats:
             return "ShowStats";
-        // text search
-        case Kind::kShowTSClients:
-            return "ShowTSClients";
+        // text search service
         case Kind::kShowFTIndexes:
             return "ShowFTIndexes";
         case Kind::kSignInTSService:
             return "SignInTSService";
         case Kind::kSignOutTSService:
             return "SignOutTSService";
+        case Kind::kShowTSService:
+            return "ShowTSService";
+        // streaming service
+        case Kind::kSignInStreamingService:
+            return "SignInStreamingService";
+        case Kind::kSignOutStreamingService:
+            return "SignOutStreamingService";
+        case Kind::kShowStreamingService:
+            return "ShowStreamingService";
         case Kind::kDownload:
             return "Download";
         case Kind::kIngest:

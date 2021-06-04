@@ -225,18 +225,20 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<AddListenerValidator>(sentence, context);
         case Sentence::Kind::kRemoveListener:
             return std::make_unique<RemoveListenerValidator>(sentence, context);
-        case Sentence::Kind::kShowListener:
-            return std::make_unique<ShowListenerValidator>(sentence, context);
+        case Sentence::Kind::kShowListeners:
+            return std::make_unique<ShowListenersValidator>(sentence, context);
         case Sentence::Kind::kShowStats:
             return std::make_unique<ShowStatusValidator>(sentence, context);
-        case Sentence::Kind::kShowTSClients:
-            return std::make_unique<ShowTSClientsValidator>(sentence, context);
         case Sentence::Kind::kShowFTIndexes:
             return std::make_unique<ShowFTIndexesValidator>(sentence, context);
         case Sentence::Kind::kSignInTSService:
             return std::make_unique<SignInTSServiceValidator>(sentence, context);
         case Sentence::Kind::kSignOutTSService:
             return std::make_unique<SignOutTSServiceValidator>(sentence, context);
+        case Sentence::Kind::kSignInStreamingService:
+            return std::make_unique<SignInStreamingServiceValidator>(sentence, context);
+        case Sentence::Kind::kSignOutStreamingService:
+            return std::make_unique<SignOutStreamingServiceValidator>(sentence, context);
         case Sentence::Kind::kDownload:
             return std::make_unique<DownloadValidator>(sentence, context);
         case Sentence::Kind::kIngest:
@@ -252,6 +254,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
         case Sentence::Kind::kShowQueries:
             return std::make_unique<ShowQueriesValidator>(sentence, context);
         case Sentence::Kind::kKillQuery:
+            return std::make_unique<KillQueryValidator>(sentence, context);
+        case Sentence::Kind::kShowTSServices:
+            return std::make_unique<KillQueryValidator>(sentence, context);
+        case Sentence::Kind::kShowStreamingServices:
             return std::make_unique<KillQueryValidator>(sentence, context);
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kReturn: {

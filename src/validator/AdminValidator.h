@@ -16,6 +16,7 @@
 
 namespace nebula {
 namespace graph {
+
 class CreateSpaceValidator final : public Validator {
 public:
     CreateSpaceValidator(Sentence* sentence, QueryContext* context)
@@ -28,7 +29,7 @@ private:
 
     Status toPlan() override;
 
-    bool checkTSIndex(const std::vector<meta::cpp2::FTClient>& clients,
+    bool checkTSIndex(const std::vector<meta::cpp2::ServiceClient>& clients,
                       const std::string& index);
 
 private:
@@ -153,9 +154,9 @@ private:
     Status toPlan() override;
 };
 
-class ShowListenerValidator final : public Validator {
+class ShowListenersValidator final : public Validator {
 public:
-    ShowListenerValidator(Sentence* sentence, QueryContext* context)
+    ShowListenersValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
     }
 
@@ -275,19 +276,6 @@ private:
     Status toPlan() override;
 };
 
-class ShowTSClientsValidator final : public Validator {
-public:
-    ShowTSClientsValidator(Sentence* sentence, QueryContext* context)
-        :Validator(sentence, context) {
-            setNoSpaceRequired();
-        }
-
-private:
-    Status validateImpl() override;
-
-    Status toPlan() override;
-};
-
 class SignInTSServiceValidator final : public Validator {
 public:
     SignInTSServiceValidator(Sentence* sentence, QueryContext* context)
@@ -304,6 +292,58 @@ private:
 class SignOutTSServiceValidator final : public Validator {
 public:
     SignOutTSServiceValidator(Sentence* sentence, QueryContext* context)
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class SignInStreamingServiceValidator final : public Validator {
+public:
+    SignInStreamingServiceValidator(Sentence* sentence, QueryContext* context)
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class SignOutStreamingServiceValidator final : public Validator {
+public:
+    SignOutStreamingServiceValidator(Sentence* sentence, QueryContext* context)
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowStreamingServiceValidator final : public Validator {
+public:
+    ShowStreamingServiceValidator(Sentence* sentence, QueryContext* context)
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowTSServiceValidator final : public Validator {
+public:
+    ShowTSServiceValidator(Sentence* sentence, QueryContext* context)
         :Validator(sentence, context) {
             setNoSpaceRequired();
         }

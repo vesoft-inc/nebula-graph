@@ -300,12 +300,12 @@ Status RemoveListenerValidator::toPlan() {
     return Status::OK();
 }
 
-Status ShowListenerValidator::validateImpl() {
+Status ShowListenersValidator::validateImpl() {
     return Status::OK();
 }
 
-Status ShowListenerValidator::toPlan() {
-    auto *doNode = ShowListener::make(qctx_, nullptr);
+Status ShowListenersValidator::toPlan() {
+    auto *doNode = ShowListeners::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -475,24 +475,13 @@ Status ShowStatusValidator::toPlan() {
     return Status::OK();
 }
 
-Status ShowTSClientsValidator::validateImpl() {
-    return Status::OK();
-}
-
-Status ShowTSClientsValidator::toPlan() {
-    auto *doNode = ShowTSClients::make(qctx_, nullptr);
-    root_ = doNode;
-    tail_ = root_;
-    return Status::OK();
-}
-
 Status SignInTSServiceValidator::validateImpl() {
     return Status::OK();
 }
 
 Status SignInTSServiceValidator::toPlan() {
     auto sentence = static_cast<SignInTextServiceSentence*>(sentence_);
-    std::vector<meta::cpp2::FTClient> clients;
+    std::vector<meta::cpp2::ServiceClient> clients;
     if (sentence->clients() != nullptr) {
         clients = sentence->clients()->clients();
     }
@@ -508,6 +497,55 @@ Status SignOutTSServiceValidator::validateImpl() {
 
 Status SignOutTSServiceValidator::toPlan() {
     auto *node = SignOutTSService::make(qctx_, nullptr);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status SignInStreamingServiceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status SignInStreamingServiceValidator::toPlan() {
+    auto sentence = static_cast<SignInStreamingServiceSentence*>(sentence_);
+    std::vector<meta::cpp2::ServiceClient> clients;
+    if (sentence->clients() != nullptr) {
+        clients = sentence->clients()->clients();
+    }
+    auto *node = SignInStreamingService::make(qctx_, nullptr, std::move(clients));
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status SignOutStreamingServiceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status SignOutStreamingServiceValidator::toPlan() {
+    auto *node = SignOutStreamingService::make(qctx_, nullptr);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowTSServiceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowTSServiceValidator::toPlan() {
+    auto *node = ShowTSService::make(qctx_, nullptr);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowStreamingServiceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowStreamingServiceValidator::toPlan() {
+    auto *node = ShowStreamingService::make(qctx_, nullptr);
     root_ = node;
     tail_ = root_;
     return Status::OK();

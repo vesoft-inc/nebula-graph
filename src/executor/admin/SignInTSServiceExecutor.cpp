@@ -17,7 +17,7 @@ folly::Future<Status> SignInTSServiceExecutor::execute() {
 
 folly::Future<Status> SignInTSServiceExecutor::signInTSService() {
     auto *siNode = asNode<SignInTSService>(node());
-    return qctx()->getMetaClient()->signInFTService(siNode->type(), siNode->clients())
+    return qctx()->getMetaClient()->signInService(siNode->type(), siNode->clients())
         .via(runner())
         .thenValue([this](StatusOr<bool> resp) {
             SCOPED_TIMER(&execTime_);

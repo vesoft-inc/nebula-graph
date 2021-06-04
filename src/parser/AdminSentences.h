@@ -612,10 +612,10 @@ private:
     meta::cpp2::ListenerType        type_;
 };
 
-class ShowListenerSentence final : public Sentence {
+class ShowListenersSentence final : public Sentence {
 public:
-    ShowListenerSentence() {
-        kind_ = Kind::kShowListener;
+    ShowListenersSentence() {
+        kind_ = Kind::kShowListeners;
     }
 
     std::string toString() const override;
@@ -651,16 +651,16 @@ public:
     std::string toString() const override;
 };
 
-class TSClientList final {
+class ServiceClients final {
 public:
-    void addClient(nebula::meta::cpp2::FTClient *client) {
+    void addClient(nebula::meta::cpp2::ServiceClient *client) {
         clients_.emplace_back(client);
     }
 
     std::string toString() const;
 
-    std::vector<nebula::meta::cpp2::FTClient> clients() const {
-        std::vector<nebula::meta::cpp2::FTClient> result;
+    std::vector<nebula::meta::cpp2::ServiceClient> clients() const {
+        std::vector<nebula::meta::cpp2::ServiceClient> result;
         result.reserve(clients_.size());
         for (auto &client : clients_) {
             result.emplace_back(*client);
@@ -669,38 +669,74 @@ public:
     }
 
 private:
-    std::vector<std::unique_ptr<nebula::meta::cpp2::FTClient>> clients_;
-};
-
-class ShowTSClientsSentence final : public Sentence {
-public:
-    ShowTSClientsSentence() {
-        kind_ = Kind::kShowTSClients;
-    }
-    std::string toString() const override;
+    std::vector<std::unique_ptr<nebula::meta::cpp2::ServiceClient>> clients_;
 };
 
 class SignInTextServiceSentence final : public Sentence {
 public:
-    explicit SignInTextServiceSentence(TSClientList *clients) {
+    explicit SignInTextServiceSentence(ServiceClients *clients) {
         kind_ = Kind::kSignInTSService;
         clients_.reset(clients);
     }
 
     std::string toString() const override;
 
-    TSClientList* clients() const {
+    ServiceClients* clients() const {
         return clients_.get();
     }
 
 private:
-    std::unique_ptr<TSClientList>       clients_;
+    std::unique_ptr<ServiceClients>       clients_;
+};
+
+class SignInStreamingServiceSentence final : public Sentence {
+public:
+    explicit SignInStreamingServiceSentence(ServiceClients *clients) {
+        kind_ = Kind::kSignInStreamingService;
+        clients_.reset(clients);
+    }
+
+    std::string toString() const override;
+
+    ServiceClients* clients() const {
+        return clients_.get();
+    }
+
+private:
+    std::unique_ptr<ServiceClients>       clients_;
 };
 
 class SignOutTextServiceSentence final : public Sentence {
 public:
     SignOutTextServiceSentence() {
         kind_ = Kind::kSignOutTSService;
+    }
+
+    std::string toString() const override;
+};
+
+class SignOutStreamingServiceSentence final : public Sentence {
+public:
+    SignOutStreamingServiceSentence() {
+        kind_ = Kind::kSignOutStreamingService;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowTextServicesSentence final : public Sentence {
+public:
+    ShowTextServicesSentence() {
+        kind_ = Kind::kShowTSServices;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowStreamingServicesSentence final : public Sentence {
+public:
+    ShowStreamingServicesSentence() {
+        kind_ = Kind::kShowStreamingServices;
     }
 
     std::string toString() const override;

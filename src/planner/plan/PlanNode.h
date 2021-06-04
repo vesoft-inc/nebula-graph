@@ -160,13 +160,16 @@ public:
         // listener related
         kAddListener,
         kRemoveListener,
-        kShowListener,
+        kShowListeners,
 
         // text service related
-        kShowTSClients,
         kShowFTIndexes,
         kSignInTSService,
         kSignOutTSService,
+        kSignInStreamingService,
+        kSignOutStreamingService,
+        kShowTSService,
+        kShowStreamingService,
         kDownload,
         kIngest,
         kShowSessions,

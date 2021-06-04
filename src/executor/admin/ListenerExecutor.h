@@ -28,10 +28,10 @@ public:
     folly::Future<Status> execute() override;
 };
 
-class ShowListenerExecutor final : public Executor {
+class ShowListenersExecutor final : public Executor {
 public:
-    ShowListenerExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("ShowListenerExecutor", node, qctx) {}
+    ShowListenersExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("ShowListenersExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };
