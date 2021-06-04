@@ -4,7 +4,8 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 nebula_add_library(
-  scheduler_obj
-  OBJECT
-  AsyncMsgNotifyBasedScheduler.cpp
-  )
+    session_obj OBJECT
+    SessionManager.cpp
+    ClientSession.cpp
+)
+

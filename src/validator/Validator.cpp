@@ -247,6 +247,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DropFTIndexValidator>(sentence, context);
         case Sentence::Kind::kShowGroups:
         case Sentence::Kind::kShowZones:
+        case Sentence::Kind::kShowSessions:
+            return std::make_unique<ShowSessionsValidator>(sentence, context);
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kReturn: {
             // nothing
@@ -348,10 +350,7 @@ std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) con
 }
 
 std::string Validator::deduceColName(const YieldColumn* col) const {
-    if (!col->alias().empty()) {
-        return col->alias();
-    }
-    return col->toString();
+    return col->name();
 }
 
 StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
