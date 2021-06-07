@@ -16,27 +16,28 @@ folly::Future<Status> DedupExecutor::execute() {
     auto* dedup = asNode<Dedup>(node());
     DCHECK(!dedup->inputVar().empty());
     Result result = ectx_->getResult(dedup->inputVar());
+    auto* iter = result.iterRef();
 
-    if (UNLIKELY(result.iterRef() == nullptr)) {
+    if (UNLIKELY(iter == nullptr)) {
         return Status::Error("Internal Error: iterator is nullptr");
     }
 
-    if (UNLIKELY(result.iterRef()->isGetNeighborsIter())) {
+    if (UNLIKELY(iter->isGetNeighborsIter())) {
         auto e = Status::Error("Invalid iterator kind, %d",
-                               static_cast<uint16_t>(result.iterRef()->kind()));
+                               static_cast<uint16_t>(iter->kind()));
         LOG(ERROR) << e;
         return e;
     }
     std::unordered_set<const Row*> unique;
-    unique.reserve(result.iterRef()->size());
-    while (result.iterRef()->valid()) {
-        if (!unique.emplace(result.iterRef()->row()).second) {
-            result.iterRef()->unstableErase();
+    unique.reserve(iter->size());
+    while (iter->valid()) {
+        if (!unique.emplace(iter->row()).second) {
+            iter->unstableErase();
         } else {
-            result.iterRef()->next();
+            iter->next();
         }
     }
-    result.iterRef()->reset();
+    iter->reset();
     return finish(std::move(result));
 }
 

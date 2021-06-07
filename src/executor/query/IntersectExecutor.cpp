@@ -29,21 +29,22 @@ folly::Future<Status> IntersectExecutor::execute() {
         // TODO: should test duplicate rows
     }
 
+    auto* lIter = left.iterRef();
     ResultBuilder builder;
     if (hashSet.empty()) {
-        auto value = left.iterRef()->valuePtr();
+        auto value = lIter->valuePtr();
         DataSet ds;
         ds.colNames = value->getDataSet().colNames;
         builder.value(Value(std::move(ds))).iter(Iterator::Kind::kSequential);
         return finish(builder.finish());
     }
 
-    while (left.iterRef()->valid()) {
-        auto iter = hashSet.find(left.iterRef()->row());
+    while (lIter->valid()) {
+        auto iter = hashSet.find(lIter->row());
         if (iter == hashSet.end()) {
-            left.iterRef()->unstableErase();
+            lIter->unstableErase();
         } else {
-            left.iterRef()->next();
+            lIter->next();
         }
     }
 

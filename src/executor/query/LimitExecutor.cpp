@@ -16,19 +16,20 @@ folly::Future<Status> LimitExecutor::execute() {
 
     auto* limit = asNode<Limit>(node());
     Result result = ectx_->getResult(limit->inputVar());
+    auto* iter = result.iterRef();
     ResultBuilder builder;
     builder.value(result.valuePtr());
     auto offset = limit->offset();
     auto count = limit->count();
-    auto size = result.iterRef()->size();
+    auto size = iter->size();
     if (size <= static_cast<size_t>(offset)) {
-        result.iterRef()->clear();
+        iter->clear();
     } else if (size > static_cast<size_t>(offset + count)) {
-        result.iterRef()->eraseRange(0, offset);
-        result.iterRef()->eraseRange(count, size - offset);
+        iter->eraseRange(0, offset);
+        iter->eraseRange(count, size - offset);
     } else if (size > static_cast<size_t>(offset) &&
                size <= static_cast<size_t>(offset + count)) {
-        result.iterRef()->eraseRange(0, offset);
+        iter->eraseRange(0, offset);
     }
     builder.iter(std::move(result).iter());
     return finish(builder.finish());

@@ -18,37 +18,38 @@ folly::Future<Status> FilterExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* filter = asNode<Filter>(node());
     Result result = ectx_->getResult(filter->inputVar());
-    if (result.iterRef() == nullptr || result.iterRef()->isDefaultIter()) {
+    auto* iter = result.iterRef();
+    if (iter == nullptr || iter->isDefaultIter()) {
         LOG(ERROR) << "Internal Error: iterator is nullptr or DefaultIter";
         return Status::Error("Internal Error: iterator is nullptr or DefaultIter");
     }
 
     VLOG(2) << "Get input var: " << filter->inputVar()
-            << ", iterator type: " << static_cast<int16_t>(result.iterRef()->kind())
-            << ", input data size: " << result.iterRef()->size();
+            << ", iterator type: " << static_cast<int16_t>(iter->kind())
+            << ", input data size: " << iter->size();
 
     ResultBuilder builder;
     builder.value(result.valuePtr());
     QueryExpressionContext ctx(ectx_);
     auto condition = filter->condition();
-    while (result.iterRef()->valid()) {
-        auto val = condition->eval(ctx(result.iterRef()));
+    while (iter->valid()) {
+        auto val = condition->eval(ctx(iter));
         if (val.isBadNull() || (!val.empty() && !val.isBool() && !val.isNull())) {
             return Status::Error("Internal Error: Wrong type result, "
                                  "the type should be NULL,EMPTY or BOOL");
         }
         if (val.empty() || val.isNull() || !val.getBool()) {
             if (UNLIKELY(filter->needStableFilter())) {
-                result.iterRef()->erase();
+                iter->erase();
             } else {
-                result.iterRef()->unstableErase();
+                iter->unstableErase();
             }
         } else {
-            result.iterRef()->next();
+            iter->next();
         }
     }
 
-    result.iterRef()->reset();
+    iter->reset();
     builder.iter(std::move(result).iter());
     return finish(builder.finish());
 }

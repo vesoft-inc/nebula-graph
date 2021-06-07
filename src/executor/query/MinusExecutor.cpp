@@ -28,13 +28,14 @@ folly::Future<Status> MinusExecutor::execute() {
         // TODO: should test duplicate rows
     }
 
+    auto* lIter = left.iterRef();
     if (!hashSet.empty()) {
-        while (left.iterRef()->valid()) {
-            auto iter = hashSet.find(left.iterRef()->row());
+        while (lIter->valid()) {
+            auto iter = hashSet.find(lIter->row());
             if (iter == hashSet.end()) {
-                left.iterRef()->next();
+                lIter->next();
             } else {
-                left.iterRef()->unstableErase();
+                lIter->unstableErase();
             }
         }
     }

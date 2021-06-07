@@ -16,12 +16,13 @@ folly::Future<Status> SortExecutor::execute() {
 
     auto* sort = asNode<Sort>(node());
     Result result = ectx_->getResult(sort->inputVar());
-    if (UNLIKELY(result.iterRef() == nullptr)) {
+    auto* iter = result.iterRef();
+    if (UNLIKELY(iter == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in sort executor");
     }
-    if (UNLIKELY(!result.iterRef()->isSequentialIter())) {
+    if (UNLIKELY(!iter->isSequentialIter())) {
         std::stringstream ss;
-        ss << "Internal error: Sort executor does not supported " << result.iterRef()->kind();
+        ss << "Internal error: Sort executor does not supported " << iter->kind();
         LOG(ERROR) << ss.str();
         return Status::Error(ss.str());
     }
@@ -44,7 +45,7 @@ folly::Future<Status> SortExecutor::execute() {
         return false;
     };
 
-    auto seqIter = static_cast<SequentialIter*>(result.iterRef());
+    auto seqIter = static_cast<SequentialIter*>(iter);
     std::sort(seqIter->begin(), seqIter->end(), comparator);
     return finish(ResultBuilder().value(result.valuePtr()).iter(std::move(result).iter()).finish());
 }

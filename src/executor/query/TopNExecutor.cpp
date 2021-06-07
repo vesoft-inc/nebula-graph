@@ -15,12 +15,13 @@ folly::Future<Status> TopNExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* topn = asNode<TopN>(node());
     Result result = ectx_->getResult(topn->inputVar());
-    if (UNLIKELY(result.iterRef() == nullptr)) {
+    auto* iter = result.iterRef();
+    if (UNLIKELY(iter == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in topn executor");
     }
     if (UNLIKELY(!result.iter()->isSequentialIter())) {
         std::stringstream ss;
-        ss << "Internal error: Sort executor does not supported " << result.iterRef()->kind();
+        ss << "Internal error: Sort executor does not supported " << iter->kind();
         LOG(ERROR) << ss.str();
         return Status::Error(ss.str());
     }
@@ -45,7 +46,7 @@ folly::Future<Status> TopNExecutor::execute() {
 
     offset_ = topn->offset();
     auto count = topn->count();
-    auto size = result.iterRef()->size();
+    auto size = iter->size();
     maxCount_ = count;
     heapSize_ = 0;
     if (size <= static_cast<size_t>(offset_)) {
@@ -57,13 +58,13 @@ folly::Future<Status> TopNExecutor::execute() {
         heapSize_ = size;
     }
     if (heapSize_ == 0) {
-        result.iterRef()->clear();
+        iter->clear();
         return finish(ResultBuilder()
             .value(result.valuePtr()).iter(std::move(result).iter()).finish());
     }
 
-    executeTopN<SequentialIter>(result.iterRef());
-    result.iterRef()->eraseRange(maxCount_, size);
+    executeTopN<SequentialIter>(iter);
+    iter->eraseRange(maxCount_, size);
     return finish(ResultBuilder().value(result.valuePtr()).iter(std::move(result).iter()).finish());
 }
 
