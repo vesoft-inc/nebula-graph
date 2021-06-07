@@ -62,11 +62,12 @@ Status InsertVerticesValidator::check() {
 
         std::vector<std::string> names;
         if (item->isDefaultPropNames()) {
-            propSize_ = schema->getNumFields();
-            for (size_t i = 0; i < propSize_; ++i) {
+            size_t numFields = schema->getNumFields();
+            for (size_t i = 0; i < numFields; ++i) {
                 const char* propName = schema->getFieldName(i);
                 names.emplace_back(propName);
             }
+            propSize_ += numFields;
         } else {
             auto props = item->properties();
             // Check prop name is in schema
@@ -527,11 +528,7 @@ Status UpdateValidator::getReturnProps() {
     if (clause != nullptr) {
         auto yields = clause->columns();
         for (auto *col : yields) {
-            if (col->alias().empty()) {
-                yieldColNames_.emplace_back(col->expr()->toString());
-            } else {
-                yieldColNames_.emplace_back(col->alias());
-            }
+            yieldColNames_.emplace_back(col->name());
             std::string encodeStr;
             auto copyColExpr = col->expr()->clone();
             NG_LOG_AND_RETURN_IF_ERROR(checkAndResetSymExpr(copyColExpr.get(), name_, encodeStr));
