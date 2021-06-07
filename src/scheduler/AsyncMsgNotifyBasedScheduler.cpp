@@ -6,6 +6,8 @@
 
 #include "scheduler/AsyncMsgNotifyBasedScheduler.h"
 
+DECLARE_bool(enable_lifetime_optimize);
+
 namespace nebula {
 namespace graph {
 AsyncMsgNotifyBasedScheduler::AsyncMsgNotifyBasedScheduler(QueryContext* qctx) : Scheduler() {
