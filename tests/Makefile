@@ -16,7 +16,6 @@ BUILD_DIR ?= $(CURR_DIR)/../build
 J ?= 10
 
 install-deps:
-	@if [[ $(PY_VERSION) -lt 7 ]]; then echo 'Python version must >= 3.7'; exit 1; fi
 	pip3 install --user -U setuptools wheel -i $(PYPI_MIRROR)
 	pip3 install --user -r $(CURR_DIR)/requirements.txt -i $(PYPI_MIRROR)
 
@@ -26,6 +25,7 @@ install-nebula-py: install-deps
 	rm -rf $(CURR_DIR)/nebula-python
 
 gherkin-fmt: install-deps
+	@if [[ $(PY_VERSION) -lt 7 ]]; then echo 'Python version must >= 3.7'; exit 1; fi
 	pip3 install --user poetry
 	git clone --branch master https://github.com/OneContainer/reformat-gherkin $(CURR_DIR)/reformat-gherkin
 	cd $(CURR_DIR)/reformat-gherkin && python3 -m poetry build
