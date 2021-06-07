@@ -16,7 +16,7 @@ AsyncMsgNotifyBasedScheduler::AsyncMsgNotifyBasedScheduler(QueryContext* qctx) :
 
 folly::Future<Status> AsyncMsgNotifyBasedScheduler::schedule() {
     if (FLAGS_enable_lifetime_optimize) {
-        qctx_->symTable()->addLastUser(qctx_->plan()->root()->outputVar(), -1);  // special for root
+        qctx_->plan()->root()->outputVarPtr()->addLastUser(-1);  // special for root
         analyzeLifetime(qctx_->plan()->root(), qctx_);
     }
     auto executor = Executor::create(qctx_->plan()->root(), qctx_);

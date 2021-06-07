@@ -46,6 +46,17 @@ struct Variable {
 
     std::unordered_set<PlanNode*> readBy;
     std::unordered_set<PlanNode*> writtenBy;
+
+    // None means will used in later
+    // non-positive means static lifetime
+    // positive means last user id
+    folly::Optional<int64_t>      lastUser;
+
+    void addLastUser(int64_t id) {
+        if (!lastUser.hasValue()) {
+            lastUser = id;
+        }
+    }
 };
 
 class SymbolTable final {
@@ -119,36 +130,12 @@ public:
         }
     }
 
-    struct VarUser {
-        int64_t id;
-        bool    inLoop;
-    };
-
-    void addLastUser(const std::string &var, int64_t id) {
-        auto find = lastUser_.find(var);
-        if (find == lastUser_.end()) {
-            lastUser_.emplace(var, id);
-        }
-    }
-
-    StatusOr<int64_t> lastUser(const std::string &var) const {
-        auto find = lastUser_.find(var);
-        if (find == lastUser_.end()) {
-            return Status::Error("Can't find variable in user table.");
-        } else {
-            return find->second;
-        }
-    }
-
     std::string toString() const;
 
 private:
     ObjectPool*                                                             objPool_{nullptr};
     // var name -> variable
     std::unordered_map<std::string, Variable*>                              vars_;
-
-    // last used map
-    std::unordered_map<std::string, int64_t>                                lastUser_;
 };
 
 }  // namespace graph

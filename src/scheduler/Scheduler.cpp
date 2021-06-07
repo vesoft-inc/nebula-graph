@@ -20,12 +20,11 @@ namespace nebula {
 namespace graph {
 
 /*static*/ void Scheduler::analyzeLifetime(const PlanNode *node, QueryContext *qctx, bool inLoop) {
-    for (const auto& inputVar : node->inputVars()) {
+    for (auto& inputVar : node->inputVars()) {
         if (inputVar != nullptr) {
-            DCHECK_NOTNULL(qctx)->symTable()->addLastUser(
-                inputVar->name,
-                (node->kind() == PlanNode::Kind::kLoop || inLoop) ?
-                    -1 : node->id());
+            inputVar->addLastUser((node->kind() == PlanNode::Kind::kLoop || inLoop) ?
+                                 -1 :
+                                 node->id());
         }
     }
     switch (node->kind()) {
@@ -37,7 +36,7 @@ namespace graph {
         }
         case PlanNode::Kind::kLoop: {
             auto loop = static_cast<const Loop *>(node);
-            DCHECK_NOTNULL(qctx)->symTable()->addLastUser(loop->outputVar(), -1);
+            loop->outputVarPtr()->addLastUser(-1);
             analyzeLifetime(loop->body(), qctx, true);
             break;
         }
