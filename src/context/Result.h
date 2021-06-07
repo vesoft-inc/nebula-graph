@@ -73,10 +73,12 @@ private:
             *this = c;
         }
         Core& operator=(const Core &c) {
-            state = c.state;
-            msg = c.msg;
-            value = c.value;
-            iter = c.iter->copy();
+            if (&c != this) {
+                state = c.state;
+                msg = c.msg;
+                value = c.value;
+                iter = c.iter->copy();
+            }
             return *this;
         }
 
