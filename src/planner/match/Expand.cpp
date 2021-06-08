@@ -13,6 +13,7 @@
 #include "util/AnonColGenerator.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteVisitor.h"
+#include "util/SchemaUtil.h"
 
 using nebula::storage::cpp2::EdgeProp;
 using nebula::storage::cpp2::VertexProp;
@@ -171,8 +172,9 @@ Status Expand::expandStep(const EdgeInfo& edge,
     // [GetNeighbors]
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
+    auto vertexProp = SchemaUtil::getAllVertexProp(qctx, matchCtx_->space);
     gn->setSrc(qctx->objPool()->add(srcExpr.release()));
-    gn->setVertexProps({});
+    gn->setVertexProps(std::move(vertexProp).value());
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
 

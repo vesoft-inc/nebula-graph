@@ -357,7 +357,11 @@ Value GetNeighborsIter::getVertex() const {
         Tag tag;
         tag.name = tagProp.first;
         for (size_t i = 0; i < propList.size(); ++i) {
-            tag.props.emplace(tagPropNameList[i], propList[i]);
+            if (tagPropNameList[i] == nebula::kTag) {  // "_tag"
+                continue;
+            } else {
+                tag.props.emplace(tagPropNameList[i], propList[i]);
+            }
         }
         vertex.tags.emplace_back(std::move(tag));
     }

@@ -150,20 +150,20 @@ public:
         return edgeTypes_;
     }
 
-    const std::vector<storage::cpp2::VertexProp>& vertexProps() const {
-        return vertexProps_;
+    const std::vector<storage::cpp2::VertexProp>* vertexProps() const {
+        return vertexProps_.empty() ? nullptr : &vertexProps_;
     }
 
-    const std::vector<storage::cpp2::EdgeProp>& edgeProps() const {
-        return edgeProps_;
+    const std::vector<storage::cpp2::EdgeProp>* edgeProps() const {
+        return edgeProps_.empty() ? nullptr : &edgeProps_;
     }
 
-    const std::vector<storage::cpp2::StatProp>& statProps() const {
-        return statProps_;
+    const std::vector<storage::cpp2::StatProp>* statProps() const {
+        return statProps_.empty() ? nullptr : &statProps_;
     }
 
-    const std::vector<storage::cpp2::Expr>& exprs() const {
-        return exprs_;
+    const std::vector<storage::cpp2::Expr>* exprs() const {
+        return exprs_.empty() ? nullptr : &exprs_;
     }
 
     bool random() const {

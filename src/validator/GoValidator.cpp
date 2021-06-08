@@ -681,45 +681,33 @@ void GoValidator::buildEdgeProps(std::vector<storage::cpp2::EdgeProp>& edgeProps
 }
 
 std::vector<storage::cpp2::EdgeProp> GoValidator::buildEdgeDst() {
-    std::vector<storage::cpp2::EdgeProp> edgeProps(over_.edgeTypes.size() * 2);
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
     bool onlyInputPropsOrConstant = exprProps_.srcTagProps().empty() &&
                                     exprProps_.dstTagProps().empty() &&
                                     exprProps_.edgeProps().empty();
+
     if (!exprProps_.edgeProps().empty() || !exprProps_.dstTagProps().empty() ||
         onlyInputPropsOrConstant) {
-        if (over_.direction == storage::cpp2::EdgeDirection::IN_EDGE) {
-            std::transform(
-                over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps.begin(), [](auto& type) {
+        for (auto edgeType : over_.edgeTypes) {
+            switch (over_.direction) {
+                case storage::cpp2::EdgeDirection::OUT_EDGE:
+                    break;
+                case storage::cpp2::EdgeDirection::IN_EDGE: {
+                    edgeType = -edgeType;
+                    break;
+                }
+                case storage::cpp2::EdgeDirection::BOTH: {
                     storage::cpp2::EdgeProp ep;
-                    ep.set_type(-type);
+                    ep.set_type(-edgeType);
                     ep.set_props({kDst});
-                    return ep;
-                });
-        } else if (over_.direction == storage::cpp2::EdgeDirection::BOTH) {
-            std::transform(
-                over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps.begin(), [](auto& type) {
-                    storage::cpp2::EdgeProp ep;
-                    ep.set_type(type);
-                    ep.set_props({kDst});
-                    return ep;
-                });
-            std::transform(over_.edgeTypes.begin(),
-                           over_.edgeTypes.end(),
-                           edgeProps.begin() + over_.edgeTypes.size(),
-                           [](auto& type) {
-                               storage::cpp2::EdgeProp ep;
-                               ep.set_type(-type);
-                               ep.set_props({kDst});
-                               return ep;
-                           });
-        } else {
-            std::transform(
-                over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps.begin(), [](auto& type) {
-                    storage::cpp2::EdgeProp ep;
-                    ep.set_type(type);
-                    ep.set_props({kDst});
-                    return ep;
-                });
+                    edgeProps.emplace_back(std::move(ep));
+                    break;
+                }
+            }
+            storage::cpp2::EdgeProp ep;
+            ep.set_type(edgeType);
+            ep.set_props({kDst});
+            edgeProps.emplace_back(std::move(ep));
         }
     }
     return edgeProps;
