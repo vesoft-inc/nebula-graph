@@ -53,7 +53,7 @@ void GoPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool onlyDs
         }
 
         auto found = exprProps.edgeProps().find(e);
-        if (found = exprProps.edgeProps().end()) {
+        if (found == exprProps.edgeProps().end()) {
             ep.set_props({kDst});
         } else {
             std::set<std::string> props(found->second.begin(), found->second.end());
@@ -65,7 +65,8 @@ void GoPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool onlyDs
 }
 
 GetNeighbors::VertexProps GoPlanner::buildVertexProps(ExpressionProps::TagIDPropsMap& propsMap) {
-    GetNeighbors::VertexProps vertexProps(propsMap.size());
+    GetNeighbors::VertexProps vertexProps;
+    vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(propsMap.size());
     auto fun = [](auto& tag) {
         storage::cpp2::VertexProp vp;
         vp.set_tag(tag.first);
@@ -73,16 +74,16 @@ GetNeighbors::VertexProps GoPlanner::buildVertexProps(ExpressionProps::TagIDProp
         vp.set_props(std::move(props));
         return vp;
     };
-    std::transform(propsMap.begin(), propsMap.end(), vertexProps.begin(), fun);
+    std::transform(propsMap.begin(), propsMap.end(), vertexProps->begin(), fun);
     return vertexProps;
 }
 
 // ++loopSteps{0} < steps  && (var is Empty OR size(var) == 0)
 Expression* GoPlanner::loopCondition(uint32_t steps, const std::string& var) {
     auto loopSteps = goCtx_->qctx->vctx()->anonVarGen()->getVar();
-    pathCtx_->qctx->ectx()->setValue(loopSteps, 0);
+    goCtx_->qctx->ectx()->setValue(loopSteps, 0);
     auto step = ExpressionUtils::stepCondition(loopSteps, steps);
-    auto empty = ExpressionUtils::equalCondition(gnVar, Value::kEmpty);
+    auto empty = ExpressionUtils::equalCondition(var, Value::kEmpty);
     auto neZero = ExpressionUtils::neZeroCondition(var);
     auto* earlyEnd = ExpressionUtils::Or(empty.release(), neZero.release());
     return ExpressionUtils::And(step.release(), earlyEnd);
@@ -93,7 +94,7 @@ Expression* GoPlanner::loopCondition(uint32_t steps, const std::string& var) {
  * for joinDst & joinInput
  * output colNames {srcProps, edgeProps, kVid, "JOIN_DST_VID"}
  */
-PlanNode* extractSrcEdgePropsFromGN(PlanNode* dep, const std::string& input) {
+PlanNode* GoPlanner::extractSrcEdgePropsFromGN(PlanNode* dep, const std::string& input) {
     auto& srcEdgePropsExpr = goCtx_->srcEdgePropsExpr;
     if (goCtx_->joinInput) {
         // extract vid from gn
@@ -147,7 +148,7 @@ PlanNode* GoPlanner::extractVidFromRuntimeInput(PlanNode* dep) {
 
     auto* columns = qctx->objPool()->add(new YieldColumns());
     auto* vidExpr = new YieldColumn(from.originalSrc->clone().release(), from.runtimeVidName);
-    columns->addColumn(vidExpr)
+    columns->addColumn(vidExpr);
 
     goCtx_->dstVidColName = qctx->vctx()->anonColGen()->getCol();
     auto* dstExpr = new YieldColumn(from.originalSrc->clone().release(), goCtx_->dstVidColName);
@@ -228,7 +229,7 @@ PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
 
     // dep's colName "JOIN_DST_VID"  join getVertex's colName "DST_VID"
     auto* hashKey = qctx->objPool()->add(dstExpr->clone().release());
-    auto* probeKey = qctx->objPool->add(new ColumnExpression(-1));
+    auto* probeKey = qctx->objPool()->add(new ColumnExpression(-1));
     auto* join = LeftJoin::make(qctx,
                                 project,
                                 {dep->outputVar(), ExecutionContext::kLatestVersion},
@@ -248,7 +249,7 @@ PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
 
 PlanNode* GoPlanner::buildJoinInputPlan(PlanNode* dep) {
     auto qctx = goCtx_->qctx;
-    const auto& from = goCtx_->from
+    const auto& from = goCtx_->from;
     const auto& steps = goCtx_->steps;
 
     const auto& vidName = (!steps.isMToN() && steps.steps() == 1) ? kVid : from.runtimeVidName;
@@ -297,7 +298,7 @@ PlanNode* GoPlanner::lastStepJoinInput(PlanNode* left, PlanNode* right) {
 
     std::vector<std::string> colNames = left->colNames();
     colNames.insert(colNames.end(), right->colNames().begin(), right->colNames().end());
-    join->setInputVar(std::move(colNames));
+    join->setColNames(std::move(colNames));
 
     return join;
 }
@@ -316,8 +317,9 @@ PlanNode* GoPlanner::buildLastStepJoinPlan(PlanNode* gn, PlanNode* join) {
 }
 
 PlanNode* GoPlanner::lastStep(PlanNode* dep, PlanNode* join) {
-    auto* gn = GetNeightbors::make(qctx, dep, goCtx_->space.id);
-    gn->setStr(goCtx_->from.src);
+    auto qctx = goCtx_->qctx;
+    auto* gn = GetNeighbors::make(qctx, dep, goCtx_->space.id);
+    gn->setSrc(goCtx_->from.src);
     gn->setVertexProps(buildVertexProps(goCtx_->exprProps.srcTagProps()));
     gn->setEdgeProps(buildEdgeProps(false));
     gn->setInputVar(goCtx_->vidsVar);
@@ -342,7 +344,7 @@ PlanNode* GoPlanner::buildOneStepJoinPlan(PlanNode* gn) {
         return gn;
     }
 
-    auto* dep = extractSrcEdgePropsFromGN(gn);
+    auto* dep = extractSrcEdgePropsFromGN(gn, gn->outputVar());
     dep = goCtx_->joinDst ? buildJoinDstPlan(dep) : dep;
     dep = goCtx_->joinInput ? buildJoinInputPlan(dep) : dep;
 
@@ -352,13 +354,13 @@ PlanNode* GoPlanner::buildOneStepJoinPlan(PlanNode* gn) {
 SubPlan GoPlanner::oneStepPlan(SubPlan& startVidPlan) {
     auto qctx = goCtx_->qctx;
 
-    auto* gn = GetNeighbors::make(qctx, startVidPlan->root, goCtx_->space.id);
+    auto* gn = GetNeighbors::make(qctx, startVidPlan.root, goCtx_->space.id);
     gn->setVertexProps(buildVertexProps(goCtx_->exprProps.srcTagProps()));
     gn->setEdgeProps(buildEdgeProps(false));
     gn->setSrc(goCtx_->from.src);
     gn->setInputVar(goCtx_->vidsVar);
 
-    SubPlan subPlan
+    SubPlan subPlan;
     subPlan.tail = startVidPlan.tail != nullptr ? startVidPlan.tail : gn;
     subPlan.root = buildOneStepJoinPlan(gn);
 
@@ -379,12 +381,12 @@ SubPlan GoPlanner::nStepsPlan(SubPlan& startVidPlan) {
     auto qctx = goCtx_->qctx;
 
     auto* start = StartNode::make(qctx);
-    auto* gn = GetNeightbors::make(qctx, start, goCtx_->space.id);
+    auto* gn = GetNeighbors::make(qctx, start, goCtx_->space.id);
     gn->setSrc(goCtx_->from.src);
     gn->setEdgeProps(buildEdgeProps(true));
     gn->setInputVar(goCtx_->vidsVar);
 
-    auto* getDst = QueryUtil:extractDstFromGN(qctx, gn, goCtx_->vidsVar);
+    auto* getDst = QueryUtil::extractDstFromGN(qctx, gn, goCtx_->vidsVar);
 
     PlanNode* loopBody = getDst;
     PlanNode* loopDep = nullptr;
@@ -419,11 +421,11 @@ SubPlan GoPlanner::mToNStepsPlan(SubPlan& startVidPlan) {
     gn->setEdgeProps(buildEdgeProps(false));
     gn->setInputVar(goCtx_->vidsVar);
 
-    auto* getDst = QueryUtil:extractDstFromGN(qctx, gn, goCtx_->vidsVar);
+    auto* getDst = QueryUtil::extractDstFromGN(qctx, gn, goCtx_->vidsVar);
 
     auto* loopBody = getDst;
     auto* loopDep = startVidPlan.root;
-    PlanNode* trackVid == nullptr;
+    PlanNode* trackVid = nullptr;
     if (joinInput) {
         auto* joinLeft = extractVidFromRuntimeInput(startVidPlan.root);
         auto* joinRight = extractSrcDstFromGN(getDst, gn->outputVar());
@@ -435,7 +437,7 @@ SubPlan GoPlanner::mToNStepsPlan(SubPlan& startVidPlan) {
     if (joinInput || joinDst) {
         loopBody = extractSrcEdgePropsFromGN(loopBody, gn->outputVar());
         loopBody = joinDst ? buildJoinDstPlan(loopBody) : loopBody;
-        loopBody = joinInput ? buildLastJoinInput(trackVid, loopBody) : loopBody;
+        loopBody = joinInput ? lastStepJoinInput(trackVid, loopBody) : loopBody;
         loopBody = joinInput ? buildJoinInputPlan(loopBody) : loopBody;
     }
 
@@ -467,13 +469,13 @@ SubPlan GoPlanner::mToNStepsPlan(SubPlan& startVidPlan) {
 
     SubPlan subPlan;
     subPlan.root = dc;
-    subPlan.tail = startVidPlan.tail == null ? loop : startVidPlan.tail;
+    subPlan.tail = startVidPlan.tail == nullptr ? loop : startVidPlan.tail;
 
     return subPlan;
 }
 
 StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
-    goCtx_ = static_cast<GoContext*>(astCtx);
+    goCtx_ = static_cast<GoContext *>(astCtx);
     auto qctx = goCtx_->qctx;
     goCtx_->joinInput = goCtx_->from.fromType != FromType::kInstantExpr;
     goCtx_->joinDst = !goCtx_->exprProps.dstTagProps().empty();
@@ -488,7 +490,7 @@ StatusOr<SubPlan> GoPlanner::transform(AstContext* astCtx) {
     if (steps.steps() == 0) {
         auto* pt = PassThroughNode::make(qctx, nullptr);
         pt->setColNames(std::move(goCtx_->colNames));
-        subPlan subPlan;
+        SubPlan subPlan;
         subPlan.root = subPlan.tail = pt;
         return subPlan;
     }

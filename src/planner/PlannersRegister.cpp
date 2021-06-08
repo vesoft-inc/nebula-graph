@@ -14,6 +14,7 @@
 #include "planner/match/VertexIdSeek.h"
 #include "planner/match/LabelIndexSeek.h"
 #include "planner/ngql/PathPlanner.h"
+#include "planner/ngql/GoPlanner.h"
 
 namespace nebula {
 namespace graph {

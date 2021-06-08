@@ -473,7 +473,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
     DCHECK(dependencyForJoinInput != nullptr);
     auto* joinHashKey = pool->add(new VariablePropertyExpression(
         dependencyForJoinInput->outputVar(),
-        (steps_.steps() > 1 || steps_.isMToN()) ? from_.firstBeginningSrcVidColName : kVid));
+        (steps_.steps() > 1 || steps_.isMToN()) ? from_.runtimeVidName: kVid));
     std::string varName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;
     auto* joinInput =
         LeftJoin::make(qctx_,
@@ -519,8 +519,8 @@ PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode
     VLOG(1) << join->outputVar();
 
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(new InputPropertyExpression(from_.firstBeginningSrcVidColName),
-                                   from_.firstBeginningSrcVidColName);
+    auto* column = new YieldColumn(new InputPropertyExpression(from_.runtimeVidName),
+                                   from_.runtimeVidName);
     columns->addColumn(column);
     column = new YieldColumn(new InputPropertyExpression(kVid), dstVidColName_);
     columns->addColumn(column);
@@ -538,7 +538,7 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
     dstVidColName_ = vctx_->anonColGen()->getCol();
     auto* columns = pool->add(new YieldColumns());
     auto* column =
-        new YieldColumn(from_.originalSrc->clone().release(), from_.firstBeginningSrcVidColName);
+        new YieldColumn(from_.originalSrc->clone().release(), from_.runtimeVidName);
     columns->addColumn(column);
     column = new YieldColumn(from_.originalSrc->clone().release(), dstVidColName_);
     columns->addColumn(column);

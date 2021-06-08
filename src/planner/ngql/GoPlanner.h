@@ -12,17 +12,18 @@
 #include "planner/plan/PlanNode.h"
 #include "planner/Planner.h"
 #include "util/ExpressionUtils.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {
-class GoPlanner {
+class GoPlanner final : public Planner {
 public:
     static std::unique_ptr<GoPlanner> make() {
         return std::make_unique<GoPlanner>();
     }
 
-    bool match(AstContext* astCtx) {
-        return astCtx->setence->kind() == Sentence::Kind::kGo;
+    static bool match(AstContext* astCtx) {
+        return astCtx->sentence->kind() == Sentence::Kind::kGo;
     }
 
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
