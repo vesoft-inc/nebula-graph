@@ -44,15 +44,15 @@ private:
 
     std::vector<std::string> buildDstVertexColNames();
 
-    GetNeighbors::VertexProps buildSrcVertexProps();
+    std::vector<storage::cpp2::VertexProp> buildSrcVertexProps();
 
     std::vector<storage::cpp2::VertexProp> buildDstVertexProps();
 
-    GetNeighbors::EdgeProps buildEdgeProps();
+    std::vector<storage::cpp2::EdgeProp> buildEdgeProps();
 
-    GetNeighbors::EdgeProps buildEdgeDst();
+    std::vector<storage::cpp2::EdgeProp> buildEdgeDst();
 
-    void buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEdge);
+    void buildEdgeProps(std::vector<storage::cpp2::EdgeProp>& edgeProps, bool isInEdge);
 
     PlanNode* buildLeftVarForTraceJoin(PlanNode* dedupStartVid);
 

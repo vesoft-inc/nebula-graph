@@ -349,20 +349,16 @@ Status DeleteVerticesValidator::toPlan() {
         index++;
     }
 
-    auto vertexPropsPtr = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
-    auto edgePropsPtr = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(edgeProps);
-    auto statPropsPtr = std::make_unique<std::vector<storage::cpp2::StatProp>>();
-    auto exprPtr = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto* getNeighbors = GetNeighbors::make(qctx_,
                                             nullptr,
                                             spaceId_,
                                             vidRef_,
                                             edgeTypes_,
                                             storage::cpp2::EdgeDirection::BOTH,
-                                            nullptr,
-                                            std::move(edgePropsPtr),
-                                            std::move(statPropsPtr),
-                                            std::move(exprPtr));
+                                            {},
+                                            std::move(edgeProps),
+                                            {},
+                                            {});
     getNeighbors->setInputVar(vidVar);
 
     // create deleteEdges node

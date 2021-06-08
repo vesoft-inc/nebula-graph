@@ -43,16 +43,11 @@ std::unique_ptr<PlanNodeDescription> GetNeighbors::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("edgeTypes", folly::toJson(util::toJson(edgeTypes_)), desc.get());
-    addDescription("edgeDirection",
-                   apache::thrift::util::enumNameSafe(edgeDirection_),
-                   desc.get());
-    addDescription(
-        "vertexProps", vertexProps_ ? folly::toJson(util::toJson(*vertexProps_)) : "", desc.get());
-    addDescription(
-        "edgeProps", edgeProps_ ? folly::toJson(util::toJson(*edgeProps_)) : "", desc.get());
-    addDescription(
-        "statProps", statProps_ ? folly::toJson(util::toJson(*statProps_)) : "", desc.get());
-    addDescription("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "", desc.get());
+    addDescription("edgeDirection", apache::thrift::util::enumNameSafe(edgeDirection_), desc.get());
+    addDescription("vertexProps", folly::toJson(util::toJson(vertexProps_)), desc.get());
+    addDescription("edgeProps", folly::toJson(util::toJson(edgeProps_)), desc.get());
+    addDescription("statProps", folly::toJson(util::toJson(statProps_)), desc.get());
+    addDescription("exprs", folly::toJson(util::toJson(exprs_)), desc.get());
     addDescription("random", util::toJson(random_), desc.get());
     return desc;
 }
@@ -70,29 +65,10 @@ void GetNeighbors::cloneMembers(const GetNeighbors& g) {
     setEdgeTypes(g.edgeTypes_);
     setEdgeDirection(g.edgeDirection_);
     setRandom(g.random_);
-    if (g.vertexProps_) {
-        auto vertexProps = *g.vertexProps_;
-        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(vertexProps);
-        setVertexProps(std::move(vertexPropsPtr));
-    }
-
-    if (g.edgeProps_) {
-        auto edgeProps = *g.edgeProps_;
-        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(std::move(edgeProps));
-        setEdgeProps(std::move(edgePropsPtr));
-    }
-
-    if (g.statProps_) {
-        auto statProps = *g.statProps_;
-        auto statPropsPtr = std::make_unique<decltype(statProps)>(std::move(statProps));
-        setStatProps(std::move(statPropsPtr));
-    }
-
-    if (g.exprs_) {
-        auto exprs = *g.exprs_;
-        auto exprsPtr = std::make_unique<decltype(exprs)>(exprs);
-        setExprs(std::move(exprsPtr));
-    }
+    setVertexProps(g.vertexProps_);
+    setEdgeProps(g.edgeProps_);
+    setStatProps(g.statProps_);
+    setExprs(g.exprs_);
 }
 
 

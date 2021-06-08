@@ -102,17 +102,15 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
     return Status::OK();
 }
 
-StatusOr<GetNeighbors::EdgeProps> GetSubgraphValidator::buildEdgeProps() {
+StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::buildEdgeProps() {
     if (edgeTypes_.empty()) {
         auto allEdgePropResult = buildAllEdgeProp();
         NG_RETURN_IF_ERROR(allEdgePropResult);
-        return std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
-            std::move(allEdgePropResult).value());
+        return allEdgePropResult.value();
     }
     auto edgePropResult = fillEdgeProp(edgeTypes_);
     NG_RETURN_IF_ERROR(edgePropResult);
-    return std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
-        std::move(edgePropResult).value());
+    return edgePropResult.value();
 }
 
 StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::fillEdgeProp(
@@ -215,12 +213,10 @@ Status GetSubgraphValidator::toPlan() {
     NG_RETURN_IF_ERROR(vertexPropsResult);
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space.id);
     gn->setSrc(from_.src);
-    gn->setVertexProps(std::make_unique<std::vector<storage::cpp2::VertexProp>>(
-        std::move(vertexPropsResult).value()));
+    gn->setVertexProps(std::move(vertexPropsResult).value());
     auto edgePropsResult = buildEdgeProps();
     NG_RETURN_IF_ERROR(edgePropsResult);
-    gn->setEdgeProps(
-        std::make_unique<std::vector<storage::cpp2::EdgeProp>>(*edgePropsResult.value()));
+    gn->setEdgeProps(std::move(edgePropsResult).value());
     gn->setInputVar(startVidsVar);
 
     auto oneMoreStepOutput = vctx_->anonVarGen()->getVar();

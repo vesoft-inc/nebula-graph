@@ -53,10 +53,6 @@ protected:
 TEST_F(GetNeighborsTest, BuildRequestDataSet) {
     auto* pool = qctx_->objPool();
     std::vector<EdgeType> edgeTypes;
-    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
-    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
-    auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
-    auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto* vids = pool->add(new InputPropertyExpression("id"));
     auto* gn = GetNeighbors::make(
             qctx_.get(),
@@ -64,11 +60,7 @@ TEST_F(GetNeighborsTest, BuildRequestDataSet) {
             0,
             vids,
             std::move(edgeTypes),
-            storage::cpp2::EdgeDirection::BOTH,
-            std::move(vertexProps),
-            std::move(edgeProps),
-            std::move(statProps),
-            std::move(exprs));
+            storage::cpp2::EdgeDirection::BOTH);
     gn->setInputVar("input_gn");
 
     auto gnExe = std::make_unique<GetNeighborsExecutor>(gn, qctx_.get());

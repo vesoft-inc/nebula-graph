@@ -21,12 +21,8 @@ using PNKind = nebula::graph::PlanNode::Kind;
 namespace nebula {
 namespace graph {
 
-static std::unique_ptr<std::vector<VertexProp>> genVertexProps() {
-    return std::make_unique<std::vector<VertexProp>>();
-}
-
-std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const EdgeInfo& edge) {
-    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
+std::vector<storage::cpp2::EdgeProp> Expand::genEdgeProps(const EdgeInfo& edge) {
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
     for (auto edgeType : edge.edgeTypes) {
         auto edgeSchema =
             matchCtx_->qctx->schemaMng()->getEdgeSchema(matchCtx_->space.id, edgeType);
@@ -52,7 +48,7 @@ std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const
                     props.emplace_back(edgeSchema->getFieldName(i));
                 }
                 edgeProp.set_props(std::move(props));
-                edgeProps->emplace_back(std::move(edgeProp));
+                edgeProps.emplace_back(std::move(edgeProp));
                 break;
             }
         }
@@ -63,7 +59,7 @@ std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const
             props.emplace_back(edgeSchema->getFieldName(i));
         }
         edgeProp.set_props(std::move(props));
-        edgeProps->emplace_back(std::move(edgeProp));
+        edgeProps.emplace_back(std::move(edgeProp));
     }
     return edgeProps;
 }
@@ -176,7 +172,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
     gn->setSrc(qctx->objPool()->add(srcExpr.release()));
-    gn->setVertexProps(genVertexProps());
+    gn->setVertexProps({});
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
 

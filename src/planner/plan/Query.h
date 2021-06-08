@@ -103,11 +103,6 @@ protected:
  */
 class GetNeighbors final : public Explore {
 public:
-    using VertexProps = std::unique_ptr<std::vector<storage::cpp2::VertexProp>>;
-    using EdgeProps = std::unique_ptr<std::vector<storage::cpp2::EdgeProp>>;
-    using StatProps = std::unique_ptr<std::vector<storage::cpp2::StatProp>>;
-    using Exprs = std::unique_ptr<std::vector<storage::cpp2::Expr>>;
-
     static GetNeighbors* make(QueryContext* qctx, PlanNode* input, GraphSpaceID space) {
         return qctx->objPool()->add(new GetNeighbors(qctx, input, space));
     }
@@ -118,10 +113,10 @@ public:
                               Expression* src,
                               std::vector<EdgeType> edgeTypes,
                               storage::cpp2::EdgeDirection edgeDirection,
-                              VertexProps&& vertexProps,
-                              EdgeProps&& edgeProps,
-                              StatProps&& statProps,
-                              Exprs&& exprs,
+                              std::vector<storage::cpp2::VertexProp> vertexProps = {},
+                              std::vector<storage::cpp2::EdgeProp> edgeProps = {},
+                              std::vector<storage::cpp2::StatProp> statProps = {},
+                              std::vector<storage::cpp2::Expr> exprs = {},
                               bool dedup = false,
                               bool random = false,
                               std::vector<storage::cpp2::OrderBy> orderBy = {},
@@ -155,20 +150,20 @@ public:
         return edgeTypes_;
     }
 
-    const std::vector<storage::cpp2::VertexProp>* vertexProps() const {
-        return vertexProps_.get();
+    const std::vector<storage::cpp2::VertexProp>& vertexProps() const {
+        return vertexProps_;
     }
 
-    const std::vector<storage::cpp2::EdgeProp>* edgeProps() const {
-        return edgeProps_.get();
+    const std::vector<storage::cpp2::EdgeProp>& edgeProps() const {
+        return edgeProps_;
     }
 
-    const std::vector<storage::cpp2::StatProp>* statProps() const {
-        return statProps_.get();
+    const std::vector<storage::cpp2::StatProp>& statProps() const {
+        return statProps_;
     }
 
-    const std::vector<storage::cpp2::Expr>* exprs() const {
-        return exprs_.get();
+    const std::vector<storage::cpp2::Expr>& exprs() const {
+        return exprs_;
     }
 
     bool random() const {
@@ -187,19 +182,19 @@ public:
         edgeTypes_ = std::move(edgeTypes);
     }
 
-    void setVertexProps(VertexProps vertexProps) {
+    void setVertexProps(std::vector<storage::cpp2::VertexProp> vertexProps) {
         vertexProps_ = std::move(vertexProps);
     }
 
-    void setEdgeProps(EdgeProps edgeProps) {
+    void setEdgeProps(std::vector<storage::cpp2::EdgeProp> edgeProps) {
         edgeProps_ = std::move(edgeProps);
     }
 
-    void setStatProps(StatProps statProps) {
+    void setStatProps(std::vector<storage::cpp2::StatProp> statProps) {
         statProps_ = std::move(statProps);
     }
 
-    void setExprs(Exprs exprs) {
+    void setExprs(std::vector<storage::cpp2::Expr> exprs) {
         exprs_ = std::move(exprs);
     }
 
@@ -220,14 +215,14 @@ private:
 private:
     void cloneMembers(const GetNeighbors&);
 
-    Expression*                                  src_{nullptr};
-    std::vector<EdgeType>                        edgeTypes_;
-    storage::cpp2::EdgeDirection edgeDirection_{storage::cpp2::EdgeDirection::OUT_EDGE};
-    VertexProps                                  vertexProps_;
-    EdgeProps                                    edgeProps_;
-    StatProps                                    statProps_;
-    Exprs                                        exprs_;
-    bool                                         random_{false};
+    Expression*                              src_{nullptr};
+    std::vector<EdgeType>                    edgeTypes_;
+    storage::cpp2::EdgeDirection             edgeDirection_{storage::cpp2::EdgeDirection::OUT_EDGE};
+    std::vector<storage::cpp2::VertexProp>   vertexProps_;
+    std::vector<storage::cpp2::EdgeProp>     edgeProps_;
+    std::vector<storage::cpp2::StatProp>     statProps_;
+    std::vector<storage::cpp2::Expr>         exprs_;
+    bool                                     random_{false};
 };
 
 /**

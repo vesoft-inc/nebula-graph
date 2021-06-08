@@ -71,7 +71,7 @@ private:
         return matchCtx_->qctx->objPool()->add(obj);
     }
 
-    std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
+    std::vector<storage::cpp2::EdgeProp> genEdgeProps(const EdgeInfo &edge);
 
     MatchClauseContext*                 matchCtx_;
     std::unique_ptr<Expression>         initialExpr_;

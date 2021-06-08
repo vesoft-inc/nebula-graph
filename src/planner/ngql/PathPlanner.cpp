@@ -13,8 +13,8 @@
 
 namespace nebula {
 namespace graph {
-GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
-    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+std::vector<storage::cpp2::EdgeProp> PathPlanner::buildEdgeProps(bool reverse) {
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
     switch (pathCtx_->over.direction) {
         case storage::cpp2::EdgeDirection::IN_EDGE: {
             doBuildEdgeProps(edgeProps, reverse, true);
@@ -33,7 +33,7 @@ GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
     return edgeProps;
 }
 
-void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
+void PathPlanner::doBuildEdgeProps(std::vector<storage::cpp2::EdgeProp>& edgeProps,
                                    bool reverse,
                                    bool isInEdge) {
     for (const auto& e : pathCtx_->over.edgeTypes) {
@@ -44,7 +44,7 @@ void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
             ep.set_type(-e);
         }
         ep.set_props({kDst, kType, kRank});
-        edgeProps->emplace_back(std::move(ep));
+        edgeProps.emplace_back(std::move(ep));
     }
 }
 

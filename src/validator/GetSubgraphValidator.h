@@ -28,7 +28,7 @@ private:
 
     Status validateBothInOutBound(BothInOutClause* out);
 
-    StatusOr<GetNeighbors::EdgeProps> buildEdgeProps();
+    StatusOr<std::vector<storage::cpp2::EdgeProp>> buildEdgeProps();
 
     Status zeroStep(PlanNode* depend, const std::string& inputVar);
 
