@@ -26,12 +26,12 @@ Feature: Bound integer insertion test
     And drop the used space
 
     Examples:
-      | num                  | hex                 | oct                      |
-      | 9223372036854775807  | 0x7fffffffffffffff  | 0777777777777777777777   |
-      | 1                    | 0x1                 | 01                       |
-      | 0                    | 0x0                 | 00                       |
-      | -1                   | -0x1                | -01                      |
-      | -9223372036854775808 | -0x8000000000000000 | -01000000000000000000000 |
+      | num                  | hex                 | oct                     |
+      | 9223372036854775807  | 0x7fffffffffffffff  | 0777777777777777777777  |
+      | 1                    | 0x1                 | 01                      |
+      | 0                    | 0x0                 | 00                      |
+      | -1                   | -0x1                | -01                     |
+      | -9223372036854775808 | -0x8000000000000000 | -0100000000000000000000 |
 
   Scenario Outline: insert invalid bound integer value
     When try to execute query:
