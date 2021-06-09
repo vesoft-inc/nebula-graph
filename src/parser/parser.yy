@@ -336,7 +336,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <sentence> create_tag_index_sentence create_edge_index_sentence create_fulltext_index_sentence
 %type <sentence> drop_tag_index_sentence drop_edge_index_sentence drop_fulltext_index_sentence
 %type <sentence> describe_tag_index_sentence describe_edge_index_sentence
-%type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence
+%type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence rebuild_fulltext_index_sentence
 %type <sentence> add_group_sentence drop_group_sentence desc_group_sentence
 %type <sentence> add_zone_into_group_sentence drop_zone_from_group_sentence
 %type <sentence> add_zone_sentence drop_zone_sentence desc_zone_sentence
@@ -2440,6 +2440,11 @@ rebuild_edge_index_sentence
     }
     ;
 
+rebuild_fulltext_index_sentence
+    : KW_REBUILD KW_FULLTEXT KW_INDEX {
+        $$ = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                  meta::cpp2::AdminCmd::REBUILD_FULLTEXT_INDEX);
+    }
 add_group_sentence
     : KW_ADD KW_GROUP name_label zone_name_list{
         $$ = new AddGroupSentence($3, $4);
@@ -3325,6 +3330,7 @@ maintain_sentence
     | describe_edge_index_sentence { $$ = $1; }
     | rebuild_tag_index_sentence { $$ = $1; }
     | rebuild_edge_index_sentence { $$ = $1; }
+    | rebuild_fulltext_index_sentence { $$ = $1; }
     | add_group_sentence { $$ = $1; }
     | drop_group_sentence { $$ = $1; }
     | desc_group_sentence { $$ = $1; }
