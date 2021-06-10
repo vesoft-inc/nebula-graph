@@ -11,13 +11,14 @@
 #include "util/SchemaUtil.h"
 #include "util/QueryUtil.h"
 #include "util/ExpressionUtils.h"
-
+using EdgeProp = storage::cpp2::EdgeProp;
+using VertexProp = storage::cpp2::VertexProp;
 
 namespace nebula {
 namespace graph {
 
-GetNeighbors::EdgeProps GoPlanner::buildEdgeProps(bool onlyDst) {
-    GetNeighbors::EdgeProps edgeProps;
+EdgeProps GoPlanner::buildEdgeProps(bool onlyDst) {
+    EdgeProps edgeProps;
     switch (goCtx_->over.direction) {
         case storage::cpp2::EdgeDirection::IN_EDGE: {
             doBuildEdgeProps(edgeProps, onlyDst, true);
@@ -36,10 +37,10 @@ GetNeighbors::EdgeProps GoPlanner::buildEdgeProps(bool onlyDst) {
     return edgeProps;
 }
 
-void GoPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool onlyDst, bool isInEdge) {
+void GoPlanner::doBuildEdgeProps(EdgeProps& edgeProps, bool onlyDst, bool isInEdge) {
     const auto& exprProps = goCtx_->exprProps;
     for (const auto& e : goCtx_->over.edgeTypes) {
-        storage::cpp2::EdgeProp ep;
+        EdgeProp ep;
         if (isInEdge) {
             ep.set_type(-e);
         } else {
@@ -48,7 +49,7 @@ void GoPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool onlyDs
 
         if (onlyDst) {
             ep.set_props({kDst});
-            edgeProps->emplace_back(std::move(ep));
+            edgeProps.emplace_back(std::move(ep));
             continue;
         }
 
@@ -60,13 +61,13 @@ void GoPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool onlyDs
             props.emplace(kDst);
             ep.set_props(std::vector<std::string>(props.begin(), props.end()));
         }
-        edgeProps->emplace_back(std::move(ep));
+        edgeProps.emplace_back(std::move(ep));
     }
 }
 
-GetNeighbors::VertexProps GoPlanner::buildVertexProps(ExpressionProps::TagIDPropsMap& propsMap) {
-    GetNeighbors::VertexProps vertexProps;
-    vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(propsMap.size());
+VertexProps GoPlanner::buildVertexProps(ExpressionProps::TagIDPropsMap& propsMap) {
+    VertexProps vertexProps;
+    vertexProps.reserve(propsMap.size());
     auto fun = [](auto& tag) {
         storage::cpp2::VertexProp vp;
         vp.set_tag(tag.first);
@@ -74,7 +75,7 @@ GetNeighbors::VertexProps GoPlanner::buildVertexProps(ExpressionProps::TagIDProp
         vp.set_props(std::move(props));
         return vp;
     };
-    std::transform(propsMap.begin(), propsMap.end(), vertexProps->begin(), fun);
+    std::transform(propsMap.begin(), propsMap.end(), vertexProps.begin(), fun);
     return vertexProps;
 }
 

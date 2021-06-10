@@ -13,6 +13,9 @@
 #include "planner/Planner.h"
 #include "util/ExpressionUtils.h"
 #include "planner/plan/Query.h"
+using EdgeProps = std::vector<storage::cpp2::EdgeProp>;
+using VertexProps = std::vector<storage::cpp2::VertexProp>;
+
 
 namespace nebula {
 namespace graph {
@@ -36,11 +39,11 @@ private:
     SubPlan mToNStepsPlan(SubPlan& startVidPlan);
 
 private:
-    GetNeighbors::VertexProps buildVertexProps(ExpressionProps::TagIDPropsMap& propsMap);
+    VertexProps buildVertexProps(ExpressionProps::TagIDPropsMap& propsMap);
 
-    GetNeighbors::EdgeProps buildEdgeProps(bool onlyDst);
+    EdgeProps buildEdgeProps(bool onlyDst);
 
-    void doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool onlyDst, bool isInEdge);
+    void doBuildEdgeProps(EdgeProps& edgeProps, bool onlyDst, bool isInEdge);
 
     Expression* loopCondition(uint32_t steps, const std::string& gnVar);
 
