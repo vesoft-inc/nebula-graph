@@ -13,24 +13,6 @@
 
 namespace nebula {
 namespace graph {
-GetNeighbors::VertexProps PathPlanner::buildSrcVertexProps() {
-    GetNeighbors::VertexProps vertexProps;
-    auto& srcTagProps = pathCtx_->exprProps.srcTagProps();
-    if (srcTagProps.empty()) {
-        return vertexProps;
-    }
-    vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(srcTagProps.size());
-    auto fun = [] (auto& tag) {
-        storage::cpp2::VertexProp vp;
-        vp.set_tag(tag.first);
-        std::vector<std::string>props(tag.second.begin(), tag.second.end());
-        vp.set_props(std::move(props));
-        return vp;
-    };
-    std::transform(srcTagProps.begin(), srcTagProps.end(), vertexProps->begin(), fun);
-    return vertexProps;
-}
-
 GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     switch (pathCtx_->over.direction) {
@@ -238,7 +220,6 @@ PlanNode* PathPlanner::singlePairPath(PlanNode* dep, bool reverse) {
 
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
-    gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();
@@ -296,7 +277,6 @@ PlanNode* PathPlanner::allPairPath(PlanNode* dep, bool reverse) {
 
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
-    gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();
@@ -349,7 +329,6 @@ PlanNode* PathPlanner::multiPairPath(PlanNode* dep, bool reverse) {
 
     auto* gn = GetNeighbors::make(qctx, dep, pathCtx_->space.id);
     gn->setSrc(src);
-    gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps(reverse));
     gn->setInputVar(vidsVar);
     gn->setDedup();

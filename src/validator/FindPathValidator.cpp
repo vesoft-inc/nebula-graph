@@ -34,10 +34,11 @@ Status FindPathValidator::validateWhere(WhereClause* where) {
     if (where == nullptr) {
         return Status::OK();
     }
-    // Not Support $-、$var、$$.tag.prop、agg
+    // Not Support $-、$var、$$.tag.prop、$^.tag.prop、agg
     auto expr = where->filter();
     if (ExpressionUtils::findAny(expr,
                                  {Expression::Kind::kAggregate,
+                                  Expression::Kind::kSrcProperty,
                                   Expression::Kind::kDstProperty,
                                   Expression::Kind::kVarProperty,
                                   Expression::Kind::kInputProperty})) {
