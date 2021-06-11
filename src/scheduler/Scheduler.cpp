@@ -22,9 +22,9 @@ namespace graph {
 /*static*/ void Scheduler::analyzeLifetime(const PlanNode *node, QueryContext *qctx, bool inLoop) {
     for (auto& inputVar : node->inputVars()) {
         if (inputVar != nullptr) {
-            inputVar->addLastUser((node->kind() == PlanNode::Kind::kLoop || inLoop) ?
-                                 -1 :
-                                 node->id());
+            inputVar->setLastUser((node->kind() == PlanNode::Kind::kLoop || inLoop) ?
+                                  -1 :
+                                  node->id());
         }
     }
     switch (node->kind()) {
@@ -36,7 +36,7 @@ namespace graph {
         }
         case PlanNode::Kind::kLoop: {
             auto loop = static_cast<const Loop *>(node);
-            loop->outputVarPtr()->addLastUser(-1);
+            loop->outputVarPtr()->setLastUser(-1);
             analyzeLifetime(loop->body(), qctx, true);
             break;
         }

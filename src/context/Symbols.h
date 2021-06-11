@@ -52,7 +52,7 @@ struct Variable {
     // positive means last user id
     folly::Optional<int64_t>      lastUser;
 
-    void addLastUser(int64_t id) {
+    void setLastUser(int64_t id) {
         if (!lastUser.hasValue()) {
             lastUser = id;
         }
