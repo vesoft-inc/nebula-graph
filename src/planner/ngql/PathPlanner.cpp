@@ -13,7 +13,7 @@
 
 namespace nebula {
 namespace graph {
-GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
+EdgePropsPtr PathPlanner::buildEdgeProps(bool reverse) {
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     switch (pathCtx_->over.direction) {
         case storage::cpp2::EdgeDirection::IN_EDGE: {
@@ -33,9 +33,7 @@ GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
     return edgeProps;
 }
 
-void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
-                                   bool reverse,
-                                   bool isInEdge) {
+void PathPlanner::doBuildEdgeProps(EdgePropsPtr& edgeProps, bool reverse, bool isInEdge) {
     const auto& exprProps = pathCtx_->exprProps;
     for (const auto& e : pathCtx_->over.edgeTypes) {
         storage::cpp2::EdgeProp ep;
@@ -401,7 +399,7 @@ PlanNode* PathPlanner::buildVertexPlan(PlanNode* dep, const std::string& input) 
     idArgs->addArgument(std::make_unique<ColumnExpression>(1));
     auto* src = qctx->objPool()->add(new FunctionCallExpression("id", idArgs));
     // get all vertexprop
-    auto vertexProp = SchemaUtil::getAllVertexProp(qctx, pathCtx_->space);
+    auto vertexProp = SchemaUtil::getAllVertexProp(qctx, pathCtx_->space, true);
     auto* getVertices = GetVertices::make(
         qctx, unwind, pathCtx_->space.id, src, std::move(vertexProp).value(), {}, true);
 
@@ -448,7 +446,7 @@ PlanNode* PathPlanner::buildEdgePlan(PlanNode* dep, const std::string& input) {
     auto* type =
         qctx->objPool()->add(new FunctionCallExpression("typeid", typeArgs));
     // prepare edgetype
-    auto edgeProp = SchemaUtil::getEdgeProp(qctx, pathCtx_->space, pathCtx_->over.edgeTypes);
+    auto edgeProp = SchemaUtil::getEdgeProps(qctx, pathCtx_->space, pathCtx_->over.edgeTypes, true);
     auto* getEdge = GetEdges::make(qctx,
                                    unwind,
                                    pathCtx_->space.id,

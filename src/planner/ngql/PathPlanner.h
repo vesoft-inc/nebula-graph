@@ -49,9 +49,9 @@ private:
     PlanNode* buildEdgePlan(PlanNode* dep, const std::string& input);
 
 private:
-    GetNeighbors::EdgeProps buildEdgeProps(bool reverse);
+    EdgePropsPtr buildEdgeProps(bool reverse);
 
-    void doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool reverse, bool isInEdge);
+    void doBuildEdgeProps(EdgePropsPtr& edgeProps, bool reverse, bool isInEdge);
 
     void buildStart(Starts& starts, std::string& startVidsVar, bool reverse);
 

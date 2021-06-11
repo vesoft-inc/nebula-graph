@@ -28,16 +28,9 @@ private:
 
     Status validateBothInOutBound(BothInOutClause* out);
 
-    StatusOr<GetNeighbors::EdgeProps> buildEdgeProps();
+    StatusOr<EdgePropsPtr> buildEdgeProps();
 
     Status zeroStep(PlanNode* depend, const std::string& inputVar);
-
-    StatusOr<GetNeighbors::VertexProps> buildVertexProp();
-
-    StatusOr<std::vector<storage::cpp2::EdgeProp>> fillEdgeProp(
-        const std::unordered_set<EdgeType> &edges);
-
-    StatusOr<std::vector<storage::cpp2::EdgeProp>> buildAllEdgeProp();
 
 private:
     std::unordered_set<EdgeType>                edgeTypes_;

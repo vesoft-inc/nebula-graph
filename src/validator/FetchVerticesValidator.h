@@ -11,6 +11,8 @@
 #include "parser/TraverseSentences.h"
 #include "validator/Validator.h"
 
+using VertexPropsPtr = std::unique_ptr<std::vector<nebula::storage::cpp2::VertexProp>>;
+using ExprsPtr = std::unique_ptr<std::vector<nebula::storage::cpp2::Expr>>;
 namespace nebula {
 namespace graph {
 
@@ -43,8 +45,8 @@ private:
     bool onStar_{false};
     std::unordered_map<std::string, TagID> tags_;
     std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema_;
-    std::vector<storage::cpp2::VertexProp> props_;
-    std::vector<storage::cpp2::Expr>       exprs_;
+    VertexPropsPtr props_;
+    ExprsPtr       exprs_;
     bool dedup_{false};
     std::vector<storage::cpp2::OrderBy> orderBy_{};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
