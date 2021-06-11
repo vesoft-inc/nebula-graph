@@ -12,40 +12,49 @@
 #include "executor/logic/LoopExecutor.h"
 #include "executor/logic/PassThroughExecutor.h"
 #include "executor/logic/SelectExecutor.h"
-#include "planner/plan/PlanNode.h"
 #include "planner/plan/Logic.h"
+#include "planner/plan/PlanNode.h"
 #include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {
 
-/*static*/ void Scheduler::analyzeLifetime(const PlanNode *node, QueryContext *qctx, bool inLoop) {
-    for (auto& inputVar : node->inputVars()) {
-        if (inputVar != nullptr) {
-            inputVar->setLastUser((node->kind() == PlanNode::Kind::kLoop || inLoop) ?
-                                  -1 :
-                                  node->id());
+/*static*/ void Scheduler::analyzeLifetime(const PlanNode* root, bool inLoop) {
+    std::stack<std::tuple<const PlanNode*, bool>> stack;
+    stack.push(std::make_tuple(root, inLoop));
+    while (!stack.empty()) {
+        const auto& current = stack.top();
+        const auto* currentNode = std::get<0>(current);
+        const auto currentInLoop = std::get<1>(current);
+        for (auto& inputVar : currentNode->inputVars()) {
+            if (inputVar != nullptr) {
+                inputVar->setLastUser(
+                    (currentNode->kind() == PlanNode::Kind::kLoop || currentInLoop)
+                        ? -1
+                        : currentNode->id());
+            }
         }
-    }
-    switch (node->kind()) {
-        case PlanNode::Kind::kSelect: {
-            auto sel = static_cast<const Select *>(node);
-            analyzeLifetime(sel->then(), qctx, inLoop);
-            analyzeLifetime(sel->otherwise(), qctx, inLoop);
-            break;
-        }
-        case PlanNode::Kind::kLoop: {
-            auto loop = static_cast<const Loop *>(node);
-            loop->outputVarPtr()->setLastUser(-1);
-            analyzeLifetime(loop->body(), qctx, true);
-            break;
-        }
-        default:
-            break;
-    }
+        stack.pop();
 
-    for (auto dep : node->dependencies()) {
-        analyzeLifetime(dep, qctx, inLoop);
+        for (auto dep : currentNode->dependencies()) {
+            stack.push(std::make_tuple(dep, currentInLoop));
+        }
+        switch (currentNode->kind()) {
+            case PlanNode::Kind::kSelect: {
+                auto sel = static_cast<const Select*>(currentNode);
+                stack.push(std::make_tuple(sel->then(), currentInLoop));
+                stack.push(std::make_tuple(sel->otherwise(), currentInLoop));
+                break;
+            }
+            case PlanNode::Kind::kLoop: {
+                auto loop = static_cast<const Loop*>(currentNode);
+                loop->outputVarPtr()->setLastUser(-1);
+                stack.push(std::make_tuple(loop->body(), true));
+                break;
+            }
+            default:
+                break;
+        }
     }
 }
 
