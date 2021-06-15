@@ -213,5 +213,5 @@ class TestSession(NebulaTestSuite):
 
         resp = conn.execute(session_id, 'SHOW HOSTS')
         assert resp.error_code == ttypes.ErrorCode.E_SESSION_INVALID, resp.error_msg
-        assert resp.error_msg.find(b'does not exist') > 0
+        assert resp.error_msg.find(b'Session not existed!') > 0
 
