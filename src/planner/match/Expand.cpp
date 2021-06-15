@@ -13,6 +13,7 @@
 #include "util/AnonColGenerator.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteVisitor.h"
+#include "service/GraphFlags.h"
 
 using nebula::storage::cpp2::EdgeProp;
 using nebula::storage::cpp2::VertexProp;
@@ -48,8 +49,10 @@ std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const
                 EdgeProp edgeProp;
                 edgeProp.set_type(-edgeType);
                 std::vector<std::string> props{kSrc, kType, kRank, kDst};
-                for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
-                    props.emplace_back(edgeSchema->getFieldName(i));
+                if (FLAGS_match_clause_with_props) {
+                    for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
+                        props.emplace_back(edgeSchema->getFieldName(i));
+                    }
                 }
                 edgeProp.set_props(std::move(props));
                 edgeProps->emplace_back(std::move(edgeProp));
@@ -59,8 +62,10 @@ std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const
         EdgeProp edgeProp;
         edgeProp.set_type(edgeType);
         std::vector<std::string> props{kSrc, kType, kRank, kDst};
-        for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
-            props.emplace_back(edgeSchema->getFieldName(i));
+        if (FLAGS_match_clause_with_props) {
+            for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
+                props.emplace_back(edgeSchema->getFieldName(i));
+            }
         }
         edgeProp.set_props(std::move(props));
         edgeProps->emplace_back(std::move(edgeProp));
