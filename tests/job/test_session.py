@@ -25,12 +25,6 @@ from tests.common.nebula_test_suite import NebulaTestSuite
 class TestSession(NebulaTestSuite):
     @classmethod
     def prepare(self):
-        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 5')
-        self.check_resp_succeeded(resp)
-
-        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 1')
-        self.check_resp_succeeded(resp)
-
         resp = self.execute('CREATE USER IF NOT EXISTS session_user WITH PASSWORD "123456"')
         self.check_resp_succeeded(resp)
 
@@ -51,13 +45,8 @@ class TestSession(NebulaTestSuite):
 
     @classmethod
     def cleanup(self):
-        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 0')
-        self.check_resp_succeeded(resp)
-        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 10')
-        self.check_resp_succeeded(resp)
-        resp = self.execute('UPDATE CONFIGS graph:max_allowed_connections = {}'.format(sys.maxsize))
-        self.check_resp_succeeded(resp)
-        resp = self.execute('DROP USER session_user')
+        session = self.client_pool.get_session('root', 'nebula')
+        resp = session.execute('DROP USER session_user')
         self.check_resp_succeeded(resp)
 
     def test_sessions(self):
@@ -121,6 +110,10 @@ class TestSession(NebulaTestSuite):
         assert resp.rows()[2].values[1].get_sVal() == b'nba'
 
         # 5: test expired session
+        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 5')
+        self.check_resp_succeeded(resp)
+        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 1')
+        self.check_resp_succeeded(resp)
         time.sleep(3)
         resp = self.execute('SHOW SPACES;')
         self.check_resp_succeeded(resp)
@@ -129,6 +122,11 @@ class TestSession(NebulaTestSuite):
         time.sleep(3)
         resp = self.execute('SHOW SESSION {}'.format(session_id))
         self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
+        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 0')
+        self.check_resp_succeeded(resp)
+        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 10')
+        self.check_resp_succeeded(resp)
+        time.sleep(3)
 
     def test_the_same_id_to_different_graphd(self):
         def get_connection(ip, port):
@@ -211,6 +209,7 @@ class TestSession(NebulaTestSuite):
         except Exception as e:
             assert False, e.message
 
+        time.sleep(2)
         resp = conn.execute(session_id, 'SHOW HOSTS')
         assert resp.error_code == ttypes.ErrorCode.E_SESSION_INVALID, resp.error_msg
         assert resp.error_msg.find(b'Session not existed!') > 0
