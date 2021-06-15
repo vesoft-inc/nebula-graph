@@ -171,13 +171,17 @@ StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::buildAllEdg
 Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& inputVar) {
     auto& space = vctx_->whichSpace();
     std::vector<storage::cpp2::Expr> exprs;
-    auto vertexPropsResult = buildVertexProp();
-    NG_RETURN_IF_ERROR(vertexPropsResult);
-    auto* getVertex = GetVertices::make(qctx_,
+    std::vector<storage::cpp2::VertexProp> vertexProps;
+    if (withProp_) {
+        auto vertexPropsResult = buildVertexProp();
+        NG_RETURN_IF_ERROR(vertexPropsResult);
+        vertexProps = *vertexPropsResult.value();
+    }
+   auto* getVertex = GetVertices::make(qctx_,
                                         depend,
                                         space.id,
                                         from_.src,
-                                        std::move(*vertexPropsResult.value()),
+                                        std::move(vertexProps),
                                         std::move(exprs),
                                         true);
     getVertex->setInputVar(inputVar);
@@ -248,9 +252,6 @@ Status GetSubgraphValidator::toPlan() {
 StatusOr<GetNeighbors::VertexProps> GetSubgraphValidator::buildVertexProp() {
     // list all tag properties
     GetNeighbors::VertexProps vertexProps;
-    if (!withProp_) {
-        return vertexProps;
-    }
     vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
     std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema;
     const auto allTagsResult = qctx()->schemaMng()->getAllLatestVerTagSchema(space_.id);
