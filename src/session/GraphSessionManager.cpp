@@ -5,34 +5,20 @@
  */
 
 #include "common/base/Base.h"
-#include "session/SessionManager.h"
+#include "session/GraphSessionManager.h"
 #include "service/GraphFlags.h"
 
 namespace nebula {
 namespace graph {
 
-SessionManager::SessionManager(meta::MetaClient* metaClient, const HostAddr &hostAddr) {
-    metaClient_ = metaClient;
-    myAddr_ = hostAddr;
-    scavenger_ = std::make_unique<thread::GenericWorker>();
-    auto ok = scavenger_->start("session-manager");
-    DCHECK(ok);
-    scavenger_->addDelayTask(FLAGS_session_reclaim_interval_secs * 1000,
-                             &SessionManager::threadFunc,
-                             this);
-}
-
-
-SessionManager::~SessionManager() {
-    if (scavenger_ != nullptr) {
-        scavenger_->stop();
-        scavenger_->wait();
-        scavenger_.reset();
-    }
+GraphSessionManager::GraphSessionManager(meta::MetaClient* metaClient, const HostAddr& hostAddr)
+    : SessionManager<ClientSession>(metaClient, hostAddr) {
+    scavenger_->addDelayTask(
+        FLAGS_session_reclaim_interval_secs * 1000, &GraphSessionManager::threadFunc, this);
 }
 
 folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
-SessionManager::findSession(SessionID id, folly::Executor* runner) {
+GraphSessionManager::findSession(SessionID id, folly::Executor* runner) {
     // When the sessionId is 0, it means the clients to ping the connection is ok
     if (id == 0) {
         return folly::makeFuture(Status::Error("SessionId is invalid")).via(runner);
@@ -46,7 +32,7 @@ SessionManager::findSession(SessionID id, folly::Executor* runner) {
     return findSessionFromMetad(id, runner);
 }
 
-std::shared_ptr<ClientSession> SessionManager::findSessionFromCache(SessionID id) {
+std::shared_ptr<ClientSession> GraphSessionManager::findSessionFromCache(SessionID id) {
     folly::RWSpinLock::ReadHolder rHolder(rwlock_);
     auto iter = activeSessions_.find(id);
     if (iter == activeSessions_.end()) {
@@ -58,7 +44,7 @@ std::shared_ptr<ClientSession> SessionManager::findSessionFromCache(SessionID id
 
 
 folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
-SessionManager::findSessionFromMetad(SessionID id, folly::Executor* runner) {
+GraphSessionManager::findSessionFromMetad(SessionID id, folly::Executor* runner) {
     VLOG(1) << "Find session `" << id << "' from metad";
     // local cache not found, need to get from metad
     auto addSession = [this, id] (auto &&resp) -> StatusOr<std::shared_ptr<ClientSession>> {
@@ -114,7 +100,7 @@ SessionManager::findSessionFromMetad(SessionID id, folly::Executor* runner) {
 }
 
 folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
-SessionManager::createSession(const std::string userName,
+GraphSessionManager::createSession(const std::string userName,
                               const std::string clientIp,
                               folly::Executor* runner) {
     auto createCB = [this, userName = userName]
@@ -147,7 +133,7 @@ SessionManager::createSession(const std::string userName,
             .thenValue(createCB);
 }
 
-void SessionManager::removeSession(SessionID id) {
+void GraphSessionManager::removeSession(SessionID id) {
     folly::RWSpinLock::WriteHolder wHolder(rwlock_);
     auto iter = activeSessions_.find(id);
     if (iter == activeSessions_.end()) {
@@ -162,16 +148,16 @@ void SessionManager::removeSession(SessionID id) {
     activeSessions_.erase(iter);
 }
 
-void SessionManager::threadFunc() {
+void GraphSessionManager::threadFunc() {
     reclaimExpiredSessions();
     updateSessionsToMeta();
     scavenger_->addDelayTask(FLAGS_session_reclaim_interval_secs * 1000,
-                             &SessionManager::threadFunc,
+                             &GraphSessionManager::threadFunc,
                              this);
 }
 
 // TODO(dutor) Now we do a brute-force scanning, of course we could make it more efficient.
-void SessionManager::reclaimExpiredSessions() {
+void GraphSessionManager::reclaimExpiredSessions() {
     if (FLAGS_session_idle_timeout_secs == 0) {
         return;
     }
@@ -203,7 +189,7 @@ void SessionManager::reclaimExpiredSessions() {
     }
 }
 
-void SessionManager::updateSessionsToMeta() {
+void GraphSessionManager::updateSessionsToMeta() {
     std::vector<meta::cpp2::Session> sessions;
     {
         folly::RWSpinLock::ReadHolder rHolder(rwlock_);
@@ -224,7 +210,7 @@ void SessionManager::updateSessionsToMeta() {
     }
 }
 
-void SessionManager::updateSessionInfo(ClientSession* session) {
+void GraphSessionManager::updateSessionInfo(ClientSession* session) {
     session->updateGraphAddr(myAddr_);
     auto roles = metaClient_->getRolesByUserFromCache(session->user());
     for (const auto &role : roles) {

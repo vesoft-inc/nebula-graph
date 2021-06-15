@@ -46,7 +46,7 @@ Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecuto
         LOG(WARNING) << "Failed to synchronously wait for meta service ready";
     }
 
-    sessionManager_ = std::make_unique<SessionManager>(metaClient_.get(), hostAddr);
+    sessionManager_ = std::make_unique<GraphSessionManager>(metaClient_.get(), hostAddr);
     queryEngine_ = std::make_unique<QueryEngine>();
 
     myAddr_ = hostAddr;

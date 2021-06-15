@@ -4,9 +4,10 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef SESSION_SESSIONMANAGER_H_
-#define SESSION_SESSIONMANAGER_H_
+#ifndef SESSION_GRAPHSESSIONMANAGER_H_
+#define SESSION_GRAPHSESSIONMANAGER_H_
 
+#include "common/session/SessionManager.h"
 #include "common/base/Base.h"
 #include "common/thrift/ThriftTypes.h"
 #include "common/base/StatusOr.h"
@@ -18,18 +19,17 @@
 #include "service/RequestContext.h"
 
 /**
- * SessionManager manages the client sessions, e.g. create new, find existing and drop expired.
+ * GraphSessionManager manages the client sessions, e.g. create new, find existing and drop expired.
  */
 
 DECLARE_int64(max_allowed_connections);
 
 namespace nebula {
 namespace graph {
-
-class SessionManager final {
+class GraphSessionManager final : public SessionManager<ClientSession> {
 public:
-    SessionManager(meta::MetaClient* metaClient, const HostAddr &hostAddr);
-    ~SessionManager();
+    GraphSessionManager(meta::MetaClient* metaClient, const HostAddr &hostAddr);
+    ~GraphSessionManager() {}
 
     /**
      * Create a new session
@@ -37,7 +37,7 @@ public:
     folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
     createSession(const std::string userName,
                   const std::string clientIp,
-                  folly::Executor* runner);
+                  folly::Executor* runner) override;
 
     bool isOutOfConnections() {
         folly::RWSpinLock::ReadHolder rHolder(rwlock_);
@@ -52,10 +52,10 @@ public:
     /**
      * Remove a session
      */
-    void removeSession(SessionID id);
+    void removeSession(SessionID id) override;
 
     folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
-    findSession(SessionID id, folly::Executor* runner);
+    findSession(SessionID id, folly::Executor* runner) override;
 
 private:
     /**
@@ -87,4 +87,4 @@ private:
 }   // namespace nebula
 
 
-#endif  // SESSION_SESSIONMANAGER_H_
+#endif  // SESSION_GRAPHSESSIONMANAGER_H_
