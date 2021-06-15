@@ -7,6 +7,7 @@
 #ifndef PLANNER_MATCH_EXPAND_H_
 #define PLANNER_MATCH_EXPAND_H_
 
+#include <memory>
 #include "common/base/Base.h"
 #include "context/ast/CypherAstContext.h"
 #include "planner/plan/PlanNode.h"
@@ -20,8 +21,12 @@ namespace graph {
  */
 class Expand final {
 public:
-    Expand(MatchClauseContext* matchCtx, std::unique_ptr<Expression> initialExpr)
-        : matchCtx_(matchCtx), initialExpr_(std::move(initialExpr)) {}
+    Expand(MatchClauseContext* matchClauseCtx,
+           std::unique_ptr<Expression> initialExpr,
+           const VertexEdgeProps &propsUsed)
+        : matchClauseCtx_(matchClauseCtx),
+          initialExpr_(std::move(initialExpr)),
+          propsUsed_(propsUsed) {}
 
     Expand* reversely() {
         reversely_ = true;
@@ -47,7 +52,8 @@ private:
                        const EdgeInfo& edge,
                        SubPlan* plan);
 
-    Status expandStep(const EdgeInfo& edge,
+    Status expandStep(const NodeInfo& node,
+                      const EdgeInfo& edge,
                       PlanNode* dep,
                       const std::string& inputVar,
                       const Expression* nodeFilter,
@@ -68,16 +74,21 @@ private:
 
     template <typename T>
     T* saveObject(T* obj) const {
-        return matchCtx_->qctx->objPool()->add(obj);
+        return matchClauseCtx_->qctx->objPool()->add(obj);
     }
 
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
 
-    MatchClauseContext*                 matchCtx_;
+    void fillEdgeProps(std::shared_ptr<const nebula::meta::SchemaProviderIf> schema,
+                       const std::string& alias,
+                       std::vector<std::string> &props);
+
+    MatchClauseContext*                 matchClauseCtx_;
     std::unique_ptr<Expression>         initialExpr_;
     bool                                reversely_{false};
     PlanNode*                           dependency_{nullptr};
     std::string                         inputVar_;
+    const VertexEdgeProps&              propsUsed_;
 };
 }   // namespace graph
 }   // namespace nebula

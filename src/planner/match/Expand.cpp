@@ -5,6 +5,8 @@
  */
 
 #include "planner/match/Expand.h"
+#include <memory>
+#include <unordered_set>
 
 #include "planner/plan/Logic.h"
 #include "planner/plan/Query.h"
@@ -12,6 +14,7 @@
 #include "planner/match/SegmentsConnector.h"
 #include "util/AnonColGenerator.h"
 #include "util/ExpressionUtils.h"
+#include "util/SchemaUtil.h"
 #include "visitor/RewriteVisitor.h"
 
 using nebula::storage::cpp2::EdgeProp;
@@ -21,15 +24,11 @@ using PNKind = nebula::graph::PlanNode::Kind;
 namespace nebula {
 namespace graph {
 
-static std::unique_ptr<std::vector<VertexProp>> genVertexProps() {
-    return std::make_unique<std::vector<VertexProp>>();
-}
-
 std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const EdgeInfo& edge) {
     auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     for (auto edgeType : edge.edgeTypes) {
         auto edgeSchema =
-            matchCtx_->qctx->schemaMng()->getEdgeSchema(matchCtx_->space.id, edgeType);
+            matchClauseCtx_->qctx->schemaMng()->getEdgeSchema(matchClauseCtx_->space.id, edgeType);
 
         switch (edge.direction) {
             case Direction::OUT_EDGE: {
@@ -48,9 +47,7 @@ std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const
                 EdgeProp edgeProp;
                 edgeProp.set_type(-edgeType);
                 std::vector<std::string> props{kSrc, kType, kRank, kDst};
-                for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
-                    props.emplace_back(edgeSchema->getFieldName(i));
-                }
+                fillEdgeProps(edgeSchema, edge.alias, props);
                 edgeProp.set_props(std::move(props));
                 edgeProps->emplace_back(std::move(edgeProp));
                 break;
@@ -59,13 +56,39 @@ std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const
         EdgeProp edgeProp;
         edgeProp.set_type(edgeType);
         std::vector<std::string> props{kSrc, kType, kRank, kDst};
-        for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
-            props.emplace_back(edgeSchema->getFieldName(i));
-        }
+        fillEdgeProps(edgeSchema, edge.alias, props);
         edgeProp.set_props(std::move(props));
         edgeProps->emplace_back(std::move(edgeProp));
     }
     return edgeProps;
+}
+
+void Expand::fillEdgeProps(std::shared_ptr<const nebula::meta::SchemaProviderIf> schema,
+                           const std::string& alias,
+                           std::vector<std::string> &props) {
+    if (matchClauseCtx_->pathAlias != nullptr &&
+        propsUsed_.paths().find(*matchClauseCtx_->pathAlias) != propsUsed_.paths().end()) {
+        for (std::size_t i = 0; i < schema->getNumFields(); ++i) {
+            props.emplace_back(schema->getFieldName(i));
+        }
+        return;
+    }
+    auto find = propsUsed_.edgeProps().find(alias);
+    if (find != propsUsed_.edgeProps().end()) {
+        if (std::holds_alternative<VertexEdgeProps::AllProps>(find->second)) {
+            for (std::size_t i = 0; i < schema->getNumFields(); ++i) {
+                props.emplace_back(schema->getFieldName(i));
+            }
+        } else {
+            for (const auto& prop : std::get<std::set<std::string>>(find->second)) {
+                if (schema->field(prop) != nullptr) {
+                    props.emplace_back(prop);
+                }
+            }
+        }
+    }
+    // cypher is schema-less query language, so we don't report error when don't find the properties
+    // in schema
 }
 
 static Expression* mergePathColumnsExpr(const std::string& lcol, const std::string& rcol) {
@@ -102,16 +125,18 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
         subplan = *plan;
         startIndex = 0;
         // Get vertex
-        NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(node.filter,
-                                                              matchCtx_->space,
-                                                              matchCtx_->qctx,
+        NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(node,
+                                                              matchClauseCtx_->space,
+                                                              matchClauseCtx_->qctx,
                                                               initialExpr_.release(),
                                                               inputVar_,
-                                                              subplan));
+                                                              subplan,
+                                                              matchClauseCtx_,
+                                                              propsUsed_));
     } else {   // Case 1 to n steps
         startIndex = 1;
         // Expand first step from src
-        NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, &subplan));
+        NG_RETURN_IF_ERROR(expandStep(node, edge, dependency_, inputVar_, node.filter, &subplan));
     }
     // No need to further expand if maxHop is the start Index
     if (maxHop == startIndex) {
@@ -123,14 +148,15 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
 
     // Build Start node from first step
     SubPlan loopBodyPlan;
-    PlanNode* startNode = StartNode::make(matchCtx_->qctx);
+    PlanNode* startNode = StartNode::make(matchClauseCtx_->qctx);
     startNode->setOutputVar(firstStep->outputVar());
     startNode->setColNames(firstStep->colNames());
     loopBodyPlan.tail = startNode;
     loopBodyPlan.root = startNode;
 
     // Construct loop body
-    NG_RETURN_IF_ERROR(expandStep(edge,
+    NG_RETURN_IF_ERROR(expandStep(node,
+                                  edge,
                                   startNode,                // dep
                                   startNode->outputVar(),   // inputVar
                                   nullptr,
@@ -145,13 +171,13 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
 
     // Loop condition
     auto condition = buildExpandCondition(body->outputVar(), startIndex, maxHop);
-    matchCtx_->qctx->objPool()->add(condition);
+    matchClauseCtx_->qctx->objPool()->add(condition);
 
     // Create loop
-    auto* loop = Loop::make(matchCtx_->qctx, firstStep, body, condition);
+    auto* loop = Loop::make(matchClauseCtx_->qctx, firstStep, body, condition);
 
     // Unionize the results of each expansion which are stored in the firstStep node
-    auto uResNode = UnionAllVersionVar::make(matchCtx_->qctx, loop);
+    auto uResNode = UnionAllVersionVar::make(matchClauseCtx_->qctx, loop);
     uResNode->setInputVar(firstStep->outputVar());
     uResNode->setColNames({kPathStr});
 
@@ -161,22 +187,25 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
 }
 
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
-Status Expand::expandStep(const EdgeInfo& edge,
+Status Expand::expandStep(const NodeInfo& node,
+                          const EdgeInfo& edge,
                           PlanNode* dep,
                           const std::string& inputVar,
                           const Expression* nodeFilter,
                           SubPlan* plan) {
-    auto qctx = matchCtx_->qctx;
+    auto qctx = matchClauseCtx_->qctx;
 
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
     curr.root = dep;
     MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_.release(), dep, inputVar, curr);
     // [GetNeighbors]
-    auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
+    auto gn = GetNeighbors::make(qctx, curr.root, matchClauseCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
     gn->setSrc(qctx->objPool()->add(srcExpr.release()));
-    gn->setVertexProps(genVertexProps());
+    auto vertexPropsResult = MatchSolver::genVertexProps(matchClauseCtx_, propsUsed_, node);
+    NG_RETURN_IF_ERROR(vertexPropsResult);
+    gn->setVertexProps(std::move(vertexPropsResult).value());
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
 
@@ -184,7 +213,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     if (nodeFilter != nullptr) {
         auto* newFilter = MatchSolver::rewriteLabel2Vertex(nodeFilter);
         qctx->objPool()->add(newFilter);
-        auto filterNode = Filter::make(matchCtx_->qctx, root, newFilter);
+        auto filterNode = Filter::make(matchClauseCtx_->qctx, root, newFilter);
         filterNode->setColNames(root->colNames());
         root = filterNode;
     }
@@ -213,7 +242,7 @@ Status Expand::collectData(const PlanNode* joinLeft,
                            const PlanNode* joinRight,
                            PlanNode** passThrough,
                            SubPlan* plan) {
-    auto qctx = matchCtx_->qctx;
+    auto qctx = matchClauseCtx_->qctx;
     // [dataJoin] read start node (joinLeft)
     auto join = SegmentsConnector::innerJoinSegments(qctx, joinLeft, joinRight);
     auto lpath = folly::stringPrintf("%s_%d", kPathStr, 0);
@@ -236,7 +265,7 @@ Status Expand::collectData(const PlanNode* joinLeft,
 }
 
 Status Expand::filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, SubPlan* plan) {
-    auto qctx = matchCtx_->qctx;
+    auto qctx = matchClauseCtx_->qctx;
 
     // Filter rows whose edges number less than min hop
     auto args = std::make_unique<ArgumentList>();
@@ -260,8 +289,8 @@ Expression* Expand::buildExpandCondition(const std::string& lastStepResult,
                                          int64_t startIndex,
                                          int64_t maxHop) const {
     VLOG(1) << "match expand maxHop: " << maxHop;
-    auto loopSteps = matchCtx_->qctx->vctx()->anonVarGen()->getVar();
-    matchCtx_->qctx->ectx()->setValue(loopSteps, startIndex);
+    auto loopSteps = matchClauseCtx_->qctx->vctx()->anonVarGen()->getVar();
+    matchClauseCtx_->qctx->ectx()->setValue(loopSteps, startIndex);
     // ++loopSteps{startIndex} << maxHop
     auto stepCondition = ExpressionUtils::stepCondition(loopSteps, maxHop);
     // lastStepResult == empty || size(lastStepReult) != 0

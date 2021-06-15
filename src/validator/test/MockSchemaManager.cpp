@@ -175,5 +175,21 @@ StatusOr<std::vector<nebula::meta::cpp2::FTClient>> MockSchemaManager::getFTClie
     return Status::Error("Not implemented");
 }
 
+StatusOr<std::vector<TagID>>
+MockSchemaManager::getVertexPropertyTagId(const GraphSpaceID spaceId,
+                                                 const std::string &property) {
+    auto tagSchemasResult = getAllLatestVerTagSchema(spaceId);
+    NG_RETURN_IF_ERROR(tagSchemasResult);
+    auto tagSchemas = std::move(tagSchemasResult).value();
+    std::vector<TagID> tagIds;
+    tagIds.reserve(tagSchemas.size());
+    for (const auto &tagSchema : tagSchemas) {
+        if (tagSchema.second->field(property) != nullptr) {
+            tagIds.emplace_back(tagSchema.first);
+        }
+    }
+    return tagIds;
+}
+
 }  // namespace graph
 }  // namespace nebula

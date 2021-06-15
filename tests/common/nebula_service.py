@@ -148,6 +148,7 @@ class NebulaService(object):
             if is_ok:
                 return True
             time.sleep(1)
+        print(ports_status)
         return False
 
     def start(self, debug_log=True, multi_graphd=False):

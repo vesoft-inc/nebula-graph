@@ -60,20 +60,29 @@ public:
                                          const std::string& column,
                                          QueryContext* qctx);
 
-    static Status appendFetchVertexPlan(const Expression* nodeFilter,
+    static Status appendFetchVertexPlan(const NodeInfo &node,
                                         const SpaceInfo& space,
                                         QueryContext* qctx,
                                         Expression* initialExpr,
-                                        SubPlan& plan);
+                                        SubPlan& plan,
+                                        const MatchClauseContext *matchClauseCtx,
+                                        const VertexEdgeProps &propsUsed);
 
     // In 0 step left expansion case, the result of initial index scan
     // will be passed as inputVar after right expansion is finished
-    static Status appendFetchVertexPlan(const Expression* nodeFilter,
+    static Status appendFetchVertexPlan(const NodeInfo &node,
                                         const SpaceInfo& space,
                                         QueryContext* qctx,
                                         Expression* initialExpr,
                                         std::string inputVar,
-                                        SubPlan& plan);
+                                        SubPlan& plan,
+                                        const MatchClauseContext *matchClauseCtx,
+                                        const VertexEdgeProps &propsUsed);
+
+    static StatusOr<std::unique_ptr<std::vector<storage::cpp2::VertexProp>>>
+    genVertexProps(const MatchClauseContext *matchClauseCtx,
+                   const VertexEdgeProps &propsUsed,
+                   const NodeInfo &node);
 };
 
 }   // namespace graph

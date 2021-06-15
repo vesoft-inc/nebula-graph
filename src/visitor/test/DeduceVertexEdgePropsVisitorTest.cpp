@@ -28,7 +28,7 @@ TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
         EXPECT_EQ(
             props,
             VertexEdgeProps(
-                VertexEdgeProps::AliasProps{{"v", std::set<folly::StringPiece>{"prop"}}}, {}));
+                {}, VertexEdgeProps::AliasProps{{"v", std::set<std::string>{"prop"}}}, {}, {}));
     }
     {
         // (v.prop + 3) > e.prop1
@@ -39,8 +39,10 @@ TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
         expr->accept(&visitor);
         EXPECT_EQ(props,
                   VertexEdgeProps(
-                      VertexEdgeProps::AliasProps{{"v", std::set<folly::StringPiece>{"prop"}}},
-                      VertexEdgeProps::AliasProps{{"e", std::set<folly::StringPiece>{"prop1"}}}));
+                      {},
+                      VertexEdgeProps::AliasProps{{"v", std::set<std::string>{"prop"}}},
+                      VertexEdgeProps::AliasProps{{"e", std::set<std::string>{"prop1"}}},
+                      {}));
     }
     {
         // id(v) > v.prop
@@ -52,7 +54,9 @@ TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
         EXPECT_EQ(
             props,
             VertexEdgeProps(
-                VertexEdgeProps::AliasProps{{"v", std::set<folly::StringPiece>{"prop"}}}, {}));
+                {},
+                VertexEdgeProps::AliasProps{{"v", std::set<std::string>{"prop"}}}, {},
+                {}));
     }
     {
         // v + e + v.prop
@@ -62,8 +66,10 @@ TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
         DeduceVertexEdgePropsVisitor visitor(props, aliases);
         expr->accept(&visitor);
         EXPECT_EQ(props,
-                  VertexEdgeProps(VertexEdgeProps::AliasProps{{"v", VertexEdgeProps::AllProps()}},
-                                  VertexEdgeProps::AliasProps{{"e", VertexEdgeProps::AllProps()}}));
+                  VertexEdgeProps({},
+                                  VertexEdgeProps::AliasProps{{"v", VertexEdgeProps::AllProps()}},
+                                  VertexEdgeProps::AliasProps{{"e", VertexEdgeProps::AllProps()}},
+                                  {}));
     }
 }
 

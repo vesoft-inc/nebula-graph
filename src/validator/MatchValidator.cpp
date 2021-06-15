@@ -9,6 +9,7 @@
 #include "planner/match/MatchSolver.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteVisitor.h"
+#include "visitor/DeduceVertexEdgePropsVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -56,6 +57,9 @@ Status MatchValidator::validateImpl() {
                     NG_RETURN_IF_ERROR(
                         validateFilter(matchClause->where()->filter(), *whereClauseCtx));
                     matchClauseCtx->where = std::move(whereClauseCtx);
+                    DeduceVertexEdgePropsVisitor propsVisitor(matchCtx_->propsUsed,
+                                                             *matchClauseCtx->where->aliasesUsed);
+                    matchClauseCtx->where->filter->accept(&propsVisitor);
                 }
 
                 if (aliasesUsed) {
@@ -85,6 +89,9 @@ Status MatchValidator::validateImpl() {
                     NG_RETURN_IF_ERROR(
                         validateReturn(sentence->ret(), unwindClauseCtx.get(), *retClauseCtx));
                 }
+                DeduceVertexEdgePropsVisitor propsVisitor(matchCtx_->propsUsed,
+                                                         *unwindClauseCtx->aliasesUsed);
+                unwindClauseCtx->unwindExpr->accept(&propsVisitor);
                 matchCtx_->clauses.emplace_back(std::move(unwindClauseCtx));
 
                 // TODO: delete prevYieldColumns
@@ -114,6 +121,16 @@ Status MatchValidator::validateImpl() {
                     NG_RETURN_IF_ERROR(
                         validateReturn(sentence->ret(), withClauseCtx.get(), *retClauseCtx));
                 }
+                if (withClauseCtx->where != nullptr) {
+                    DeduceVertexEdgePropsVisitor filterPropsVisitor(matchCtx_->propsUsed,
+                                                            *withClauseCtx->where->aliasesUsed);
+                    withClauseCtx->where->filter->accept(&filterPropsVisitor);
+                }
+                DeduceVertexEdgePropsVisitor yieldPropsVisitor(matchCtx_->propsUsed,
+                                                         *withClauseCtx->yield->aliasesUsed);
+                for (const auto &col : withClauseCtx->yield->yieldColumns->columns()) {
+                    col->expr()->accept(&yieldPropsVisitor);
+                }
                 matchCtx_->clauses.emplace_back(std::move(withClauseCtx));
 
                 break;
@@ -142,6 +159,7 @@ Status MatchValidator::buildPathExpr(const MatchPath *path,
     if (pathAlias == nullptr) {
         return Status::OK();
     }
+    matchClauseCtx.pathAlias = pathAlias;
     if (!matchClauseCtx.aliasesGenerated.emplace(*pathAlias, AliasType::kPath).second) {
         return Status::SemanticError("`%s': Redefined alias", pathAlias->c_str());
     }
@@ -182,6 +200,13 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
                     nodeInfos[i].tids.emplace_back(tid.value());
                     nodeInfos[i].labels.emplace_back(label->label());
                     nodeInfos[i].labelProps.emplace_back(label->props());
+                    matchCtx_->propsUsed.addVertexLabel(alias, tid.value());
+                    // TODO(shylock) the cypher has no properties of label
+                    if (label->props() != nullptr) {
+                        for (const auto &item : label->props()->items()) {
+                            matchCtx_->propsUsed.addVertexProp(alias, item.first);
+                        }
+                    }
                 }
             }
         }
@@ -210,6 +235,12 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
         nodeInfos[i].alias = alias;
         nodeInfos[i].props = props;
         nodeInfos[i].filter = filter;
+        // collect properties
+        if (props != nullptr) {
+            for (const auto &item : props->items()) {
+                matchCtx_->propsUsed.addVertexProp(alias, item.first);
+            }
+        }
     }
 
     return Status::OK();
@@ -272,6 +303,12 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
         edgeInfos[i].alias = alias;
         edgeInfos[i].props = props;
         edgeInfos[i].filter = filter;
+        // collect properties
+        if (props != nullptr) {
+            for (const auto &item : props->items()) {
+                matchCtx_->propsUsed.addEdgeProp(alias, item.first);
+            }
+        }
     }
 
     return Status::OK();
@@ -384,6 +421,13 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
         auto orderByCtx = getContext<OrderByClauseContext>();
         NG_RETURN_IF_ERROR(validateOrderBy(ret->orderFactors(), ret->columns(), *orderByCtx));
         retClauseCtx.order = std::move(orderByCtx);
+    }
+
+    // deduce properties
+    DeduceVertexEdgePropsVisitor propsVisitor(matchCtx_->propsUsed,
+                                             *retClauseCtx.yield->aliasesUsed);
+    for (auto &expr : exprs) {
+        const_cast<Expression*>(expr)->accept(&propsVisitor);
     }
 
     return Status::OK();

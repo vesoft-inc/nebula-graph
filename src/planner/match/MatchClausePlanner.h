@@ -16,7 +16,7 @@ namespace graph {
  */
 class MatchClausePlanner final : public CypherClausePlanner {
 public:
-    MatchClausePlanner() = default;
+    explicit MatchClausePlanner(const VertexEdgeProps &propsUsed) : propsUsed_(propsUsed) {}
 
     StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override;
 
@@ -77,6 +77,7 @@ private:
 
 private:
     std::unique_ptr<Expression> initialExpr_;
+    const VertexEdgeProps &propsUsed_;
 };
 }  // namespace graph
 }  // namespace nebula

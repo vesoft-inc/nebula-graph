@@ -121,6 +121,9 @@ public:
         return Status::Error("Unimplemented");
     }
 
+    StatusOr<std::vector<TagID>>
+    getVertexPropertyTagId(GraphSpaceID spaceId, const std::string &property) override;
+
 private:
     std::unordered_map<std::string, GraphSpaceID>        spaceNameIds_;
     std::unordered_map<std::string, TagID>               tagNameIds_;

@@ -19,6 +19,8 @@ void DeduceVertexEdgePropsVisitor::visit(LabelExpression* expr) {
             vertexEdgeProps_.addVertexProp(expr->name());
         } else if (alias->second == AliasType::kEdge) {
             vertexEdgeProps_.addEdgeProp(expr->name());
+        } else if (alias->second == AliasType::kPath) {
+            vertexEdgeProps_.addPath(expr->name());
         }
     }
 }

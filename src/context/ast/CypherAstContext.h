@@ -13,6 +13,7 @@
 #include "common/expression/PathBuildExpression.h"
 #include "context/ast/AstContext.h"
 #include "parser/MatchSentence.h"
+#include "visitor/VertexEdgeProps.h"
 
 namespace nebula {
 namespace graph {
@@ -135,6 +136,7 @@ struct MatchClauseContext final : CypherClauseContextBase {
     std::vector<NodeInfo>                       nodeInfos;
     std::vector<EdgeInfo>                       edgeInfos;
     std::unique_ptr<PathBuildExpression>        pathBuild;
+    const std::string                          *pathAlias;
     std::unique_ptr<WhereClauseContext>         where;
     std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
     std::unordered_map<std::string, AliasType>  aliasesGenerated;
@@ -154,6 +156,8 @@ struct UnwindClauseContext final : CypherClauseContextBase {
 struct MatchAstContext final : AstContext {
     // Alternative of Match/Unwind/With and ends with Return.
     std::vector<std::unique_ptr<CypherClauseContextBase>>  clauses;
+    // the used properties in current sentence
+    VertexEdgeProps                             propsUsed;
 };
 
 struct PatternContext {
