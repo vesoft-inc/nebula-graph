@@ -687,7 +687,6 @@ Feature: subgraph
       | [("Yao Ming")] | [[:serve "Yao Ming"->"Rockets"@0]] |
       | [("Rockets")]  | []                                 |
 
-
   Scenario: many steps without prop
     When executing query:
       """
