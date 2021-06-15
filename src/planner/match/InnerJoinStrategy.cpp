@@ -21,19 +21,19 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
     Expression* buildExpr = nullptr;
     if (leftPos_ == JoinPos::kStart) {
         auto& leftKey = left->colNames().front();
-        buildExpr = MatchSolver::getStartVidInPath(leftKey);
+        buildExpr = MatchSolver::getStartVidInPath(qctx_, leftKey);
     } else {
         auto& leftKey = left->colNames().back();
-        buildExpr = MatchSolver::getEndVidInPath(leftKey);
+        buildExpr = MatchSolver::getEndVidInPath(qctx_, leftKey);
     }
 
     Expression* probeExpr = nullptr;
     if (rightPos_ == JoinPos::kStart) {
         auto& rightKey = right->colNames().front();
-        probeExpr = MatchSolver::getStartVidInPath(rightKey);
+        probeExpr = MatchSolver::getStartVidInPath(qctx_, rightKey);
     } else {
         auto& rightKey = right->colNames().back();
-        probeExpr = MatchSolver::getEndVidInPath(rightKey);
+        probeExpr = MatchSolver::getEndVidInPath(qctx_, rightKey);
     }
 
     qctx_->objPool()->add(buildExpr);

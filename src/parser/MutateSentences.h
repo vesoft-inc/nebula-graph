@@ -102,25 +102,25 @@ public:
     std::vector<Expression*> values() const {
         std::vector<Expression*> result;
         result.resize(values_.size());
-        auto get = [] (const auto &ptr) { return ptr.get(); };
+        auto get = [] (const auto &ptr) { return ptr; };
         std::transform(values_.begin(), values_.end(), result.begin(), get);
         return result;
     }
 
 private:
-    std::vector<std::unique_ptr<Expression>>    values_;
+    std::vector<Expression*>    values_;
 };
 
 
 class VertexRowItem final {
 public:
     VertexRowItem(Expression *id, ValueList *values) {
-        id_.reset(id);
+        id_ = id;
         values_.reset(values);
     }
 
     Expression* id() const {
-        return id_.get();
+        return id_;
     }
 
     std::vector<Expression*> values() const {
@@ -130,7 +130,7 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 id_;
+    Expression*                 id_;
     std::unique_ptr<ValueList>                  values_;
 };
 
@@ -199,24 +199,24 @@ private:
 class EdgeRowItem final {
 public:
     EdgeRowItem(Expression *srcid, Expression *dstid, ValueList *values) {
-        srcid_.reset(srcid);
-        dstid_.reset(dstid);
+        srcid_ = srcid;
+        dstid_ = dstid;
         values_.reset(values);
     }
 
     EdgeRowItem(Expression *srcid, Expression *dstid, int64_t rank, ValueList *values) {
-        srcid_.reset(srcid);
-        dstid_.reset(dstid);
+        srcid_ = srcid;
+        dstid_ = dstid;
         rank_ = rank;
         values_.reset(values);
     }
 
     auto srcid() const {
-        return srcid_.get();
+        return srcid_;
     }
 
     auto dstid() const {
-        return dstid_.get();
+        return dstid_;
     }
 
     auto rank() const {
@@ -230,8 +230,8 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 srcid_;
-    std::unique_ptr<Expression>                 dstid_;
+    Expression*                 srcid_;
+    Expression*                 dstid_;
     EdgeRanking                                 rank_{0};
     std::unique_ptr<ValueList>                  values_;
 };
@@ -313,12 +313,12 @@ class UpdateItem final {
 public:
     UpdateItem(std::string *field, Expression *value) {
         fieldStr_.reset(field);
-        value_.reset(value);
+        value_ = value;
     }
 
     UpdateItem(Expression *field, Expression *value) {
-        fieldExpr_.reset(field);
-        value_.reset(value);
+        fieldExpr_ = field;
+        value_ = value;
     }
 
     std::string* getFieldName() const {
@@ -326,11 +326,11 @@ public:
     }
 
     const Expression* getFieldExpr() const {
-        return fieldExpr_.get();
+        return fieldExpr_;
     }
 
     const Expression* value() const {
-        return value_.get();
+        return value_;
     }
 
     std::string toString() const;
@@ -339,8 +339,8 @@ public:
 
 private:
     std::unique_ptr<std::string>                fieldStr_;
-    std::unique_ptr<Expression>                 fieldExpr_;
-    std::unique_ptr<Expression>                 value_;
+    Expression*                 fieldExpr_;
+    Expression*                 value_;
 };
 
 
@@ -424,7 +424,7 @@ public:
                          bool isInsertable = false)
         : UpdateBaseSentence(updateList, whenClause, yieldClause, tagName, isInsertable) {
         kind_ = Kind::kUpdateVertex;
-        vid_.reset(vid);
+        vid_ = vid;
     }
 
     UpdateVertexSentence(Expression *vid,
@@ -434,7 +434,7 @@ public:
                          bool isInsertable = false)
         : UpdateBaseSentence(updateList, whenClause, yieldClause, nullptr, isInsertable) {
         kind_ = Kind::kUpdateVertex;
-        vid_.reset(vid);
+        vid_ = vid;
     }
 
     ~UpdateVertexSentence() {}
@@ -444,7 +444,7 @@ public:
     }
 
     Expression* getVid() const {
-        return vid_.get();
+        return vid_;
     }
 
     const UpdateList* updateList() const {
@@ -462,7 +462,7 @@ public:
     std::string toString() const override;
 
 private:
-    std::unique_ptr<Expression>                 vid_;
+    Expression*                 vid_;
 };
 
 
@@ -478,17 +478,17 @@ public:
                        bool isInsertable = false)
         : UpdateBaseSentence(updateList, whenClause, yieldClause, edgeName, isInsertable) {
         kind_ = Kind::kUpdateEdge;
-        srcId_.reset(srcId);
-        dstId_.reset(dstId);
+        srcId_ = srcId;
+        dstId_ = dstId;
         rank_ = rank;
     }
 
     Expression* getSrcId() const {
-        return srcId_.get();
+        return srcId_;
     }
 
     Expression* getDstId() const {
-        return dstId_.get();
+        return dstId_;
     }
 
     int64_t getRank() const {
@@ -498,8 +498,8 @@ public:
     std::string toString() const override;
 
 private:
-    std::unique_ptr<Expression>                 srcId_;
-    std::unique_ptr<Expression>                 dstId_;
+    Expression*                 srcId_;
+    Expression*                 dstId_;
     int64_t                                     rank_{0L};
 };
 

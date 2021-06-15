@@ -138,7 +138,7 @@ private:
                                 const std::string& symName,
                                 std::string &encodeStr);
 
-    std::unique_ptr<Expression> rewriteSymExpr(Expression* expr,
+    Expression* rewriteSymExpr(Expression* expr,
                                                const std::string &sym,
                                                bool &hasWrongType,
                                                bool isEdge = false);

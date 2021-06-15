@@ -81,7 +81,7 @@ TEST_F(ExpressionUtilsTest, CheckComponent) {
             Value::Type::BOOL,
             new TypeCastingExpression(
                 Value::Type::BOOL,
-                new TypeCastingExpression(Value::Type::BOOL, new ConstantExpression())));
+                new TypeCastingExpression(Value::Type::BOOL, ConstantExpression::make(pool))));
 
         ASSERT_TRUE(ExpressionUtils::isKindOf(root.get(), {Expression::Kind::kTypeCasting}));
         ASSERT_TRUE(ExpressionUtils::hasAny(root.get(), {Expression::Kind::kConstant}));
@@ -141,15 +141,15 @@ TEST_F(ExpressionUtilsTest, CheckComponent) {
         const auto root = std::make_unique<ArithmeticExpression>(
             Expression::Kind::kAdd,
             new ArithmeticExpression(Expression::Kind::kDivision,
-                                     new ConstantExpression(3),
+                                     ConstantExpression::make(pool3),
                                      new ArithmeticExpression(Expression::Kind::kMinus,
-                                                              new ConstantExpression(4),
-                                                              new ConstantExpression(2))),
+                                                              ConstantExpression::make(pool4),
+                                                              ConstantExpression::make(pool2))),
             new ArithmeticExpression(Expression::Kind::kMod,
                                      new ArithmeticExpression(Expression::Kind::kMultiply,
-                                                              new ConstantExpression(3),
-                                                              new ConstantExpression(10)),
-                                     new ConstantExpression(2)));
+                                                              ConstantExpression::make(pool3),
+                                                              ConstantExpression::make(pool10)),
+                                     ConstantExpression::make(pool2)));
 
         ASSERT_TRUE(ExpressionUtils::isKindOf(root.get(), {Expression::Kind::kAdd}));
         ASSERT_TRUE(ExpressionUtils::hasAny(root.get(), {Expression::Kind::kMinus}));
@@ -208,8 +208,8 @@ TEST_F(ExpressionUtilsTest, PullAnds) {
     using Kind = Expression::Kind;
     // true AND false
     {
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
+        auto *first = ConstantExpression::make(pooltrue);
+        auto *second = ConstantExpression::make(poolfalse);
         LogicalExpression expr(Kind::kLogicalAnd, first, second);
         LogicalExpression expected(Kind::kLogicalAnd,
                                    first->clone().release(),
@@ -219,9 +219,9 @@ TEST_F(ExpressionUtilsTest, PullAnds) {
     }
     // true AND false AND true
     {
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
-        auto *third = new ConstantExpression(true);
+        auto *first = ConstantExpression::make(pooltrue);
+        auto *second = ConstantExpression::make(poolfalse);
+        auto *third = ConstantExpression::make(pooltrue);
         LogicalExpression expr(Kind::kLogicalAnd,
                 new LogicalExpression(Kind::kLogicalAnd,
                     first,
@@ -236,9 +236,9 @@ TEST_F(ExpressionUtilsTest, PullAnds) {
     }
     // true AND (false AND true)
     {
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
-        auto *third = new ConstantExpression(true);
+        auto *first = ConstantExpression::make(pooltrue);
+        auto *second = ConstantExpression::make(poolfalse);
+        auto *third = ConstantExpression::make(pooltrue);
         LogicalExpression expr(Kind::kLogicalAnd,
                 first,
                 new LogicalExpression(Kind::kLogicalAnd,
@@ -254,11 +254,11 @@ TEST_F(ExpressionUtilsTest, PullAnds) {
     // (true OR false) AND (true OR false)
     {
         auto *first = new LogicalExpression(Kind::kLogicalOr,
-                new ConstantExpression(true),
-                new ConstantExpression(false));
+                ConstantExpression::make(pooltrue),
+                ConstantExpression::make(poolfalse));
         auto *second = new LogicalExpression(Kind::kLogicalOr,
-                new ConstantExpression(true),
-                new ConstantExpression(false));
+                ConstantExpression::make(pooltrue),
+                ConstantExpression::make(poolfalse));
         LogicalExpression expr(Kind::kLogicalAnd, first, second);
         LogicalExpression expected(Kind::kLogicalAnd);
         expected.addOperand(first->clone().release());
@@ -268,13 +268,13 @@ TEST_F(ExpressionUtilsTest, PullAnds) {
     }
     // true AND ((false AND true) OR false) AND true
     {
-        auto *first = new ConstantExpression(true);
+        auto *first = ConstantExpression::make(pooltrue);
         auto *second = new LogicalExpression(Kind::kLogicalOr,
                 new LogicalExpression(Kind::kLogicalAnd,
-                    new ConstantExpression(false),
-                    new ConstantExpression(true)),
-                new ConstantExpression(false));
-        auto *third = new ConstantExpression(true);
+                    ConstantExpression::make(poolfalse),
+                    ConstantExpression::make(pooltrue)),
+                ConstantExpression::make(poolfalse));
+        auto *third = ConstantExpression::make(pooltrue);
         LogicalExpression expr(Kind::kLogicalAnd,
                 new LogicalExpression(Kind::kLogicalAnd, first, second), third);
         LogicalExpression expected(Kind::kLogicalAnd);
@@ -290,8 +290,8 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
     using Kind = Expression::Kind;
     // true OR false
     {
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
+        auto *first = ConstantExpression::make(pooltrue);
+        auto *second = ConstantExpression::make(poolfalse);
         LogicalExpression expr(Kind::kLogicalOr, first, second);
         LogicalExpression expected(Kind::kLogicalOr,
                 first->clone().release(),
@@ -301,9 +301,9 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
     }
     // true OR false OR true
     {
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
-        auto *third = new ConstantExpression(true);
+        auto *first = ConstantExpression::make(pooltrue);
+        auto *second = ConstantExpression::make(poolfalse);
+        auto *third = ConstantExpression::make(pooltrue);
         LogicalExpression expr(Kind::kLogicalOr,
                 new LogicalExpression(Kind::kLogicalOr, first, second), third);
         LogicalExpression expected(Kind::kLogicalOr);
@@ -315,9 +315,9 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
     }
     // true OR (false OR true)
     {
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
-        auto *third = new ConstantExpression(true);
+        auto *first = ConstantExpression::make(pooltrue);
+        auto *second = ConstantExpression::make(poolfalse);
+        auto *third = ConstantExpression::make(pooltrue);
         LogicalExpression expr(Kind::kLogicalOr,
                 first,
                 new LogicalExpression(Kind::kLogicalOr, second, third));
@@ -331,11 +331,11 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
     // (true AND false) OR (true AND false)
     {
         auto *first = new LogicalExpression(Kind::kLogicalAnd,
-                new ConstantExpression(true),
-                new ConstantExpression(false));
+                ConstantExpression::make(pooltrue),
+                ConstantExpression::make(poolfalse));
         auto *second = new LogicalExpression(Kind::kLogicalAnd,
-                new ConstantExpression(true),
-                new ConstantExpression(false));
+                ConstantExpression::make(pooltrue),
+                ConstantExpression::make(poolfalse));
         LogicalExpression expr(Kind::kLogicalOr, first, second);
         LogicalExpression expected(Kind::kLogicalOr,
                 first->clone().release(),
@@ -345,13 +345,13 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
     }
     // true OR ((false OR true) AND false) OR true
     {
-        auto *first = new ConstantExpression(true);
+        auto *first = ConstantExpression::make(pooltrue);
         auto *second = new LogicalExpression(Kind::kLogicalAnd,
                 new LogicalExpression(Kind::kLogicalOr,
-                    new ConstantExpression(false),
-                    new ConstantExpression(true)),
-                new ConstantExpression(false));
-        auto *third = new ConstantExpression(true);
+                    ConstantExpression::make(poolfalse),
+                    ConstantExpression::make(pooltrue)),
+                ConstantExpression::make(poolfalse));
+        auto *third = ConstantExpression::make(pooltrue);
         LogicalExpression expr(Kind::kLogicalOr,
                 new LogicalExpression(Kind::kLogicalOr, first, second), third);
         LogicalExpression expected(Kind::kLogicalOr);
@@ -364,13 +364,14 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
 }
 
 TEST_F(ExpressionUtilsTest, pushOrs) {
-    std::vector<std::unique_ptr<Expression>> rels;
+    std::vector<Expression *> rels;
     for (int16_t i = 0; i < 5; i++) {
         auto r = std::make_unique<RelationalExpression>(
             Expression::Kind::kRelEQ,
-            new LabelAttributeExpression(new LabelExpression(folly::stringPrintf("tag%d", i)),
-                                         new ConstantExpression(folly::stringPrintf("col%d", i))),
-            new ConstantExpression(Value(folly::stringPrintf("val%d", i))));
+            new LabelAttributeExpression(
+                new LabelExpression(folly::stringPrintf("tag%d", i)),
+                ConstantExpression::make(poolfolly::stringPrintf("col%d", i))),
+            ConstantExpression::make(poolValue(folly::stringPrintf("val%d", i))));
         rels.emplace_back(std::move(r));
     }
     auto t = ExpressionUtils::pushOrs(rels);
@@ -383,13 +384,14 @@ TEST_F(ExpressionUtilsTest, pushOrs) {
 }
 
 TEST_F(ExpressionUtilsTest, pushAnds) {
-    std::vector<std::unique_ptr<Expression>> rels;
+    std::vector<Expression *> rels;
     for (int16_t i = 0; i < 5; i++) {
         auto r = std::make_unique<RelationalExpression>(
             Expression::Kind::kRelEQ,
-            new LabelAttributeExpression(new LabelExpression(folly::stringPrintf("tag%d", i)),
-                                         new ConstantExpression(folly::stringPrintf("col%d", i))),
-            new ConstantExpression(Value(folly::stringPrintf("val%d", i))));
+            new LabelAttributeExpression(
+                new LabelExpression(folly::stringPrintf("tag%d", i)),
+                ConstantExpression::make(poolfolly::stringPrintf("col%d", i))),
+            ConstantExpression::make(poolValue(folly::stringPrintf("val%d", i))));
         rels.emplace_back(std::move(r));
     }
     auto t = ExpressionUtils::pushAnds(rels);
@@ -405,9 +407,9 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
     using Kind = Expression::Kind;
     // true AND false AND true
     {
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
-        auto *third = new ConstantExpression(true);
+        auto *first = ConstantExpression::make(pooltrue);
+        auto *second = ConstantExpression::make(poolfalse);
+        auto *third = ConstantExpression::make(pooltrue);
         LogicalExpression expr(Kind::kLogicalAnd,
                 new LogicalExpression(Kind::kLogicalAnd,
                     first,
@@ -422,9 +424,9 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
     }
     // true OR false OR true
     {
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
-        auto *third = new ConstantExpression(true);
+        auto *first = ConstantExpression::make(pooltrue);
+        auto *second = ConstantExpression::make(poolfalse);
+        auto *third = ConstantExpression::make(pooltrue);
         LogicalExpression expr(Kind::kLogicalOr,
                 new LogicalExpression(Kind::kLogicalOr,
                     first,
@@ -439,17 +441,17 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
     }
     // (true OR false OR true)==(true AND false AND true)
     {
-        auto *or1 = new ConstantExpression(true);
-        auto *or2 = new ConstantExpression(false);
-        auto *or3 = new ConstantExpression(true);
+        auto *or1 = ConstantExpression::make(pooltrue);
+        auto *or2 = ConstantExpression::make(poolfalse);
+        auto *or3 = ConstantExpression::make(pooltrue);
         auto* logicOrExpr = new LogicalExpression(Kind::kLogicalOr,
                 new LogicalExpression(Kind::kLogicalOr,
                     or1,
                     or2),
                 or3);
-        auto *and1 = new ConstantExpression(false);
-        auto *and2 = new ConstantExpression(false);
-        auto *and3 = new ConstantExpression(true);
+        auto *and1 = ConstantExpression::make(poolfalse);
+        auto *and2 = ConstantExpression::make(poolfalse);
+        auto *and3 = ConstantExpression::make(pooltrue);
         auto* logicAndExpr = new LogicalExpression(Kind::kLogicalAnd,
                 new LogicalExpression(Kind::kLogicalAnd,
                     and1,
@@ -472,17 +474,17 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
     }
     // (true OR false OR true) AND (true AND false AND true)
     {
-        auto *or1 = new ConstantExpression(true);
-        auto *or2 = new ConstantExpression(false);
-        auto *or3 = new ConstantExpression(true);
+        auto *or1 = ConstantExpression::make(pooltrue);
+        auto *or2 = ConstantExpression::make(poolfalse);
+        auto *or3 = ConstantExpression::make(pooltrue);
         auto* logicOrExpr = new LogicalExpression(Kind::kLogicalOr,
                 new LogicalExpression(Kind::kLogicalOr,
                     or1,
                     or2),
                 or3);
-        auto *and1 = new ConstantExpression(false);
-        auto *and2 = new ConstantExpression(false);
-        auto *and3 = new ConstantExpression(true);
+        auto *and1 = ConstantExpression::make(poolfalse);
+        auto *and2 = ConstantExpression::make(poolfalse);
+        auto *and3 = ConstantExpression::make(pooltrue);
         auto* logicAndExpr = new LogicalExpression(Kind::kLogicalAnd,
                 new LogicalExpression(Kind::kLogicalAnd,
                     and1,
@@ -509,11 +511,11 @@ TEST_F(ExpressionUtilsTest, splitFilter) {
     using Kind = Expression::Kind;
     {
         // true AND false AND true
-        auto *first = new ConstantExpression(true);
-        auto *second = new ConstantExpression(false);
-        auto *third = new ConstantExpression(true);
-        LogicalExpression expr(
-            Kind::kLogicalAnd, new LogicalExpression(Kind::kLogicalAnd, first, second), third);
+        auto *first = ConstantExpression::make(pool, true);
+        auto *second = ConstantExpression::make(pool, false);
+        auto *third = ConstantExpression::make(pooltrue);
+        auto expr = *LogicalExpression::makeAnd(
+            pool, LogicalExpression::makeAnd(pool, first, second), third);
         LogicalExpression expected1(Kind::kLogicalAnd);
         expected1.addOperand(first->clone().release());
         expected1.addOperand(third->clone().release());
@@ -523,8 +525,8 @@ TEST_F(ExpressionUtilsTest, splitFilter) {
             if (v.type() != Value::Type::BOOL) return false;
             return v.getBool();
         };
-        std::unique_ptr<Expression> newExpr1;
-        std::unique_ptr<Expression> newExpr2;
+        Expression* newExpr1;
+        Expression* newExpr2;
         ExpressionUtils::splitFilter(&expr, picker, &newExpr1, &newExpr2);
         ASSERT_EQ(expected1, *newExpr1);
         ASSERT_EQ(*second, *newExpr2);
@@ -538,15 +540,15 @@ TEST_F(ExpressionUtilsTest, splitFilter) {
             if (v.type() != Value::Type::BOOL) return false;
             return v.getBool();
         };
-        std::unique_ptr<Expression> newExpr1;
-        std::unique_ptr<Expression> newExpr2;
+        Expression* newExpr1;
+        Expression* newExpr2;
         ExpressionUtils::splitFilter(expr.get(), picker, &newExpr1, &newExpr2);
         ASSERT_EQ(*expr, *newExpr1);
         ASSERT_EQ(nullptr, newExpr2);
     }
 }
 
-std::unique_ptr<Expression> parse(const std::string& expr) {
+Expression* parse(const std::string& expr) {
     std::string query = "LOOKUP on t1 WHERE " + expr;
     GQLParser parser;
     auto result = parser.parse(std::move(query));

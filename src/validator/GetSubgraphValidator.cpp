@@ -135,8 +135,9 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
     getVertex->setInputVar(inputVar);
 
     auto var = vctx_->anonVarGen()->getVar();
-    auto* column = new VertexExpression();
-    auto* func = new AggregateExpression("COLLECT", column, false);
+    auto* pool = qctx_->objPool();
+    auto* column = VertexExpression::make(pool);
+    auto* func = AggregateExpression::make(pool, "COLLECT", column, false);
     qctx_->objPool()->add(func);
     auto* collectVertex =
         Aggregate::make(qctx_,

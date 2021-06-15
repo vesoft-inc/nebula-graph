@@ -65,7 +65,7 @@ public:
         std::vector<Expression*> result;
         result.reserve(vidList_.size());
         for (auto &expr : vidList_) {
-            result.push_back(expr.get());
+            result.push_back(expr);
         }
         return result;
     }
@@ -73,7 +73,7 @@ public:
     std::string toString() const;
 
 private:
-    std::vector<std::unique_ptr<Expression>>    vidList_;
+    std::vector<Expression*>    vidList_;
 };
 
 
@@ -84,7 +84,7 @@ public:
     }
 
     explicit VerticesClause(Expression *ref) {
-        ref_.reset(ref);
+        ref_ = ref;
     }
 
     auto vidList() const {
@@ -96,14 +96,14 @@ public:
     }
 
     auto ref() const {
-        return ref_.get();
+        return ref_;
     }
 
     std::string toString() const;
 
 protected:
-    std::unique_ptr<VertexIDList>               vidList_;
-    std::unique_ptr<Expression>                 ref_;
+    std::unique_ptr<VertexIDList> vidList_;
+    Expression *ref_;
 };
 
 class FromClause final : public VerticesClause {
@@ -227,25 +227,25 @@ private:
 class WhereClause {
 public:
     explicit WhereClause(Expression *filter) {
-        filter_.reset(filter);
+        filter_ = filter;
     }
 
     Expression* filter() const {
-        return filter_.get();
+        return filter_;
     }
 
     void setFilter(Expression* expr) {
-        filter_.reset(expr);
+        filter_ = expr;
     }
 
     std::unique_ptr<WhereClause> clone() const {
-        return std::make_unique<WhereClause>(filter_->clone().release());
+        return std::make_unique<WhereClause>(filter_->clone());
     }
 
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 filter_;
+    Expression*                 filter_;
 };
 
 class WhenClause : public WhereClause {
@@ -258,20 +258,20 @@ public:
 class YieldColumn final {
 public:
     explicit YieldColumn(Expression *expr, const std::string &alias = "") {
-        expr_.reset(expr);
+        expr_ = expr;
         alias_ = alias;
     }
 
     std::unique_ptr<YieldColumn> clone() const {
-        return std::make_unique<YieldColumn>(expr_->clone().release(), alias_);
+        return std::make_unique<YieldColumn>(expr_->clone(), alias_);
     }
 
     void setExpr(Expression* expr) {
-        expr_.reset(expr);
+        expr_ = expr;
     }
 
     Expression* expr() const {
-        return expr_.get();
+        return expr_;
     }
 
     void setAlias(const std::string& alias) {
@@ -289,7 +289,7 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression> expr_;
+    Expression* expr_;
     std::string alias_;
 };
 

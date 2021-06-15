@@ -68,7 +68,7 @@ protected:
 
 protected:
     using Kind = Expression::Kind;
-    using Item = std::pair<std::string, std::unique_ptr<Expression>>;
+    using Item = std::pair<std::string, Expression*>;
     std::vector<Item>                       items_;
     std::unique_ptr<Sentence>               stmt_;
     const Expression                       *expr_;

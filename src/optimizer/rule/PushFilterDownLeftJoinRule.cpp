@@ -71,9 +71,9 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
         }
         return true;
     };
-    std::unique_ptr<Expression> filterPicked;
-    std::unique_ptr<Expression> filterUnpicked;
-    graph::ExpressionUtils::splitFilter(condition, picker, &filterPicked, &filterUnpicked);
+    Expression* filterPicked;
+    Expression* filterUnpicked;
+    graph::ExpressionUtils::splitFilter(objPool, condition, picker, &filterPicked, &filterUnpicked);
 
     if (!filterPicked) {
         return TransformResult::noTransform();
@@ -84,7 +84,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
         octx->qctx(),
         const_cast<graph::PlanNode*>(oldLeftJoinNode->dep()),
         objPool->add(
-            graph::ExpressionUtils::rewriteInnerVar(filterPicked.get(), leftVar.first).release()));
+            graph::ExpressionUtils::rewriteInnerVar(objPool, filterPicked, leftVar.first)));
     newLeftFilterNode->setInputVar(leftVar.first);
     newLeftFilterNode->setColNames(leftVarColNames);
     auto newFilterGroup = OptGroup::create(octx);
@@ -101,7 +101,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
     std::vector<Expression*> newHashKeys;
     for (auto* k : hashKeys) {
         newHashKeys.emplace_back(objPool->add(
-            graph::ExpressionUtils::rewriteInnerVar(k, newLeftFilterOutputVar).release()));
+            graph::ExpressionUtils::rewriteInnerVar(objPool, k, newLeftFilterOutputVar)));
     }
     newLeftJoinNode->setHashKeys(newHashKeys);
 
@@ -110,7 +110,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
     if (filterUnpicked) {
         auto* newAboveFilterNode = graph::Filter::make(octx->qctx(), newLeftJoinNode);
         newAboveFilterNode->setOutputVar(oldFilterNode->outputVar());
-        newAboveFilterNode->setCondition(objPool->add(filterUnpicked.release()));
+        newAboveFilterNode->setCondition(objPool->add(filterUnpicked));
         auto newAboveFilterGroupNode =
             OptGroupNode::create(octx, newAboveFilterNode, filterGroupNode->group());
 

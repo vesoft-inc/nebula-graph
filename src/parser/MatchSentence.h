@@ -264,15 +264,15 @@ private:
 
 class MatchReturn final {
 public:
-    explicit MatchReturn(YieldColumns *columns = nullptr,
-                         OrderFactors *orderFactors = nullptr,
-                         Expression *skip = nullptr,
-                         Expression *limit = nullptr,
+    explicit MatchReturn(YieldColumns* columns = nullptr,
+                         OrderFactors* orderFactors = nullptr,
+                         Expression* skip = nullptr,
+                         Expression* limit = nullptr,
                          bool distinct = false) {
         columns_.reset(columns);
         orderFactors_.reset(orderFactors);
-        skip_.reset(skip);
-        limit_.reset(limit);
+        skip_ = skip;
+        limit_ = limit;
         isDistinct_ = distinct;
         if (columns_ == nullptr) {
             isAll_ = true;
@@ -296,11 +296,11 @@ public:
     }
 
     const Expression* skip() const {
-        return skip_.get();
+        return skip_;
     }
 
     const Expression* limit() const {
-        return limit_.get();
+        return limit_;
     }
 
     OrderFactors* orderFactors() {
@@ -318,8 +318,8 @@ private:
     bool                                            isAll_{false};
     bool                                            isDistinct_{false};
     std::unique_ptr<OrderFactors>                   orderFactors_;
-    std::unique_ptr<Expression>                     skip_;
-    std::unique_ptr<Expression>                     limit_;
+    Expression*                     skip_;
+    Expression*                     limit_;
 };
 
 
@@ -400,16 +400,16 @@ class UnwindClause final : public ReadingClause {
 public:
     UnwindClause(Expression *expr, const std::string &alias)
         : ReadingClause(Kind::kUnwind) {
-        expr_.reset(expr);
+        expr_ = expr;
         alias_ = alias;
     }
 
     Expression* expr() {
-        return expr_.get();
+        return expr_;
     }
 
     const Expression* expr() const {
-        return expr_.get();
+        return expr_;
     }
 
     const std::string& alias() const {
@@ -419,7 +419,7 @@ public:
     std::string toString() const override;
 
 private:
-    std::unique_ptr<Expression> expr_;
+    Expression* expr_;
     std::string alias_;
 };
 
@@ -434,8 +434,8 @@ public:
         : ReadingClause(Kind::kWith) {
         columns_.reset(cols);
         orderFactors_.reset(orderFactors);
-        skip_.reset(skip);
-        limit_.reset(limit);
+        skip_ = skip;
+        limit_ = limit;
         where_.reset(where);
         isDistinct_ = distinct;
     }
@@ -457,19 +457,19 @@ public:
     }
 
     Expression* skip() {
-        return skip_.get();
+        return skip_;
     }
 
     const Expression* skip() const {
-        return skip_.get();
+        return skip_;
     }
 
     Expression* limit() {
-        return limit_.get();
+        return limit_;
     }
 
     const Expression* limit() const {
-        return limit_.get();
+        return limit_;
     }
 
     WhereClause* where() {
@@ -489,8 +489,8 @@ public:
 private:
     std::unique_ptr<YieldColumns>       columns_;
     std::unique_ptr<OrderFactors>       orderFactors_;
-    std::unique_ptr<Expression>         skip_;
-    std::unique_ptr<Expression>         limit_;
+    Expression*         skip_;
+    Expression*         limit_;
     std::unique_ptr<WhereClause>        where_;
     bool                                isDistinct_;
 };

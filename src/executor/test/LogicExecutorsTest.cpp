@@ -40,9 +40,10 @@ TEST_F(LogicExecutorsTest, Loop) {
     // ++counter{0} <= 5
     auto condition = std::make_unique<RelationalExpression>(
         Expression::Kind::kRelLE,
-        new UnaryExpression(Expression::Kind::kUnaryIncr,
-                            new VersionedVariableExpression(counter, new ConstantExpression(0))),
-        new ConstantExpression(static_cast<int32_t>(5)));
+        new UnaryExpression(
+            Expression::Kind::kUnaryIncr,
+            new VersionedVariableExpression(counter, ConstantExpression::make(pool0))),
+        ConstantExpression::make(poolstatic_cast<int32_t>(5)));
     auto* start = StartNode::make(qctx_.get());
     auto* loop = Loop::make(qctx_.get(), start, start, condition.get());
     auto loopExe = Executor::create(loop, qctx_.get());

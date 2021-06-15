@@ -85,7 +85,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownAggregateRule::transform(
     auto rewriter = [&rewriteMap](const Expression* e) -> Expression* {
         DCHECK_EQ(e->kind(), Expression::Kind::kVarProperty);
         auto& propName = static_cast<const VariablePropertyExpression*>(e)->prop();
-        return rewriteMap[propName]->clone().release();
+        return rewriteMap[propName]->clone();
     };
     auto* newCondition =
         graph::RewriteVisitor::transform(condition, std::move(matcher), std::move(rewriter));

@@ -19,7 +19,7 @@ namespace graph {
 class ValidatorTestBase : public ::testing::Test {
 protected:
     static ConstantExpression *constantExpr(Value value) {
-        return new ConstantExpression(std::move(value));
+        return ConstantExpression::make(poolstd::move(value));
     }
 
     static ArithmeticExpression *addExpr(Expression *lhs, Expression *rhs) {
@@ -143,7 +143,7 @@ protected:
                                           std::initializer_list<Expression *> args) {
         auto argsList = new ArgumentList;
         for (auto arg : args) {
-            argsList->addArgument(std::unique_ptr<Expression>(arg));
+            argsList->addArgument(Expression*(arg));
         }
         return new FunctionCallExpression(std::move(fn), argsList);
     }
@@ -170,7 +170,7 @@ protected:
 
     static LabelAttributeExpression *laExpr(const std::string &name, Value value) {
         return new LabelAttributeExpression(new LabelExpression(name),
-                                            new ConstantExpression(std::move(value)));
+                                            ConstantExpression::make(poolstd::move(value)));
     }
 };
 

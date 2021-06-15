@@ -166,8 +166,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         yieldColumns->addColumn(new YieldColumn(new EdgeDstIdExpression("like")));
         yieldColumns->addColumn(new YieldColumn(new EdgeRankExpression("like")));
         yieldColumns->addColumn(new YieldColumn(new EdgePropertyExpression("like", "start")));
-        yieldColumns->addColumn(new YieldColumn(new ArithmeticExpression(
-            Expression::Kind::kAdd, new ConstantExpression(1), new ConstantExpression(1))));
+        yieldColumns->addColumn(
+            new YieldColumn(new ArithmeticExpression(Expression::Kind::kAdd,
+                                                     ConstantExpression::make(pool, 1),
+                                                     ConstantExpression::make(pool, 1))));
         yieldColumns->addColumn(new YieldColumn(new EdgePropertyExpression("like", "end")));
         auto *project = Project::make(qctx, filter, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,

@@ -84,9 +84,9 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
         }
         return true;
     };
-    std::unique_ptr<Expression> filterPicked;
-    std::unique_ptr<Expression> filterUnpicked;
-    graph::ExpressionUtils::splitFilter(condition, picker, &filterPicked, &filterUnpicked);
+    Expression* filterPicked;
+    Expression* filterUnpicked;
+    graph::ExpressionUtils::splitFilter(objPool, condition, picker, &filterPicked, &filterUnpicked);
 
     if (!filterPicked) {
         return TransformResult::noTransform();
@@ -102,12 +102,12 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
     auto rewriter = [&rewriteMap](const Expression* e) -> Expression* {
         DCHECK(graph::ExpressionUtils::isPropertyExpr(e));
         auto& propName = static_cast<const PropertyExpression*>(e)->prop();
-        return rewriteMap[propName]->clone().release();
+        return rewriteMap[propName]->clone();
     };
     auto* newFilterPicked = rewriteMap.empty()
-                                ? filterPicked.release()
+                                ? filterPicked
                                 : graph::RewriteVisitor::transform(
-                                      filterPicked.get(), std::move(matcher), std::move(rewriter));
+                                      filterPicked, std::move(matcher), std::move(rewriter));
 
     // produce new Filter node below
     auto* newBelowFilterNode = graph::Filter::make(octx->qctx(),
@@ -129,7 +129,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
     if (filterUnpicked) {
         // produce new Filter node above
         auto* newAboveFilterNode =
-            graph::Filter::make(octx->qctx(), newProjNode, objPool->add(filterUnpicked.release()));
+            graph::Filter::make(octx->qctx(), newProjNode, objPool->add(filterUnpicked));
         newAboveFilterNode->setOutputVar(oldFilterNode->outputVar());
         auto newAboveFilterGroupNode =
             OptGroupNode::create(octx, newAboveFilterNode, filterGroupNode->group());
