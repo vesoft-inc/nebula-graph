@@ -939,6 +939,9 @@ edge_prop_expression
         $$ = new EdgeDstIdExpression(*$1);
         delete $1;
     }
+    | STAR DOT DST_ID_PROP {
+        $$ = new EdgeDstIdExpression("*");
+    }
     | name_label DOT RANK_PROP {
         $$ = new EdgeRankExpression(*$1);
         delete $1;

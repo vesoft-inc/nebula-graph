@@ -17,6 +17,19 @@ Feature: Go Sentence
       | "Spurs"    |
     When executing query:
       """
+      GO FROM "Tim Duncan" OVER * YIELD *._dst
+      """
+    Then the result should be, in any order, with relax comparison:
+      | *._dst              |
+      | "Manu Ginobili"     |
+      | "Tony Parker"       |
+      | "Spurs"             |
+      | "Danny Green"       |
+      | "LaMarcus Aldridge" |
+      | "Manu Ginobili"     |
+      | "Tony Parker"       |
+    When executing query:
+      """
       GO FROM "Tim Duncan", "Tony Parker" OVER like WHERE $$.player.age > 9223372036854775807+1
       """
     Then a ExecutionError should be raised at runtime: result of (9223372036854775807+1) cannot be represented as an integer
@@ -482,6 +495,24 @@ Feature: Go Sentence
       | 99            | EMPTY               | "Dejounte Murray" |
       | EMPTY         | 2002                | "Tim Duncan"      |
       | EMPTY         | 2002                | "Tony Parker"     |
+    When executing query:
+      """
+      GO 2 STEPS FROM "Tim Duncan" OVER * YIELD DISTINCT *._dst, $$.player.age AS age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | *._dst              | age   |
+      | "LaMarcus Aldridge" | 33    |
+      | "Manu Ginobili"     | 41    |
+      | "Tim Duncan"        | 42    |
+      | "Hornets"           | EMPTY |
+      | "Spurs"             | EMPTY |
+      | "Kyle Anderson"     | 25    |
+      | "Raptors"           | EMPTY |
+      | "Cavaliers"         | EMPTY |
+      | "Marco Belinelli"   | 32    |
+      | "LeBron James"      | 34    |
+      | "Tony Parker"       | 36    |
+      | "Trail Blazers"     | EMPTY |
 
   Scenario: multi edges with filter
     When executing query:
