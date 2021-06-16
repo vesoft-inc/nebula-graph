@@ -79,8 +79,8 @@ GraphSessionManager::findSessionFromMetad(SessionID id, folly::Executor* runner)
                 VLOG(1) << "Add session id: " << id << " from metad";
                 auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
                 sessionPtr->charge();
-                auto ret = activeSessions_.assign(id, sessionPtr);
-                if (!ret) {
+                auto ret = activeSessions_.emplace(id, sessionPtr);
+                if (!ret.second) {
                     return Status::Error("Insert session to local cache failed.");
                 }
 
@@ -119,8 +119,8 @@ GraphSessionManager::createSession(const std::string userName,
                 VLOG(1) << "Create session id: " << sid << ", for user: " << userName;
                 auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
                 sessionPtr->charge();
-                auto ret = activeSessions_.assign(sid, sessionPtr);
-                if (!ret) {
+                auto ret = activeSessions_.emplace(sid, sessionPtr);
+                if (!ret.second) {
                     return Status::Error("Insert session to local cache failed.");
                 }
                 updateSessionInfo(sessionPtr.get());
