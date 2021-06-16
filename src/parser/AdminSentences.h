@@ -324,6 +324,9 @@ public:
     const std::string* spaceName() const {
         return spaceName_.get();
     }
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
 
     void setOpts(SpaceOptList* spaceOpts) {
         spaceOpts_.reset(spaceOpts);
