@@ -13,6 +13,8 @@
 namespace nebula {
 namespace graph {
 
+class QueryContext;
+
 constexpr int64_t kInvalidSpaceID = -1;
 constexpr int64_t kInvalidSessionID = 0;
 
@@ -123,6 +125,10 @@ public:
         session_.set_space_name(spaceName);
     }
 
+    void addQuery(QueryContext* qctx);
+
+    void deleteQuery(QueryContext* qctx);
+
 private:
     ClientSession() = default;
 
@@ -141,6 +147,7 @@ private:
      * But a user has only one role in one space
      */
     std::unordered_map<GraphSpaceID, meta::cpp2::RoleType> roles_;
+    std::unordered_map<int64_t, QueryContext*> contexts_;
 };
 
 }  // namespace graph
