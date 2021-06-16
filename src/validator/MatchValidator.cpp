@@ -79,18 +79,7 @@ Status MatchValidator::validateImpl() {
                 unwindClauseCtx->aliasesUsed = aliasesUsed;
                 NG_RETURN_IF_ERROR(validateUnwind(unwindClause, *unwindClauseCtx));
 
-                if (aliasesUsed) {
-                    NG_RETURN_IF_ERROR(
-                        combineAliases(unwindClauseCtx->aliasesGenerated, *aliasesUsed));
-                }
-                aliasesUsed = &unwindClauseCtx->aliasesGenerated;
-                if (prevYieldColumns) {
-                    NG_RETURN_IF_ERROR(combineYieldColumns(
-                        const_cast<YieldColumns *>(unwindClauseCtx->yieldColumns),
-                        prevYieldColumns));
-                }
-                prevYieldColumns = const_cast<YieldColumns *>(unwindClauseCtx->yieldColumns);
-
+                aliasesUsed = unwindClauseCtx->aliasesUsed;
                 if (i == clauses.size() - 1) {
                     retClauseCtx->yield->aliasesUsed = aliasesUsed;
                     NG_RETURN_IF_ERROR(
@@ -98,6 +87,8 @@ Status MatchValidator::validateImpl() {
                 }
                 matchCtx_->clauses.emplace_back(std::move(unwindClauseCtx));
 
+                // TODO: delete prevYieldColumns
+                UNUSED(prevYieldColumns);
                 break;
             }
             case ReadingClause::Kind::kWith: {
@@ -160,13 +151,10 @@ Status MatchValidator::buildPathExpr(const MatchPath *path,
 
     auto pathBuild = std::make_unique<PathBuildExpression>();
     for (size_t i = 0; i < edgeInfos.size(); ++i) {
-        pathBuild->add(std::make_unique<VariablePropertyExpression>(
-            new std::string(), new std::string(*nodeInfos[i].alias)));
-        pathBuild->add(std::make_unique<VariablePropertyExpression>(
-            new std::string(), new std::string(*edgeInfos[i].alias)));
+        pathBuild->add(std::make_unique<VariablePropertyExpression>("", nodeInfos[i].alias));
+        pathBuild->add(std::make_unique<VariablePropertyExpression>("", edgeInfos[i].alias));
     }
-    pathBuild->add(std::make_unique<VariablePropertyExpression>(
-        new std::string(), new std::string(*nodeInfos.back().alias)));
+    pathBuild->add(std::make_unique<VariablePropertyExpression>("", nodeInfos.back().alias));
     matchClauseCtx.pathBuild = std::move(pathBuild);
     return Status::OK();
 }
@@ -180,7 +168,7 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
 
     for (auto i = 0u; i <= steps; i++) {
         auto *node = path->node(i);
-        auto *alias = node->alias();
+        auto alias = node->alias();
         auto *props = node->props();
         auto anonymous = false;
         if (node->labels() != nullptr) {
@@ -197,22 +185,22 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
                 }
             }
         }
-        if (alias == nullptr) {
+        if (alias.empty()) {
             anonymous = true;
-            alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
+            alias = vctx_->anonVarGen()->getVar();
         }
-        if (!aliases.emplace(*alias, AliasType::kNode).second) {
-            return Status::SemanticError("`%s': Redefined alias", alias->c_str());
+        if (!aliases.emplace(alias, AliasType::kNode).second) {
+            return Status::SemanticError("`%s': Redefined alias", alias.c_str());
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilterWithoutSave(*alias, props);
+            auto result = makeSubFilterWithoutSave(alias, props);
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         } else if (node->labels() != nullptr && !node->labels()->labels().empty()) {
             const auto &labels = node->labels()->labels();
             for (const auto &label : labels) {
-                auto result = makeSubFilterWithoutSave(*alias, label->props(), *label->label());
+                auto result = makeSubFilterWithoutSave(alias, label->props(), *label->label());
                 NG_RETURN_IF_ERROR(result);
                 filter = andConnect(filter, result.value());
             }
@@ -237,7 +225,7 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
     for (auto i = 0u; i < steps; i++) {
         auto *edge = path->edge(i);
         auto &types = edge->types();
-        auto *alias = edge->alias();
+        auto alias = edge->alias();
         auto *props = edge->props();
         auto direction = edge->direction();
         auto anonymous = false;
@@ -266,16 +254,16 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
             NG_RETURN_IF_ERROR(validateStepRange(stepRange));
             edgeInfos[i].range = stepRange;
         }
-        if (alias == nullptr) {
+        if (alias.empty()) {
             anonymous = true;
-            alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
+            alias = vctx_->anonVarGen()->getVar();
         }
-        if (!aliases.emplace(*alias, AliasType::kEdge).second) {
-            return Status::SemanticError("`%s': Redefined alias", alias->c_str());
+        if (!aliases.emplace(alias, AliasType::kEdge).second) {
+            return Status::SemanticError("`%s': Redefined alias", alias.c_str());
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilter(*alias, props);
+            auto result = makeSubFilter(alias, props);
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         }
@@ -291,11 +279,10 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
 
 Status MatchValidator::validateFilter(const Expression *filter,
                                       WhereClauseContext &whereClauseCtx) const {
-    // Fold constant expr
-    auto newFilter = ExpressionUtils::foldConstantExpr(filter);
-    // Reduce Unary expr
     auto pool = whereClauseCtx.qctx->objPool();
-    whereClauseCtx.filter = ExpressionUtils::reduceUnaryNotExpr(newFilter.get(), pool);
+    auto transformRes =  ExpressionUtils::filterTransform(filter, pool);
+    NG_RETURN_IF_ERROR(transformRes);
+    whereClauseCtx.filter = transformRes.value();
 
     auto typeStatus = deduceExprType(whereClauseCtx.filter);
     NG_RETURN_IF_ERROR(typeStatus);
@@ -326,8 +313,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     if (ret->isAll()) {
         auto makeColumn = [](const std::string &name) {
             auto *expr = new LabelExpression(name);
-            auto *alias = new std::string(name);
-            return new YieldColumn(expr, alias);
+            return new YieldColumn(expr, name);
         };
         if (kind == CypherClauseKind::kMatch) {
             auto matchClauseCtx = static_cast<const MatchClauseContext *>(cypherClauseCtx);
@@ -336,15 +322,15 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
             auto steps = matchClauseCtx->edgeInfos.size();
 
             if (!matchClauseCtx->nodeInfos[0].anonymous) {
-                columns->addColumn(makeColumn(*matchClauseCtx->nodeInfos[0].alias));
+                columns->addColumn(makeColumn(matchClauseCtx->nodeInfos[0].alias));
             }
 
             for (auto i = 0u; i < steps; i++) {
                 if (!matchClauseCtx->edgeInfos[i].anonymous) {
-                    columns->addColumn(makeColumn(*matchClauseCtx->edgeInfos[i].alias));
+                    columns->addColumn(makeColumn(matchClauseCtx->edgeInfos[i].alias));
                 }
                 if (!matchClauseCtx->nodeInfos[i + 1].anonymous) {
-                    columns->addColumn(makeColumn(*matchClauseCtx->nodeInfos[i + 1].alias));
+                    columns->addColumn(makeColumn(matchClauseCtx->nodeInfos[i + 1].alias));
                 }
             }
 
@@ -356,7 +342,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
         } else if (kind == CypherClauseKind::kUnwind) {
             auto unwindClauseCtx = static_cast<const UnwindClauseContext *>(cypherClauseCtx);
             columns = saveObject(new YieldColumns());
-            columns->addColumn(makeColumn(unwindClauseCtx->aliasesGenerated.begin()->first));
+            columns->addColumn(makeColumn(unwindClauseCtx->alias));
         } else {
             // kWith
             auto withClauseCtx = static_cast<const WithClauseContext *>(cypherClauseCtx);
@@ -451,15 +437,15 @@ Status MatchValidator::validateWith(const WithClause *with,
     std::vector<const Expression *> exprs;
     exprs.reserve(with->columns()->size());
     for (auto *col : with->columns()->columns()) {
-        if (col->alias() == nullptr) {
+        if (col->alias().empty()) {
             if (col->expr()->kind() == Expression::Kind::kLabel) {
-                col->setAlias(new std::string(col->expr()->toString()));
+                col->setAlias(col->toString());
             } else {
                 return Status::SemanticError("Expression in WITH must be aliased (use AS)");
             }
         }
-        if (!withClauseCtx.aliasesGenerated.emplace(*col->alias(), AliasType::kDefault).second) {
-            return Status::SemanticError("`%s': Redefined alias", col->alias()->c_str());
+        if (!withClauseCtx.aliasesGenerated.emplace(col->alias(), AliasType::kDefault).second) {
+            return Status::SemanticError("`%s': Redefined alias", col->alias().c_str());
         }
         if (!withClauseCtx.yield->hasAgg_ &&
             ExpressionUtils::hasAny(col->expr(), {Expression::Kind::kAggregate})) {
@@ -486,22 +472,27 @@ Status MatchValidator::validateWith(const WithClause *with,
     return Status::OK();
 }
 
-Status MatchValidator::validateUnwind(const UnwindClause *unwind,
-                                      UnwindClauseContext &unwindClauseCtx) const {
-    if (unwind->alias() == nullptr) {
+Status MatchValidator::validateUnwind(const UnwindClause *unwindClause,
+                                      UnwindClauseContext &unwindCtx) const {
+    if (unwindClause->alias().empty()) {
         return Status::SemanticError("Expression in UNWIND must be aliased (use AS)");
     }
-    YieldColumns *columns = saveObject(new YieldColumns());
-    auto *expr = unwind->expr()->clone().release();
-    auto *alias = new std::string(*unwind->alias());
-    columns->addColumn(new YieldColumn(expr, alias));
-    NG_RETURN_IF_ERROR(
-        validateAliases(std::vector<const Expression *>{expr}, unwindClauseCtx.aliasesUsed));
+    unwindCtx.alias = unwindClause->alias();
+    unwindCtx.unwindExpr = unwindCtx.qctx->objPool()->add(unwindClause->expr()->clone().release());
 
-    unwindClauseCtx.yieldColumns = columns;
-
-    if (!unwindClauseCtx.aliasesGenerated.emplace(*unwind->alias(), AliasType::kDefault).second) {
-        return Status::SemanticError("`%s': Redefined alias", unwind->alias()->c_str());
+    auto labelExprs = ExpressionUtils::collectAll(unwindCtx.unwindExpr, {Expression::Kind::kLabel});
+    for (auto *labelExpr : labelExprs) {
+        DCHECK_EQ(labelExpr->kind(), Expression::Kind::kLabel);
+        auto label = static_cast<const LabelExpression *>(labelExpr)->name();
+        if (!unwindCtx.aliasesUsed || !unwindCtx.aliasesUsed->count(label)) {
+            return Status::SemanticError("Variable `%s` not defined", label.c_str());
+        }
+    }
+    unwindCtx.aliasesGenerated.emplace(unwindCtx.alias, AliasType::kDefault);
+    if (!unwindCtx.aliasesUsed) {
+        unwindCtx.aliasesUsed = &unwindCtx.aliasesGenerated;
+    } else if (!unwindCtx.aliasesUsed->emplace(unwindCtx.alias, AliasType::kDefault).second) {
+        return Status::SemanticError("Variable `%s` already declared", unwindCtx.alias.c_str());
     }
 
     return Status::OK();
@@ -524,7 +515,7 @@ StatusOr<Expression *> MatchValidator::makeSubFilterWithoutSave(const std::strin
 
         auto *args = new ArgumentList();
         args->addArgument(std::make_unique<LabelExpression>(alias));
-        auto *right = new FunctionCallExpression(new std::string("tags"), args);
+        auto *right = new FunctionCallExpression("tags", args);
         Expression *root = new RelationalExpression(Expression::Kind::kRelIn, left, right);
 
         return root;
@@ -542,7 +533,7 @@ StatusOr<Expression *> MatchValidator::makeSubFilterWithoutSave(const std::strin
     Expression *root = new RelationalExpression(
         Expression::Kind::kRelEQ,
         new LabelAttributeExpression(new LabelExpression(alias),
-                                     new ConstantExpression(*items[0].first)),
+                                     new ConstantExpression(items[0].first)),
         items[0].second->clone().release());
     for (auto i = 1u; i < items.size(); i++) {
         if (items[i].second->kind() != Expression::Kind::kConstant) {
@@ -553,7 +544,7 @@ StatusOr<Expression *> MatchValidator::makeSubFilterWithoutSave(const std::strin
         auto *right = new RelationalExpression(
             Expression::Kind::kRelEQ,
             new LabelAttributeExpression(new LabelExpression(alias),
-                                         new ConstantExpression(*items[i].first)),
+                                         new ConstantExpression(items[i].first)),
             items[i].second->clone().release());
         root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, right);
     }
@@ -587,10 +578,9 @@ Status MatchValidator::combineYieldColumns(YieldColumns *yieldColumns,
                                            YieldColumns *prevYieldColumns) const {
     const auto &prevColumns = prevYieldColumns->columns();
     for (auto &column : prevColumns) {
-        DCHECK(column->alias() != nullptr);
-        auto *newColumn = new YieldColumn(
-            new VariablePropertyExpression(new std::string(), new std::string(*column->alias())),
-            new std::string(*column->alias()));
+        DCHECK(!column->alias().empty());
+        auto *newColumn =
+            new YieldColumn(new VariablePropertyExpression("", column->alias()), column->alias());
         yieldColumns->addColumn(newColumn);
     }
 
@@ -644,11 +634,7 @@ Status MatchValidator::validateOrderBy(const OrderFactors *factors,
         std::vector<std::string> inputColList;
         inputColList.reserve(yieldColumns->columns().size());
         for (auto *col : yieldColumns->columns()) {
-            if (col->alias() != nullptr) {
-                inputColList.emplace_back(*col->alias());
-            } else {
-                inputColList.emplace_back(col->expr()->toString());
-            }
+            inputColList.emplace_back(col->name());
         }
         std::unordered_map<std::string, size_t> inputColIndices;
         for (auto i = 0u; i < inputColList.size(); i++) {
@@ -662,10 +648,10 @@ Status MatchValidator::validateOrderBy(const OrderFactors *factors,
             if (factor->expr()->kind() != Expression::Kind::kLabel) {
                 return Status::SemanticError("Only column name can be used as sort item");
             }
-            auto *name = static_cast<const LabelExpression *>(factor->expr())->name();
-            auto iter = inputColIndices.find(*name);
+            auto &name = static_cast<const LabelExpression *>(factor->expr())->name();
+            auto iter = inputColIndices.find(name);
             if (iter == inputColIndices.end()) {
-                return Status::SemanticError("Column `%s' not found", name->c_str());
+                return Status::SemanticError("Column `%s' not found", name.c_str());
             }
             orderByCtx.indexedOrderFactors.emplace_back(iter->second, factor->orderType());
         }
@@ -700,8 +686,7 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
             }
             if (!aggs.empty()) {
                 auto *rewritedExpr = ExpressionUtils::rewriteAgg2VarProp(colExpr);
-                yieldCtx.projCols_->addColumn(
-                    new YieldColumn(rewritedExpr, new std::string(colOldName)));
+                yieldCtx.projCols_->addColumn(new YieldColumn(rewritedExpr, colOldName));
                 yieldCtx.projOutputColumnNames_.emplace_back(colOldName);
                 continue;
             }
@@ -716,9 +701,8 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
 
         yieldCtx.groupItems_.emplace_back(colExpr);
 
-        yieldCtx.projCols_->addColumn(new YieldColumn(
-            new VariablePropertyExpression(new std::string(), new std::string(colOldName)),
-            new std::string(colOldName)));
+        yieldCtx.projCols_->addColumn(
+            new YieldColumn(new VariablePropertyExpression("", colOldName), colOldName));
         yieldCtx.projOutputColumnNames_.emplace_back(colOldName);
         yieldCtx.aggOutputColumnNames_.emplace_back(colOldName);
     }
@@ -736,11 +720,7 @@ Status MatchValidator::validateYield(YieldClauseContext &yieldCtx) const {
     if (!yieldCtx.hasAgg_) {
         for (auto &col : yieldCtx.yieldColumns->columns()) {
             yieldCtx.projCols_->addColumn(col->clone().release());
-            if (col->alias() != nullptr) {
-                yieldCtx.projOutputColumnNames_.emplace_back(*col->alias());
-            } else {
-                yieldCtx.projOutputColumnNames_.emplace_back(col->expr()->toString());
-            }
+            yieldCtx.projOutputColumnNames_.emplace_back(col->name());
         }
         return Status::OK();
     } else {
@@ -750,10 +730,10 @@ Status MatchValidator::validateYield(YieldClauseContext &yieldCtx) const {
 
 StatusOr<AliasType> MatchValidator::getAliasType(
     const std::unordered_map<std::string, AliasType> *aliasesUsed,
-    const std::string *name) const {
-    auto iter = aliasesUsed->find(*name);
+    const std::string &name) const {
+    auto iter = aliasesUsed->find(name);
     if (iter == aliasesUsed->end()) {
-        return Status::SemanticError("Alias used but not defined: `%s'", name->c_str());
+        return Status::SemanticError("Alias used but not defined: `%s'", name.c_str());
     }
     return iter->second;
 }
@@ -791,16 +771,16 @@ Status MatchValidator::checkAlias(
             switch (aliasType) {
                 case AliasType::kNode:
                     return Status::SemanticError("Vertex `%s' does not have the src attribute",
-                                                 name->c_str());
+                                                 name.c_str());
                 case AliasType::kEdge:
                     return Status::SemanticError("To get the src vid of the edge, use src(%s)",
-                                                 name->c_str());
+                                                 name.c_str());
                 case AliasType::kPath:
                     return Status::SemanticError(
-                        "To get the start node of the path, use startNode(%s)", name->c_str());
+                        "To get the start node of the path, use startNode(%s)", name.c_str());
                 default:
                     return Status::SemanticError("Alias `%s' does not have the edge property src",
-                                                 name->c_str());
+                                                 name.c_str());
             }
         }
         case Expression::Kind::kEdgeDst: {
@@ -813,16 +793,16 @@ Status MatchValidator::checkAlias(
             switch (aliasType) {
                 case AliasType::kNode:
                     return Status::SemanticError("Vertex `%s' does not have the dst attribute",
-                                                 name->c_str());
+                                                 name.c_str());
                 case AliasType::kEdge:
                     return Status::SemanticError("To get the dst vid of the edge, use dst(%s)",
-                                                 name->c_str());
+                                                 name.c_str());
                 case AliasType::kPath:
                     return Status::SemanticError("To get the end node of the path, use endNode(%s)",
-                                                 name->c_str());
+                                                 name.c_str());
                 default:
                     return Status::SemanticError("Alias `%s' does not have the edge property dst",
-                                                 name->c_str());
+                                                 name.c_str());
             }
         }
         case Expression::Kind::kEdgeRank: {
@@ -835,16 +815,16 @@ Status MatchValidator::checkAlias(
             switch (aliasType) {
                 case AliasType::kNode:
                     return Status::SemanticError("Vertex `%s' does not have the ranking attribute",
-                                                 name->c_str());
+                                                 name.c_str());
                 case AliasType::kEdge:
                     return Status::SemanticError("To get the ranking of the edge, use rank(%s)",
-                                                 name->c_str());
+                                                 name.c_str());
                 case AliasType::kPath:
                     return Status::SemanticError("Path `%s' does not have the ranking attribute",
-                                                 name->c_str());
+                                                 name.c_str());
                 default:
                     return Status::SemanticError(
-                        "Alias `%s' does not have the edge property ranking", name->c_str());
+                        "Alias `%s' does not have the edge property ranking", name.c_str());
             }
         }
         case Expression::Kind::kEdgeType: {
@@ -857,16 +837,16 @@ Status MatchValidator::checkAlias(
             switch (aliasType) {
                 case AliasType::kNode:
                     return Status::SemanticError("Vertex `%s' does not have the type attribute",
-                                                 name->c_str());
+                                                 name.c_str());
                 case AliasType::kEdge:
                     return Status::SemanticError("To get the type of the edge, use type(%s)",
-                                                 name->c_str());
+                                                 name.c_str());
                 case AliasType::kPath:
                     return Status::SemanticError("Path `%s' does not have the type attribute",
-                                                 name->c_str());
+                                                 name.c_str());
                 default:
                     return Status::SemanticError(
-                        "Alias `%s' does not have the edge property ranking", name->c_str());
+                        "Alias `%s' does not have the edge property ranking", name.c_str());
             }
         }
         default:   // refExpr must satisfy one of cases and should never hit this branch

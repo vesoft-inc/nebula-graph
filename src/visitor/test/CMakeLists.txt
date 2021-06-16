@@ -11,6 +11,8 @@ nebula_add_test(
         FoldConstantExprVisitorTest.cpp
         DeduceTypeVisitorTest.cpp
         RewriteUnaryNotExprVisitorTest.cpp
+        RewriteRelExprVisitorTest.cpp
+        FilterTransformTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:mock_schema_obj>
         $<TARGET_OBJECTS:util_obj>
@@ -52,6 +54,7 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_graph_obj>
         $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
         $<TARGET_OBJECTS:common_ws_common_obj>
+        $<TARGET_OBJECTS:common_version_obj>
     LIBRARIES
         gtest
         ${THRIFT_LIBRARIES}

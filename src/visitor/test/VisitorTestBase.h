@@ -30,6 +30,14 @@ protected:
         return new ArithmeticExpression(Expression::Kind::kMinus, lhs, rhs);
     }
 
+    static ArithmeticExpression *multiplyExpr(Expression *lhs, Expression *rhs) {
+        return new ArithmeticExpression(Expression::Kind::kMultiply, lhs, rhs);
+    }
+
+    static ArithmeticExpression *divideExpr(Expression *lhs, Expression *rhs) {
+        return new ArithmeticExpression(Expression::Kind::kDivision, lhs, rhs);
+    }
+
     static RelationalExpression *eqExpr(Expression *lhs, Expression *rhs) {
         return new RelationalExpression(Expression::Kind::kRelEQ, lhs, rhs);
     }
@@ -122,7 +130,7 @@ protected:
         std::initializer_list<std::pair<std::string, Expression *>> exprs) {
         auto mapItemList = new MapItemList;
         for (auto expr : exprs) {
-            mapItemList->add(new std::string(expr.first), expr.second);
+            mapItemList->add(expr.first, expr.second);
         }
         return new MapExpression(mapItemList);
     }
@@ -137,11 +145,11 @@ protected:
         for (auto arg : args) {
             argsList->addArgument(std::unique_ptr<Expression>(arg));
         }
-        return new FunctionCallExpression(new std::string(std::move(fn)), argsList);
+        return new FunctionCallExpression(std::move(fn), argsList);
     }
 
     static VariableExpression *varExpr(const std::string &name) {
-        return new VariableExpression(new std::string(name));
+        return new VariableExpression(name);
     }
 
     static CaseExpression *caseExpr(Expression *cond,
@@ -154,6 +162,15 @@ protected:
         expr->setCondition(cond);
         expr->setDefault(defaltResult);
         return expr;
+    }
+
+    static LabelExpression *labelExpr(const std::string &name) {
+        return new LabelExpression(name);
+    }
+
+    static LabelAttributeExpression *laExpr(const std::string &name, Value value) {
+        return new LabelAttributeExpression(new LabelExpression(name),
+                                            new ConstantExpression(std::move(value)));
     }
 };
 

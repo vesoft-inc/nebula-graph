@@ -9,6 +9,7 @@
 #include <folly/String.h>
 #include <folly/executors/InlineExecutor.h>
 
+#include "common/base/Memory.h"
 #include "common/base/ObjectPool.h"
 #include "common/interface/gen-cpp2/graph_types.h"
 #include "context/ExecutionContext.h"
@@ -51,6 +52,7 @@
 #include "executor/algo/ProduceAllPathsExecutor.h"
 #include "executor/algo/ProduceSemiShortestPathExecutor.h"
 #include "executor/algo/SubgraphExecutor.h"
+#include "executor/admin/SessionExecutor.h"
 #include "executor/logic/LoopExecutor.h"
 #include "executor/logic/PassThroughExecutor.h"
 #include "executor/logic/SelectExecutor.h"
@@ -59,6 +61,7 @@
 #include "executor/maintain/EdgeIndexExecutor.h"
 #include "executor/maintain/TagExecutor.h"
 #include "executor/maintain/TagIndexExecutor.h"
+#include "executor/maintain/FTIndexExecutor.h"
 #include "executor/mutate/DeleteExecutor.h"
 #include "executor/mutate/InsertExecutor.h"
 #include "executor/mutate/UpdateExecutor.h"
@@ -88,6 +91,7 @@
 #include "planner/plan/Mutate.h"
 #include "planner/plan/PlanNode.h"
 #include "planner/plan/Query.h"
+#include "service/GraphFlags.h"
 #include "util/ScopedTimer.h"
 
 using folly::stringPrintf;
@@ -263,11 +267,17 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kCreateEdgeIndex: {
             return pool->add(new CreateEdgeIndexExecutor(node, qctx));
         }
+        case PlanNode::Kind::kCreateFTIndex: {
+            return pool->add(new CreateFTIndexExecutor(node, qctx));
+        }
         case PlanNode::Kind::kDropTagIndex: {
             return pool->add(new DropTagIndexExecutor(node, qctx));
         }
         case PlanNode::Kind::kDropEdgeIndex: {
             return pool->add(new DropEdgeIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDropFTIndex: {
+            return pool->add(new DropFTIndexExecutor(node, qctx));
         }
         case PlanNode::Kind::kDescTagIndex: {
             return pool->add(new DescTagIndexExecutor(node, qctx));
@@ -464,6 +474,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kShowTSClients: {
             return pool->add(new ShowTSClientsExecutor(node, qctx));
         }
+        case PlanNode::Kind::kShowFTIndexes: {
+            return pool->add(new ShowFTIndexesExecutor(node, qctx));
+        }
         case PlanNode::Kind::kSignInTSService: {
             return pool->add(new SignInTSServiceExecutor(node, qctx));
         }
@@ -475,6 +488,12 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kIngest: {
             return pool->add(new IngestExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowSessions:  {
+            return pool->add(new ShowSessionsExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kUpdateSession:  {
+            return pool->add(new UpdateSessionExecutor(node, qctx));
         }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
@@ -500,6 +519,16 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 Executor::~Executor() {}
 
 Status Executor::open() {
+    auto status = MemInfo::make();
+    NG_RETURN_IF_ERROR(status);
+    auto mem = std::move(status).value();
+    if (node_->isQueryNode() && mem->hitsHighWatermark(FLAGS_system_memory_high_watermark_ratio)) {
+        return Status::Error(
+            "Used memory(%ldKB) hits the high watermark(%lf) of total system memory(%ldKB).",
+            mem->usedInKB(),
+            FLAGS_system_memory_high_watermark_ratio,
+            mem->totalInKB());
+    }
     numRows_ = 0;
     execTime_ = 0;
     totalDuration_.reset();

@@ -90,14 +90,14 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
     auto& whereCtx = matchClauseCtx->where;
     if (whereCtx && whereCtx->filter) {
         auto* filter = whereCtx->filter;
-        const auto nodeAlias = *nodeCtx->info->alias;
+        const auto& nodeAlias = nodeCtx->info->alias;
         auto* objPool = matchClauseCtx->qctx->objPool();
         if (filter->kind() == Expression::Kind::kLogicalOr) {
             auto labelExprs = ExpressionUtils::collectAll(filter, {Expression::Kind::kLabel});
             bool labelMatched = true;
             for (auto* labelExpr : labelExprs) {
                 DCHECK_EQ(labelExpr->kind(), Expression::Kind::kLabel);
-                if (*(static_cast<const LabelExpression*>(labelExpr)->name()) != nodeAlias) {
+                if (static_cast<const LabelExpression*>(labelExpr)->name() != nodeAlias) {
                     labelMatched = false;
                     break;
                 }
@@ -187,10 +187,10 @@ StatusOr<SubPlan> LabelIndexSeek::transformEdge(EdgeContext* edgeCtx) {
                                       scan,
                                       yieldColumns);
         project->setColNames({kVid});
-        auto *unwindColumns = matchClauseCtx->qctx->objPool()->makeAndAdd<YieldColumns>();
-        unwindColumns->addColumn(new YieldColumn(new ColumnExpression(0)));
-        auto *unwind = Unwind::make(matchClauseCtx->qctx, project, unwindColumns);
-        unwind->setColNames({kVid});
+
+        auto* unwindExpr = matchClauseCtx->qctx->objPool()->add(new ColumnExpression(0));
+        auto* unwind = Unwind::make(matchClauseCtx->qctx, project, unwindExpr, kVid);
+        unwind->setColNames({"vidList", kVid});
         plan.root = unwind;
     }
 

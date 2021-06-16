@@ -10,48 +10,69 @@
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
 #include "context/ast/AstContext.h"
+#include "visitor/DeducePropsVisitor.h"
 
 namespace nebula {
 namespace graph {
 
 enum FromType {
-    kInstant,
+    kInstantExpr,
     kVariable,
-    kPipe;
+    kPipe,
 };
 
 struct Starts {
-    FromType fromType{kInstant};
-    Expression* src{nullptr};
-    Expression* originalSrc{nullptr};
-    std::string userDefinedVarName;
-    std::string firstBeginningSrcVidColName;
-    std::vector<Value> vids;
+    FromType                fromType{kInstantExpr};
+    Expression*             src{nullptr};
+    Expression*             originalSrc{nullptr};
+    std::string             userDefinedVarName;
+    std::string             firstBeginningSrcVidColName;
+    std::vector<Value>      vids;
 };
 
 struct Over {
-    bool isOverAll{false};
-    std::vector<EdgeType> edgeTypes;
-    storage::cpp2::EdgeDirection direction;
-    std::vector<std::string> allEdges;
+    bool                            isOverAll{false};
+    std::vector<EdgeType>           edgeTypes;
+    storage::cpp2::EdgeDirection    direction;
+    std::vector<std::string>        allEdges;
 };
 
 // path context
-struct PathContext {
-    Starts from;
-    Starts to;
-    Steps steps;
-    Over over;
+struct PathContext final : AstContext {
+    Starts          from;
+    Starts          to;
+    StepClause      steps;
+    Over            over;
+    Expression*     filter{nullptr};
 
-    bool isShortest_{false};
-    bool isWeight_{false};
-    bool noLoop_{false};
+    /*
+    * find path from A to B OR find path from $-.src to $-.dst
+    * fromVidsVar's DataSet save A OR $-.src
+    * toVidsVar's DataSet save B OR $-.dst
+    */
+    std::string     fromVidsVar;
+    std::string     toVidsVar;
 
-    // runtime
-    PlanNode* loopDepTail{nullptr};
-    PlanNode* toProjectStartVid{nullptr};
-    PlanNode* fromDedupStartVid{nullptr};
-    PlanNode* toDedupStartVid{nullptr};
+    bool            isShortest{false};
+    bool            isWeight{false};
+    bool            noLoop{false};
+    bool            withProp{false};
+
+    /*
+    * runtime
+    * find path from $-.src to $-.dst
+    * project($-.src)<- dedup($-.src)
+    * runtimeFromProject is project($-.src)
+    * runtimeFromDedup is dedup($-.src)
+    */
+    PlanNode*       runtimeFromProject{nullptr};
+    PlanNode*       runtimeFromDedup{nullptr};
+    PlanNode*       runtimeToProject{nullptr};
+    PlanNode*       runtimeToDedup{nullptr};
+    // just for pipe sentence,
+    // store the result of the previous sentence
+    std::string     inputVarName;
+    ExpressionProps exprProps;
 };
 
 }  // namespace graph

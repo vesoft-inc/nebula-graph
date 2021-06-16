@@ -669,25 +669,33 @@ private:
 
 class Unwind final : public SingleInputNode {
 public:
-    static Unwind* make(QueryContext* qctx, PlanNode* input, YieldColumns* cols = nullptr) {
-        return qctx->objPool()->add(new Unwind(qctx, input, cols));
+    static Unwind* make(QueryContext* qctx,
+                        PlanNode* input,
+                        Expression* unwindExpr = nullptr,
+                        std::string alias = "") {
+        return qctx->objPool()->add(new Unwind(qctx, input, unwindExpr, alias));
     }
 
-    const YieldColumns* columns() const {
-        return cols_;
+    Expression* unwindExpr() const {
+        return unwindExpr_;
+    }
+
+    const std::string alias() const {
+        return alias_;
     }
 
     PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
-    Unwind(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
-        : SingleInputNode(qctx, Kind::kUnwind, input), cols_(cols) {}
+    Unwind(QueryContext* qctx, PlanNode* input, Expression* unwindExpr, std::string alias)
+        : SingleInputNode(qctx, Kind::kUnwind, input), unwindExpr_(unwindExpr), alias_(alias) {}
 
     void cloneMembers(const Unwind&);
 
 private:
-    YieldColumns*               cols_{nullptr};
+    Expression* unwindExpr_;
+    std::string alias_;
 };
 
 /**
@@ -923,35 +931,39 @@ private:
     void cloneMembers(const Dedup&);
 };
 
-class DataCollect final : public SingleDependencyNode {
+class DataCollect final : public VariableDependencyNode {
 public:
-    enum class CollectKind : uint8_t {
+    enum class DCKind : uint8_t {
         kSubgraph,
         kRowBasedMove,
         kMToN,
         kBFSShortest,
         kAllPaths,
         kMultiplePairShortest,
+        kPathProp,
     };
 
-    static DataCollect* make(QueryContext* qctx,
-                             PlanNode* input,
-                             CollectKind collectKind,
-                             std::vector<std::string> vars = {}) {
-        return qctx->objPool()->add(
-            new DataCollect(qctx, input, collectKind, std::move(vars)));
+    static DataCollect* make(QueryContext* qctx, DCKind kind) {
+        return qctx->objPool()->add(new DataCollect(qctx, kind));
     }
 
-    void setMToN(StepClause::MToN* mToN) {
-        mToN_ = mToN;
+    void setMToN(StepClause step) {
+        step_ = std::move(step);
     }
 
     void setDistinct(bool distinct) {
         distinct_ = distinct;
     }
 
-    CollectKind collectKind() const {
-        return collectKind_;
+    void setInputVars(const std::vector<std::string>& vars) {
+        inputVars_.clear();
+        for (auto& var : vars) {
+            readVariable(var);
+        }
+    }
+
+    DCKind kind() const {
+        return kind_;
     }
 
     std::vector<std::string> vars() const {
@@ -962,8 +974,8 @@ public:
         return vars;
     }
 
-    StepClause::MToN* mToN() const {
-        return mToN_;
+    StepClause step() const {
+        return step_;
     }
 
     bool distinct() const {
@@ -971,28 +983,20 @@ public:
     }
 
     PlanNode* clone() const override;
+
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
-    DataCollect(QueryContext* qctx,
-                PlanNode* input,
-                CollectKind collectKind,
-                std::vector<std::string> vars)
-        : SingleDependencyNode(qctx, Kind::kDataCollect, input) {
-        collectKind_ = collectKind;
-        inputVars_.clear();
-        for (auto& var : vars) {
-            readVariable(var);
-        }
-    }
+    DataCollect(QueryContext* qctx, DCKind kind)
+        : VariableDependencyNode(qctx, Kind::kDataCollect), kind_(kind) {}
 
     void cloneMembers(const DataCollect&);
 
 private:
-    CollectKind                 collectKind_;
+    DCKind          kind_;
     // using for m to n steps
-    StepClause::MToN*           mToN_{nullptr};
-    bool                        distinct_{false};
+    StepClause      step_;
+    bool            distinct_{false};
 };
 
 class Join : public SingleDependencyNode {
@@ -1005,12 +1009,30 @@ public:
         return rightVar_;
     }
 
+    void setLeftVar(std::pair<std::string, int64_t> lvar) {
+        setInputVar(lvar.first, 0);
+        leftVar_ = lvar;
+    }
+
+    void setRightVar(std::pair<std::string, int64_t> rvar) {
+        setInputVar(rvar.first, 1);
+        rightVar_ = rvar;
+    }
+
     const std::vector<Expression*>& hashKeys() const {
         return hashKeys_;
     }
 
     const std::vector<Expression*>& probeKeys() const {
         return probeKeys_;
+    }
+
+    void setHashKeys(std::vector<Expression*> newHashKeys) {
+        hashKeys_ = newHashKeys;
+    }
+
+    void setProbeKeys(std::vector<Expression*> newProbeKeys) {
+        probeKeys_ = newProbeKeys;
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;

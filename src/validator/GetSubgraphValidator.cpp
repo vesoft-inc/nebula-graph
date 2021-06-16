@@ -21,6 +21,7 @@ namespace graph {
 
 Status GetSubgraphValidator::validateImpl() {
     auto* gsSentence = static_cast<GetSubgraphSentence*>(sentence_);
+    withProp_ = gsSentence->withProp();
 
     NG_RETURN_IF_ERROR(validateStep(gsSentence->step(), steps_));
     NG_RETURN_IF_ERROR(validateStarts(gsSentence->from(), from_));
@@ -127,8 +128,10 @@ StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::fillEdgePro
         storage::cpp2::EdgeProp eProp;
         eProp.set_type(edge);
         std::vector<std::string> props{kSrc, kType, kRank, kDst};
-        for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
-            props.emplace_back(edgeSchema->getFieldName(i));
+        if (withProp_) {
+            for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
+                props.emplace_back(edgeSchema->getFieldName(i));
+            }
         }
         eProp.set_props(std::move(props));
         eProps.emplace_back(std::move(eProp));
@@ -152,8 +155,10 @@ StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::buildAllEdg
         eProp.set_type(edgeSchema.first);
         rEProp.set_type(-edgeSchema.first);
         std::vector<std::string> props{kSrc, kType, kRank, kDst};
-        for (std::size_t i = 0; i < edgeSchema.second->getNumFields(); ++i) {
-            props.emplace_back(edgeSchema.second->getFieldName(i));
+        if (withProp_) {
+            for (std::size_t i = 0; i < edgeSchema.second->getNumFields(); ++i) {
+                props.emplace_back(edgeSchema.second->getFieldName(i));
+            }
         }
         eProp.set_props(props);
         rEProp.set_props(std::move(props));
@@ -166,20 +171,24 @@ StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::buildAllEdg
 Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& inputVar) {
     auto& space = vctx_->whichSpace();
     std::vector<storage::cpp2::Expr> exprs;
-    auto vertexPropsResult = buildVertexProp();
-    NG_RETURN_IF_ERROR(vertexPropsResult);
-    auto* getVertex = GetVertices::make(qctx_,
+    std::vector<storage::cpp2::VertexProp> vertexProps;
+    if (withProp_) {
+        auto vertexPropsResult = buildVertexProp();
+        NG_RETURN_IF_ERROR(vertexPropsResult);
+        vertexProps = *vertexPropsResult.value();
+    }
+   auto* getVertex = GetVertices::make(qctx_,
                                         depend,
                                         space.id,
                                         from_.src,
-                                        std::move(vertexPropsResult).value(),
+                                        std::move(vertexProps),
                                         std::move(exprs),
                                         true);
     getVertex->setInputVar(inputVar);
 
     auto var = vctx_->anonVarGen()->getVar();
     auto* column = new VertexExpression();
-    auto* func = new AggregateExpression(new std::string("COLLECT"), column, false);
+    auto* func = new AggregateExpression("COLLECT", column, false);
     qctx_->objPool()->add(func);
     auto* collectVertex =
         Aggregate::make(qctx_,
@@ -207,7 +216,7 @@ Status GetSubgraphValidator::toPlan() {
         startVidsVar = loopDep->outputVar();
     }
 
-    if (steps_.steps == 0) {
+    if (steps_.steps() == 0) {
         return zeroStep(loopDep == nullptr ? bodyStart : loopDep, startVidsVar);
     }
 
@@ -215,8 +224,7 @@ Status GetSubgraphValidator::toPlan() {
     NG_RETURN_IF_ERROR(vertexPropsResult);
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space.id);
     gn->setSrc(from_.src);
-    gn->setVertexProps(std::make_unique<std::vector<storage::cpp2::VertexProp>>(
-        std::move(vertexPropsResult).value()));
+    gn->setVertexProps(std::move(vertexPropsResult).value());
     auto edgePropsResult = buildEdgeProps();
     NG_RETURN_IF_ERROR(edgePropsResult);
     gn->setEdgeProps(
@@ -224,24 +232,27 @@ Status GetSubgraphValidator::toPlan() {
     gn->setInputVar(startVidsVar);
 
     auto oneMoreStepOutput = vctx_->anonVarGen()->getVar();
-    auto* subgraph = Subgraph::make(qctx_, gn, oneMoreStepOutput, loopSteps_, steps_.steps + 1);
+    auto* subgraph = Subgraph::make(qctx_, gn, oneMoreStepOutput, loopSteps_, steps_.steps() + 1);
     subgraph->setOutputVar(startVidsVar);
     subgraph->setColNames({nebula::kVid});
 
-    auto* loopCondition = buildNStepLoopCondition(steps_.steps + 1);
+    auto* loopCondition = buildExpandCondition(gn->outputVar(), steps_.steps() + 1);
+    qctx_->objPool()->add(loopCondition);
     auto* loop = Loop::make(qctx_, loopDep, subgraph, loopCondition);
 
-    std::vector<std::string> collects = {gn->outputVar(), oneMoreStepOutput};
-    auto* dc =
-        DataCollect::make(qctx_, loop, DataCollect::CollectKind::kSubgraph, std::move(collects));
+    auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kSubgraph);
+    dc->addDep(loop);
+    dc->setInputVars({gn->outputVar(), oneMoreStepOutput});
     dc->setColNames({"_vertices", "_edges"});
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;
     return Status::OK();
 }
 
-StatusOr<std::vector<storage::cpp2::VertexProp>> GetSubgraphValidator::buildVertexProp() {
+StatusOr<GetNeighbors::VertexProps> GetSubgraphValidator::buildVertexProp() {
     // list all tag properties
+    GetNeighbors::VertexProps vertexProps;
+    vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
     std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema;
     const auto allTagsResult = qctx()->schemaMng()->getAllLatestVerTagSchema(space_.id);
     NG_RETURN_IF_ERROR(allTagsResult);
@@ -249,7 +260,6 @@ StatusOr<std::vector<storage::cpp2::VertexProp>> GetSubgraphValidator::buildVert
     for (const auto& tag : allTags) {
         tagsSchema.emplace(tag.first, tag.second);
     }
-    std::vector<storage::cpp2::VertexProp> vProps;
     for (const auto& tagSchema : tagsSchema) {
         storage::cpp2::VertexProp vProp;
         vProp.set_tag(tagSchema.first);
@@ -258,9 +268,9 @@ StatusOr<std::vector<storage::cpp2::VertexProp>> GetSubgraphValidator::buildVert
             props.emplace_back(tagSchema.second->getFieldName(i));
         }
         vProp.set_props(std::move(props));
-        vProps.emplace_back(std::move(vProp));
+        vertexProps->emplace_back(std::move(vProp));
     }
-    return vProps;
+    return vertexProps;
 }
 
 }   // namespace graph

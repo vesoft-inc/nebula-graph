@@ -33,6 +33,8 @@ public:
         return expected.find(expr->kind()) != expected.end();
     }
 
+    static bool isPropertyExpr(const Expression* expr);
+
     static const Expression* findAny(const Expression* self,
                                      const std::unordered_set<Expression::Kind>& expected);
 
@@ -60,11 +62,22 @@ public:
 
     static Expression* rewriteAgg2VarProp(const Expression* expr);
 
+    static std::unique_ptr<Expression> rewriteInnerVar(const Expression* expr,
+                                                       std::string newVar);
+
+    // Rewrite relational expression, gather evaluable expressions to one side
+    static Expression* rewriteRelExpr(const Expression* expr, ObjectPool* pool);
+    static Expression* rewriteRelExprHelper(const Expression* expr,
+                                            std::unique_ptr<Expression>& relRightOperandExpr);
+
     // Clone and fold constant expression
-    static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
+    static StatusOr<Expression*> foldConstantExpr(const Expression* expr, ObjectPool* objPool);
 
     // Clone and reduce unaryNot expression
     static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* pool);
+
+    // Transform filter using multiple expression rewrite strategies
+    static StatusOr<Expression*> filterTransform(const Expression* expr, ObjectPool* objPool);
 
     // Negate the given logical expr: (A && B) -> (!A || !B)
     static std::unique_ptr<LogicalExpression> reverseLogicalExpr(LogicalExpression* expr);
@@ -78,7 +91,11 @@ public:
     // Return the negation of the given logical kind
     static Expression::Kind getNegatedLogicalExprKind(const Expression::Kind kind);
 
+    // Return the negation of the given arithmetic kind: plus -> minus
+    static Expression::Kind getNegatedArithmeticType(const Expression::Kind kind);
+
     static void pullAnds(Expression* expr);
+
     static void pullAndsImpl(LogicalExpression* expr,
                              std::vector<std::unique_ptr<Expression>>& operands);
 
@@ -107,6 +124,11 @@ public:
 
     static std::unique_ptr<Expression> flattenInnerLogicalExpr(const Expression* expr);
 
+    static void splitFilter(const Expression* expr,
+                            std::function<bool(const Expression*)> picker,
+                            std::unique_ptr<Expression>* filterPicked,
+                            std::unique_ptr<Expression>* filterUnpicked);
+
     static std::unique_ptr<Expression> expandExpr(const Expression* expr);
 
     static std::unique_ptr<Expression> expandImplAnd(const Expression* expr);
@@ -114,6 +136,33 @@ public:
     static std::vector<std::unique_ptr<Expression>> expandImplOr(const Expression* expr);
 
     static Status checkAggExpr(const AggregateExpression* aggExpr);
+
+    static bool findInnerRandFunction(const Expression *expr);
+
+    static Expression* And(Expression *l, Expression* r) {
+        return new LogicalExpression(Expression::Kind::kLogicalAnd, l, r);
+    }
+
+    static Expression* Or(Expression* l, Expression *r) {
+        return new LogicalExpression(Expression::Kind::kLogicalOr, l, r);
+    }
+
+    static Expression* Eq(Expression* l, Expression *r) {
+        return new RelationalExpression(Expression::Kind::kRelEQ, l, r);
+    }
+
+    // loop condition
+    // ++loopSteps <= steps
+    static std::unique_ptr<Expression> stepCondition(const std::string& loopStep, uint32_t steps);
+
+    // size(var) == 0
+    static std::unique_ptr<Expression> zeroCondition(const std::string& var);
+
+    // size(var) != 0
+    static std::unique_ptr<Expression> neZeroCondition(const std::string& var);
+
+    // var == value
+    static std::unique_ptr<Expression> equalCondition(const std::string& var, const Value& value);
 };
 
 }   // namespace graph

@@ -74,7 +74,7 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
     }
     // TODO(shylock) col names in GetVertices generate by unordered container
     // So can't check now
-    if ((l->colNamesRef() != r->colNamesRef()) && l->kind() != PlanNode::Kind::kGetVertices) {
+    if ((l->colNames() != r->colNames()) && l->kind() != PlanNode::Kind::kGetVertices) {
         return Status::Error(
             "%s.colNames_ != %s.colNames_", l->outputVar().c_str(), r->outputVar().c_str());
     }
@@ -87,7 +87,7 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
         case PlanNode::Kind::kDataCollect: {
             const auto *lDC = static_cast<const DataCollect*>(l);
             const auto *rDC = static_cast<const DataCollect*>(r);
-            if (lDC->collectKind() != rDC->collectKind()) {
+            if (lDC->kind() != rDC->kind()) {
                 return Status::Error(
                     "%s.collectKind_ != %s.collectKind_",
                     l->outputVar().c_str(), r->outputVar().c_str());

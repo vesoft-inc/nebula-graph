@@ -98,10 +98,14 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "CreateTagIndex";
         case Kind::kCreateEdgeIndex:
             return "CreateEdgeIndex";
+        case Kind::kCreateFTIndex:
+            return "CreateFTIndex";
         case Kind::kDropTagIndex:
             return "DropTagIndex";
         case Kind::kDropEdgeIndex:
             return "DropEdgeIndex";
+        case Kind::kDropFTIndex:
+            return "DropFTIndex";
         case Kind::kDescTagIndex:
             return "DescTagIndex";
         case Kind::kDescEdgeIndex:
@@ -253,6 +257,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
         // text search
         case Kind::kShowTSClients:
             return "ShowTSClients";
+        case Kind::kShowFTIndexes:
+            return "ShowFTIndexes";
         case Kind::kSignInTSService:
             return "SignInTSService";
         case Kind::kSignOutTSService:
@@ -262,6 +268,11 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
         case Kind::kIngest:
             return "Ingest";
         // no default so the compiler will warning when lack
+        case Kind::kShowSessions:
+            return "ShowSessions";
+        case Kind::kUpdateSession:
+            return "UpdateSession";
+            // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
@@ -371,6 +382,13 @@ std::unique_ptr<PlanNodeDescription> BinaryInputNode::explain() const {
     inputVar.insert("leftVar", leftInputVar());
     inputVar.insert("rightVar", rightInputVar());
     addDescription("inputVar", folly::toJson(inputVar), desc.get());
+    return desc;
+}
+
+std::unique_ptr<PlanNodeDescription> VariableDependencyNode::explain() const {
+    auto desc = PlanNode::explain();
+    DCHECK(desc->dependencies == nullptr);
+    desc->dependencies.reset(new std::vector<int64_t>(dependIds()));
     return desc;
 }
 

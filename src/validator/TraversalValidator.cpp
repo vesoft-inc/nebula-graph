@@ -40,10 +40,10 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
         starts.originalSrc = src;
         auto* propExpr = static_cast<PropertyExpression*>(src);
         if (starts.fromType == kVariable) {
-            starts.userDefinedVarName = *(propExpr->sym());
+            starts.userDefinedVarName = propExpr->sym();
             userDefinedVarNameList_.emplace(starts.userDefinedVarName);
         }
-        starts.firstBeginningSrcVidColName = *(propExpr->prop());
+        starts.firstBeginningSrcVidColName = propExpr->prop();
     } else {
         auto vidList = clause->vidList();
         QueryExpressionContext ctx;
@@ -60,7 +60,6 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                 return Status::SemanticError(ss.str());
             }
             starts.vids.emplace_back(std::move(vid));
-            startVidList_->add(expr->clone().release());
         }
     }
     return Status::OK();
@@ -106,35 +105,20 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
     return Status::OK();
 }
 
-Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
+Status TraversalValidator::validateStep(const StepClause* clause, StepClause& step) {
     if (clause == nullptr) {
         return Status::SemanticError("Step clause nullptr.");
     }
+    step = *clause;
     if (clause->isMToN()) {
-        auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
-        mToN->mSteps = clause->mToN()->mSteps;
-        mToN->nSteps = clause->mToN()->nSteps;
-
-        if (mToN->mSteps == 0 && mToN->nSteps == 0) {
-            step.steps = 0;
-            return Status::OK();
+        if (step.mSteps() == 0) {
+            step.setMSteps(1);
         }
-        if (mToN->mSteps == 0) {
-            mToN->mSteps = 1;
-        }
-        if (mToN->nSteps < mToN->mSteps) {
+        if (step.nSteps() < step.mSteps()) {
             return Status::SemanticError(
                 "`%s', upper bound steps should be greater than lower bound.",
-                clause->toString().c_str());
+                step.toString().c_str());
         }
-        if (mToN->mSteps == mToN->nSteps) {
-            steps_.steps = mToN->mSteps;
-            return Status::OK();
-        }
-        step.mToN = mToN;
-    } else {
-        auto steps = clause->steps();
-        step.steps = steps;
     }
     return Status::OK();
 }
@@ -142,9 +126,7 @@ Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
 PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
     Project* project = nullptr;
     auto* columns = qctx_->objPool()->add(new YieldColumns());
-    auto* column = new YieldColumn(
-        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
-        new std::string(kVid));
+    auto* column = new YieldColumn(new EdgePropertyExpression("*", kDst), kVid);
     columns->addColumn(column);
 
     project = Project::make(qctx_, gn, columns);
@@ -170,15 +152,14 @@ void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVi
     }
     qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
-    starts.src =
-        new VariablePropertyExpression(new std::string(startVidsVar), new std::string(kVid));
+    starts.src = new VariablePropertyExpression(startVidsVar, kVid);
     qctx_->objPool()->add(starts.src);
 }
 
 PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& projectStartVid) {
     auto pool = qctx_->objPool();
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(starts.originalSrc->clone().release(), new std::string(kVid));
+    auto* column = new YieldColumn(starts.originalSrc->clone().release(), kVid);
     columns->addColumn(column);
 
     auto* project = Project::make(qctx_, nullptr, columns);
@@ -187,7 +168,7 @@ PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& proje
     }
     project->setColNames({kVid});
     VLOG(1) << project->outputVar() << " input: " << project->inputVar();
-    starts.src = pool->add(new InputPropertyExpression(new std::string(kVid)));
+    starts.src = pool->add(new InputPropertyExpression(kVid));
 
     auto* dedupVids = Dedup::make(qctx_, project);
     dedupVids->setInputVar(project->outputVar());
@@ -201,11 +182,23 @@ Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {
     VLOG(1) << "steps: " << steps;
     // ++loopSteps{0} <= steps
     qctx_->ectx()->setValue(loopSteps_, 0);
-    return qctx_->objPool()->add(new RelationalExpression(
+    return new RelationalExpression(
         Expression::Kind::kRelLE,
-        new UnaryExpression(Expression::Kind::kUnaryIncr,
-                            new VariableExpression(new std::string(loopSteps_))),
-        new ConstantExpression(static_cast<int32_t>(steps))));
+        new UnaryExpression(Expression::Kind::kUnaryIncr, new VariableExpression(loopSteps_)),
+        new ConstantExpression(static_cast<int32_t>(steps)));
+}
+
+// $var == empty || size($var) != 0
+Expression* TraversalValidator::buildExpandEndCondition(const std::string &lastStepResult) const {
+    auto* eqEmpty = ExpressionUtils::Eq(new VariableExpression(lastStepResult),
+                                        new ConstantExpression(Value()));
+
+    auto* args = new ArgumentList();
+    args->addArgument(std::make_unique<VariableExpression>(lastStepResult));
+    auto* neZero = new RelationalExpression(Expression::Kind::kRelNE,
+                                            new FunctionCallExpression("size", args),
+                                            new ConstantExpression(0));
+    return ExpressionUtils::Or(eqEmpty, neZero);
 }
 
 }  // namespace graph

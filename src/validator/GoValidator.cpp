@@ -55,8 +55,10 @@ Status GoValidator::validateWhere(WhereClause* where) {
                                      filter_->toString().c_str());
     }
     where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(filter_));
-
-    filter_ = where->filter();
+    auto pool = qctx()->objPool();
+    auto foldRes = ExpressionUtils::foldConstantExpr(where->filter(), pool);
+    NG_RETURN_IF_ERROR(foldRes);
+    filter_ = foldRes.value();
     auto typeStatus = deduceExprType(filter_);
     NG_RETURN_IF_ERROR(typeStatus);
     auto type = typeStatus.value();
@@ -85,7 +87,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
         auto* newCols = new YieldColumns();
         qctx_->objPool()->add(newCols);
         for (auto& e : over_.allEdges) {
-            auto* col = new YieldColumn(new EdgeDstIdExpression(new std::string(e)));
+            auto* col = new YieldColumn(new EdgeDstIdExpression(e));
             newCols->addColumn(col);
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
@@ -126,15 +128,15 @@ Status GoValidator::validateYield(YieldClause* yield) {
 }
 
 Status GoValidator::toPlan() {
-    if (steps_.mToN == nullptr) {
-        if (steps_.steps == 0) {
+    if (!steps_.isMToN()) {
+        if (steps_.steps() == 0) {
             auto* passThrough = PassThroughNode::make(qctx_, nullptr);
             passThrough->setColNames(std::move(colNames_));
             tail_ = passThrough;
             root_ = tail_;
             return Status::OK();
         }
-        if (steps_.steps == 1) {
+        if (steps_.steps() == 1) {
             return buildOneStepPlan();
         }
         return buildNStepsPlan();
@@ -241,11 +243,13 @@ Status GoValidator::buildNStepsPlan() {
         loopBody = projectFromJoin;
     }
 
+    auto *condition = buildExpandCondition(gn->outputVar(), steps_.steps() - 1);
+    qctx_->objPool()->add(condition);
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
         loopBody,                                                                   // body
-        buildNStepLoopCondition(steps_.steps - 1));
+        condition);
 
     NG_RETURN_IF_ERROR(oneStep(loop, dedupDstVids->outputVar(), projectFromJoin));
     // reset tail_
@@ -364,11 +368,15 @@ Status GoValidator::buildMToNPlan() {
         dedupNode->setColNames(std::move(colNames_));
     }
 
+    PlanNode *body = dedupNode == nullptr ? projectResult : dedupNode;
+    auto *condition = buildExpandCondition(body->outputVar(),
+                                           steps_.nSteps());
+    qctx_->objPool()->add(condition);
     auto* loop = Loop::make(
         qctx_,
         projectLeftVarForJoin == nullptr ? dedupStartVid : projectLeftVarForJoin,   // dep
-        dedupNode == nullptr ? projectResult : dedupNode,                           // body
-        buildNStepLoopCondition(steps_.mToN->nSteps));
+        body,  // body
+        condition);
 
     if (projectStartVid_ != nullptr) {
         tail_ = projectStartVid_;
@@ -382,12 +390,13 @@ Status GoValidator::buildMToNPlan() {
     } else {
         collectVars = {dedupNode->outputVar()};
     }
-    auto* dataCollect =
-        DataCollect::make(qctx_, loop, DataCollect::CollectKind::kMToN, collectVars);
-    dataCollect->setMToN(steps_.mToN);
-    dataCollect->setDistinct(distinct_);
-    dataCollect->setColNames(projectResult->colNames());
-    root_ = dataCollect;
+    auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kMToN);
+    dc->addDep(loop);
+    dc->setInputVars(collectVars);
+    dc->setMToN(steps_);
+    dc->setDistinct(distinct_);
+    dc->setColNames(projectResult->colNames());
+    root_ = dc;
     return Status::OK();
 }
 
@@ -396,9 +405,7 @@ PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode
 
     // Get _vid for join if $-/$var were declared.
     if (from_.fromType != FromType::kInstantExpr) {
-        auto* srcVidCol = new YieldColumn(
-            new VariablePropertyExpression(new std::string(gnVar), new std::string(kVid)),
-            new std::string(kVid));
+        auto* srcVidCol = new YieldColumn(new VariablePropertyExpression(gnVar, kVid), kVid);
         srcAndEdgePropCols_->addColumn(srcVidCol);
     }
 
@@ -406,8 +413,7 @@ PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode
     if (!exprProps_.dstTagProps().empty()) {
         joinDstVidColName_ = vctx_->anonColGen()->getCol();
         auto* dstVidCol =
-            new YieldColumn(new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
-                            new std::string(joinDstVidColName_));
+            new YieldColumn(new EdgePropertyExpression("*", kDst), joinDstVidColName_);
         srcAndEdgePropCols_->addColumn(dstVidCol);
     }
 
@@ -425,27 +431,25 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
 
     auto objPool = qctx_->objPool();
 
-    auto* vids = objPool->makeAndAdd<VariablePropertyExpression>(
-        new std::string(projectSrcDstProps->outputVar()), new std::string(joinDstVidColName_));
+    auto* vids = objPool->makeAndAdd<VariablePropertyExpression>(projectSrcDstProps->outputVar(),
+                                                                 joinDstVidColName_);
     auto* getDstVertices =
         GetVertices::make(qctx_, projectSrcDstProps, space_.id, vids, buildDstVertexProps(), {});
     getDstVertices->setInputVar(projectSrcDstProps->outputVar());
     getDstVertices->setDedup();
 
     auto vidColName = vctx_->anonColGen()->getCol();
-    auto* vidCol =
-        new YieldColumn(new VariablePropertyExpression(new std::string(getDstVertices->outputVar()),
-                                                       new std::string(kVid)),
-                        new std::string(vidColName));
+    auto* vidCol = new YieldColumn(
+        new VariablePropertyExpression(getDstVertices->outputVar(), kVid), vidColName);
     dstPropCols_->addColumn(vidCol);
     auto* project = Project::make(qctx_, getDstVertices, dstPropCols_);
     project->setInputVar(getDstVertices->outputVar());
     project->setColNames(deduceColNames(dstPropCols_));
 
     auto* joinHashKey = objPool->makeAndAdd<VariablePropertyExpression>(
-        new std::string(projectSrcDstProps->outputVar()), new std::string(joinDstVidColName_));
-    auto* probeKey = objPool->makeAndAdd<VariablePropertyExpression>(
-        new std::string(project->outputVar()), new std::string(vidColName));
+        projectSrcDstProps->outputVar(), joinDstVidColName_);
+    auto* probeKey =
+        objPool->makeAndAdd<VariablePropertyExpression>(project->outputVar(), vidColName);
     auto joinDst =
         LeftJoin::make(qctx_,
                        project,
@@ -468,18 +472,18 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                                     PlanNode* dependencyForJoinInput) {
     auto* pool = qctx_->objPool();
 
-    if (steps_.steps > 1 || steps_.mToN != nullptr) {
+    if (steps_.steps() > 1 || steps_.isMToN()) {
         DCHECK(projectFromJoin != nullptr);
-        auto* joinHashKey = pool->add(new VariablePropertyExpression(
-            new std::string(dependencyForJoinInput->outputVar()), new std::string(kVid)));
-        auto* probeKey = pool->add(new VariablePropertyExpression(
-            new std::string(projectFromJoin->outputVar()), new std::string(dstVidColName_)));
+        auto* joinHashKey =
+            pool->add(new VariablePropertyExpression(dependencyForJoinInput->outputVar(), kVid));
+        auto* probeKey =
+            pool->add(new VariablePropertyExpression(projectFromJoin->outputVar(), dstVidColName_));
         auto* join =
             LeftJoin::make(qctx_,
                            dependencyForJoinInput,
                            {dependencyForJoinInput->outputVar(), ExecutionContext::kLatestVersion},
                            {projectFromJoin->outputVar(),
-                            steps_.mToN != nullptr ? ExecutionContext::kPreviousOneVersion
+                            steps_.isMToN() ? ExecutionContext::kPreviousOneVersion
                                                    : ExecutionContext::kLatestVersion},
                            {joinHashKey},
                            {probeKey});
@@ -493,11 +497,9 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
     }
 
     DCHECK(dependencyForJoinInput != nullptr);
-    auto* joinHashKey = pool->add(
-        new VariablePropertyExpression(new std::string(dependencyForJoinInput->outputVar()),
-                                       new std::string((steps_.steps > 1 || steps_.mToN != nullptr)
-                                                           ? from_.firstBeginningSrcVidColName
-                                                           : kVid)));
+    auto* joinHashKey = pool->add(new VariablePropertyExpression(
+        dependencyForJoinInput->outputVar(),
+        (steps_.steps() > 1 || steps_.isMToN()) ? from_.firstBeginningSrcVidColName : kVid));
     std::string varName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;
     auto* joinInput =
         LeftJoin::make(qctx_,
@@ -523,11 +525,10 @@ PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode
     DCHECK(dedupDstVids != nullptr);
 
     auto* pool = qctx_->objPool();
-    auto hashKey = new VariablePropertyExpression(
-        new std::string(projectLeftVarForJoin->outputVar()), new std::string(dstVidColName_));
+    auto hashKey =
+        new VariablePropertyExpression(projectLeftVarForJoin->outputVar(), dstVidColName_);
     pool->add(hashKey);
-    auto probeKey = new VariablePropertyExpression(new std::string(dedupDstVids->outputVar()),
-                                                   new std::string(srcVidColName_));
+    auto probeKey = new VariablePropertyExpression(dedupDstVids->outputVar(), srcVidColName_);
     pool->add(probeKey);
     auto* join =
         LeftJoin::make(qctx_,
@@ -544,12 +545,10 @@ PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode
     VLOG(1) << join->outputVar();
 
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(
-        new InputPropertyExpression(new std::string(from_.firstBeginningSrcVidColName)),
-        new std::string(from_.firstBeginningSrcVidColName));
+    auto* column = new YieldColumn(new InputPropertyExpression(from_.firstBeginningSrcVidColName),
+                                   from_.firstBeginningSrcVidColName);
     columns->addColumn(column);
-    column = new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
-                             new std::string(dstVidColName_));
+    column = new YieldColumn(new InputPropertyExpression(kVid), dstVidColName_);
     columns->addColumn(column);
     auto* projectJoin = Project::make(qctx_, join, columns);
     projectJoin->setInputVar(join->outputVar());
@@ -567,10 +566,10 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
     auto* pool = qctx_->objPool();
     dstVidColName_ = vctx_->anonColGen()->getCol();
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(from_.originalSrc->clone().release(),
-                                   new std::string(from_.firstBeginningSrcVidColName));
+    auto* column =
+        new YieldColumn(from_.originalSrc->clone().release(), from_.firstBeginningSrcVidColName);
     columns->addColumn(column);
-    column = new YieldColumn(from_.originalSrc->clone().release(), new std::string(dstVidColName_));
+    column = new YieldColumn(from_.originalSrc->clone().release(), dstVidColName_);
     columns->addColumn(column);
     // dedupStartVid could be nullptr, that means no input for this project.
     auto* projectLeftVarForJoin = Project::make(qctx_, dedupStartVid, columns);
@@ -745,14 +744,14 @@ void GoValidator::extractPropExprs(const Expression* expr) {
     const_cast<Expression*>(expr)->accept(&visitor);
 }
 
-Expression* GoValidator::rewriteToInputProp(const Expression* expr) {
+Expression* GoValidator::rewrite2VarProp(const Expression* expr) {
     auto matcher = [this](const Expression* e) -> bool {
         return propExprColMap_.find(e->toString()) != propExprColMap_.end();
     };
     auto rewriter = [this](const Expression* e) -> Expression* {
         auto iter = propExprColMap_.find(e->toString());
         DCHECK(iter != propExprColMap_.end());
-        return new InputPropertyExpression(new std::string(*(iter->second->alias())));
+        return new VariablePropertyExpression("", iter->second->alias());
     };
 
     return RewriteVisitor::transform(expr, matcher, rewriter);
@@ -781,15 +780,14 @@ Status GoValidator::buildColumns() {
         extractPropExprs(filter_);
         auto newFilter = filter_->clone();
         DCHECK(!newFilter_);
-        newFilter_ = rewriteToInputProp(newFilter.get());
+        newFilter_ = rewrite2VarProp(newFilter.get());
         pool->add(newFilter_);
     }
 
     newYieldCols_ = pool->add(new YieldColumns());
     for (auto* yield : yields_->columns()) {
         extractPropExprs(yield->expr());
-        auto* alias = yield->alias() == nullptr ? nullptr : new std::string(*(yield->alias()));
-        newYieldCols_->addColumn(new YieldColumn(rewriteToInputProp(yield->expr()), alias));
+        newYieldCols_->addColumn(new YieldColumn(rewrite2VarProp(yield->expr()), yield->alias()));
     }
 
     return Status::OK();
@@ -798,14 +796,11 @@ Status GoValidator::buildColumns() {
 PlanNode* GoValidator::projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn) {
     Project* project = nullptr;
     auto* columns = qctx_->objPool()->add(new YieldColumns());
-    auto* column =
-        new YieldColumn(new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
-                        new std::string(kVid));
+    auto* column = new YieldColumn(new EdgePropertyExpression("*", kDst), kVid);
     columns->addColumn(column);
 
     srcVidColName_ = vctx_->anonColGen()->getCol();
-    column = new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
-                             new std::string(srcVidColName_));
+    column = new YieldColumn(new InputPropertyExpression(kVid), srcVidColName_);
     columns->addColumn(column);
 
     project = Project::make(qctx_, dep, columns);

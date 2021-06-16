@@ -186,11 +186,12 @@ static constexpr size_t kCommentLengthLimit = 256;
 %token KW_UNWIND KW_SKIP KW_OPTIONAL
 %token KW_CASE KW_THEN KW_ELSE KW_END
 %token KW_GROUP KW_ZONE KW_GROUPS KW_ZONES KW_INTO
-%token KW_LISTENER KW_ELASTICSEARCH
+%token KW_LISTENER KW_ELASTICSEARCH KW_FULLTEXT
 %token KW_AUTO KW_FUZZY KW_PREFIX KW_REGEXP KW_WILDCARD
 %token KW_TEXT KW_SEARCH KW_CLIENTS KW_SIGN KW_SERVICE KW_TEXT_SEARCH
 %token KW_ANY KW_SINGLE KW_NONE
 %token KW_REDUCE
+%token KW_SESSIONS KW_SESSION
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -332,8 +333,8 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <sentence> alter_tag_sentence alter_edge_sentence
 %type <sentence> drop_tag_sentence drop_edge_sentence
 %type <sentence> describe_tag_sentence describe_edge_sentence
-%type <sentence> create_tag_index_sentence create_edge_index_sentence
-%type <sentence> drop_tag_index_sentence drop_edge_index_sentence
+%type <sentence> create_tag_index_sentence create_edge_index_sentence create_fulltext_index_sentence
+%type <sentence> drop_tag_index_sentence drop_edge_index_sentence drop_fulltext_index_sentence
 %type <sentence> describe_tag_index_sentence describe_edge_index_sentence
 %type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence
 %type <sentence> add_group_sentence drop_group_sentence desc_group_sentence
@@ -486,6 +487,7 @@ unreserved_keyword
     | KW_ZONES              { $$ = new std::string("zones"); }
     | KW_LISTENER           { $$ = new std::string("listener"); }
     | KW_ELASTICSEARCH      { $$ = new std::string("elasticsearch"); }
+    | KW_FULLTEXT           { $$ = new std::string("fulltext"); }
     | KW_STATS              { $$ = new std::string("stats"); }
     | KW_STATUS             { $$ = new std::string("status"); }
     | KW_AUTO               { $$ = new std::string("auto"); }
@@ -502,6 +504,8 @@ unreserved_keyword
     | KW_RESET              { $$ = new std::string("reset"); }
     | KW_PLAN               { $$ = new std::string("plan"); }
     | KW_COMMENT            { $$ = new std::string("comment"); }
+    | KW_SESSION            { $$ = new std::string("session"); }
+    | KW_SESSIONS           { $$ = new std::string("sessions"); }
     ;
 
 expression
@@ -509,10 +513,12 @@ expression
         $$ = $1;
     }
     | name_label {
-        $$ = new LabelExpression($1);
+        $$ = new LabelExpression(*$1);
+        delete $1;
     }
     | VARIABLE {
-        $$ = new VariableExpression($1);
+        $$ = new VariableExpression(*$1);
+        delete $1;
     }
     | compound_expression {
         $$ = $1;
@@ -520,7 +526,12 @@ expression
     | MINUS {
         scanner.setUnaryMinus(true);
     } expression %prec UNARY_MINUS {
-        $$ = new UnaryExpression(Expression::Kind::kUnaryNegate, $3);
+        if (scanner.isIntMin()) {
+            $$ = $3;
+            scanner.setIsIntMin(false);
+        } else {
+            $$ = new UnaryExpression(Expression::Kind::kUnaryNegate, $3);
+        }
         scanner.setUnaryMinus(false);
     }
     | PLUS expression %prec UNARY_PLUS {
@@ -691,10 +702,12 @@ property_expression
 
 subscript_expression
     : name_label L_BRACKET expression R_BRACKET {
-        $$ = new SubscriptExpression(new LabelExpression($1), $3);
+        $$ = new SubscriptExpression(new LabelExpression(*$1), $3);
+        delete $1;
     }
     | VARIABLE L_BRACKET expression R_BRACKET {
-        $$ = new SubscriptExpression(new VariableExpression($1), $3);
+        $$ = new SubscriptExpression(new VariableExpression(*$1), $3);
+        delete $1;
     }
     | compound_expression L_BRACKET expression R_BRACKET {
         $$ = new SubscriptExpression($1, $3);
@@ -703,22 +716,28 @@ subscript_expression
 
 subscript_range_expression
     : name_label L_BRACKET expression DOT_DOT expression R_BRACKET {
-        $$ = new SubscriptRangeExpression(new LabelExpression($1), $3, $5);
+        $$ = new SubscriptRangeExpression(new LabelExpression(*$1), $3, $5);
+        delete($1);
     }
     | name_label L_BRACKET DOT_DOT expression R_BRACKET {
-        $$ = new SubscriptRangeExpression(new LabelExpression($1), nullptr, $4);
+        $$ = new SubscriptRangeExpression(new LabelExpression(*$1), nullptr, $4);
+        delete($1);
     }
     | name_label L_BRACKET expression DOT_DOT R_BRACKET {
-        $$ = new SubscriptRangeExpression(new LabelExpression($1), $3, nullptr);
+        $$ = new SubscriptRangeExpression(new LabelExpression(*$1), $3, nullptr);
+        delete($1);
     }
     | VARIABLE L_BRACKET expression DOT_DOT expression R_BRACKET {
-        $$ = new SubscriptRangeExpression(new VariableExpression($1), $3, $5);
+        $$ = new SubscriptRangeExpression(new VariableExpression(*$1), $3, $5);
+        delete($1);
     }
     | VARIABLE L_BRACKET DOT_DOT expression R_BRACKET {
-        $$ = new SubscriptRangeExpression(new VariableExpression($1), nullptr, $4);
+        $$ = new SubscriptRangeExpression(new VariableExpression(*$1), nullptr, $4);
+        delete($1);
     }
     | VARIABLE L_BRACKET expression DOT_DOT R_BRACKET {
-        $$ = new SubscriptRangeExpression(new VariableExpression($1), $3, nullptr);
+        $$ = new SubscriptRangeExpression(new VariableExpression(*$1), $3, nullptr);
+        delete($1);
     }
     | compound_expression L_BRACKET expression DOT_DOT expression R_BRACKET {
         $$ = new SubscriptRangeExpression($1, $3, $5);
@@ -733,8 +752,9 @@ subscript_range_expression
 
 attribute_expression
     : name_label DOT name_label {
-        $$ = new LabelAttributeExpression(new LabelExpression($1),
+        $$ = new LabelAttributeExpression(new LabelExpression(*$1),
                                           new ConstantExpression(*$3));
+        delete $1;
         delete $3;
     }
     | compound_expression DOT name_label {
@@ -812,10 +832,11 @@ predicate_expression
         if ($3->kind() != Expression::Kind::kLabel) {
             throw nebula::GraphParser::syntax_error(@3, "The loop variable must be a label in predicate functions");
         }
-        auto &innerVar = *(static_cast<const LabelExpression *>($3)->name());
-        auto *expr = new PredicateExpression($1, new std::string(innerVar), $5, $7);
+        auto &innerVar = static_cast<const LabelExpression *>($3)->name();
+        auto *expr = new PredicateExpression(*$1, innerVar, $5, $7);
         nebula::graph::ParserUtil::rewritePred(qctx, expr, innerVar);
         $$ = expr;
+        delete $1;
         delete $3;
     }
     | KW_EXISTS L_PAREN expression R_PAREN {
@@ -823,7 +844,7 @@ predicate_expression
             $3->kind() != Expression::Kind::kSubscript) {
             throw nebula::GraphParser::syntax_error(@3, "The exists only accept LabelAttribe, Attribute and Subscript");
         }
-        $$ = new PredicateExpression(new std::string("exists"), nullptr, $3, nullptr);
+        $$ = new PredicateExpression("exists", "", $3, nullptr);
     }
     ;
 
@@ -832,8 +853,8 @@ list_comprehension_expression
         if ($2->kind() != Expression::Kind::kLabel) {
             throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
         }
-        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
-        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, $6, nullptr);
+        auto &innerVar = static_cast<const LabelExpression *>($2)->name();
+        auto *expr = new ListComprehensionExpression(innerVar, $4, $6, nullptr);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
         delete $2;
@@ -842,8 +863,8 @@ list_comprehension_expression
         if ($2->kind() != Expression::Kind::kLabel) {
             throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
         }
-        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
-        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, nullptr, $6);
+        auto &innerVar = static_cast<const LabelExpression *>($2)->name();
+        auto *expr = new ListComprehensionExpression(innerVar, $4, nullptr, $6);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
         delete $2;
@@ -852,8 +873,8 @@ list_comprehension_expression
         if ($2->kind() != Expression::Kind::kLabel) {
             throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
         }
-        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
-        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, $6, $8);
+        auto &innerVar = static_cast<const LabelExpression *>($2)->name();
+        auto *expr = new ListComprehensionExpression(innerVar, $4, $6, $8);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
         delete $2;
@@ -862,61 +883,84 @@ list_comprehension_expression
 
 reduce_expression
     : KW_REDUCE L_PAREN name_label ASSIGN expression COMMA name_label KW_IN expression PIPE expression R_PAREN {
-        auto *expr = new ReduceExpression($3, $5, $7, $9, $11);
+        auto *expr = new ReduceExpression(*$3, $5, *$7, $9, $11);
         nebula::graph::ParserUtil::rewriteReduce(qctx, expr, *$3, *$7);
         $$ = expr;
+        delete $3;
+        delete $7;
     }
     ;
 
 input_prop_expression
     : INPUT_REF DOT name_label {
-        $$ = new InputPropertyExpression($3);
+        $$ = new InputPropertyExpression(*$3);
+        delete $3;
     }
     | INPUT_REF DOT STAR {
-        $$ = new InputPropertyExpression(new std::string("*"));
+        $$ = new InputPropertyExpression("*");
     }
     ;
 
 vertex_prop_expression
     : SRC_REF DOT name_label DOT name_label {
-        $$ = new SourcePropertyExpression($3, $5);
+        $$ = new SourcePropertyExpression(*$3, *$5);
+        delete $3;
+        delete $5;
     }
     | DST_REF DOT name_label DOT name_label {
-        $$ = new DestPropertyExpression($3, $5);
+        $$ = new DestPropertyExpression(*$3, *$5);
+        delete $3;
+        delete $5;
     }
     ;
 
 var_prop_expression
     : VARIABLE DOT name_label {
-        $$ = new VariablePropertyExpression($1, $3);
+        $$ = new VariablePropertyExpression(*$1, *$3);
+        delete $1;
+        delete $3;
     }
     | VARIABLE DOT STAR {
-        $$ = new VariablePropertyExpression($1, new std::string("*"));
+        $$ = new VariablePropertyExpression(*$1, "*");
+        delete $1;
     }
     ;
 
 edge_prop_expression
     : name_label DOT TYPE_PROP {
-        $$ = new EdgeTypeExpression($1);
+        $$ = new EdgeTypeExpression(*$1);
+        delete $1;
     }
     | name_label DOT SRC_ID_PROP {
-        $$ = new EdgeSrcIdExpression($1);
+        $$ = new EdgeSrcIdExpression(*$1);
+        delete $1;
     }
     | name_label DOT DST_ID_PROP {
-        $$ = new EdgeDstIdExpression($1);
+        $$ = new EdgeDstIdExpression(*$1);
+        delete $1;
     }
     | name_label DOT RANK_PROP {
-        $$ = new EdgeRankExpression($1);
+        $$ = new EdgeRankExpression(*$1);
+        delete $1;
     }
     ;
 
 function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
         if ($3->numArgs() == 1 && AggFunctionManager::find(*$1).ok()) {
-            $$ = new AggregateExpression($1, $3->args()[0].release(), false);
+            if (graph::ExpressionUtils::findInnerRandFunction($3->args()[0].get())) {
+                delete($1);
+                delete($3);
+                throw nebula::GraphParser::syntax_error(
+                    @3,
+                    "Can't use non-deterministic (random) functions inside of aggregate functions");
+            }
+            $$ = new AggregateExpression(*$1, $3->args()[0].release(), false);
+            delete($1);
             delete($3);
         } else if (FunctionManager::find(*$1, $3->numArgs()).ok()) {
-            $$ = new FunctionCallExpression($1, $3);
+            $$ = new FunctionCallExpression(*$1, $3);
+            delete($1);
         } else {
             delete($1);
             delete($3);
@@ -925,7 +969,8 @@ function_call_expression
     }
     | LABEL L_PAREN KW_DISTINCT expression R_PAREN {
         if (AggFunctionManager::find(*$1).ok()) {
-            $$ = new AggregateExpression($1, $4, true);
+            $$ = new AggregateExpression(*$1, $4, true);
+            delete($1);
         } else {
             delete($1);
             delete($4);
@@ -937,7 +982,8 @@ function_call_expression
         std::transform(func.begin(), func.end(), func.begin(), ::toupper);
         if (!func.compare("COUNT")) {
             auto star = new ConstantExpression(std::string("*"));
-            $$ = new AggregateExpression($1, star, false);
+            $$ = new AggregateExpression(*$1, star, false);
+            delete $1;
         } else {
             delete($1);
             throw nebula::GraphParser::syntax_error(@1, "Could not apply aggregation function on `*`");
@@ -948,35 +994,37 @@ function_call_expression
         std::transform(func.begin(), func.end(), func.begin(), ::toupper);
         if (!func.compare("COUNT")) {
             auto star = new ConstantExpression(std::string("*"));
-            $$ = new AggregateExpression($1, star, true);
+            $$ = new AggregateExpression(*$1, star, true);
+            delete $1;
         } else {
             delete($1);
             throw nebula::GraphParser::syntax_error(@1, "Could not apply aggregation function on `*`");
         }
     }
     | KW_TIMESTAMP L_PAREN opt_argument_list R_PAREN {
-        $$ = new FunctionCallExpression(new std::string("timestamp"), $3);
+        $$ = new FunctionCallExpression("timestamp", $3);
     }
     | KW_DATE L_PAREN opt_argument_list R_PAREN {
-        $$ = new FunctionCallExpression(new std::string("date"), $3);
+        $$ = new FunctionCallExpression("date", $3);
     }
     | KW_TIME L_PAREN opt_argument_list R_PAREN {
-        $$ = new FunctionCallExpression(new std::string("time"), $3);
+        $$ = new FunctionCallExpression("time", $3);
     }
     | KW_DATETIME L_PAREN opt_argument_list R_PAREN {
-        $$ = new FunctionCallExpression(new std::string("datetime"), $3);
+        $$ = new FunctionCallExpression("datetime", $3);
     }
     | KW_TAGS L_PAREN opt_argument_list R_PAREN {
-        $$ = new FunctionCallExpression(new std::string("tags"), $3);
+        $$ = new FunctionCallExpression("tags", $3);
     }
     | KW_SIGN L_PAREN opt_argument_list R_PAREN {
-        $$ = new FunctionCallExpression(new std::string("sign"), $3);
+        $$ = new FunctionCallExpression("sign", $3);
     }
     ;
 
 uuid_expression
     : KW_UUID L_PAREN STRING R_PAREN {
-        $$ = new UUIDExpression($3);
+        $$ = new UUIDExpression(*$3);
+        delete $3;
     }
     ;
 
@@ -1112,11 +1160,13 @@ map_expression
 map_item_list
     : name_label COLON expression {
         $$ = new MapItemList();
-        $$->add($1, $3);
+        $$->add(*$1, $3);
+        delete $1;
     }
     | map_item_list COMMA name_label COLON expression {
         $$ = $1;
-        $$->add($3, $5);
+        $$->add(*$3, $5);
+        delete $3;
     }
     ;
 
@@ -1131,8 +1181,7 @@ go_sentence
             auto *cols = new YieldColumns();
             if (!$4->isOverAll()) {
                 for (auto e : $4->edges()) {
-                    auto *edge  = new std::string(*e->edge());
-                    auto *expr  = new EdgeDstIdExpression(edge);
+                    auto *expr  = new EdgeDstIdExpression(*e->edge());
                     auto *col   = new YieldColumn(expr);
                     cols->addColumn(col);
                 }
@@ -1286,7 +1335,8 @@ yield_column
         $$ = new YieldColumn($1);
     }
     | expression KW_AS name_label {
-        $$ = new YieldColumn($1, $3);
+        $$ = new YieldColumn($1, *$3);
+        delete $3;
     }
     ;
 
@@ -1317,7 +1367,8 @@ yield_sentence
 
 unwind_clause
     : KW_UNWIND expression KW_AS name_label {
-        $$ = new UnwindClause($2, $4);
+        $$ = new UnwindClause($2, *$4);
+        delete $4;
     }
     ;
 
@@ -1427,13 +1478,16 @@ match_path
 
 match_node
     : L_PAREN match_alias R_PAREN {
-        $$ = new MatchNode($2, nullptr, nullptr);
+        $$ = new MatchNode(*$2, nullptr, nullptr);
+        delete $2;
     }
     | L_PAREN match_alias match_node_label_list R_PAREN {
-        $$ = new MatchNode($2, $3, nullptr);
+        $$ = new MatchNode(*$2, $3, nullptr);
+        delete $2;
     }
     | L_PAREN match_alias map_expression R_PAREN {
-        $$ = new MatchNode($2, nullptr, $3);
+        $$ = new MatchNode(*$2, nullptr, $3);
+        delete $2;
     }
     ;
 
@@ -1459,7 +1513,7 @@ match_node_label_list
 
 match_alias
     : %empty {
-        $$ = nullptr;
+        $$ = new std::string();
     }
     | name_label {
         $$ = $1;
@@ -1486,10 +1540,12 @@ match_edge_prop
         $$ = nullptr;
     }
     | L_BRACKET match_alias opt_match_edge_type_list match_step_range R_BRACKET {
-        $$ = new MatchEdgeProp($2, $3, $4, nullptr);
+        $$ = new MatchEdgeProp(*$2, $3, $4, nullptr);
+        delete $2;
     }
     | L_BRACKET match_alias opt_match_edge_type_list match_step_range map_expression R_BRACKET {
-        $$ = new MatchEdgeProp($2, $3, $4, $5);
+        $$ = new MatchEdgeProp(*$2, $3, $4, $5);
+        delete $2;
     }
     ;
 
@@ -1626,8 +1682,11 @@ sign_out_text_search_service_sentence
 
 base_text_search_argument
     : name_label DOT name_label COMMA STRING {
-        auto arg = new TextSearchArgument($1, $3, $5);
+        auto arg = new TextSearchArgument(*$1, *$3, *$5);
         $$ = arg;
+        delete $1;
+        delete $3;
+        delete $5;
     }
     ;
 
@@ -1635,12 +1694,12 @@ fuzzy_text_search_argument
    : base_text_search_argument COMMA KW_AUTO COMMA KW_AND {
         $$ = $1;
         $$->setFuzziness(-1);
-        $$->setOP(new std::string("and"));
+        $$->setOP("and");
    }
    | base_text_search_argument COMMA KW_AUTO COMMA KW_OR {
         $$ = $1;
         $$->setFuzziness(-1);
-        $$->setOP(new std::string("or"));
+        $$->setOP("or");
    }
    | base_text_search_argument COMMA legal_integer COMMA KW_AND {
         if ($3 != 0 && $3 != 1 && $3 != 2) {
@@ -1649,7 +1708,7 @@ fuzzy_text_search_argument
         }
         $$ = $1;
         $$->setFuzziness($3);
-        $$->setOP(new std::string("and"));
+        $$->setOP("and");
    }
    | base_text_search_argument COMMA legal_integer COMMA KW_OR {
         if ($3 != 0 && $3 != 1 && $3 != 2) {
@@ -1658,7 +1717,7 @@ fuzzy_text_search_argument
         }
         $$ = $1;
         $$->setFuzziness($3);
-        $$->setOP(new std::string("or"));
+        $$->setOP("or");
    }
 
 text_search_argument
@@ -1714,7 +1773,7 @@ text_search_argument
 
 text_search_expression
     : KW_PREFIX L_PAREN text_search_argument R_PAREN {
-        if ($3->op() != nullptr) {
+        if (!$3->op().empty()) {
             delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
@@ -1725,7 +1784,7 @@ text_search_expression
         $$ = new TextSearchExpression(Expression::Kind::kTSPrefix, $3);
     }
     | KW_WILDCARD L_PAREN text_search_argument R_PAREN {
-        if ($3->op() != nullptr) {
+        if (!$3->op().empty()) {
             delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
@@ -1736,7 +1795,7 @@ text_search_expression
         $$ = new TextSearchExpression(Expression::Kind::kTSWildcard, $3);
     }
     | KW_REGEXP L_PAREN text_search_argument R_PAREN {
-        if ($3->op() != nullptr) {
+        if (!$3->op().empty()) {
             delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
@@ -1878,34 +1937,31 @@ fetch_sentence
     ;
 
 find_path_sentence
-    : KW_FIND KW_ALL KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
-    /* where_clause */ {
+    : KW_FIND KW_ALL KW_PATH opt_with_properites from_clause to_clause over_clause where_clause find_path_upto_clause {
         auto *s = new FindPathSentence(false, $4, false);
         s->setFrom($5);
         s->setTo($6);
         s->setOver($7);
-        s->setStep($8);
-        /* s->setWhere($9); */
+        s->setWhere($8);
+        s->setStep($9);
         $$ = s;
     }
-    | KW_FIND KW_SHORTEST KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
-    /* where_clause */ {
+    | KW_FIND KW_SHORTEST KW_PATH opt_with_properites from_clause to_clause over_clause where_clause find_path_upto_clause {
         auto *s = new FindPathSentence(true, $4, false);
         s->setFrom($5);
         s->setTo($6);
         s->setOver($7);
-        s->setStep($8);
-        /* s->setWhere($9); */
+        s->setWhere($8);
+        s->setStep($9);
         $$ = s;
     }
-    | KW_FIND KW_NOLOOP KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
-    /* where_clause */ {
+    | KW_FIND KW_NOLOOP KW_PATH opt_with_properites from_clause to_clause over_clause where_clause find_path_upto_clause {
         auto *s = new FindPathSentence(false, $4, true);
         s->setFrom($5);
         s->setTo($6);
         s->setOver($7);
-        s->setStep($8);
-        /* s->setWhere($9) */
+        s->setWhere($8);
+        s->setStep($9);
         $$ = s;
     }
     ;
@@ -1968,8 +2024,8 @@ both_in_out_clause
     | KW_BOTH over_edges { $$ = new BothInOutClause($2, BoundClause::BOTH); }
 
 get_subgraph_sentence
-    : KW_GET KW_SUBGRAPH step_clause from_clause in_bound_clause out_bound_clause both_in_out_clause {
-        $$ = new GetSubgraphSentence($3, $4, $5, $6, $7);
+    : KW_GET KW_SUBGRAPH opt_with_properites step_clause from_clause in_bound_clause out_bound_clause both_in_out_clause {
+        $$ = new GetSubgraphSentence($3, $4, $5, $6, $7, $8);
     }
 
 use_sentence
@@ -2273,6 +2329,21 @@ create_tag_index_sentence
 create_edge_index_sentence
     : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN opt_comment_prop_assignment {
         $$ = new CreateEdgeIndexSentence($5, $7, $9, $4, $11);
+    }
+    ;
+
+create_fulltext_index_sentence
+    : KW_CREATE KW_FULLTEXT KW_TAG KW_INDEX name_label KW_ON name_label L_PAREN name_label_list R_PAREN {
+        $$ = new CreateFTIndexSentence(false, $5, $7, $9);
+    }
+    | KW_CREATE KW_FULLTEXT KW_EDGE KW_INDEX name_label KW_ON name_label L_PAREN name_label_list R_PAREN {
+        $$ = new CreateFTIndexSentence(true, $5, $7, $9);
+    }
+    ;
+
+drop_fulltext_index_sentence
+    : KW_DROP KW_FULLTEXT KW_INDEX name_label {
+        $$ = new DropFTIndexSentence($4);
     }
     ;
 
@@ -2621,9 +2692,10 @@ update_item
         $$ = new UpdateItem($1, $3);
     }
     | name_label DOT name_label ASSIGN expression {
-        auto expr = new LabelAttributeExpression(new LabelExpression($1),
+        auto expr = new LabelAttributeExpression(new LabelExpression(*$1),
                                                  new ConstantExpression(*$3));
         $$ = new UpdateItem(expr, $5);
+        delete $1;
         delete $3;
     }
     ;
@@ -2870,6 +2942,15 @@ show_sentence
     }
     | KW_SHOW KW_TEXT KW_SEARCH KW_CLIENTS {
         $$ = new ShowTSClientsSentence();
+    }
+    | KW_SHOW KW_FULLTEXT KW_INDEXES {
+        $$ = new ShowFTIndexesSentence();
+    }
+    | KW_SHOW KW_SESSIONS {
+        $$ = new ShowSessionsSentence();
+    }
+    | KW_SHOW KW_SESSION legal_integer {
+        $$ = new ShowSessionsSentence($3);
     }
     ;
 
@@ -3238,8 +3319,10 @@ maintain_sentence
     | drop_edge_sentence { $$ = $1; }
     | create_tag_index_sentence { $$ = $1; }
     | create_edge_index_sentence { $$ = $1; }
+    | create_fulltext_index_sentence { $$ = $1; }
     | drop_tag_index_sentence { $$ = $1; }
     | drop_edge_index_sentence { $$ = $1; }
+    | drop_fulltext_index_sentence { $$ = $1; }
     | describe_tag_index_sentence { $$ = $1; }
     | describe_edge_index_sentence { $$ = $1; }
     | rebuild_tag_index_sentence { $$ = $1; }

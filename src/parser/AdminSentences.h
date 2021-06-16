@@ -319,6 +319,10 @@ public:
         groupName_.reset(name);
     }
 
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
     void setComment(std::string *name) {
         comment_.reset(name);
     }
@@ -682,6 +686,33 @@ public:
     }
 
     std::string toString() const override;
+};
+
+class ShowSessionsSentence final : public Sentence {
+public:
+    ShowSessionsSentence() {
+        kind_ = Kind::kShowSessions;
+    }
+
+    explicit ShowSessionsSentence(SessionID sessionId) {
+        kind_ = Kind::kShowSessions;
+        sessionId_ = sessionId;
+        setSeesionId_ = true;
+    }
+
+    bool isSetSessionID() const {
+        return setSeesionId_;
+    }
+
+    SessionID getSessionID() const {
+        return sessionId_;
+    }
+
+    std::string toString() const override;
+
+private:
+    SessionID   sessionId_{0};
+    bool        setSeesionId_{false};
 };
 }   // namespace nebula
 

@@ -92,6 +92,7 @@ Status CreateSpaceValidator::validateImpl() {
                 } else {
                     spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::DEFAULT);
                 }
+                break;
             }
             case SpaceOptItem::GROUP_NAME: {
                 break;
@@ -101,6 +102,10 @@ Status CreateSpaceValidator::validateImpl() {
     // check comment
     if (sentence->comment() != nullptr) {
         spaceDesc_.set_comment(*sentence->comment());
+    }
+
+    if (sentence->groupName() != nullptr && *sentence->groupName() == "default") {
+        return Status::SemanticError("Group default conflict");
     }
 
     // if charset and collate are not specified, set default value
@@ -499,5 +504,15 @@ Status SignOutTSServiceValidator::toPlan() {
     tail_ = root_;
     return Status::OK();
 }
+
+Status ShowSessionsValidator::toPlan() {
+    auto sentence = static_cast<ShowSessionsSentence*>(sentence_);
+    auto *node = ShowSessions::make(
+            qctx_, nullptr, sentence->isSetSessionID(), sentence->getSessionID());
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

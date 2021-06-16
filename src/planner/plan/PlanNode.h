@@ -23,7 +23,8 @@ class PlanNode {
 public:
     enum class Kind : uint8_t {
         kUnknown = 0,
-        kStart,
+
+        // Query
         kGetNeighbors,
         kGetVertices,
         kGetEdges,
@@ -39,12 +40,24 @@ public:
         kTopN,
         kLimit,
         kAggregate,
+        kDedup,
+        kAssign,
+        kBFSShortest,
+        kProduceSemiShortestPath,
+        kConjunctPath,
+        kProduceAllPaths,
+        kCartesianProduct,
+        kSubgraph,
+        kDataCollect,
+        kLeftJoin,
+        kInnerJoin,
+
+        // Logic
+        kStart,
         kSelect,
         kLoop,
-        kSwitchSpace,
-        kDedup,
         kPassThrough,
-        kAssign,
+
         // schema related
         kCreateSpace,
         kCreateTag,
@@ -56,6 +69,7 @@ public:
         kAlterTag,
         kAlterEdge,
         kShowSpaces,
+        kSwitchSpace,
         kShowTags,
         kShowEdges,
         kShowCreateTag,
@@ -63,9 +77,12 @@ public:
         kDropSpace,
         kDropTag,
         kDropEdge,
+
         // index related
         kCreateTagIndex,
         kCreateEdgeIndex,
+        kCreateFTIndex,
+        kDropFTIndex,
         kDropTagIndex,
         kDropEdgeIndex,
         kDescTagIndex,
@@ -85,7 +102,7 @@ public:
         kShowBalance,
         kSubmitJob,
         kShowHosts,
-        kDataCollect,
+
         // user related
         kCreateUser,
         kDropUser,
@@ -96,31 +113,30 @@ public:
         kListUserRoles,
         kListUsers,
         kListRoles,
+
+        // Snapshot
         kCreateSnapshot,
         kDropSnapshot,
         kShowSnapshots,
-        kLeftJoin,
-        kInnerJoin,
+
+        // Update/Delete
         kDeleteVertices,
         kDeleteEdges,
         kUpdateVertex,
         kUpdateEdge,
+
+        // Show
         kShowParts,
         kShowCharset,
         kShowCollation,
         kShowStats,
         kShowConfigs,
-        kShowGroups,
-        kShowZones,
         kSetConfig,
         kGetConfig,
-        kBFSShortest,
-        kProduceSemiShortestPath,
-        kConjunctPath,
-        kProduceAllPaths,
-        kCartesianProduct,
-        kSubgraph,
+
         // zone related
+        kShowGroups,
+        kShowZones,
         kAddGroup,
         kDropGroup,
         kDescribeGroup,
@@ -131,18 +147,26 @@ public:
         kDescribeZone,
         kAddHostIntoZone,
         kDropHostFromZone,
+
         // listener related
         kAddListener,
         kRemoveListener,
         kShowListener,
+
         // text service related
         kShowTSClients,
+        kShowFTIndexes,
         kSignInTSService,
         kSignOutTSService,
         kDownload,
         kIngest,
+        kShowSessions,
+        kUpdateSession,
     };
 
+    bool isQueryNode() const {
+        return kind_ < Kind::kStart;
+    }
 
     // Describe plan node
     virtual std::unique_ptr<PlanNodeDescription> explain() const;
@@ -170,8 +194,7 @@ public:
     void setOutputVar(const std::string &var);
 
     const std::string& outputVar(size_t index = 0) const {
-        DCHECK_LT(index, outputVars_.size());
-        return outputVars_[index]->name;
+        return outputVarPtr(index)->name;
     }
 
     Variable* outputVarPtr(size_t index = 0) const {
@@ -183,28 +206,16 @@ public:
         return outputVars_;
     }
 
-    std::vector<std::string> colNames() const {
-        DCHECK(!outputVars_.empty());
-        return outputVars_[0]->colNames;
-    }
-
-    const std::vector<std::string>& colNamesRef() const {
-        DCHECK(!outputVars_.empty());
-        return outputVars_[0]->colNames;
+    const std::vector<std::string>& colNames() const {
+        return outputVarPtr(0)->colNames;
     }
 
     void setId(int64_t id) {
         id_ = id;
     }
 
-    void setColNames(std::vector<std::string>&& cols) {
-        DCHECK(!outputVars_.empty());
-        outputVars_[0]->colNames = std::move(cols);
-    }
-
-    void setColNames(const std::vector<std::string>& cols) {
-        DCHECK(!outputVars_.empty());
-        outputVars_[0]->colNames = cols;
+    void setColNames(std::vector<std::string> cols) {
+        outputVarPtr(0)->colNames = std::move(cols);
     }
 
     const PlanNode* dep(size_t index = 0) const {
@@ -366,6 +377,32 @@ protected:
 
     void cloneMembers(const BinaryInputNode &node) {
         PlanNode::cloneMembers(node);
+    }
+};
+
+// some PlanNode may depend on multiple Nodes(may be one OR more)
+// Attention: user need to set inputs byself
+class VariableDependencyNode : public PlanNode {
+public:
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+    PlanNode* clone() const override {
+        LOG(FATAL) << "Shouldn't call the unimplemented method";
+    }
+
+protected:
+    VariableDependencyNode(QueryContext* qctx, Kind kind) : PlanNode(qctx, kind) {}
+
+    void cloneMembers(const VariableDependencyNode& node) {
+        PlanNode::cloneMembers(node);
+    }
+
+    std::vector<int64_t> dependIds() const {
+        std::vector<int64_t> ids(numDeps());
+        std::transform(dependencies_.begin(), dependencies_.end(), ids.begin(), [](auto& dep) {
+            return dep->id();
+        });
+        return ids;
     }
 };
 

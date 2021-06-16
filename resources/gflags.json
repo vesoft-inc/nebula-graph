@@ -9,7 +9,11 @@
         "wal_ttl",
         "clean_wal_interval_secs",
         "custom_filter_interval_secs",
-        "accept_partial_success"
+        "accept_partial_success",
+        "system_memory_high_watermark_ratio",
+        "session_idle_timeout_secs",
+        "session_reclaim_interval_secs",
+        "max_allowed_connections"
     ],
     "NESTED": [
         "rocksdb_db_options",

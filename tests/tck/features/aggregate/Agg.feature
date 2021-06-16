@@ -466,6 +466,20 @@ Feature: Basic Aggregate and GroupBy
     Then the result should be, in order, with relax comparison:
       | count | sum | avg  | min  | max  | std  | b1   | b2   | b3   |
       | 0     | 0   | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+    When executing query:
+      """
+      UNWIND [1,2,3] AS d RETURN d | YIELD 1 IN COLLECT($-.d) AS b
+      """
+    Then the result should be, in order, with relax comparison:
+      | b    |
+      | True |
+    When executing query:
+      """
+      UNWIND [1,2,3] AS d RETURN d | YIELD ANY(l IN COLLECT($-.d) WHERE l==1) AS b
+      """
+    Then the result should be, in order, with relax comparison:
+      | b    |
+      | True |
 
   Scenario: Empty input
     When executing query:
@@ -564,6 +578,15 @@ Feature: Basic Aggregate and GroupBy
       | name              | sum | count |
       | "Carmelo Anthony" | 1.5 | 1     |
       | "Dwyane Wade"     | 1.5 | 1     |
+
+  Scenario: Distinct sum
+    When executing query:
+      """
+      UNWIND [1,2,3,3] AS d RETURN d | YIELD sum(distinct $-.d) AS sum
+      """
+    Then the result should be, in any order:
+      | sum |
+      | 6   |
 
   Scenario: Error Check
     When executing query:

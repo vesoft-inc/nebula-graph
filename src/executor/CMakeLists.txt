@@ -65,19 +65,21 @@ nebula_add_library(
     admin/ShowStatsExecutor.cpp
     admin/DownloadExecutor.cpp
     admin/IngestExecutor.cpp
-    maintain/TagExecutor.cpp
-    maintain/TagIndexExecutor.cpp
-    maintain/EdgeExecutor.cpp
-    maintain/EdgeIndexExecutor.cpp
-    mutate/InsertExecutor.cpp
-    mutate/DeleteExecutor.cpp
-    mutate/UpdateExecutor.cpp
     admin/ConfigExecutor.cpp
     admin/GroupExecutor.cpp
     admin/ZoneExecutor.cpp
     admin/ShowTSClientsExecutor.cpp
     admin/SignInTSServiceExecutor.cpp
     admin/SignOutTSServiceExecutor.cpp
+    admin/SessionExecutor.cpp
+    maintain/TagExecutor.cpp
+    maintain/TagIndexExecutor.cpp
+    maintain/EdgeExecutor.cpp
+    maintain/EdgeIndexExecutor.cpp
+    maintain/FTIndexExecutor.cpp
+    mutate/InsertExecutor.cpp
+    mutate/DeleteExecutor.cpp
+    mutate/UpdateExecutor.cpp
 )
 
 nebula_add_subdirectory(test)

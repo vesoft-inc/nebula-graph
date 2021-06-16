@@ -79,6 +79,7 @@ public:
         kShowZones,
         kShowStats,
         kShowTSClients,
+        kShowFTIndexes,
         kDeleteVertices,
         kDeleteEdges,
         kLookup,
@@ -126,6 +127,9 @@ public:
         kShowListener,
         kSignInTSService,
         kSignOutTSService,
+        kCreateFTIndex,
+        kDropFTIndex,
+        kShowSessions,
     };
 
     Kind kind() const {
@@ -136,7 +140,7 @@ protected:
     Sentence() = default;
     explicit Sentence(Kind kind) : kind_(kind) {}
 
-    Kind                kind_{Kind::kUnknown};
+    Kind       kind_{Kind::kUnknown};
 };
 
 class CreateSentence : public Sentence {

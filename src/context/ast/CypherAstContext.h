@@ -38,7 +38,7 @@ struct NodeInfo {
     std::vector<TagID>                      tids;
     std::vector<const std::string*>         labels;
     std::vector<MapExpression*>             labelProps;
-    const std::string                      *alias{nullptr};
+    std::string                             alias;
     const MapExpression                    *props{nullptr};
     Expression                             *filter{nullptr};
 };
@@ -49,7 +49,7 @@ struct EdgeInfo {
     std::vector<EdgeType>                   edgeTypes;
     MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
     std::vector<const std::string*>         types;
-    const std::string                      *alias{nullptr};
+    std::string                             alias;
     const MapExpression                    *props{nullptr};
     Expression                             *filter{nullptr};
 };
@@ -143,8 +143,11 @@ struct MatchClauseContext final : CypherClauseContextBase {
 struct UnwindClauseContext final : CypherClauseContextBase {
     UnwindClauseContext() : CypherClauseContextBase(CypherClauseKind::kUnwind) {}
 
-    const YieldColumns*                         yieldColumns{nullptr};
-    std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
+    Expression* unwindExpr{nullptr};
+    std::string alias;
+
+    // TODO: refactor alias
+    std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
     std::unordered_map<std::string, AliasType>  aliasesGenerated;
 };
 
