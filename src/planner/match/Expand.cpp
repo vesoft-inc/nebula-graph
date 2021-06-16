@@ -26,7 +26,7 @@ static std::unique_ptr<std::vector<VertexProp>> genVertexProps() {
     if (FLAGS_match_clause_with_props) {
         return std::make_unique<std::vector<VertexProp>>();
     }
-    return nullptr;
+    return std::make_unique<std::vector<VertexProp>>();
 }
 
 std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const EdgeInfo& edge) {
