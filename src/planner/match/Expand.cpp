@@ -23,7 +23,10 @@ namespace nebula {
 namespace graph {
 
 static std::unique_ptr<std::vector<VertexProp>> genVertexProps() {
-    return std::make_unique<std::vector<VertexProp>>();
+    if (FLAGS_match_clause_with_props) {
+        return std::make_unique<std::vector<VertexProp>>();
+    }
+    return nullptr;
 }
 
 std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const EdgeInfo& edge) {
