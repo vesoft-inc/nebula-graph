@@ -38,10 +38,10 @@ private:
                     case meta::cpp2::AdminCmd::STATS:
                     case meta::cpp2::AdminCmd::COMPACT:
                     case meta::cpp2::AdminCmd::FLUSH:
-                        return true;
-                    case meta::cpp2::AdminCmd::DATA_BALANCE:
                     case meta::cpp2::AdminCmd::DOWNLOAD:
                     case meta::cpp2::AdminCmd::INGEST:
+                        return true;
+                    case meta::cpp2::AdminCmd::DATA_BALANCE:
                     case meta::cpp2::AdminCmd::UNKNOWN:
                         return false;
                 }

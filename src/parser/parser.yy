@@ -365,7 +365,6 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <sentence> insert_vertex_sentence insert_edge_sentence
 %type <sentence> delete_vertex_sentence delete_edge_sentence
 %type <sentence> update_vertex_sentence update_edge_sentence
-%type <sentence> download_sentence ingest_sentence
 
 %type <sentence> traverse_sentence
 %type <sentence> go_sentence match_sentence lookup_sentence find_path_sentence get_subgraph_sentence
@@ -2806,15 +2805,6 @@ delete_vertex_sentence
     }
     ;
 
-download_sentence
-    : KW_DOWNLOAD KW_HDFS STRING {
-        auto sentence = new DownloadSentence();
-        sentence->setUrl(*$3);
-        $$ = sentence;
-        delete $3;
-    }
-    ;
-
 delete_edge_sentence
     : KW_DELETE KW_EDGE name_label edge_keys {
         auto sentence = new DeleteEdgesSentence($3, $4);
@@ -2823,13 +2813,6 @@ delete_edge_sentence
 
     | KW_DELETE KW_EDGE name_label edge_key_ref {
         auto sentence = new DeleteEdgesSentence($3, $4);
-        $$ = sentence;
-    }
-    ;
-
-ingest_sentence
-    : KW_INGEST {
-        auto sentence = new IngestSentence();
         $$ = sentence;
     }
     ;
@@ -2846,6 +2829,23 @@ admin_job_sentence
     | KW_SUBMIT KW_JOB KW_FLUSH job_concurrency {
         auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
                                              meta::cpp2::AdminCmd::FLUSH);
+        if ($4 != 0) {
+            sentence->addPara(std::to_string($4));
+        }
+        $$ = sentence;
+    }
+    | KW_SUBMIT KW_JOB KW_DOWNLOAD KW_HDFS STRING job_concurrency {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::DOWNLOAD);
+        sentence->addPara(*$5);
+        if ($6 != 0) {
+            sentence->addPara(std::to_string($6));
+        }
+        $$ = sentence;
+    }
+    | KW_SUBMIT KW_JOB KW_INGEST job_concurrency {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::INGEST);
         if ($4 != 0) {
             sentence->addPara(std::to_string($4));
         }
@@ -3372,8 +3372,6 @@ mutate_sentence
     | insert_edge_sentence { $$ = $1; }
     | update_vertex_sentence { $$ = $1; }
     | update_edge_sentence { $$ = $1; }
-    | download_sentence { $$ = $1; }
-    | ingest_sentence { $$ = $1; }
     | admin_job_sentence { $$ = $1; }
     ;
 

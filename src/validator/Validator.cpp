@@ -39,8 +39,6 @@
 #include "validator/MatchValidator.h"
 #include "visitor/EvaluableExprVisitor.h"
 #include "validator/LookupValidator.h"
-#include "validator/DownloadValidator.h"
-#include "validator/IngestValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -237,10 +235,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<SignInTSServiceValidator>(sentence, context);
         case Sentence::Kind::kSignOutTSService:
             return std::make_unique<SignOutTSServiceValidator>(sentence, context);
-        case Sentence::Kind::kDownload:
-            return std::make_unique<DownloadValidator>(sentence, context);
-        case Sentence::Kind::kIngest:
-            return std::make_unique<IngestValidator>(sentence, context);
         case Sentence::Kind::kCreateFTIndex:
             return std::make_unique<CreateFTIndexValidator>(sentence, context);
         case Sentence::Kind::kDropFTIndex:
