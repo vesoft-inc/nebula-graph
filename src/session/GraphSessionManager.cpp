@@ -33,7 +33,6 @@ GraphSessionManager::findSession(SessionID id, folly::Executor* runner) {
 }
 
 std::shared_ptr<ClientSession> GraphSessionManager::findSessionFromCache(SessionID id) {
-    folly::RWSpinLock::ReadHolder rHolder(rwlock_);
     auto iter = activeSessions_.find(id);
     if (iter == activeSessions_.end()) {
         return nullptr;
@@ -75,13 +74,15 @@ GraphSessionManager::findSessionFromMetad(SessionID id, folly::Executor* runner)
         }
 
         {
-            folly::RWSpinLock::WriteHolder wHolder(rwlock_);
             auto findPtr = activeSessions_.find(id);
             if (findPtr == activeSessions_.end()) {
                 VLOG(1) << "Add session id: " << id << " from metad";
                 auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
                 sessionPtr->charge();
-                activeSessions_[id] = sessionPtr;
+                auto ret = activeSessions_.assign(id, sessionPtr);
+                if (!ret) {
+                    return Status::Error("Insert session to local cache failed.");
+                }
 
                 // update the space info to sessionPtr
                 if (!spaceName.empty()) {
@@ -113,13 +114,15 @@ GraphSessionManager::createSession(const std::string userName,
         auto sid = session.get_session_id();
         DCHECK_NE(sid, 0L);
         {
-            folly::RWSpinLock::WriteHolder wHolder(rwlock_);
             auto findPtr = activeSessions_.find(sid);
             if (findPtr == activeSessions_.end()) {
                 VLOG(1) << "Create session id: " << sid << ", for user: " << userName;
                 auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
                 sessionPtr->charge();
-                activeSessions_[sid] = sessionPtr;
+                auto ret = activeSessions_.assign(sid, sessionPtr);
+                if (!ret) {
+                    return Status::Error("Insert session to local cache failed.");
+                }
                 updateSessionInfo(sessionPtr.get());
                 return sessionPtr;
             }
@@ -134,7 +137,6 @@ GraphSessionManager::createSession(const std::string userName,
 }
 
 void GraphSessionManager::removeSession(SessionID id) {
-    folly::RWSpinLock::WriteHolder wHolder(rwlock_);
     auto iter = activeSessions_.find(id);
     if (iter == activeSessions_.end()) {
         return;
@@ -162,7 +164,6 @@ void GraphSessionManager::reclaimExpiredSessions() {
         return;
     }
 
-    folly::RWSpinLock::WriteHolder wHolder(rwlock_);
     if (activeSessions_.empty()) {
         return;
     }
@@ -192,7 +193,6 @@ void GraphSessionManager::reclaimExpiredSessions() {
 void GraphSessionManager::updateSessionsToMeta() {
     std::vector<meta::cpp2::Session> sessions;
     {
-        folly::RWSpinLock::ReadHolder rHolder(rwlock_);
         if (activeSessions_.empty()) {
             return;
         }
