@@ -19,6 +19,10 @@ namespace graph {
 
 /*static*/ constexpr char LookupValidator::kVertexID[];
 
+const LookupSentence* LookupValidator::sentence() const {
+    return static_cast<LookupSentence*>(sentence_);
+}
+
 Status LookupValidator::validateImpl() {
     NG_RETURN_IF_ERROR(prepareFrom());
     NG_RETURN_IF_ERROR(prepareYield());
@@ -55,20 +59,16 @@ Status LookupValidator::toPlan() {
 }
 
 Status LookupValidator::prepareFrom() {
-    auto* sentence = static_cast<const LookupSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
-    from_ = *sentence->from();
+    from_ = sentence()->from();
     auto ret = qctx_->schemaMng()->getSchemaIDByName(spaceId_, from_);
-    if (!ret.ok()) {
-        return ret.status();
-    }
+    NG_RETURN_IF_ERROR(ret);
     isEdge_ = ret.value().first;
     schemaId_ = ret.value().second;
     return Status::OK();
 }
 
 Status LookupValidator::prepareYield() {
-    auto* sentence = static_cast<const LookupSentence*>(sentence_);
     returnCols_ = std::make_unique<std::vector<std::string>>();
     // always return
     if (isEdge_) {
@@ -86,11 +86,11 @@ Status LookupValidator::prepareYield() {
         idxScanColNames_.emplace_back(kVertexID);
         outputs_.emplace_back(idxScanColNames_.back(), vidType_);
     }
-    if (sentence->yieldClause() == nullptr) {
+    if (sentence()->yieldClause() == nullptr) {
         return Status::OK();
     }
     withProject_ = true;
-    if (sentence->yieldClause()->isDistinct()) {
+    if (sentence()->yieldClause()->isDistinct()) {
         dedup_ = true;
     }
     auto* pool = qctx_->objPool();
@@ -107,7 +107,7 @@ Status LookupValidator::prepareYield() {
         newYieldColumns_->addColumn(
             new YieldColumn(InputPropertyExpression::make(pool, kVertexID), kVertexID));
     }
-    auto columns = sentence->yieldClause()->columns();
+    auto columns = sentence()->yieldClause()->columns();
     auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
                           : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
     if (schema == nullptr) {
@@ -152,12 +152,11 @@ Status LookupValidator::prepareYield() {
 }
 
 Status LookupValidator::prepareFilter() {
-    auto* sentence = static_cast<const LookupSentence*>(sentence_);
-    if (sentence->whereClause() == nullptr) {
+    if (sentence()->whereClause() == nullptr) {
         return Status::OK();
     }
 
-    auto* filter = sentence->whereClause()->filter();
+    auto* filter = sentence()->whereClause()->filter();
     storage::cpp2::IndexQueryContext ctx;
     if (FTIndexUtils::needTextSearch(filter)) {
         auto tsRet = FTIndexUtils::getTSClients(qctx_->getMetaClient());

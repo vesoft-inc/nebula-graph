@@ -40,6 +40,11 @@ std::string GoSentence::toString() const {
     return buf;
 }
 
+LookupSentence::LookupSentence(std::string *from, WhereClause *where, YieldClause *yield)
+    : Sentence(Kind::kLookup),
+      from_(DCHECK_NOTNULL(from)),
+      whereClause_(DCHECK_NOTNULL(where)),
+      yieldClause_(DCHECK_NOTNULL(yield)) {}
 
 std::string LookupSentence::toString() const {
     std::string buf;

@@ -47,6 +47,8 @@ private:
     Expression* reverseRelKind(RelationalExpression* expr);
 
 private:
+    const LookupSentence *sentence() const;
+
     static constexpr char kSrcVID[] = "SrcVID";
     static constexpr char kDstVID[] = "DstVID";
     static constexpr char kRanking[] = "Ranking";

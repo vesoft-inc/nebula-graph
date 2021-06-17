@@ -432,7 +432,7 @@ private:
 /**
  * Read data through the index.
  */
-class IndexScan final : public Explore {
+class IndexScan : public Explore {
 public:
     using IndexQueryCtx = std::unique_ptr<std::vector<storage::cpp2::IndexQueryContext>>;
     using IndexReturnCols = std::unique_ptr<std::vector<std::string>>;
@@ -539,6 +539,27 @@ private:
     int32_t                                       schemaId_;
     bool                                          isEmptyResultSet_;
 };
+
+// Logical Plan
+class EdgeIndexScan : public IndexScan {};
+
+class EdgeIndexPrefixScan : public EdgeIndexScan {};
+
+class EdgeIndexRangeScan : public EdgeIndexScan {};
+
+class EdgeIndexFullScan : public EdgeIndexScan {};
+
+// class EdgeFullTextIndexScan : public EdgeIndexScan {};
+
+class TagIndexScan : public IndexScan {};
+
+class TagIndexPrefixScan : public TagIndexScan {};
+
+class TagIndexRangeScan : public TagIndexScan {};
+
+class TagIndexFullScan : public TagIndexScan {};
+
+// class TagFullTextIndexScan : public TagIndexScan {};
 
 /**
  * A Filter node helps filt some records with condition.
