@@ -15,6 +15,7 @@ namespace graph {
 class GetSubgraphValidator final : public TraversalValidator {
 public:
     using EdgeProp = nebula::storage::cpp2::EdgeProp;
+    using VertexProp = nebula::storage::cpp2::VertexProp;
     GetSubgraphValidator(Sentence* sentence, QueryContext* context)
         : TraversalValidator(sentence, context) {}
 
@@ -31,14 +32,19 @@ private:
 
     StatusOr<std::unique_ptr<std::vector<EdgeProp>>> buildEdgeProps();
 
+    std::unique_ptr<std::vector<EdgeProp>> wantedEdgeProps();
+
+    StatusOr<std::unique_ptr<std::vector<VertexProp>>> buildVertexProp();
+
     Status validateWhere(WhereClause* where);
 
     Status zeroStep(PlanNode* depend, const std::string& inputVar);
 
 private:
-    std::unordered_set<EdgeType> edgeTypes_;
-    bool withProp_{false};
-    Expression*  filter_{nullptr};
+    std::unordered_set<EdgeType>                edgeTypes_;
+    bool                                        withProp_{false};
+    Expression*                                 filter_{nullptr};
+    bool                                        dstFilter_{false};
 };
 
 }  // namespace graph

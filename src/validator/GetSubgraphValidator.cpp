@@ -31,7 +31,7 @@ Status GetSubgraphValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateBothInOutBound(gsSentence->both()));
     NG_RETURN_IF_ERROR(validateWhere(gsSentence->where()));
 
-    if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty()) {
+    if (!exprProps_.srcTagProps().empty()) {
         return Status::SemanticError("Only support input and variable in Subgraph sentence.");
     }
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
@@ -113,12 +113,14 @@ Status GetSubgraphValidator::validateWhere(WhereClause* where) {
     filter_ = where->filter();
     if (ExpressionUtils::findAny(filter_,
                                  {Expression::Kind::kAggregate,
-                                  Expression::Kind::kDstProperty,
                                   Expression::Kind::kSrcProperty,
                                   Expression::Kind::kVarProperty,
                                   Expression::Kind::kInputProperty})) {
         return Status::SemanticError("Not support `%s' in where sentence.",
                                      filter_->toString().c_str());
+    }
+    if (ExpressionUtils::findAny(filter_, {Expression::Kind::kDstProperty})) {
+        dstFilter_ = true;
     }
     where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(filter_));
     filter_ = where->filter();
@@ -147,15 +149,73 @@ StatusOr<std::unique_ptr<std::vector<EdgeProp>>> GetSubgraphValidator::buildEdge
             edgeTypes_.emplace(-edge.first);
         }
     }
+    if (!exprProps_.edgeProps().empty()) {
+        return wantedEdgeProps();
+    }
     std::vector<EdgeType> edgeTypes(edgeTypes_.begin(), edgeTypes_.end());
     auto edgeProps = SchemaUtil::getEdgeProps(qctx_, space_, std::move(edgeTypes), withProp_);
     NG_RETURN_IF_ERROR(edgeProps);
     return edgeProps;
 }
 
+std::unique_ptr<std::vector<EdgeProp>> GetSubgraphValidator::wantedEdgeProps() {
+    auto edgePropsPtr = std::make_unique<std::vector<EdgeProp>>();
+    edgePropsPtr->reserve(edgeTypes_.size());
+
+    const auto& edgeProps = exprProps_.edgeProps();
+    for (const auto edgeType : edgeTypes_) {
+        EdgeProp ep;
+        ep.set_type(edgeType);
+        const auto& found = edgeProps.find(std::abs(edgeType));
+        if (found != edgeProps.end()) {
+            std::set<std::string> props(found->second.begin(), found->second.end());
+            props.emplace(kType);
+            props.emplace(kRank);
+            props.emplace(kDst);
+            ep.set_props(std::vector<std::string>(props.begin(), props.end()));
+        } else {
+            ep.set_props({kType, kRank, kDst});
+        }
+        edgePropsPtr->emplace_back(std::move(ep));
+    }
+    return edgePropsPtr;
+}
+
+StatusOr<std::unique_ptr<std::vector<VertexProp>>> GetSubgraphValidator::buildVertexProp() {
+    const auto& dstTagProps = exprProps_.dstTagProps();
+    const auto allTagsResult = qctx()->schemaMng()->getAllLatestVerTagSchema(space_.id);
+    NG_RETURN_IF_ERROR(allTagsResult);
+    const auto allTags = std::move(allTagsResult).value();
+
+    auto vertexProps = std::make_unique<std::vector<VertexProp>>();
+    vertexProps->reserve(allTags.size());
+
+    for (const auto& tag : allTags) {
+        VertexProp vp;
+        vp.set_tag(tag.first);
+
+        if (withProp_) {
+            std::vector<std::string> props;
+            for (std::size_t i = 0; i < tag.second->getNumFields(); ++i) {
+                props.emplace_back(tag.second->getFieldName(i));
+            }
+            vp.set_props(std::move(props));
+            vertexProps->emplace_back(std::move(vp));
+        }
+        if (!dstTagProps.empty()) {
+            const auto& found = dstTagProps.find(tag.first);
+            if (found != dstTagProps.end()) {
+                vp.set_props(std::vector<std::string>(found->second.begin(), found->second.end()));
+                vertexProps->emplace_back(std::move(vp));
+            }
+        }
+    }
+    return vertexProps;
+}
+
 Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& inputVar) {
     auto& space = vctx_->whichSpace();
-    std::unique_ptr<std::vector<Expr>> exprs;
+    std::unique_ptr<std::vector<nebula::storage::cpp2::Expr>> exprs;
     auto vertexProps = SchemaUtil::getAllVertexProp(qctx_, space, withProp_);
     NG_RETURN_IF_ERROR(vertexProps);
     auto* getVertex = GetVertices::make(qctx_,
@@ -197,17 +257,16 @@ Status GetSubgraphValidator::toPlan() {
         return zeroStep(loopDep == nullptr ? bodyStart : loopDep, startVidsVar);
     }
 
+    auto edgeProps = buildEdgeProps();
+    NG_RETURN_IF_ERROR(edgeProps);
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space.id);
     gn->setSrc(from_.src);
-    if (withProp_) {
-        auto vertexPropsResult = buildVertexProp();
-        NG_RETURN_IF_ERROR(vertexPropsResult);
-        gn->setVertexProps(std::move(vertexPropsResult).value());
+    if (withProp_ || !exprProps_.dstTagProps().empty()) {
+        auto vertexProps = buildVertexProp();
+        NG_RETURN_IF_ERROR(vertexProps);
+        gn->setVertexProps(std::move(vertexProps).value());
     }
-    auto edgePropsResult = buildEdgeProps();
-    NG_RETURN_IF_ERROR(edgePropsResult);
-    gn->setEdgeProps(
-        std::make_unique<std::vector<storage::cpp2::EdgeProp>>(*edgePropsResult.value()));
+    gn->setEdgeProps(std::move(edgeProps).value());
     gn->setInputVar(startVidsVar);
 
     PlanNode* dep = gn;
@@ -224,9 +283,30 @@ Status GetSubgraphValidator::toPlan() {
     auto* loopCondition = buildExpandCondition(gn->outputVar(), steps_.steps());
     auto* loop = Loop::make(qctx_, loopDep, subgraph, loopCondition);
 
+    // getVertices
+    PlanNode* dcDep = loop;
+    if (dstFilter_) {
+        std::unique_ptr<std::vector<nebula::storage::cpp2::Expr>> exprs;
+        auto vertexProps = buildVertexProp();
+        NG_RETURN_IF_ERROR(vertexProps);
+        auto* src = qctx_->objPool()->makeAndAdd<VariablePropertyExpression>("*", kVid);
+        auto* gv = GetVertices::make(
+            qctx_, loop, space.id, src, std::move(vertexProps).value(), std::move(exprs));
+        gv->setInputVar(subgraph->outputVar());
+
+        auto* filter = Filter::make(qctx_, gv, filter_);
+        dcDep = filter;
+    }
+
     auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kSubgraph);
-    dc->addDep(loop);
-    dc->setInputVars({gn->outputVar(), subgraph->outputVar()});
+    dc->addDep(dcDep);
+    if (dstFilter_) {
+        // tagfilter
+        dc->setInputVars({gn->outputVar(), dcDep->outputVar()});
+    } else {
+        // edgefilter
+        dc->setInputVars({gn->outputVar(), subgraph->outputVar()});
+    }
     dc->setColNames({"_vertices", "_edges"});
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;
@@ -235,5 +315,6 @@ Status GetSubgraphValidator::toPlan() {
     outputs_.emplace_back(kEdges, Value::Type::EDGE);
     return Status::OK();
 }
+
 }   // namespace graph
 }   // namespace nebula

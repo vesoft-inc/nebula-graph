@@ -105,7 +105,7 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
         if (vars.size() < 2) {
             break;
         }
-        // get latestVersion subgraph->outputVar()
+        // latestVersion subgraph->outputVar() OR filter->outputVar()
         const auto& res = ectx_->getResult(vars[1]);
         auto iter = res.iter();
         if (iter->isPropIter()) {
