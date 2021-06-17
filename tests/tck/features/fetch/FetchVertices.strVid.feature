@@ -374,6 +374,16 @@ Feature: Fetch String Vertices
       | "Manu Ginobili"     |
       | "Tim Duncan"        |
 
+  @skip
+  Scenario: Fetch prop on not attached tag
+    When executing query:
+      """
+      FETCH PROP ON team 'Tim Duncan' yield team.name
+      """
+    Then the result should be, in any order:
+      | VertexID     | team.name |
+      | 'Tim Duncan' | EMPTY     |
+
   Scenario: Typical errors
     # Fetch Vertices not support get src property
     When executing query:
