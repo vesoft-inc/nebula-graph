@@ -25,7 +25,7 @@ Status CreateSpaceValidator::validateImpl() {
     auto status = Status::OK();
     spaceDesc_.set_space_name(std::move(*(sentence->spaceName())));
     if (sentence->groupName())
-        spaceDesc_.set_group_name(std::move(*(sentence->groupName())));
+         spaceDesc_.set_group_name(std::move(*(sentence->groupName())));
     StatusOr<std::string> retStatusOr;
     std::string result;
     auto* charsetInfo = qctx_->getCharsetInfo();
@@ -105,7 +105,6 @@ Status CreateSpaceValidator::validateImpl() {
             }
         }
     }
-<<<<<<< HEAD
     // check comment
     if (sentence->comment() != nullptr) {
         spaceDesc_.set_comment(*sentence->comment());
@@ -115,8 +114,6 @@ Status CreateSpaceValidator::validateImpl() {
         return Status::SemanticError("Group default conflict");
     }
 
-=======
->>>>>>> fix create space on group
     // if charset and collate are not specified, set default value
     if (!(*spaceDesc_.charset_name_ref()).empty() && !(*spaceDesc_.collate_name_ref()).empty()) {
         NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(*spaceDesc_.charset_name_ref(),
