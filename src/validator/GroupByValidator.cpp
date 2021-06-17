@@ -49,7 +49,7 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
                                                  colExpr->toString().c_str());
                 }
 
-                groupItems_.emplace_back(pool->add(agg->clone()));
+                groupItems_.emplace_back(agg->clone());
                 needGenProject_ = true;
                 outputColumnNames_.emplace_back(agg->toString());
             }

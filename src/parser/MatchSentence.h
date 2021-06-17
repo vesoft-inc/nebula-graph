@@ -61,7 +61,7 @@ public:
                   Expression *props = nullptr) {
         alias_ = alias;
         range_.reset(range);
-        props_.reset(static_cast<MapExpression*>(props));
+        props_ = static_cast<MapExpression*>(props);
         if (types != nullptr) {
             types_ = std::move(*types).items();
             delete types;
@@ -78,7 +78,7 @@ public:
 private:
     std::string                                         alias_;
     std::vector<std::unique_ptr<std::string>>           types_;
-    std::unique_ptr<MapExpression>                      props_;
+    MapExpression*                                      props_{nullptr};
     std::unique_ptr<MatchStepRange>                     range_;
 };
 
@@ -111,7 +111,7 @@ public:
     }
 
     const MapExpression* props() const {
-        return props_.get();
+        return props_;
     }
 
     auto* range() const {
@@ -125,7 +125,7 @@ private:
     std::string                                     alias_;
     std::vector<std::unique_ptr<std::string>>       types_;
     std::unique_ptr<MatchStepRange>                 range_;
-    std::unique_ptr<MapExpression>                  props_;
+    MapExpression*                                  props_{nullptr};
 };
 
 class MatchNodeLabel final {
@@ -140,11 +140,11 @@ public:
     }
 
     const MapExpression* props() const {
-        return props_.get();
+        return props_;
     }
 
     MapExpression* props() {
-        return props_.get();
+        return props_;
     }
 
     std::string toString() const {
@@ -157,8 +157,8 @@ public:
     }
 
 private:
-    std::unique_ptr<std::string>                    label_;
-    std::unique_ptr<MapExpression>                  props_;
+    std::unique_ptr<std::string>    label_;
+    MapExpression*                  props_{nullptr};
 };
 
 class MatchNodeLabelList final {
@@ -190,7 +190,7 @@ public:
               Expression *props = nullptr) {
         alias_ = alias;
         labels_.reset(labels);
-        props_.reset(static_cast<MapExpression*>(props));
+        props_ = static_cast<MapExpression*>(props);
     }
 
     const std::string& alias() const {
@@ -202,7 +202,7 @@ public:
     }
 
     const MapExpression* props() const {
-        return props_.get();
+        return props_;
     }
 
     std::string toString() const;
@@ -210,7 +210,7 @@ public:
 private:
     std::string                                     alias_;
     std::unique_ptr<MatchNodeLabelList>             labels_;
-    std::unique_ptr<MapExpression>                  props_;
+    MapExpression*                                  props_{nullptr};
 };
 
 
@@ -314,12 +314,12 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<YieldColumns>                   columns_;
-    bool                                            isAll_{false};
-    bool                                            isDistinct_{false};
-    std::unique_ptr<OrderFactors>                   orderFactors_;
-    Expression*                     skip_;
-    Expression*                     limit_;
+    std::unique_ptr<YieldColumns>   columns_;
+    bool                            isAll_{false};
+    bool                            isDistinct_{false};
+    std::unique_ptr<OrderFactors>   orderFactors_;
+    Expression*                     skip_{nullptr};
+    Expression*                     limit_{nullptr};
 };
 
 
@@ -489,8 +489,8 @@ public:
 private:
     std::unique_ptr<YieldColumns>       columns_;
     std::unique_ptr<OrderFactors>       orderFactors_;
-    Expression*         skip_;
-    Expression*         limit_;
+    Expression*                         skip_{nullptr};
+    Expression*                         limit_{nullptr};
     std::unique_ptr<WhereClause>        where_;
     bool                                isDistinct_;
 };

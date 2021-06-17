@@ -43,8 +43,8 @@ public:
     std::string toString() const;
 
 private:
-    Expression* srcid_;
-    Expression* dstid_;
+    Expression* srcid_{nullptr};
+    Expression* dstid_{nullptr};
     EdgeRanking rank_;
 };
 
@@ -106,10 +106,10 @@ public:
     std::string toString() const;
 
 private:
-    Expression* srcid_;
-    Expression* dstid_;
-    Expression* rank_;
-    Expression* type_;
+    Expression *srcid_{nullptr};
+    Expression *dstid_{nullptr};
+    Expression *rank_{nullptr};
+    Expression *type_{nullptr};
     std::unordered_set<std::string> uniqVar_;
     bool isInputExpr_;
 };

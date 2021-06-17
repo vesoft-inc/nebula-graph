@@ -84,8 +84,8 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
         }
         return true;
     };
-    Expression* filterPicked;
-    Expression* filterUnpicked;
+    Expression* filterPicked = nullptr;
+    Expression* filterUnpicked = nullptr;
     graph::ExpressionUtils::splitFilter(objPool, condition, picker, &filterPicked, &filterUnpicked);
 
     if (!filterPicked) {

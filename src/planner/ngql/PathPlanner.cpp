@@ -265,8 +265,7 @@ SubPlan PathPlanner::singlePairPlan(PlanNode* dep) {
         qctx, forwardPath, backwardPath, ConjunctPath::PathKind::kBiBFS, pathCtx_->steps.steps());
     conjunct->setColNames({kPathStr});
 
-    auto* loopCondition = qctx->objPool()->add(
-        singlePairLoopCondition(pathCtx_->steps.steps(), conjunct->outputVar()));
+    auto* loopCondition = singlePairLoopCondition(pathCtx_->steps.steps(), conjunct->outputVar());
     auto* loop = Loop::make(qctx, nullptr, conjunct, loopCondition);
     auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kBFSShortest);
     dc->setInputVars({conjunct->outputVar()});
@@ -318,7 +317,7 @@ SubPlan PathPlanner::allPairPlan(PlanNode* dep) {
     conjunct->setColNames({kPathStr});
 
     SubPlan loopDepPlan = allPairLoopDepPlan();
-    auto* loopCondition = qctx->objPool()->add(allPairLoopCondition(pathCtx_->steps.steps()));
+    auto* loopCondition = allPairLoopCondition(pathCtx_->steps.steps());
     auto* loop = Loop::make(qctx, loopDepPlan.root, conjunct, loopCondition);
 
     auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kAllPaths);
@@ -371,8 +370,7 @@ SubPlan PathPlanner::multiPairPlan(PlanNode* dep) {
     // loopDepPlan.root is cartesianProduct
     const auto& endConditionVar = loopDepPlan.root->outputVar();
     conjunct->setConditionalVar(endConditionVar);
-    auto* loopCondition =
-        qctx->objPool()->add(multiPairLoopCondition(pathCtx_->steps.steps(), endConditionVar));
+    auto* loopCondition = multiPairLoopCondition(pathCtx_->steps.steps(), endConditionVar);
     auto* loop = Loop::make(qctx, loopDepPlan.root, conjunct, loopCondition);
 
     auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kMultiplePairShortest);
@@ -404,14 +402,14 @@ PlanNode* PathPlanner::buildVertexPlan(PlanNode* dep, const std::string& input) 
     project->setInputVar(input);
 
     // col 0 of the project->output is [node...]
-    auto* unwindExpr = qctx->objPool()->add(ColumnExpression::make(pool, 0));
+    auto* unwindExpr = ColumnExpression::make(pool, 0);
     auto* unwind = Unwind::make(qctx, project, unwindExpr);
     unwind->setColNames({"nodes"});
 
     // extract vid from vertex, col 0 is vertex
     auto idArgs = ArgumentList::make(pool);
     idArgs->addArgument(ColumnExpression::make(pool, 1));
-    auto* src = qctx->objPool()->add(FunctionCallExpression::make(pool, "id", idArgs));
+    auto* src = FunctionCallExpression::make(pool, "id", idArgs);
     // get all vertexprop
     auto vertexProp = SchemaUtil::getAllVertexProp(qctx, pathCtx_->space, true);
     auto* getVertices = GetVertices::make(
@@ -437,28 +435,26 @@ PlanNode* PathPlanner::buildEdgePlan(PlanNode* dep, const std::string& input) {
     project->setInputVar(input);
 
     // col 0 of the project->output() is [edge...]
-    auto* unwindExpr = qctx->objPool()->add(ColumnExpression::make(pool, 0));
+    auto* unwindExpr = ColumnExpression::make(pool, 0);
     auto* unwind = Unwind::make(qctx, project, unwindExpr);
     unwind->setColNames({"edges"});
 
     // extract src from edge
     auto srcArgs = ArgumentList::make(pool);
     srcArgs->addArgument(ColumnExpression::make(pool, 1));
-    auto* src = qctx->objPool()->add(FunctionCallExpression::make(pool, "src", srcArgs));
+    auto* src = FunctionCallExpression::make(pool, "src", srcArgs);
     // extract dst from edge
     auto dstArgs = ArgumentList::make(pool);
     dstArgs->addArgument(ColumnExpression::make(pool, 1));
-    auto* dst = qctx->objPool()->add(FunctionCallExpression::make(pool, "dst", dstArgs));
+    auto* dst = FunctionCallExpression::make(pool, "dst", dstArgs);
     // extract rank from edge
     auto rankArgs = ArgumentList::make(pool);
     rankArgs->addArgument(ColumnExpression::make(pool, 1));
-    auto* rank =
-        qctx->objPool()->add(FunctionCallExpression::make(pool, "rank", rankArgs));
+    auto* rank = FunctionCallExpression::make(pool, "rank", rankArgs);
     // type
     auto typeArgs = ArgumentList::make(pool);
     typeArgs->addArgument(ColumnExpression::make(pool, 1));
-    auto* type =
-        qctx->objPool()->add(FunctionCallExpression::make(pool, "typeid", typeArgs));
+    auto* type = FunctionCallExpression::make(pool, "typeid", typeArgs);
     // prepare edgetype
     auto edgeProp = SchemaUtil::getEdgeProps(qctx, pathCtx_->space, pathCtx_->over.edgeTypes, true);
     auto* getEdge = GetEdges::make(qctx,

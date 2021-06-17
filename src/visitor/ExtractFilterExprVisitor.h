@@ -15,14 +15,14 @@ namespace graph {
 
 class ExtractFilterExprVisitor final : public ExprVisitorImpl {
 public:
-    explicit ExtractFilterExprVisitor(ObjectPool *ObjPool);
+    explicit ExtractFilterExprVisitor(ObjectPool *ObjPool) : pool_(ObjPool) {}
 
     bool ok() const override {
         return canBePushed_;
     }
 
-    Expression* remainedExpr() && {
-        return std::move(remainedExpr_);
+    Expression* remainedExpr() {
+        return remainedExpr_;
     }
 
 private:
@@ -52,7 +52,7 @@ private:
 private:
     ObjectPool *pool_;
     bool canBePushed_{true};
-    Expression* remainedExpr_;
+    Expression* remainedExpr_{nullptr};
 };
 
 }   // namespace graph

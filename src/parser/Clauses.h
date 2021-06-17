@@ -62,12 +62,7 @@ public:
     }
 
     std::vector<Expression*> vidList() const {
-        std::vector<Expression*> result;
-        result.reserve(vidList_.size());
-        for (auto &expr : vidList_) {
-            result.push_back(expr);
-        }
-        return result;
+        return vidList_;
     }
 
     std::string toString() const;
@@ -103,7 +98,7 @@ public:
 
 protected:
     std::unique_ptr<VertexIDList> vidList_;
-    Expression *ref_;
+    Expression *ref_{nullptr};
 };
 
 class FromClause final : public VerticesClause {
@@ -245,7 +240,7 @@ public:
     std::string toString() const;
 
 private:
-    Expression*                 filter_;
+    Expression*                 filter_{nullptr};
 };
 
 class WhenClause : public WhereClause {
@@ -289,7 +284,7 @@ public:
     std::string toString() const;
 
 private:
-    Expression* expr_;
+    Expression* expr_{nullptr};
     std::string alias_;
 };
 

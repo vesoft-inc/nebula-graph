@@ -59,9 +59,6 @@ private:
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map,
                                         const std::string &label = "") const;
-    StatusOr<Expression*> makeSubFilterWithoutSave(const std::string &alias,
-                                                   const MapExpression *map,
-                                                   const std::string &label = "") const;
 
     static Expression* andConnect(ObjectPool* pool, Expression *left, Expression *right);
 

@@ -326,7 +326,7 @@ YieldColumn* MatchClausePlanner::buildVertexColumn(MatchClauseContext* matchClau
     auto colExpr = InputPropertyExpression::make(pool, colName);
     // startNode(path) => head node of path
     auto args = ArgumentList::make(pool);
-    args->addArgument(std::move(colExpr));
+    args->addArgument(colExpr);
     auto firstVertexExpr = FunctionCallExpression::make(pool, "startNode", args);
     return new YieldColumn(firstVertexExpr, alias);
 }
@@ -338,7 +338,7 @@ YieldColumn* MatchClausePlanner::buildEdgeColumn(MatchClauseContext* matchClause
     auto colExpr = InputPropertyExpression::make(pool, colName);
     // relationships(p)
     auto args = ArgumentList::make(pool);
-    args->addArgument(std::move(colExpr));
+    args->addArgument(colExpr);
     auto relExpr = FunctionCallExpression::make(pool, "relationships", args);
     Expression* expr = nullptr;
     if (edge.range != nullptr) {
@@ -381,15 +381,15 @@ YieldColumn* MatchClausePlanner::buildPathColumn(MatchClauseContext* matchClause
     auto finalPath = PathBuildExpression::make(pool);
     if (leftExpandPath->size() != 0) {
         auto args = ArgumentList::make(pool);
-        args->addArgument(std::move(leftExpandPath));
+        args->addArgument(leftExpandPath);
         auto reversePath = FunctionCallExpression::make(pool, "reversePath", args);
         if (rightExpandPath->size() == 0) {
             return new YieldColumn(reversePath, alias);
         }
-        finalPath->add(std::move(reversePath));
+        finalPath->add(reversePath);
     }
     if (rightExpandPath->size() != 0) {
-        finalPath->add(std::move(rightExpandPath));
+        finalPath->add(rightExpandPath);
     }
     return new YieldColumn(finalPath, alias);
 }

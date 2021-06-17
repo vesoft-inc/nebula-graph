@@ -454,7 +454,7 @@ public:
 private:
     meta::cpp2::ConfigModule        module_;
     std::unique_ptr<std::string>    name_;
-    Expression*     value_;
+    Expression*                     value_{nullptr};
     std::unique_ptr<UpdateList>     updateItems_;
 };
 

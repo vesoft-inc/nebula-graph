@@ -100,11 +100,7 @@ public:
     std::string toString() const;
 
     std::vector<Expression*> values() const {
-        std::vector<Expression*> result;
-        result.resize(values_.size());
-        auto get = [] (const auto &ptr) { return ptr; };
-        std::transform(values_.begin(), values_.end(), result.begin(), get);
-        return result;
+        return values_;
     }
 
 private:
@@ -130,8 +126,8 @@ public:
     std::string toString() const;
 
 private:
-    Expression*                 id_;
-    std::unique_ptr<ValueList>                  values_;
+    Expression*                 id_{nullptr};
+    std::unique_ptr<ValueList>  values_;
 };
 
 
@@ -230,12 +226,11 @@ public:
     std::string toString() const;
 
 private:
-    Expression*                 srcid_;
-    Expression*                 dstid_;
-    EdgeRanking                                 rank_{0};
-    std::unique_ptr<ValueList>                  values_;
+    Expression *srcid_{nullptr};
+    Expression *dstid_{nullptr};
+    EdgeRanking rank_{0};
+    std::unique_ptr<ValueList> values_;
 };
-
 
 class EdgeRowList final {
 public:
@@ -338,11 +333,10 @@ public:
     StatusOr<std::string> toEvaledString() const;
 
 private:
-    std::unique_ptr<std::string>                fieldStr_;
-    Expression*                 fieldExpr_;
-    Expression*                 value_;
+    std::unique_ptr<std::string> fieldStr_;
+    Expression *fieldExpr_{nullptr};
+    Expression *value_{nullptr};
 };
-
 
 class UpdateList final {
 public:
@@ -462,7 +456,7 @@ public:
     std::string toString() const override;
 
 private:
-    Expression*                 vid_;
+    Expression*                 vid_{nullptr};
 };
 
 
@@ -498,9 +492,9 @@ public:
     std::string toString() const override;
 
 private:
-    Expression*                 srcId_;
-    Expression*                 dstId_;
-    int64_t                                     rank_{0L};
+    Expression *srcId_{nullptr};
+    Expression *dstId_{nullptr};
+    int64_t rank_{0L};
 };
 
 

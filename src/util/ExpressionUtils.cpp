@@ -225,7 +225,7 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
                    : reducedExpr;
     };
 
-    return pool->add(RewriteVisitor::transform(expr, rootMatcher, rewriter));
+    return RewriteVisitor::transform(expr, rootMatcher, rewriter);
 }
 
 Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *pool) {
@@ -292,12 +292,12 @@ Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *
             pool, relExpr->kind(), relLeftOperandExpr->clone(), relRightOperandExpr->clone());
     };
 
-    return pool->add(RewriteVisitor::transform(expr, matcher, rewriter));
+    return RewriteVisitor::transform(expr, matcher, rewriter);
 }
 
 Expression *ExpressionUtils::rewriteRelExprHelper(ObjectPool *pool,
                                                   const Expression *expr,
-                                                  Expression *relRightOperandExpr) {
+                                                  Expression *&relRightOperandExpr) {
     // TODO: Support rewrite mul/div expressoion after fixing overflow
     auto matcher = [](const Expression *e) -> bool {
         if (!e->isArithmeticExpr() || e->kind() == Expression::Kind::kMultiply ||
@@ -427,10 +427,11 @@ Expression* ExpressionUtils::flattenInnerLogicalExpr(const Expression *expr) {
 }
 
 // pick the subparts of expression that meet picker's criteria
-void ExpressionUtils::splitFilter(ObjectPool* pool, const Expression *expr,
+void ExpressionUtils::splitFilter(ObjectPool *pool,
+                                  const Expression *expr,
                                   std::function<bool(const Expression *)> picker,
-                                  Expression** filterPicked,
-                                  Expression** filterUnpicked) {
+                                  Expression **filterPicked,
+                                  Expression **filterUnpicked) {
     // Pick the non-LogicalAndExpr directly
     if (expr->kind() != Expression::Kind::kLogicalAnd) {
         if (picker(expr)) {

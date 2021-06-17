@@ -51,9 +51,7 @@ StatusOr<OptRule::TransformResult> CombineFilterRule::transform(
         auto* newFilter = static_cast<graph::Filter*>(filterBelow->clone());
         const auto* conditionBelow = newFilter->condition();
         auto* conditionCombine =
-            qctx->objPool()->add(LogicalExpression::makeAnd(pool,
-                                                       conditionAbove->clone(),
-                                                       conditionBelow->clone()));
+            LogicalExpression::makeAnd(pool, conditionAbove->clone(), conditionBelow->clone());
         newFilter->setCondition(conditionCombine);
         newFilter->setOutputVar(filterAbove->outputVar());
         auto* newGroupNode = OptGroupNode::create(octx, newFilter, filterGroup);

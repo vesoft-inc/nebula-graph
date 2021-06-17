@@ -288,8 +288,7 @@ Expression *FetchEdgesValidator::emptyEdgeKeyFilter() {
     auto *srcNotEmptyExpr = notEmpty(EdgeSrcIdExpression::make(pool, edgeTypeName_));
     auto *dstNotEmptyExpr = notEmpty(EdgeDstIdExpression::make(pool, edgeTypeName_));
     auto *rankNotEmptyExpr = notEmpty(EdgeRankExpression::make(pool, edgeTypeName_));
-    auto *edgeKeyNotEmptyExpr =
-        qctx_->objPool()->add(lgAnd(srcNotEmptyExpr, lgAnd(dstNotEmptyExpr, rankNotEmptyExpr)));
+    auto *edgeKeyNotEmptyExpr = lgAnd(srcNotEmptyExpr, lgAnd(dstNotEmptyExpr, rankNotEmptyExpr));
     return edgeKeyNotEmptyExpr;
 }
 

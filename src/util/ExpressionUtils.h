@@ -70,7 +70,7 @@ public:
     static Expression* rewriteRelExpr(const Expression* expr, ObjectPool* pool);
     static Expression* rewriteRelExprHelper(ObjectPool* pool,
                                             const Expression* expr,
-                                            Expression* relRightOperandExpr);
+                                            Expression*& relRightOperandExpr);
 
     // Clone and fold constant expression
     static StatusOr<Expression*> foldConstantExpr(ObjectPool* objPool, const Expression* expr);

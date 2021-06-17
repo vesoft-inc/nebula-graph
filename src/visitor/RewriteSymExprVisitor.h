@@ -87,7 +87,7 @@ private:
     const std::string &sym_;
     bool hasWrongType_{false};
     bool isEdge_{false};
-    Expression *expr_;
+    Expression *expr_{nullptr};
 };
 
 }   // namespace graph

@@ -9,7 +9,6 @@
 %parse-param { std::string &errmsg }
 %parse-param { nebula::Sentence** sentences }
 %parse-param { nebula::graph::QueryContext* qctx }
-/* %parse-param { nebula::graph::ObjectPool* qctxPool } */
 
 %code requires {
 #include <iostream>
@@ -54,9 +53,6 @@ static constexpr size_t kCommentLengthLimit = 256;
 
     void ifOutOfRange(const int64_t input,
                       const nebula::GraphParser::location_type& loc);
-
-    // Manage lifetime of expressions
-    // auto qctx->objPool() = qctx->objPool();
 }
 
 %union {
@@ -153,6 +149,9 @@ static constexpr size_t kCommentLengthLimit = 256;
 
 /* destructors */
 %destructor {} <sentences>
+// Expression related memory will be managed by object pool
+%destructor {} <expr> <argument_list> <case_list> <expression_list> <map_item_list> 
+%destructor {} <text_search_argument> <base_text_search_argument> <fuzzy_text_search_argument> 
 %destructor {} <boolval> <intval> <doubleval> <type> <config_module> <integer_list> <list_host_type>
 %destructor { delete $$; } <*>
 
@@ -790,7 +789,7 @@ generic_case_expression
 
 conditional_expression
     : expression QM expression COLON expression {
-        auto cases = new CaseList();
+        auto cases = CaseList::make(qctx->objPool());
         cases->add($1, $3);
         auto expr = CaseExpression::make(qctx->objPool(), cases, false);
         expr->setDefault($5);
@@ -818,7 +817,7 @@ case_default
 
 when_then_list
     : KW_WHEN expression KW_THEN expression {
-        $$ = new CaseList();
+        $$ = CaseList::make(qctx->objPool());
         $$->add($2, $4);
     }
     | when_then_list KW_WHEN expression KW_THEN expression {
@@ -957,20 +956,17 @@ function_call_expression
         if ($3->numArgs() == 1 && AggFunctionManager::find(*$1).ok()) {
             if (graph::ExpressionUtils::findInnerRandFunction($3->args()[0])) {
                 delete($1);
-                delete($3);
                 throw nebula::GraphParser::syntax_error(
                     @3,
                     "Can't use non-deterministic (random) functions inside of aggregate functions");
             }
             $$ = AggregateExpression::make(qctx->objPool(), *$1, $3->args()[0], false);
             delete($1);
-            delete($3);
         } else if (FunctionManager::find(*$1, $3->numArgs()).ok()) {
             $$ = FunctionCallExpression::make(qctx->objPool(), *$1, $3);
             delete($1);
         } else {
             delete($1);
-            delete($3);
             throw nebula::GraphParser::syntax_error(@1, "Unknown function ");
         }
     }
@@ -1049,13 +1045,13 @@ argument_list
         $$ = ArgumentList::make(qctx->objPool());
         Expression* arg;
         arg = $1;
-        $$->addArgument(std::move(arg));
+        $$->addArgument(arg);
     }
     | argument_list COMMA expression {
         $$ = $1;
         Expression* arg;
         arg = $3;
-        $$->addArgument(std::move(arg));
+        $$->addArgument(arg);
     }
     ;
 
@@ -1718,7 +1714,6 @@ fuzzy_text_search_argument
    }
    | base_text_search_argument COMMA legal_integer COMMA KW_AND {
         if ($3 != 0 && $3 != 1 && $3 != 2) {
-            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = $1;
@@ -1727,7 +1722,6 @@ fuzzy_text_search_argument
    }
    | base_text_search_argument COMMA legal_integer COMMA KW_OR {
         if ($3 != 0 && $3 != 1 && $3 != 2) {
-            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = $1;
@@ -1744,7 +1738,6 @@ text_search_argument
     }
     | base_text_search_argument COMMA legal_integer {
         if ($3 < 1) {
-            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = $1;
@@ -1752,11 +1745,9 @@ text_search_argument
     }
     | base_text_search_argument COMMA legal_integer COMMA legal_integer {
         if ($3 < 1) {
-            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         if ($5 < 1) {
-            delete $1;
             throw nebula::GraphParser::syntax_error(@5, "Out of range:");
         }
         $$ = $1;
@@ -1765,7 +1756,6 @@ text_search_argument
     }
     | fuzzy_text_search_argument COMMA legal_integer {
         if ($3 < 1) {
-            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = $1;
@@ -1773,11 +1763,9 @@ text_search_argument
     }
     | fuzzy_text_search_argument COMMA legal_integer COMMA legal_integer {
         if ($3 < 1) {
-            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         if ($5 < 1) {
-            delete $1;
             throw nebula::GraphParser::syntax_error(@5, "Out of range:");
         }
         $$ = $1;
@@ -1789,33 +1777,27 @@ text_search_argument
 text_search_expression
     : KW_PREFIX L_PAREN text_search_argument R_PAREN {
         if (!$3->op().empty()) {
-            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         if ($3->fuzziness() != -2) {
-            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         $$ = TextSearchExpression::makePrefix(qctx->objPool(), $3);
     }
     | KW_WILDCARD L_PAREN text_search_argument R_PAREN {
         if (!$3->op().empty()) {
-            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         if ($3->fuzziness() != -2) {
-            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         $$ = TextSearchExpression::makeWildcard(qctx->objPool(), $3);
     }
     | KW_REGEXP L_PAREN text_search_argument R_PAREN {
         if (!$3->op().empty()) {
-            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         if ($3->fuzziness() != -2) {
-            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         $$ = TextSearchExpression::makeRegexp(qctx->objPool(), $3);

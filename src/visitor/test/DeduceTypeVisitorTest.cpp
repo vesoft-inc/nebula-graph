@@ -5,6 +5,7 @@
  */
 
 #include "visitor/DeduceTypeVisitor.h"
+#include "visitor/test/VisitorTestBase.h"
 
 #include <gtest/gtest.h>
 
@@ -12,7 +13,7 @@ using Type = nebula::Value::Type;
 
 namespace nebula {
 namespace graph {
-class DeduceTypeVisitorTest : public ::testing::Test {
+class DeduceTypeVisitorTest : public ValidatorTestBase {
 protected:
     static ColsDef emptyInput_;
 };
@@ -21,9 +22,10 @@ ColsDef DeduceTypeVisitorTest::emptyInput_;
 
 TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
     {
-        auto* items = new ExpressionList();
-        items->add(ConstantExpression::make(pool1));
-        auto expr = SubscriptExpression(new ListExpression(items), ConstantExpression::make(pool1));
+        auto* items = ExpressionList::make(pool);
+        items->add(ConstantExpression::make(pool, 1));
+        auto expr = *SubscriptExpression::make(
+            pool, ListExpression::make(pool, items), ConstantExpression::make(pool, 1));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -31,8 +33,9 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = SubscriptExpression(ConstantExpression::make(poolValue::kNullValue),
-                                        ConstantExpression::make(pool1));
+        auto expr = *SubscriptExpression::make(pool,
+                                               ConstantExpression::make(pool, Value::kNullValue),
+                                               ConstantExpression::make(pool, 1));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -40,8 +43,8 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = SubscriptExpression(ConstantExpression::make(poolValue::kEmpty),
-                                        ConstantExpression::make(pool1));
+        auto expr = *SubscriptExpression::make(
+            pool, ConstantExpression::make(pool, Value::kEmpty), ConstantExpression::make(pool, 1));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -49,8 +52,9 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = SubscriptExpression(ConstantExpression::make(poolValue::kNullValue),
-                                        ConstantExpression::make(poolValue::kNullValue));
+        auto expr = *SubscriptExpression::make(pool,
+                                               ConstantExpression::make(pool, Value::kNullValue),
+                                               ConstantExpression::make(pool, Value::kNullValue));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -58,8 +62,9 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = SubscriptExpression(
-            ConstantExpression::make(poolValue(Map({{"k", "v"}, {"k1", "v1"}}))),
+        auto expr = *SubscriptExpression::make(
+            pool,
+            ConstantExpression::make(pool, Value(Map({{"k", "v"}, {"k1", "v1"}}))),
             ConstantExpression::make(pool, "test"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
@@ -68,8 +73,9 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = SubscriptExpression(ConstantExpression::make(poolValue::kEmpty),
-                                        ConstantExpression::make(pool, "test"));
+        auto expr = *SubscriptExpression::make(pool,
+                                               ConstantExpression::make(pool, Value::kEmpty),
+                                               ConstantExpression::make(pool, "test"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -77,8 +83,9 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = SubscriptExpression(ConstantExpression::make(poolValue::kNullValue),
-                                        ConstantExpression::make(pool, "test"));
+        auto expr = *SubscriptExpression::make(pool,
+                                               ConstantExpression::make(pool, Value::kNullValue),
+                                               ConstantExpression::make(pool, "test"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -88,26 +95,27 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
 
     // exceptions
     {
-        auto expr = SubscriptExpression(ConstantExpression::make(pool, "test"),
-                                        ConstantExpression::make(pool, 1));
+        auto expr = *SubscriptExpression::make(
+            pool, ConstantExpression::make(pool, "test"), ConstantExpression::make(pool, 1));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
         EXPECT_FALSE(visitor.ok());
     }
     {
-        auto* items = new ExpressionList();
-        items->add(ConstantExpression::make(pool1));
-        auto expr =
-            SubscriptExpression(new ListExpression(items), ConstantExpression::make(pool, "test"));
+        auto* items = ExpressionList::make(pool);
+        items->add(ConstantExpression::make(pool, 1));
+        auto expr = *SubscriptExpression::make(
+            pool, ListExpression::make(pool, items), ConstantExpression::make(pool, "test"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
         EXPECT_FALSE(visitor.ok());
     }
     {
-        auto expr = SubscriptExpression(
-            ConstantExpression::make(poolValue(Map({{"k", "v"}, {"k1", "v1"}}))),
+        auto expr = *SubscriptExpression::make(
+            pool,
+            ConstantExpression::make(pool, Value(Map({{"k", "v"}, {"k1", "v1"}}))),
             ConstantExpression::make(pool, 1));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
@@ -118,8 +126,9 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
 
 TEST_F(DeduceTypeVisitorTest, Attribute) {
     {
-        auto expr = AttributeExpression(
-            ConstantExpression::make(poolValue(Map({{"k", "v"}, {"k1", "v1"}}))),
+        auto expr = *AttributeExpression::make(
+            pool,
+            ConstantExpression::make(pool, Value(Map({{"k", "v"}, {"k1", "v1"}}))),
             ConstantExpression::make(pool, "a"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
@@ -128,8 +137,10 @@ TEST_F(DeduceTypeVisitorTest, Attribute) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = AttributeExpression(ConstantExpression::make(poolValue(Vertex("vid", {}))),
-                                        ConstantExpression::make(pool, "a"));
+        auto expr =
+            *AttributeExpression::make(pool,
+                                       ConstantExpression::make(pool, Value(Vertex("vid", {}))),
+                                       ConstantExpression::make(pool, "a"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -137,8 +148,9 @@ TEST_F(DeduceTypeVisitorTest, Attribute) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = AttributeExpression(
-            ConstantExpression::make(poolValue(Edge("v1", "v2", 1, "edge", 0, {}))),
+        auto expr = *AttributeExpression::make(
+            pool,
+            ConstantExpression::make(pool, Value(Edge("v1", "v2", 1, "edge", 0, {}))),
             ConstantExpression::make(pool, "a"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
@@ -147,8 +159,9 @@ TEST_F(DeduceTypeVisitorTest, Attribute) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = AttributeExpression(ConstantExpression::make(poolValue::kNullValue),
-                                        ConstantExpression::make(pool, "a"));
+        auto expr = *AttributeExpression::make(pool,
+                                               ConstantExpression::make(pool, Value::kNullValue),
+                                               ConstantExpression::make(pool, "a"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -156,8 +169,9 @@ TEST_F(DeduceTypeVisitorTest, Attribute) {
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
     {
-        auto expr = AttributeExpression(ConstantExpression::make(poolValue::kNullValue),
-                                        ConstantExpression::make(poolValue::kNullValue));
+        auto expr = *AttributeExpression::make(pool,
+                                               ConstantExpression::make(pool, Value::kNullValue),
+                                               ConstantExpression::make(pool, Value::kNullValue));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
@@ -167,17 +181,18 @@ TEST_F(DeduceTypeVisitorTest, Attribute) {
 
     // exceptions
     {
-        auto expr = AttributeExpression(ConstantExpression::make(pool, "test"),
-                                        ConstantExpression::make(pool, "a"));
+        auto expr = *AttributeExpression::make(
+            pool, ConstantExpression::make(pool, "test"), ConstantExpression::make(pool, "a"));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);
         EXPECT_FALSE(visitor.ok());
     }
     {
-        auto expr = AttributeExpression(
-            ConstantExpression::make(poolValue(Map({{"k", "v"}, {"k1", "v1"}}))),
-            ConstantExpression::make(pool1));
+        auto expr = *AttributeExpression::make(
+            pool,
+            ConstantExpression::make(pool, Value(Map({{"k", "v"}, {"k1", "v1"}}))),
+            ConstantExpression::make(pool, 1));
 
         DeduceTypeVisitor visitor(emptyInput_, -1);
         expr.accept(&visitor);

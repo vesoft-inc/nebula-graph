@@ -36,8 +36,6 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
         probeExpr = MatchSolver::getEndVidInPath(qctx_, rightKey);
     }
 
-    qctx_->objPool()->add(buildExpr);
-    qctx_->objPool()->add(probeExpr);
     auto join = InnerJoin::make(qctx_,
                                const_cast<PlanNode*>(right),
                                {left->outputVar(), 0},

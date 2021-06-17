@@ -196,13 +196,13 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilterWithoutSave(alias, props);
+            auto result = makeSubFilter(alias, props);
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         } else if (node->labels() != nullptr && !node->labels()->labels().empty()) {
             const auto &labels = node->labels()->labels();
             for (const auto &label : labels) {
-                auto result = makeSubFilterWithoutSave(alias, label->props(), *label->label());
+                auto result = makeSubFilter(alias, label->props(), *label->label());
                 NG_RETURN_IF_ERROR(result);
                 filter = andConnect(pool, filter, result.value());
             }
@@ -503,14 +503,6 @@ Status MatchValidator::validateUnwind(const UnwindClause *unwindClause,
 StatusOr<Expression *> MatchValidator::makeSubFilter(const std::string &alias,
                                                      const MapExpression *map,
                                                      const std::string &label) const {
-    auto result = makeSubFilterWithoutSave(alias, map, label);
-    NG_RETURN_IF_ERROR(result);
-    return saveObject(result.value());
-}
-
-StatusOr<Expression *> MatchValidator::makeSubFilterWithoutSave(const std::string &alias,
-                                                                const MapExpression *map,
-                                                                const std::string &label) const {
     auto *pool = qctx_->objPool();
     // Node has tag without property
     if (!label.empty() && map == nullptr) {
@@ -687,8 +679,7 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
                                                  colExpr->toString().c_str());
                 }
 
-                yieldCtx.groupItems_.emplace_back(
-                    yieldCtx.qctx->objPool()->add(agg->clone()));
+                yieldCtx.groupItems_.emplace_back(agg->clone());
 
                 yieldCtx.needGenProject_ = true;
                 yieldCtx.aggOutputColumnNames_.emplace_back(agg->toString());

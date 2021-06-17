@@ -74,7 +74,7 @@ private:
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
 
     MatchClauseContext*                 matchCtx_;
-    Expression*                         initialExpr_;
+    Expression*                         initialExpr_{nullptr};
     bool                                reversely_{false};
     PlanNode*                           dependency_{nullptr};
     std::string                         inputVar_;

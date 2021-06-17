@@ -67,7 +67,7 @@ PlanNode* GetNeighbors::clone() const {
 void GetNeighbors::cloneMembers(const GetNeighbors& g) {
     Explore::cloneMembers(g);
 
-    setSrc(qctx_->objPool()->add(g.src_->clone()));
+    setSrc(g.src_->clone());
     setEdgeTypes(g.edgeTypes_);
     setEdgeDirection(g.edgeDirection_);
     setRandom(g.random_);
@@ -113,7 +113,7 @@ PlanNode* GetVertices::clone() const {
 void GetVertices::cloneMembers(const GetVertices& gv) {
     Explore::cloneMembers(gv);
 
-    src_ = qctx_->objPool()->add(gv.src()->clone());
+    src_ = gv.src()->clone();
 
     if (gv.props_) {
         auto vertexProps = *gv.props_;
@@ -149,10 +149,10 @@ PlanNode* GetEdges::clone() const {
 void GetEdges::cloneMembers(const GetEdges& ge) {
     Explore::cloneMembers(ge);
 
-    src_ = qctx_->objPool()->add(ge.src()->clone());
-    type_ = qctx_->objPool()->add(ge.type()->clone());
-    ranking_ = qctx_->objPool()->add(ge.ranking()->clone());
-    dst_ = qctx_->objPool()->add(ge.dst()->clone());
+    src_ = ge.src()->clone();
+    type_ = ge.type()->clone();
+    ranking_ = ge.ranking()->clone();
+    dst_ = ge.dst()->clone();
 
     if (ge.props_) {
         auto edgeProps = *ge.props_;
@@ -219,7 +219,7 @@ PlanNode* Filter::clone() const {
 void Filter::cloneMembers(const Filter& f) {
     SingleInputNode::cloneMembers(f);
 
-    condition_ = qctx_->objPool()->add(f.condition()->clone());
+    condition_ = f.condition()->clone();
     needStableFilter_ = f.needStableFilter();
 }
 
@@ -313,7 +313,7 @@ PlanNode* Unwind::clone() const {
 void Unwind::cloneMembers(const Unwind &p) {
     SingleInputNode::cloneMembers(p);
 
-    unwindExpr_ = qctx_->objPool()->add(p.unwindExpr()->clone());
+    unwindExpr_ = p.unwindExpr()->clone();
     alias_ = p.alias();
 }
 

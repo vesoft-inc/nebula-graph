@@ -147,7 +147,6 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
 
     // Loop condition
     auto condition = buildExpandCondition(body->outputVar(), startIndex, maxHop);
-    matchCtx_->qctx->objPool()->add(condition);
 
     // Create loop
     auto* loop = Loop::make(matchCtx_->qctx, firstStep, body, condition);
@@ -177,7 +176,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     // [GetNeighbors]
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = InputPropertyExpression::make(pool, kVid);
-    gn->setSrc(qctx->objPool()->add(srcExpr));
+    gn->setSrc(srcExpr);
     gn->setVertexProps(genVertexProps());
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
@@ -185,7 +184,6 @@ Status Expand::expandStep(const EdgeInfo& edge,
     PlanNode* root = gn;
     if (nodeFilter != nullptr) {
         auto* newFilter = MatchSolver::rewriteLabel2Vertex(qctx, nodeFilter);
-        qctx->objPool()->add(newFilter);
         auto filterNode = Filter::make(matchCtx_->qctx, root, newFilter);
         filterNode->setColNames(root->colNames());
         root = filterNode;
@@ -193,7 +191,6 @@ Status Expand::expandStep(const EdgeInfo& edge,
 
     if (edge.filter != nullptr) {
         auto* newFilter = MatchSolver::rewriteLabel2Edge(qctx, edge.filter);
-        qctx->objPool()->add(newFilter);
         auto filterNode = Filter::make(qctx, root, newFilter);
         filterNode->setColNames(root->colNames());
         root = filterNode;
@@ -251,7 +248,7 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, 
     auto minHopExpr = ConstantExpression::make(pool, minHop);
     auto expr = RelationalExpression::makeGE(pool, edgeExpr, minHopExpr);
 
-    auto filter = Filter::make(qctx, input, saveObject(expr));
+    auto filter = Filter::make(qctx, input, expr);
     filter->setColNames(input->colNames());
     plan->root = filter;
     return Status::OK();
