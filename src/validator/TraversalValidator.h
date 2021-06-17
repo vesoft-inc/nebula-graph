@@ -31,9 +31,9 @@ protected:
 
     PlanNode* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
 
-    void buildConstantInput(Starts& starts, std::string& startVidsVar);
-
-    PlanNode* buildRuntimeInput(Starts& starts, PlanNode*& project);
+    PlanNode* buildConstantInput(Starts& starts, PlanNode* dep);
+    PlanNode* buildRuntimeInput(Starts& starts, PlanNode* dep);
+    PlanNode* buildGetNbrsInputs(PlanNode* dep);
 
     Expression* buildNStepLoopCondition(uint32_t steps) const;
 

@@ -391,7 +391,7 @@ std::unique_ptr<PlanNodeDescription> Aggregate::explain() const {
     folly::dynamic itemArr = folly::dynamic::array();
     for (auto* item : groupItems_) {
         folly::dynamic itemObj = folly::dynamic::object();
-        itemObj.insert("expr", item? item->toString() : "");
+        itemObj.insert("expr", item ? item->toString() : "");
         itemArr.push_back(itemObj);
     }
     addDescription("groupItems", folly::toJson(itemArr), desc.get());
@@ -498,10 +498,10 @@ void DataCollect::cloneMembers(const DataCollect &l) {
 
 
 std::unique_ptr<PlanNodeDescription> Join::explain() const {
-    auto desc = SingleDependencyNode::explain();
+    auto desc = BinaryInputNode::explain();
     folly::dynamic inputVar = folly::dynamic::object();
-    inputVar.insert("leftVar", util::toJson(leftVar_));
-    inputVar.insert("rightVar", util::toJson(rightVar_));
+    inputVar.insert("leftVarVersion", leftVarVersion_);
+    inputVar.insert("rightVarVersion", rightVarVersion_);
     addDescription("inputVar", folly::toJson(inputVar), desc.get());
     addDescription("hashKeys", folly::toJson(util::toJson(hashKeys_)), desc.get());
     addDescription("probeKeys", folly::toJson(util::toJson(probeKeys_)), desc.get());
@@ -509,10 +509,10 @@ std::unique_ptr<PlanNodeDescription> Join::explain() const {
 }
 
 void Join::cloneMembers(const Join& j) {
-    SingleDependencyNode::cloneMembers(j);
+    BinaryInputNode::cloneMembers(j);
 
-    leftVar_ = j.leftVar();
-    rightVar_ = j.rightVar();
+    leftVarVersion_ = j.leftVarVersion();
+    rightVarVersion_ = j.rightVarVersion();
 
     std::vector<Expression*> hKeys;
     for (auto* item : j.hashKeys()) {
@@ -530,19 +530,20 @@ void Join::cloneMembers(const Join& j) {
 
 Join::Join(QueryContext* qctx,
            Kind kind,
-           PlanNode* input,
-           std::pair<std::string, int64_t> leftVar,
-           std::pair<std::string, int64_t> rightVar,
+           const PlanNode* left,
+           const PlanNode* right,
+           int64_t leftVarVersion,
+           int64_t rightVarVersion,
            std::vector<Expression*> hashKeys,
            std::vector<Expression*> probeKeys)
-    : SingleDependencyNode(qctx, kind, input),
-      leftVar_(std::move(leftVar)),
-      rightVar_(std::move(rightVar)),
+    : BinaryInputNode(qctx, kind, left, right),
+      leftVarVersion_(leftVarVersion),
+      rightVarVersion_(rightVarVersion),
       hashKeys_(std::move(hashKeys)),
       probeKeys_(std::move(probeKeys)) {
     inputVars_.clear();
-    readVariable(leftVar_.first);
-    readVariable(rightVar_.first);
+    readVariable(left->outputVar());
+    readVariable(right->outputVar());
 }
 
 
@@ -553,7 +554,7 @@ std::unique_ptr<PlanNodeDescription> LeftJoin::explain() const {
 }
 
 PlanNode* LeftJoin::clone() const {
-    auto* newLeftJoin = LeftJoin::make(qctx_, nullptr, leftVar_, rightVar_);
+    auto* newLeftJoin = LeftJoin::make(qctx_, nullptr, nullptr, leftVarVersion_, rightVarVersion_);
     newLeftJoin->cloneMembers(*this);
     return newLeftJoin;
 }
@@ -570,7 +571,8 @@ std::unique_ptr<PlanNodeDescription> InnerJoin::explain() const {
 }
 
 PlanNode* InnerJoin::clone() const {
-    auto* newInnerJoin = InnerJoin::make(qctx_, nullptr, leftVar_, rightVar_);
+    auto* newInnerJoin =
+        InnerJoin::make(qctx_, nullptr, nullptr, leftVarVersion_, rightVarVersion_);
     newInnerJoin->cloneMembers(*this);
     return newInnerJoin;
 }

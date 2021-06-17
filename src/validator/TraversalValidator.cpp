@@ -141,8 +141,8 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
     return dedupDstVids;
 }
 
-void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVidsVar) {
-    startVidsVar = vctx_->anonVarGen()->getVar();
+PlanNode* TraversalValidator::buildConstantInput(Starts& starts, PlanNode* dep) {
+    auto startVidsVar = vctx_->anonVarGen()->getVar();
     DataSet ds;
     ds.colNames.emplace_back(kVid);
     for (auto& vid : starts.vids) {
@@ -156,7 +156,7 @@ void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVi
     qctx_->objPool()->add(starts.src);
 }
 
-PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& projectStartVid) {
+PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode* dep) {
     auto pool = qctx_->objPool();
     auto* columns = pool->add(new YieldColumns());
     auto* column = new YieldColumn(starts.originalSrc->clone().release(), kVid);
@@ -174,8 +174,16 @@ PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& proje
     dedupVids->setInputVar(project->outputVar());
     dedupVids->setColNames(project->colNames());
 
-    projectStartVid = project;
     return dedupVids;
+}
+
+PlanNode* TraversalValidator::buildGetNbrsInputs(PlanNode* dep) {
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
+        projectStartVid_ = buildConstantInput(from_, dep);
+    } else {
+        projectStartVid_ = buildRuntimeInput(from_, dep);
+    }
+    return projectStartVid_;
 }
 
 Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {

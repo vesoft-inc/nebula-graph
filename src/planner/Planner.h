@@ -15,12 +15,15 @@
 
 namespace nebula {
 namespace graph {
+
 class Planner;
 
 struct SubPlan {
     // root and tail of a subplan.
     PlanNode*   root{nullptr};
     PlanNode*   tail{nullptr};
+
+    explicit SubPlan(PlanNode* r = nullptr, PlanNode* t = nullptr) : root(r), tail(t) {}
 };
 
 std::ostream& operator<<(std::ostream& os, const SubPlan& subplan);
@@ -51,6 +54,7 @@ public:
 protected:
     Planner() = default;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLANNER_H_
