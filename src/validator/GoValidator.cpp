@@ -606,11 +606,12 @@ std::unique_ptr<std::vector<VertexProp>> GoValidator::buildDstVertexProps() {
 }
 
 std::unique_ptr<std::vector<EdgeProp>> GoValidator::buildEdgeProps() {
-    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
+    std::unique_ptr<std::vector<EdgeProp>> edgeProps;
     bool onlyInputPropsOrConstant = exprProps_.srcTagProps().empty() &&
                                     exprProps_.dstTagProps().empty() &&
                                     exprProps_.edgeProps().empty();
     if (!exprProps_.edgeProps().empty()) {
+        edgeProps = std::make_unique<std::vector<EdgeProp>>();
         if (over_.direction == storage::cpp2::EdgeDirection::IN_EDGE) {
             buildEdgeProps(edgeProps, true);
         } else if (over_.direction == storage::cpp2::EdgeDirection::BOTH) {
