@@ -121,7 +121,7 @@ Status GetSubgraphValidator::validateWhere(WhereClause* where) {
                                      filter_->toString().c_str());
     }
     where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(filter_));
-
+    filter_ = where->filter();
     auto typeStatus = deduceExprType(filter_);
     NG_RETURN_IF_ERROR(typeStatus);
     auto type = typeStatus.value();
