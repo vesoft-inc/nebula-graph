@@ -129,6 +129,14 @@ public:
         rctx_->resp().errorCode = ErrorCode::E_PARTIAL_SUCCEEDED;
     }
 
+    void markKilling() {
+        killing_.exchange(true);
+    }
+
+    bool isKilling() const {
+        return killing_.load();
+    }
+
 private:
     void init();
 
@@ -147,6 +155,8 @@ private:
     std::unique_ptr<ObjectPool>                             objPool_;
     std::unique_ptr<IdGenerator>                            idGen_;
     std::unique_ptr<SymbolTable>                            symTable_;
+
+    std::atomic<bool>                                       killing_{false};
 };
 
 }   // namespace graph

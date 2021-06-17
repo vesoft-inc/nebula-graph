@@ -521,6 +521,9 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 Executor::~Executor() {}
 
 Status Executor::open() {
+    if (qctx_->isKilling()) {
+        return Status::Error("Execution is being killed");
+    }
     auto status = MemInfo::make();
     NG_RETURN_IF_ERROR(status);
     auto mem = std::move(status).value();
