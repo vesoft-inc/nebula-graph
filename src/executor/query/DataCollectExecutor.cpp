@@ -67,18 +67,14 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
     // the subgraph not need duplicate vertices or edges, so dedup here directly
     std::unordered_set<Value> uniqueVids;
     std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdges;
-    for (auto i = vars.begin(); i != vars.end(); ++i) {
-        const auto& hist = ectx_->getHistory(*i);
+    {
+        // getNeighbor
+        const auto& hist = ectx_->getHistory(vars[0]);
         for (auto j = hist.begin(); j != hist.end(); ++j) {
-            if (i == vars.begin() && j == hist.end() - 1) {
-                continue;
-            }
+            // if (i == vars.begin() && j == hist.end() - 1) {
+            //     continue;
+            // }
             auto iter = (*j).iter();
-            if (!iter->isGetNeighborsIter()) {
-                std::stringstream msg;
-                msg << "Iterator should be kind of GetNeighborIter, but was: " << iter->kind();
-                return Status::Error(msg.str());
-            }
             List vertices;
             List edges;
             auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
@@ -105,6 +101,20 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
             ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
         }
     }
+    do {
+        if (vars.size() < 2) {
+            break;
+        }
+        // get latestVersion subgraph->outputVar()
+        const auto& res = ectx_->getResult(vars[1]);
+        auto iter = res.iter();
+        if (iter->isPropIter()) {
+            auto* pIter = static_cast<PropIter*>(iter.get());
+            List vertices = pIter->getVertices();
+            List edges;
+            ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
+        }
+    } while (0);
     result_.setDataSet(std::move(ds));
     return Status::OK();
 }

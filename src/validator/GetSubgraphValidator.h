@@ -31,11 +31,14 @@ private:
 
     StatusOr<std::unique_ptr<std::vector<EdgeProp>>> buildEdgeProps();
 
+    Status validateWhere(WhereClause* where);
+
     Status zeroStep(PlanNode* depend, const std::string& inputVar);
 
 private:
     std::unordered_set<EdgeType> edgeTypes_;
     bool withProp_{false};
+    Expression*  filter_{nullptr};
 };
 
 }  // namespace graph
