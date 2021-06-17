@@ -521,7 +521,7 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 Executor::~Executor() {}
 
 Status Executor::open() {
-    if (qctx_->isKilling()) {
+    if (qctx_->isKilled()) {
         return Status::Error("Execution is being killed");
     }
     auto status = MemInfo::make();

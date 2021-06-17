@@ -204,9 +204,29 @@ void GraphSessionManager::updateSessionsToMeta() {
             }
         }
     }
-    auto resp = metaClient_->updateSessions(sessions).get();
-    if (!resp.ok()) {
-        LOG(ERROR) << "Update sessions failed: " << resp.status();
+
+    auto result = metaClient_->updateSessions(sessions)
+                      .thenValue([this](auto&& resp) {
+                          if (!resp.ok()) {
+                              LOG(ERROR) << "Update sessions failed: " << resp.status();
+                              return Status::Error("Update sessions failed: %s",
+                                                   resp.status().toString().c_str());
+                          }
+                          auto& killedQueriesForEachSession = *resp.value().killed_queries_ref();
+                          for (auto& killedQueries : killedQueriesForEachSession) {
+                              for (auto& epId : killedQueries.second) {
+                                  auto session = activeSessions_.find(epId);
+                                  if (session == activeSessions_.end()) {
+                                      continue;
+                                  }
+                                  session->second->markQueryKilled(epId);
+                              }
+                          }
+                          return Status::OK();
+                      })
+                      .get();
+    if (!result.ok()) {
+        LOG(ERROR) << "Update sessions failed: " << result;
     }
 }
 

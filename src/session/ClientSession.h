@@ -129,6 +129,8 @@ public:
 
     void deleteQuery(QueryContext* qctx);
 
+    void markQueryKilled(nebula::ExecutionPlanID epId);
+
 private:
     ClientSession() = default;
 

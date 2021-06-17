@@ -52,5 +52,20 @@ void ClientSession::deleteQuery(QueryContext* qctx) {
     session_.queries_ref()->erase(epId);
 }
 
+void ClientSession::markQueryKilled(nebula::ExecutionPlanID epId) {
+    folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
+    auto context = contexts_.find(epId);
+    if (context == contexts_.end()) {
+        return;
+    }
+    context->second->markKilled();
+
+    auto query = session_.queries_ref()->find(epId);
+    if (query == session_.queries_ref()->end()) {
+        return;
+    }
+    query->second.set_status(meta::cpp2::QueryStatus::KILLING);
+}
+
 }  // namespace graph
 }  // namespace nebula
