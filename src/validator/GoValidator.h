@@ -17,44 +17,33 @@ class GoValidator final : public TraversalValidator {
 public:
     using VertexProp = nebula::storage::cpp2::VertexProp;
     using EdgeProp = nebula::storage::cpp2::EdgeProp;
+
     GoValidator(Sentence* sentence, QueryContext* context)
         : TraversalValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;
 
-    Status toPlan() override;
+    AstContext* getAstContext() override {
+        return goCtx_.get();
+    }
 
     Status validateWhere(WhereClause* where);
 
     Status validateYield(YieldClause* yield);
 
+    Status buildColumns();
+
     void extractPropExprs(const Expression* expr);
 
     Expression* rewrite2VarProp(const Expression* expr);
 
-    Status buildColumns();
-
-    std::vector<std::string> buildDstVertexColNames();
-
 private:
-    YieldColumns* yields() const {
-        return newYieldCols_ ? newYieldCols_ : yields_;
-    }
+    std::unique_ptr<GoContext>                      goCtx_;
 
-    Expression* filter() const {
-        return newFilter_ ? newFilter_ : filter_;
-    }
-
-    std::unique_ptr<GoContext> goCtx_;
-
-    std::vector<std::string> colNames_;
-    YieldColumns* yields_{nullptr};
-
-    YieldColumns* inputPropCols_{nullptr};
-    std::unordered_map<std::string, YieldColumn*> propExprColMap_;
-    Expression* newFilter_{nullptr};
-    YieldColumns* newYieldCols_{nullptr};
+    YieldColumns*                                   yields_{nullptr};
+    YieldColumns*                                   inputPropCols_{nullptr};
+    std::unordered_map<std::string, YieldColumn*>   propExprColMap_;
 };
 }   // namespace graph
 }   // namespace nebula

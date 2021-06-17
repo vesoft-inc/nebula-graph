@@ -11,33 +11,31 @@
 #include "util/SchemaUtil.h"
 #include "util/QueryUtil.h"
 #include "util/ExpressionUtils.h"
-using EdgeProp = storage::cpp2::EdgeProp;
-using VertexProp = storage::cpp2::VertexProp;
 
 namespace nebula {
 namespace graph {
 
-EdgeProps GoPlanner::buildEdgeProps(bool onlyDst) {
-    EdgeProps edgeProps;
+std::unique_ptr<GoPlanner::EdgeProps> GoPlanner::buildEdgeProps(bool onlyDst) {
+    auto eProps = std::make_unique<EdgeProps>();
     switch (goCtx_->over.direction) {
         case storage::cpp2::EdgeDirection::IN_EDGE: {
-            doBuildEdgeProps(edgeProps, onlyDst, true);
+            doBuildEdgeProps(eProps, onlyDst, true);
             break;
         }
         case storage::cpp2::EdgeDirection::OUT_EDGE: {
-            doBuildEdgeProps(edgeProps, onlyDst, false);
+            doBuildEdgeProps(eProps, onlyDst, false);
             break;
         }
         case storage::cpp2::EdgeDirection::BOTH: {
-            doBuildEdgeProps(edgeProps, onlyDst, true);
-            doBuildEdgeProps(edgeProps, onlyDst, false);
+            doBuildEdgeProps(eProps, onlyDst, true);
+            doBuildEdgeProps(eProps, onlyDst, false);
             break;
         }
     }
-    return edgeProps;
+    return eProps;
 }
 
-void GoPlanner::doBuildEdgeProps(EdgeProps& edgeProps, bool onlyDst, bool isInEdge) {
+void GoPlanner::doBuildEdgeProps(std::unique_ptr<EdgeProps>& eProps, bool onlyDst, bool isInEdge) {
     const auto& exprProps = goCtx_->exprProps;
     for (const auto& e : goCtx_->over.edgeTypes) {
         EdgeProp ep;
@@ -49,7 +47,7 @@ void GoPlanner::doBuildEdgeProps(EdgeProps& edgeProps, bool onlyDst, bool isInEd
 
         if (onlyDst) {
             ep.set_props({kDst});
-            edgeProps.emplace_back(std::move(ep));
+            eProps->emplace_back(std::move(ep));
             continue;
         }
 
@@ -61,21 +59,21 @@ void GoPlanner::doBuildEdgeProps(EdgeProps& edgeProps, bool onlyDst, bool isInEd
             props.emplace(kDst);
             ep.set_props(std::vector<std::string>(props.begin(), props.end()));
         }
-        edgeProps.emplace_back(std::move(ep));
+        eProps->emplace_back(std::move(ep));
     }
 }
 
-VertexProps GoPlanner::buildVertexProps(ExpressionProps::TagIDPropsMap& propsMap) {
-    VertexProps vertexProps;
-    vertexProps.reserve(propsMap.size());
+std::unique_ptr<GoPlanner::VertexProps> GoPlanner::buildVertexProps(
+    const ExpressionProps::TagIDPropsMap& propsMap) {
+    auto vertexProps = std::make_unique<VertexProps>(propsMap.size());
     auto fun = [](auto& tag) {
-        storage::cpp2::VertexProp vp;
+        VertexProp vp;
         vp.set_tag(tag.first);
         std::vector<std::string> props(tag.second.begin(), tag.second.end());
         vp.set_props(std::move(props));
         return vp;
     };
-    std::transform(propsMap.begin(), propsMap.end(), vertexProps.begin(), fun);
+    std::transform(propsMap.begin(), propsMap.end(), vertexProps->begin(), fun);
     return vertexProps;
 }
 
@@ -216,7 +214,7 @@ PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
                                         dep,
                                         goCtx_->space.id,
                                         dstExpr,
-                                        buildVertexProp(goCtx_->exprProps.dstTagProps()),
+                                        buildVertexProps(goCtx_->exprProps.dstTagProps()),
                                         {},
                                         true);
 
@@ -332,7 +330,7 @@ PlanNode* GoPlanner::lastStep(PlanNode* dep, PlanNode* join) {
         root = Filter::make(qctx, root, goCtx_->filter);
     }
 
-    root = Project::make(qctx, root, goCtx_->yield);
+    root = Project::make(qctx, root, goCtx_->yieldExpr);
 
     if (goCtx_->distinct) {
         root = Dedup::make(qctx, root);
@@ -370,7 +368,7 @@ SubPlan GoPlanner::oneStepPlan(SubPlan& startVidPlan) {
         subPlan.root = Filter::make(qctx, subPlan.root, goCtx_->filter);
     }
 
-    subPlan.root = Project::make(qctx, subPlan.root, goCtx_->yield);
+    subPlan.root = Project::make(qctx, subPlan.root, goCtx_->yieldExpr);
 
     if (goCtx_->distinct) {
         subPlan.root = Dedup::make(qctx, subPlan.root);
@@ -449,7 +447,7 @@ SubPlan GoPlanner::mToNStepsPlan(SubPlan& startVidPlan) {
     }
 
     const auto& projectInput = (joinInput || joinDst) ? loopBody->outputVar() : gn->outputVar();
-    loopBody = Project::make(qctx, loopBody, goCtx_->yields);
+    loopBody = Project::make(qctx, loopBody, goCtx_->yieldExpr);
     loopBody->setInputVar(projectInput);
     loopBody->setColNames(std::move(goCtx_->colNames));
 

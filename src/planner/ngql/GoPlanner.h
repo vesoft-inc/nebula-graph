@@ -13,16 +13,18 @@
 #include "planner/Planner.h"
 #include "util/ExpressionUtils.h"
 #include "planner/plan/Query.h"
-using EdgeProps = std::vector<storage::cpp2::EdgeProp>;
-using VertexProps = std::vector<storage::cpp2::VertexProp>;
-
 
 namespace nebula {
 namespace graph {
 class GoPlanner final : public Planner {
 public:
+    using EdgeProp = nebula::storage::cpp2::EdgeProp;
+    using VertexProp = nebula::storage::cpp2::VertexProp;
+    using EdgeProps = std::vector<EdgeProp>;
+    using VertexProps = std::vector<VertexProp>;
+
     static std::unique_ptr<GoPlanner> make() {
-        return std::make_unique<GoPlanner>();
+        return std::unique_ptr<GoPlanner>(new GoPlanner());
     }
 
     static bool match(AstContext* astCtx) {
@@ -39,11 +41,11 @@ private:
     SubPlan mToNStepsPlan(SubPlan& startVidPlan);
 
 private:
-    VertexProps buildVertexProps(ExpressionProps::TagIDPropsMap& propsMap);
+    std::unique_ptr<VertexProps> buildVertexProps(const ExpressionProps::TagIDPropsMap& propsMap);
 
-    EdgeProps buildEdgeProps(bool onlyDst);
+    std::unique_ptr<EdgeProps> buildEdgeProps(bool onlyDst);
 
-    void doBuildEdgeProps(EdgeProps& edgeProps, bool onlyDst, bool isInEdge);
+    void doBuildEdgeProps(std::unique_ptr<EdgeProps>& edgeProps, bool onlyDst, bool isInEdge);
 
     Expression* loopCondition(uint32_t steps, const std::string& gnVar);
 

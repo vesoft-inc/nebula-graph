@@ -99,6 +99,8 @@ struct GoContext final : AstContext {
     // store the result of the previous sentence
     std::string                 inputVarName;
     std::vector<std::string>    colNames;
+    // output for project
+    YieldColumns*               yieldExpr;
 };
 
 }  // namespace graph

@@ -19,7 +19,7 @@ class PathPlanner final : public Planner {
 public:
     using EdgeProp = nebula::storage::cpp2::EdgeProp;
     static std::unique_ptr<PathPlanner> make() {
-        return std::make_unique<PathPlanner>();
+        return std::unique_ptr<PathPlanner>(new PathPlanner());
     }
 
     static bool match(AstContext* astCtx) {
