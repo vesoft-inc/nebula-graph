@@ -11,13 +11,13 @@
 #include "parser/TraverseSentences.h"
 #include "validator/Validator.h"
 
-using VertexPropsPtr = std::unique_ptr<std::vector<nebula::storage::cpp2::VertexProp>>;
-using ExprsPtr = std::unique_ptr<std::vector<nebula::storage::cpp2::Expr>>;
 namespace nebula {
 namespace graph {
 
 class FetchVerticesValidator final : public Validator {
 public:
+    using VertexProp = nebula::storage::cpp2::VertexProp;
+    using Expr = nebula::storage::cpp2::Expr;
     FetchVerticesValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
@@ -39,14 +39,16 @@ private:
     std::string buildRuntimeInput();
 
 private:
-    DataSet srcVids_{{kVid}};  // src from constant
-    Expression* srcRef_{nullptr};  // src from runtime
-    Expression* src_{nullptr};  // src in total
+    // src from constant
+    DataSet srcVids_{{kVid}};
+    // src from runtime
+    Expression* srcRef_{nullptr};
+    Expression* src_{nullptr};
     bool onStar_{false};
     std::unordered_map<std::string, TagID> tags_;
     std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema_;
-    VertexPropsPtr props_;
-    ExprsPtr       exprs_;
+    std::unique_ptr<std::vector<VertexProp>> props_;
+    std::unique_ptr<std::vector<Expr>> exprs_;
     bool dedup_{false};
     std::vector<storage::cpp2::OrderBy> orderBy_{};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
@@ -59,7 +61,7 @@ private:
     // new yield to inject reserved properties for compatible with 1.0
     YieldColumns* newYieldColumns_{nullptr};
     // input
-    std::string inputVar_;  // empty when pipe or no input in fact
+    std::string inputVar_;   // empty when pipe or no input in fact
 };
 
 }   // namespace graph

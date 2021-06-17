@@ -16,14 +16,14 @@
 #include "common/meta/NebulaSchemaProvider.h"
 #include "parser/MaintainSentences.h"
 
-using VertexPropsPtr = std::unique_ptr<std::vector<nebula::storage::cpp2::VertexProp>>;
-using EdgePropsPtr = std::unique_ptr<std::vector<nebula::storage::cpp2::EdgeProp>>;
 namespace nebula {
 namespace graph {
 class QueryContext;
 struct SpaceInfo;
 class SchemaUtil final {
 public:
+    using VertexProp = nebula::storage::cpp2::VertexProp;
+    using EdgeProp = nebula::storage::cpp2::EdgeProp;
     SchemaUtil() = delete;
 
 public:
@@ -61,17 +61,17 @@ public:
     static bool isValidVid(const Value& value);
 
     // Fetch all tags in the space and retrieve props from tags
-    // only take _tag when withProp is true
-    static StatusOr<VertexPropsPtr> getAllVertexProp(QueryContext* qctx,
-                                                     const SpaceInfo& space,
-                                                     bool withProp);
+    // only take _tag when withProp is false
+    static StatusOr<std::unique_ptr<std::vector<VertexProp>>>
+    getAllVertexProp(QueryContext* qctx, const SpaceInfo& space, bool withProp);
 
     // retrieve prop from specific edgetypes
-    // only take _src _dst _type _rank when withProp is true
-    static StatusOr<EdgePropsPtr> getEdgeProps(QueryContext* qctx,
-                                               const SpaceInfo& space,
-                                               const std::vector<EdgeType>& edgeTypes,
-                                               bool withProp);
+    // only take _src _dst _type _rank when withProp is false
+    static StatusOr<std::unique_ptr<std::vector<EdgeProp>>> getEdgeProps(
+        QueryContext* qctx,
+        const SpaceInfo& space,
+        const std::vector<EdgeType>& edgeTypes,
+        bool withProp);
 };
 
 }  // namespace graph

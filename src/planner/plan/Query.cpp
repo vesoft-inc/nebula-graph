@@ -116,13 +116,13 @@ void GetVertices::cloneMembers(const GetVertices& gv) {
 
     if (gv.props_) {
         auto vertexProps = *gv.props_;
-        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(vertexProps);
+        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(std::move(vertexProps));
         setVertexProps(std::move(vertexPropsPtr));
     }
 
     if (gv.exprs_) {
         auto exprs = *gv.exprs_;
-        auto exprsPtr = std::make_unique<decltype(exprs)>(exprs);
+        auto exprsPtr = std::make_unique<decltype(exprs)>(std::move(exprs));
         setExprs(std::move(exprsPtr));
     }
 }
@@ -155,13 +155,13 @@ void GetEdges::cloneMembers(const GetEdges& ge) {
 
     if (ge.props_) {
         auto edgeProps = *ge.props_;
-        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(edgeProps);
+        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(std::move(edgeProps));
         setEdgeProps(std::move(edgePropsPtr));
     }
 
     if (ge.exprs_) {
         auto exprs = *ge.exprs_;
-        auto exprsPtr = std::make_unique<decltype(exprs)>(exprs);
+        auto exprsPtr = std::make_unique<decltype(exprs)>(std::move(exprs));
         setExprs(std::move(exprsPtr));
     }
 }

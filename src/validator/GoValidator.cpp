@@ -569,12 +569,11 @@ Status GoValidator::buildOneStepPlan() {
     return Status::OK();
 }
 
-VertexPropsPtr GoValidator::buildSrcVertexProps() {
+std::unique_ptr<std::vector<VertexProp>> GoValidator::buildSrcVertexProps() {
     if (exprProps_.srcTagProps().empty()) {
         return nullptr;
     }
-    auto vertexProps =
-        std::make_unique<std::vector<storage::cpp2::VertexProp>>(exprProps_.srcTagProps().size());
+    auto vertexProps = std::make_unique<std::vector<VertexProp>>(exprProps_.srcTagProps().size());
     std::transform(exprProps_.srcTagProps().begin(),
                    exprProps_.srcTagProps().end(),
                    vertexProps->begin(),
@@ -588,12 +587,11 @@ VertexPropsPtr GoValidator::buildSrcVertexProps() {
     return vertexProps;
 }
 
-VertexPropsPtr GoValidator::buildDstVertexProps() {
+std::unique_ptr<std::vector<VertexProp>> GoValidator::buildDstVertexProps() {
     if (exprProps_.dstTagProps().empty()) {
         return nullptr;
     }
-    auto vertexProps =
-        std::make_unique<std::vector<storage::cpp2::VertexProp>>(exprProps_.dstTagProps().size());
+    auto vertexProps = std::make_unique<std::vector<VertexProp>>(exprProps_.dstTagProps().size());
     std::transform(exprProps_.dstTagProps().begin(),
                    exprProps_.dstTagProps().end(),
                    vertexProps->begin(),
@@ -607,21 +605,18 @@ VertexPropsPtr GoValidator::buildDstVertexProps() {
     return vertexProps;
 }
 
-EdgePropsPtr GoValidator::buildEdgeProps() {
-    EdgePropsPtr edgeProps;
+std::unique_ptr<std::vector<EdgeProp>> GoValidator::buildEdgeProps() {
+    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     bool onlyInputPropsOrConstant = exprProps_.srcTagProps().empty() &&
                                     exprProps_.dstTagProps().empty() &&
                                     exprProps_.edgeProps().empty();
     if (!exprProps_.edgeProps().empty()) {
         if (over_.direction == storage::cpp2::EdgeDirection::IN_EDGE) {
-            edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
             buildEdgeProps(edgeProps, true);
         } else if (over_.direction == storage::cpp2::EdgeDirection::BOTH) {
-            edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
             buildEdgeProps(edgeProps, false);
             buildEdgeProps(edgeProps, true);
         } else {
-            edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
             buildEdgeProps(edgeProps, false);
         }
     } else if (!exprProps_.dstTagProps().empty() || onlyInputPropsOrConstant) {
@@ -631,7 +626,7 @@ EdgePropsPtr GoValidator::buildEdgeProps() {
     return edgeProps;
 }
 
-void GoValidator::buildEdgeProps(EdgePropsPtr& edgeProps, bool isInEdge) {
+void GoValidator::buildEdgeProps(std::unique_ptr<std::vector<EdgeProp>>& edgeProps, bool isInEdge) {
     edgeProps->reserve(over_.edgeTypes.size());
     bool needJoin = !exprProps_.dstTagProps().empty();
     for (auto& e : over_.edgeTypes) {
@@ -656,8 +651,8 @@ void GoValidator::buildEdgeProps(EdgePropsPtr& edgeProps, bool isInEdge) {
     }
 }
 
-EdgePropsPtr GoValidator::buildEdgeDst() {
-    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+std::unique_ptr<std::vector<EdgeProp>> GoValidator::buildEdgeDst() {
+    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     edgeProps->reserve(over_.edgeTypes.size());
     bool onlyInputPropsOrConstant = exprProps_.srcTagProps().empty() &&
                                     exprProps_.dstTagProps().empty() &&

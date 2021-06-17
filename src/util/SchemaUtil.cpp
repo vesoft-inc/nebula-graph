@@ -312,9 +312,8 @@ bool SchemaUtil::isValidVid(const Value &value) {
     return value.isStr() || value.isInt();
 }
 
-StatusOr<VertexPropsPtr> SchemaUtil::getAllVertexProp(QueryContext *qctx,
-                                                      const SpaceInfo &space,
-                                                      bool withProp) {
+StatusOr<std::unique_ptr<std::vector<storage::cpp2::VertexProp>>>
+SchemaUtil::getAllVertexProp(QueryContext *qctx, const SpaceInfo &space, bool withProp) {
     // Get all tags in the space
     const auto allTagsResult = qctx->schemaMng()->getAllLatestVerTagSchema(space.id);
     NG_RETURN_IF_ERROR(allTagsResult);
@@ -344,11 +343,12 @@ StatusOr<VertexPropsPtr> SchemaUtil::getAllVertexProp(QueryContext *qctx,
     return vertexProps;
 }
 
-StatusOr<EdgePropsPtr> SchemaUtil::getEdgeProps(QueryContext *qctx,
-                                                const SpaceInfo &space,
-                                                const std::vector<EdgeType> &edgeTypes,
-                                                bool withProp) {
-    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+StatusOr<std::unique_ptr<std::vector<storage::cpp2::EdgeProp>>> SchemaUtil::getEdgeProps(
+    QueryContext *qctx,
+    const SpaceInfo &space,
+    const std::vector<EdgeType> &edgeTypes,
+    bool withProp) {
+    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     edgeProps->reserve(edgeTypes.size());
     for (const auto &edgeType : edgeTypes) {
         std::vector<std::string> propNames = {kSrc, kType, kRank, kDst};

@@ -20,8 +20,8 @@ namespace graph {
 };
 
 Status FetchEdgesValidator::validateImpl() {
-    props_ = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
-    exprs_ = std::make_unique<std::vector<storage::cpp2::Expr>>();
+    props_ = std::make_unique<std::vector<EdgeProp>>();
+    exprs_ = std::make_unique<std::vector<Expr>>();
     NG_RETURN_IF_ERROR(check());
     NG_RETURN_IF_ERROR(prepareEdges());
     NG_RETURN_IF_ERROR(prepareProperties());

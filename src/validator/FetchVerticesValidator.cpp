@@ -15,8 +15,8 @@ namespace graph {
 static constexpr char VertexID[] = "VertexID";
 
 Status FetchVerticesValidator::validateImpl() {
-    props_ = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
-    exprs_ = std::make_unique<std::vector<storage::cpp2::Expr>>();
+    props_ = std::make_unique<std::vector<VertexProp>>();
+    exprs_ = std::make_unique<std::vector<Expr>>();
     NG_RETURN_IF_ERROR(check());
     NG_RETURN_IF_ERROR(prepareVertices());
     NG_RETURN_IF_ERROR(prepareProperties());

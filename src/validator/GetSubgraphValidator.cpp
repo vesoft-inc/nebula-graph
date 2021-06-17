@@ -104,7 +104,7 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
     return Status::OK();
 }
 
-StatusOr<EdgePropsPtr> GetSubgraphValidator::buildEdgeProps() {
+StatusOr<std::unique_ptr<std::vector<EdgeProp>>> GetSubgraphValidator::buildEdgeProps() {
     if (edgeTypes_.empty()) {
         const auto allEdgesSchema = qctx_->schemaMng()->getAllLatestVerEdgeSchema(space_.id);
         NG_RETURN_IF_ERROR(allEdgesSchema);
@@ -122,7 +122,7 @@ StatusOr<EdgePropsPtr> GetSubgraphValidator::buildEdgeProps() {
 
 Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& inputVar) {
     auto& space = vctx_->whichSpace();
-    ExprsPtr exprs;
+    std::unique_ptr<std::vector<Expr>> exprs;
     auto vertexProps = SchemaUtil::getAllVertexProp(qctx_, space, withProp_);
     NG_RETURN_IF_ERROR(vertexProps);
     auto* getVertex = GetVertices::make(qctx_,
