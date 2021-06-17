@@ -39,7 +39,7 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
         probeExpr = MatchSolver::getStartVidInPath(rightKey);
         probeExprs.emplace_back(probeExpr);
         if (dstNodeId_ != nullptr) {
-            auto& dstKey = right->colNamesRef().back();
+            auto& dstKey = right->colNames().back();
             auto dstIdExpr = MatchSolver::getEndVidInPath(dstKey);
             probeExprs.emplace_back(dstIdExpr);
         }
@@ -48,7 +48,7 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
         probeExpr = MatchSolver::getEndVidInPath(rightKey);
         probeExprs.emplace_back(probeExpr);
         if (dstNodeId_ != nullptr) {
-            auto& dstKey = right->colNamesRef().front();
+            auto& dstKey = right->colNames().front();
             auto dstIdExpr = MatchSolver::getStartVidInPath(dstKey);
             probeExprs.emplace_back(dstIdExpr);
         }
