@@ -374,7 +374,6 @@ Feature: Fetch String Vertices
       | "Manu Ginobili"     |
       | "Tim Duncan"        |
 
-  @skip
   Scenario: Fetch prop on not attached tag
     When executing query:
       """

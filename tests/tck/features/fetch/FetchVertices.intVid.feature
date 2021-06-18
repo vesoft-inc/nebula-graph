@@ -275,13 +275,12 @@ Feature: Fetch Int Vid Vertices
       | "Manu Ginobili"     |
       | "Tim Duncan"        |
 
-  @skip
   Scenario: Fetch prop on not attached tag
     When executing query:
       """
-      FETCH PROP ON team 'Tim Duncan' yield team.name
+      FETCH PROP ON team hash('Tim Duncan') yield team.name
       """
-    Then the result should be, in any order:
+    Then the result should be, in any order, and the columns 0 should be hashed:
       | VertexID     | team.name |
       | 'Tim Duncan' | EMPTY     |
 
