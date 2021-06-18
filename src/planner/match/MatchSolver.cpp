@@ -282,7 +282,7 @@ Status MatchSolver::appendFetchVertexPlan(const NodeInfo& node,
                                 plan.root,
                                 space.id,
                                 qctx->objPool()->add(srcExpr.release()),
-                                std::vector<storage::cpp2::VertexProp>(*std::move(props).value()),
+                                std::move(props).value(),
                                 {});
 
     PlanNode* root = gv;
@@ -308,19 +308,21 @@ MatchSolver::genVertexProps(const MatchClauseContext *matchClauseCtx,
                             const NodeInfo &node) {
     if (matchClauseCtx->pathAlias != nullptr &&
         propsUsed.paths().find(*matchClauseCtx->pathAlias) != propsUsed.paths().end()) {
-        auto props = SchemaUtil::getAllVertexProp(matchClauseCtx->qctx, matchClauseCtx->space);
+        auto props = SchemaUtil::getAllVertexProp(matchClauseCtx->qctx,
+                                                  matchClauseCtx->space,
+                                                  true);
         NG_RETURN_IF_ERROR(props);
-        return std::make_unique<std::vector<storage::cpp2::VertexProp>>(std::move(props).value());
+        return std::move(props).value();
     }
     auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
     auto find = propsUsed.vertexProps().find(node.alias);
     if (find != propsUsed.vertexProps().end()) {
         if (std::holds_alternative<VertexEdgeProps::AllProps>(find->second)) {
             auto props = SchemaUtil::getAllVertexProp(matchClauseCtx->qctx,
-                                                      matchClauseCtx->space);
+                                                      matchClauseCtx->space,
+                                                      true);
             NG_RETURN_IF_ERROR(props);
-            return std::make_unique<std::vector<storage::cpp2::VertexProp>>(
-                std::move(props).value());
+            return std::move(props).value();
         } else {
             std::unordered_map<TagID, std::vector<std::string>> tagProps;
             for (const auto& prop : std::get<std::set<std::string>>(find->second)) {
