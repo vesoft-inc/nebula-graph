@@ -94,7 +94,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
             outputs_.emplace_back(col->name(), vidType_);
             NG_RETURN_IF_ERROR(deduceProps(col->expr(), goCtx_->exprProps));
         }
-        yields_ = newCols;
+        goCtx_->yieldExpr = newCols;
         goCtx_->colNames = getOutColNames();
         return Status::OK();
     }
@@ -123,7 +123,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
             return Status::SemanticError("Edges should be declared first in over clause.");
         }
     }
-    yields_ = yield->yields();
+    goCtx_->yieldExpr = yield->yields();
     goCtx_->colNames = getOutColNames();
     return Status::OK();
 }
@@ -181,7 +181,7 @@ Status GoValidator::buildColumns() {
     }
 
     auto* newYieldExpr = pool->add(new YieldColumns());
-    for (auto* yield : yields_->columns()) {
+    for (auto* yield : goCtx_->yieldExpr->columns()) {
         extractPropExprs(yield->expr());
         newYieldExpr->addColumn(new YieldColumn(rewrite2VarProp(yield->expr()), yield->alias()));
     }

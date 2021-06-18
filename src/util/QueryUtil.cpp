@@ -43,6 +43,7 @@ SubPlan QueryUtil::buildRuntimeInput(QueryContext* qctx, Starts& starts) {
     if (starts.fromType == kVariable) {
         project->setInputVar(starts.userDefinedVarName);
     }
+    starts.src = pool->add(new InputPropertyExpression(kVid));
 
     auto* dedup = Dedup::make(qctx, project);
 

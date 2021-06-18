@@ -65,6 +65,9 @@ void GoPlanner::doBuildEdgeProps(std::unique_ptr<EdgeProps>& eProps, bool onlyDs
 
 std::unique_ptr<GoPlanner::VertexProps> GoPlanner::buildVertexProps(
     const ExpressionProps::TagIDPropsMap& propsMap) {
+    if (propsMap.empty()) {
+        return nullptr;
+    }
     auto vertexProps = std::make_unique<VertexProps>(propsMap.size());
     auto fun = [](auto& tag) {
         VertexProp vp;
@@ -77,7 +80,7 @@ std::unique_ptr<GoPlanner::VertexProps> GoPlanner::buildVertexProps(
     return vertexProps;
 }
 
-// ++loopSteps{0} < steps  && (var is Empty OR size(var) == 0)
+// ++loopSteps{0} < steps  && (var is Empty OR size(var) != 0)
 Expression* GoPlanner::loopCondition(uint32_t steps, const std::string& var) {
     auto loopSteps = goCtx_->qctx->vctx()->anonVarGen()->getVar();
     goCtx_->qctx->ectx()->setValue(loopSteps, 0);
@@ -97,7 +100,7 @@ PlanNode* GoPlanner::extractSrcEdgePropsFromGN(PlanNode* dep, const std::string&
     auto& srcEdgePropsExpr = goCtx_->srcEdgePropsExpr;
     if (goCtx_->joinInput) {
         // extract vid from gn
-        auto* expr = new YieldColumn(new ColumnExpression(0), kVid);
+        auto* expr = new YieldColumn(new ColumnExpression(VID_INDEX), kVid);
         srcEdgePropsExpr->addColumn(expr);
     }
 
@@ -122,7 +125,7 @@ PlanNode* GoPlanner::extractSrcDstFromGN(PlanNode* dep, const std::string& input
     auto* columns = qctx->objPool()->add(new YieldColumns());
 
     goCtx_->srcVidColName = qctx->vctx()->anonColGen()->getCol();
-    auto* vidExpr = new YieldColumn(new ColumnExpression(0), goCtx_->srcVidColName);
+    auto* vidExpr = new YieldColumn(new ColumnExpression(VID_INDEX), goCtx_->srcVidColName);
     columns->addColumn(vidExpr);
     auto* dstExpr = new YieldColumn(new EdgePropertyExpression("*", kDst), "TRACK_DST_VID");
     columns->addColumn(dstExpr);
@@ -209,7 +212,7 @@ PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
     auto qctx = goCtx_->qctx;
 
     // dst is the last column, columnName is "JOIN_DST_VID"
-    auto* dstExpr = qctx->objPool()->add(new ColumnExpression(-1));
+    auto* dstExpr = qctx->objPool()->add(new ColumnExpression(LAST_COL_INDEX));
     auto* getVertex = GetVertices::make(qctx,
                                         dep,
                                         goCtx_->space.id,
@@ -220,7 +223,7 @@ PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
 
     auto& dstPropsExpr = goCtx_->dstPropsExpr;
     // extract dst's prop
-    auto* vidExpr = new YieldColumn(new ColumnExpression(0), "DST_VID");
+    auto* vidExpr = new YieldColumn(new ColumnExpression(VID_INDEX), "DST_VID");
     dstPropsExpr->addColumn(vidExpr);
 
     // extract dst's prop, vid is the last column
@@ -228,7 +231,7 @@ PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
 
     // dep's colName "JOIN_DST_VID"  join getVertex's colName "DST_VID"
     auto* hashKey = qctx->objPool()->add(dstExpr->clone().release());
-    auto* probeKey = qctx->objPool()->add(new ColumnExpression(-1));
+    auto* probeKey = qctx->objPool()->add(new ColumnExpression(LAST_COL_INDEX));
     auto* join = LeftJoin::make(qctx,
                                 project,
                                 {dep->outputVar(), ExecutionContext::kLatestVersion},
@@ -325,12 +328,12 @@ PlanNode* GoPlanner::lastStep(PlanNode* dep, PlanNode* join) {
 
     auto* root = buildLastStepJoinPlan(gn, join);
 
-    //  todo name newFilter OR filter ??
     if (goCtx_->filter != nullptr) {
         root = Filter::make(qctx, root, goCtx_->filter);
     }
 
     root = Project::make(qctx, root, goCtx_->yieldExpr);
+    root->setColNames(std::move(goCtx_->colNames));
 
     if (goCtx_->distinct) {
         root = Dedup::make(qctx, root);
@@ -363,13 +366,12 @@ SubPlan GoPlanner::oneStepPlan(SubPlan& startVidPlan) {
     subPlan.tail = startVidPlan.tail != nullptr ? startVidPlan.tail : gn;
     subPlan.root = buildOneStepJoinPlan(gn);
 
-    //  todo name newFilter OR filter ??
     if (goCtx_->filter != nullptr) {
         subPlan.root = Filter::make(qctx, subPlan.root, goCtx_->filter);
     }
 
     subPlan.root = Project::make(qctx, subPlan.root, goCtx_->yieldExpr);
-
+    subPlan.root->setColNames(std::move(goCtx_->colNames));
     if (goCtx_->distinct) {
         subPlan.root = Dedup::make(qctx, subPlan.root);
     }
@@ -455,7 +457,7 @@ SubPlan GoPlanner::mToNStepsPlan(SubPlan& startVidPlan) {
         loopBody = Dedup::make(qctx, loopBody);
     }
 
-    auto* condition = loopCondition(goCtx_->steps.steps(), gn->outputVar());
+    auto* condition = loopCondition(goCtx_->steps.nSteps(), gn->outputVar());
     qctx->objPool()->add(condition);
     auto* loop = Loop::make(qctx, loopDep, loopBody, condition);
 

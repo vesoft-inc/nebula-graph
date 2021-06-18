@@ -73,6 +73,9 @@ private:
     GoPlanner() = default;
 
     GoContext* goCtx_{nullptr};
+
+    const int16_t VID_INDEX = 0;
+    const int16_t LAST_COL_INDEX = -1;
 };
 }  // namespace graph
 }  // namespace nebula

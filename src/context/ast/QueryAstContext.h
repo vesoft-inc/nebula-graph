@@ -80,27 +80,28 @@ struct GoContext final : AstContext {
     StepClause                  steps;
     Over                        over;
     Expression*                 filter{nullptr};
+    YieldColumns*               yieldExpr;
     bool                        distinct{false};
+    std::vector<std::string>    colNames;
 
     std::string                 vidsVar;
-    //
+    // true when pipe or multi-sentence
     bool                        joinInput{false};
+    // true when $$.tag.prop exist
     bool                        joinDst{false};
 
     ExpressionProps             exprProps;
 
-    // runtime
+    // save dst prop
     YieldColumns*               dstPropsExpr;
+    // save src and edge prop
     YieldColumns*               srcEdgePropsExpr;
-
+    // for track vid in Nsteps
     std::string                 srcVidColName;
     std::string                 dstVidColName;
 
     // store the result of the previous sentence
     std::string                 inputVarName;
-    std::vector<std::string>    colNames;
-    // output for project
-    YieldColumns*               yieldExpr;
 };
 
 }  // namespace graph

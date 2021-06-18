@@ -41,7 +41,6 @@ private:
 private:
     std::unique_ptr<GoContext>                      goCtx_;
 
-    YieldColumns*                                   yields_{nullptr};
     YieldColumns*                                   inputPropCols_{nullptr};
     std::unordered_map<std::string, YieldColumn*>   propExprColMap_;
 };

@@ -21,6 +21,7 @@ Feature: Push Filter down LeftJoin rule
     Then the result should be, in any order:
       | $^.player.name   |
       | "Tiago Splitter" |
+      | "Tiago Splitter" |
     And the execution plan should be:
       | id | name         | dependencies | operator info |
       | 16 | Project      | 26           |               |
