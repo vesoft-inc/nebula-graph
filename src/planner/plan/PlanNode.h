@@ -298,6 +298,7 @@ public:
 
     PlanNode* clone() const override {
         LOG(FATAL) << "Shouldn't call the unimplemented method";
+        return nullptr;
     }
 
 protected:
@@ -319,6 +320,7 @@ public:
 
     PlanNode* clone() const override {
         LOG(FATAL) << "Shouldn't call the unimplemented method";
+        return nullptr;
     }
 
 protected:
@@ -371,6 +373,7 @@ public:
 
     PlanNode* clone() const override {
         LOG(FATAL) << "Shouldn't call the unimplemented method";
+        return nullptr;
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
@@ -391,6 +394,7 @@ public:
 
     PlanNode* clone() const override {
         LOG(FATAL) << "Shouldn't call the unimplemented method";
+        return nullptr;
     }
 
 protected:
