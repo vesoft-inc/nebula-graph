@@ -34,7 +34,7 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
 
     projCols_ = qctx_->objPool()->add(new YieldColumns);
     for (auto* col : columns) {
-        auto colOldName = deduceColName(col);
+        auto colOldName = col->name();
         auto* colExpr = col->expr();
         if (col->expr()->kind() != Expression::Kind::kAggregate) {
             auto collectAggCol = colExpr->clone();
@@ -54,8 +54,7 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
             }
             if (!aggs.empty()) {
                 auto* colRewrited = ExpressionUtils::rewriteAgg2VarProp(colExpr);
-                projCols_->addColumn(new YieldColumn(colRewrited, new std::string(colOldName)));
-                projOutputColumnNames_.emplace_back(colOldName);
+                projCols_->addColumn(new YieldColumn(colRewrited, colOldName));
                 continue;
             }
         }
@@ -74,16 +73,14 @@ Status GroupByValidator::validateYield(const YieldClause* yieldClause) {
         NG_RETURN_IF_ERROR(status);
         auto type = std::move(status).value();
 
-        projCols_->addColumn(new YieldColumn(
-            new VariablePropertyExpression(new std::string(), new std::string(colOldName)),
-            new std::string(colOldName)));
+        projCols_->addColumn(
+            new YieldColumn(new VariablePropertyExpression("", colOldName), colOldName));
 
-        projOutputColumnNames_.emplace_back(colOldName);
         outputs_.emplace_back(colOldName, type);
         outputColumnNames_.emplace_back(colOldName);
 
-        if (col->alias() != nullptr) {
-            aliases_.emplace(*col->alias(), col);
+        if (!col->alias().empty()) {
+            aliases_.emplace(col->alias(), col);
         }
 
         ExpressionProps yieldProps;
@@ -134,13 +131,10 @@ Status GroupByValidator::validateGroup(const GroupClause* groupClause) {
 
 Status GroupByValidator::toPlan() {
     auto* groupBy = Aggregate::make(qctx_, nullptr, std::move(groupKeys_), std::move(groupItems_));
-    groupBy->setColNames(std::vector<std::string>(outputColumnNames_));
+    groupBy->setColNames(outputColumnNames_);
     if (needGenProject_) {
         // rewrite Expr which has inner aggExpr and push it up to Project.
-        auto* project = Project::make(qctx_, groupBy, projCols_);
-        project->setInputVar(groupBy->outputVar());
-        project->setColNames(projOutputColumnNames_);
-        root_ = project;
+        root_ = Project::make(qctx_, groupBy, projCols_);
     } else {
         root_ = groupBy;
     }

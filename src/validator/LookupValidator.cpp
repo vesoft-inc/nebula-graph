@@ -39,17 +39,11 @@ Status LookupValidator::toPlan() {
     PlanNode* current = is;
 
     if (withProject_) {
-        auto* projectNode = Project::make(qctx_, current, newYieldColumns_);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, newYieldColumns_);
     }
 
     if (dedup_) {
-        auto* dedupNode = Dedup::make(qctx_, current);
-        dedupNode->setInputVar(current->outputVar());
-        dedupNode->setColNames(colNames_);
-        current = dedupNode;
+        current = Dedup::make(qctx_, current);
 
         // the framework will add data collect to collect the result
         // if the result is required
@@ -80,21 +74,17 @@ Status LookupValidator::prepareYield() {
     if (isEdge_) {
         returnCols_->emplace_back(kSrc);
         idxScanColNames_.emplace_back(kSrcVID);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
         returnCols_->emplace_back(kDst);
         idxScanColNames_.emplace_back(kDstVID);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
         returnCols_->emplace_back(kRank);
         idxScanColNames_.emplace_back(kRanking);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), Value::Type::INT);
+        outputs_.emplace_back(idxScanColNames_.back(), Value::Type::INT);
     } else {
         returnCols_->emplace_back(kVid);
         idxScanColNames_.emplace_back(kVertexID);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
     }
     if (sentence->yieldClause() == nullptr) {
         return Status::OK();
@@ -106,15 +96,15 @@ Status LookupValidator::prepareYield() {
     newYieldColumns_ = qctx_->objPool()->makeAndAdd<YieldColumns>();
     if (isEdge_) {
         // default columns
-        newYieldColumns_->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kSrcVID)), new std::string(kSrcVID)));
-        newYieldColumns_->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kDstVID)), new std::string(kDstVID)));
-        newYieldColumns_->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kRanking)), new std::string(kRanking)));
+        newYieldColumns_->addColumn(
+            new YieldColumn(new InputPropertyExpression(kSrcVID), kSrcVID));
+        newYieldColumns_->addColumn(
+            new YieldColumn(new InputPropertyExpression(kDstVID), kDstVID));
+        newYieldColumns_->addColumn(
+            new YieldColumn(new InputPropertyExpression(kRanking), kRanking));
     } else {
-        newYieldColumns_->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVertexID)), new std::string(kVertexID)));
+        newYieldColumns_->addColumn(
+            new YieldColumn(new InputPropertyExpression(kVertexID), kVertexID));
     }
     auto columns = sentence->yieldClause()->columns();
     auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
@@ -127,18 +117,18 @@ Status LookupValidator::prepareYield() {
         // TODO(shylock) support more expr
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
             auto la = static_cast<LabelAttributeExpression*>(col->expr());
-            const std::string& schemaName = *la->left()->name();
+            const std::string& schemaName = la->left()->name();
             const auto& value = la->right()->value();
             const std::string& colName = value.getStr();
             if (isEdge_) {
-                newYieldColumns_->addColumn(new YieldColumn(new EdgePropertyExpression(
-                    new std::string(schemaName), new std::string(colName))));
+                newYieldColumns_->addColumn(
+                    new YieldColumn(new EdgePropertyExpression(schemaName, colName)));
             } else {
-                newYieldColumns_->addColumn(new YieldColumn(new TagPropertyExpression(
-                    new std::string(schemaName), new std::string(colName))));
+                newYieldColumns_->addColumn(
+                    new YieldColumn(new TagPropertyExpression(schemaName, colName)));
             }
-            if (col->alias() != nullptr) {
-                newYieldColumns_->back()->setAlias(new std::string(*col->alias()));
+            if (!col->alias().empty()) {
+                newYieldColumns_->back()->setAlias(col->alias());
             }
             if (schemaName != from_) {
                 return Status::SemanticError("Schema name error : %s", schemaName.c_str());
@@ -150,11 +140,11 @@ Status LookupValidator::prepareYield() {
             }
             returnCols_->emplace_back(colName);
             idxScanColNames_.emplace_back(from_ + "." + colName);
-            colNames_.emplace_back(deduceColName(newYieldColumns_->back()));
-            outputs_.emplace_back(colNames_.back(), SchemaUtil::propTypeToValueType(ret));
+            auto column = newYieldColumns_->back()->name();
+            outputs_.emplace_back(column, SchemaUtil::propTypeToValueType(ret));
         } else {
-            return Status::SemanticError("Yield clauses are not supported : %s",
-                                         col->expr()->toString().c_str());
+            return Status::SemanticError("Yield clauses are not supported: %s",
+                                         col->toString().c_str());
         }
     }
     return Status::OK();
@@ -255,13 +245,15 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
 
     auto left = expr->left();
     auto* la = static_cast<LabelAttributeExpression*>(left);
-    if (*la->left()->name() != from_) {
-        return Status::SemanticError("Schema name error : %s", la->left()->name()->c_str());
+    if (la->left()->name() != from_) {
+        return Status::SemanticError("Schema name error : %s", la->left()->name().c_str());
     }
 
     // fold constant expression
     auto pool = qctx_->objPool();
-    expr = static_cast<RelationalExpression*>(ExpressionUtils::foldConstantExpr(expr, pool));
+    auto foldRes = ExpressionUtils::foldConstantExpr(expr, pool);
+    NG_RETURN_IF_ERROR(foldRes);
+    expr = static_cast<RelationalExpression*>(foldRes.value());
     DCHECK_EQ(expr->left()->kind(), Expression::Kind::kLabelAttribute);
 
     std::string prop = la->right()->value().getStr();
@@ -333,7 +325,7 @@ StatusOr<std::string> LookupValidator::checkTSExpr(Expression* expr) {
         return Status::SemanticError("text search index not found : %s", tsName.c_str());
     }
     auto ftFields = tsi.value().second.get_fields();
-    auto prop = *tsExpr->arg()->prop();
+    auto prop = tsExpr->arg()->prop();
 
     auto iter = std::find(ftFields.begin(), ftFields.end(), prop);
     if (iter == ftFields.end()) {

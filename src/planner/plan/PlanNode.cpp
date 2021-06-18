@@ -268,6 +268,11 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
         case Kind::kIngest:
             return "Ingest";
         // no default so the compiler will warning when lack
+        case Kind::kShowSessions:
+            return "ShowSessions";
+        case Kind::kUpdateSession:
+            return "UpdateSession";
+            // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
@@ -342,6 +347,15 @@ void PlanNode::releaseSymbols() {
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {
     os << PlanNode::toString(kind);
     return os;
+}
+
+SingleInputNode::SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
+    : SingleDependencyNode(qctx, kind, dep) {
+    if (dep != nullptr) {
+        readVariable(dep->outputVarPtr());
+    } else {
+        inputVars_.emplace_back(nullptr);
+    }
 }
 
 std::unique_ptr<PlanNodeDescription> SingleDependencyNode::explain() const {

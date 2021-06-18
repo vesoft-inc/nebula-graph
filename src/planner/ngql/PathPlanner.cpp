@@ -13,8 +13,8 @@
 
 namespace nebula {
 namespace graph {
-GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
-    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+std::unique_ptr<std::vector<EdgeProp>> PathPlanner::buildEdgeProps(bool reverse) {
+    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     switch (pathCtx_->over.direction) {
         case storage::cpp2::EdgeDirection::IN_EDGE: {
             doBuildEdgeProps(edgeProps, reverse, true);
@@ -33,9 +33,10 @@ GetNeighbors::EdgeProps PathPlanner::buildEdgeProps(bool reverse) {
     return edgeProps;
 }
 
-void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
+void PathPlanner::doBuildEdgeProps(std::unique_ptr<std::vector<EdgeProp>>& edgeProps,
                                    bool reverse,
                                    bool isInEdge) {
+    const auto& exprProps = pathCtx_->exprProps;
     for (const auto& e : pathCtx_->over.edgeTypes) {
         storage::cpp2::EdgeProp ep;
         if (reverse == isInEdge) {
@@ -43,7 +44,16 @@ void PathPlanner::doBuildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
         } else {
             ep.set_type(-e);
         }
-        ep.set_props({kDst, kType, kRank});
+        const auto& found = exprProps.edgeProps().find(e);
+        if (found == exprProps.edgeProps().end()) {
+            ep.set_props({kDst, kType, kRank});
+        } else {
+            std::set<std::string> props(found->second.begin(), found->second.end());
+            props.emplace(kDst);
+            props.emplace(kType);
+            props.emplace(kRank);
+            ep.set_props(std::vector<std::string>(props.begin(), props.end()));
+        }
         edgeProps->emplace_back(std::move(ep));
     }
 }
@@ -123,7 +133,7 @@ SubPlan PathPlanner::buildRuntimeVidPlan() {
 
 PlanNode* PathPlanner::allPairStartVidDataSet(PlanNode* dep, const std::string& inputVar) {
     // col 0 is vid
-    auto* vid = new YieldColumn(new ColumnExpression(0), new std::string(kVid));
+    auto* vid = new YieldColumn(new ColumnExpression(0), kVid);
     // col 1 is list<path(only contain src)>
     auto* pathExpr = new PathBuildExpression();
     pathExpr->add(std::make_unique<ColumnExpression>(0));
@@ -131,27 +141,27 @@ PlanNode* PathPlanner::allPairStartVidDataSet(PlanNode* dep, const std::string& 
     auto* exprList = new ExpressionList();
     exprList->add(pathExpr);
     auto* listExpr = new ListExpression(exprList);
-    auto* path = new YieldColumn(listExpr, new std::string(kPathStr));
+    auto* path = new YieldColumn(listExpr, kPathStr);
 
     auto* columns = pathCtx_->qctx->objPool()->add(new YieldColumns());
     columns->addColumn(vid);
     columns->addColumn(path);
 
     auto* project = Project::make(pathCtx_->qctx, dep, columns);
-    project->setColNames({kVid, kPathStr});
     project->setInputVar(inputVar);
     project->setOutputVar(inputVar);
+    project->setColNames({kVid, kPathStr});
 
     return project;
 }
 
 PlanNode* PathPlanner::multiPairStartVidDataSet(PlanNode* dep, const std::string& inputVar) {
     // col 0 is dst
-    auto* dst = new YieldColumn(new ColumnExpression(0), new std::string(kDst));
+    auto* dst = new YieldColumn(new ColumnExpression(0), kDst);
     // col 1 is src
-    auto* src = new YieldColumn(new ColumnExpression(1), new std::string(kSrc));
+    auto* src = new YieldColumn(new ColumnExpression(1), kSrc);
     // col 2 is cost
-    auto* cost = new YieldColumn(new ConstantExpression(0), new std::string(kCostStr));
+    auto* cost = new YieldColumn(new ConstantExpression(0), kCostStr);
     // col 3 is list<path(only contain dst)>
     auto* pathExpr = new PathBuildExpression();
     pathExpr->add(std::make_unique<ColumnExpression>(0));
@@ -159,7 +169,7 @@ PlanNode* PathPlanner::multiPairStartVidDataSet(PlanNode* dep, const std::string
     auto* exprList = new ExpressionList();
     exprList->add(pathExpr);
     auto* listExpr = new ListExpression(exprList);
-    auto* path = new YieldColumn(listExpr, new std::string(kPathStr));
+    auto* path = new YieldColumn(listExpr, kPathStr);
 
     auto* columns = pathCtx_->qctx->objPool()->add(new YieldColumns());
     columns->addColumn(dst);
@@ -214,7 +224,14 @@ PlanNode* PathPlanner::singlePairPath(PlanNode* dep, bool reverse) {
     gn->setInputVar(vidsVar);
     gn->setDedup();
 
-    auto* path = BFSShortestPath::make(qctx, gn);
+    PlanNode* pathDep = gn;
+    if (pathCtx_->filter != nullptr) {
+        auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
+        auto* filter = Filter::make(qctx, gn, filterExpr);
+        pathDep = filter;
+    }
+
+    auto* path = BFSShortestPath::make(qctx, pathDep);
     path->setOutputVar(vidsVar);
     path->setColNames({kVid, kEdgeStr});
 
@@ -264,7 +281,14 @@ PlanNode* PathPlanner::allPairPath(PlanNode* dep, bool reverse) {
     gn->setInputVar(vidsVar);
     gn->setDedup();
 
-    auto* path = ProduceAllPaths::make(qctx, gn);
+    PlanNode* pathDep = gn;
+    if (pathCtx_->filter != nullptr) {
+        auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
+        auto* filter = Filter::make(qctx, gn, filterExpr);
+        pathDep = filter;
+    }
+
+    auto* path = ProduceAllPaths::make(qctx, pathDep);
     path->setOutputVar(vidsVar);
     path->setColNames({kVid, kPathStr});
     return path;
@@ -309,7 +333,14 @@ PlanNode* PathPlanner::multiPairPath(PlanNode* dep, bool reverse) {
     gn->setInputVar(vidsVar);
     gn->setDedup();
 
-    auto* path = ProduceSemiShortestPath::make(qctx, gn);
+    PlanNode* pathDep = gn;
+    if (pathCtx_->filter != nullptr) {
+        auto* filterExpr = qctx->objPool()->add(pathCtx_->filter->clone().release());
+        auto* filter = Filter::make(qctx, gn, filterExpr);
+        pathDep = filter;
+    }
+
+    auto* path = ProduceSemiShortestPath::make(qctx, pathDep);
     path->setOutputVar(vidsVar);
     path->setColNames({kDst, kSrc, kCostStr, kPathStr});
 
@@ -350,9 +381,9 @@ PlanNode* PathPlanner::buildVertexPlan(PlanNode* dep, const std::string& input) 
     // col 0 of the input is path
     auto args = new ArgumentList();
     args->addArgument(std::make_unique<ColumnExpression>(0));
-    auto funNodes = new FunctionCallExpression(new std::string("nodes"), args);
+    auto funNodes = new FunctionCallExpression("nodes", args);
 
-    auto* column = new YieldColumn(funNodes, new std::string("nodes"));
+    auto* column = new YieldColumn(funNodes, "nodes");
     auto* columns = qctx->objPool()->add(new YieldColumns());
     columns->addColumn(column);
 
@@ -368,9 +399,9 @@ PlanNode* PathPlanner::buildVertexPlan(PlanNode* dep, const std::string& input) 
     // extract vid from vertex, col 0 is vertex
     auto idArgs = new ArgumentList();
     idArgs->addArgument(std::make_unique<ColumnExpression>(1));
-    auto* src = qctx->objPool()->add(new FunctionCallExpression(new std::string("id"), idArgs));
+    auto* src = qctx->objPool()->add(new FunctionCallExpression("id", idArgs));
     // get all vertexprop
-    auto vertexProp = SchemaUtil::getAllVertexProp(qctx, pathCtx_->space);
+    auto vertexProp = SchemaUtil::getAllVertexProp(qctx, pathCtx_->space, true);
     auto* getVertices = GetVertices::make(
         qctx, unwind, pathCtx_->space.id, src, std::move(vertexProp).value(), {}, true);
 
@@ -383,9 +414,9 @@ PlanNode* PathPlanner::buildEdgePlan(PlanNode* dep, const std::string& input) {
     // col 0 of the input is path
     auto args = new ArgumentList();
     args->addArgument(std::make_unique<ColumnExpression>(0));
-    auto funEdges = new FunctionCallExpression(new std::string("relationships"), args);
+    auto funEdges = new FunctionCallExpression("relationships", args);
 
-    auto* column = new YieldColumn(funEdges, new std::string("edges"));
+    auto* column = new YieldColumn(funEdges, "edges");
     auto* columns = qctx->objPool()->add(new YieldColumns());
     columns->addColumn(column);
 
@@ -401,23 +432,23 @@ PlanNode* PathPlanner::buildEdgePlan(PlanNode* dep, const std::string& input) {
     // extract src from edge
     auto srcArgs = new ArgumentList();
     srcArgs->addArgument(std::make_unique<ColumnExpression>(1));
-    auto* src = qctx->objPool()->add(new FunctionCallExpression(new std::string("src"), srcArgs));
+    auto* src = qctx->objPool()->add(new FunctionCallExpression("src", srcArgs));
     // extract dst from edge
     auto dstArgs = new ArgumentList();
     dstArgs->addArgument(std::make_unique<ColumnExpression>(1));
-    auto* dst = qctx->objPool()->add(new FunctionCallExpression(new std::string("dst"), dstArgs));
+    auto* dst = qctx->objPool()->add(new FunctionCallExpression("dst", dstArgs));
     // extract rank from edge
     auto rankArgs = new ArgumentList();
     rankArgs->addArgument(std::make_unique<ColumnExpression>(1));
     auto* rank =
-        qctx->objPool()->add(new FunctionCallExpression(new std::string("rank"), rankArgs));
+        qctx->objPool()->add(new FunctionCallExpression("rank", rankArgs));
     // type
     auto typeArgs = new ArgumentList();
     typeArgs->addArgument(std::make_unique<ColumnExpression>(1));
     auto* type =
-        qctx->objPool()->add(new FunctionCallExpression(new std::string("typeid"), typeArgs));
+        qctx->objPool()->add(new FunctionCallExpression("typeid", typeArgs));
     // prepare edgetype
-    auto edgeProp = SchemaUtil::getEdgeProp(qctx, pathCtx_->space, pathCtx_->over.edgeTypes);
+    auto edgeProp = SchemaUtil::getEdgeProps(qctx, pathCtx_->space, pathCtx_->over.edgeTypes, true);
     auto* getEdge = GetEdges::make(qctx,
                                    unwind,
                                    pathCtx_->space.id,

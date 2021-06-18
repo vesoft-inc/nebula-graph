@@ -247,6 +247,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DropFTIndexValidator>(sentence, context);
         case Sentence::Kind::kShowGroups:
         case Sentence::Kind::kShowZones:
+        case Sentence::Kind::kShowSessions:
+            return std::make_unique<ShowSessionsValidator>(sentence, context);
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kReturn: {
             // nothing
@@ -278,6 +280,15 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
     }
     qctx->plan()->setRoot(root);
     return Status::OK();
+}
+
+std::vector<std::string> Validator::getOutColNames() const {
+    std::vector<std::string> colNames;
+    colNames.reserve(outputs_.size());
+    for (const auto& col : outputs_) {
+        colNames.emplace_back(col.name);
+    }
+    return colNames;
 }
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
@@ -339,21 +350,6 @@ bool Validator::spaceChosen() {
     return vctx_->spaceChosen();
 }
 
-std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) const {
-    std::vector<std::string> colNames;
-    for (auto col : cols->columns()) {
-        colNames.emplace_back(deduceColName(col));
-    }
-    return colNames;
-}
-
-std::string Validator::deduceColName(const YieldColumn* col) const {
-    if (col->alias() != nullptr) {
-        return *col->alias();
-    }
-    return col->toString();
-}
-
 StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
     DeduceTypeVisitor visitor(qctx_, vctx_, inputs_, space_.id);
     const_cast<Expression*>(expr)->accept(&visitor);
@@ -378,18 +374,18 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
-        ColDef col(*propExpr->prop(), type);
+        ColDef col(propExpr->prop(), type);
         const auto find = std::find(inputs_.begin(), inputs_.end(), col);
         if (find == inputs_.end()) {
-            return Status::SemanticError("No input property `%s'", propExpr->prop()->c_str());
+            return Status::SemanticError("No input property `%s'", propExpr->prop().c_str());
         }
         return inputVarName_;
     }
     if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
-        ColDef col(*propExpr->prop(), type);
+        ColDef col(propExpr->prop(), type);
 
-        const auto &outputVar = *propExpr->sym();
+        const auto &outputVar = propExpr->sym();
         const auto &var = vctx_->getVar(outputVar);
         if (var.empty()) {
             return Status::SemanticError("No variable `%s'", outputVar.c_str());
@@ -397,7 +393,7 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         const auto find = std::find(var.begin(), var.end(), col);
         if (find == var.end()) {
             return Status::SemanticError(
-                "No property `%s' in variable `%s'", propExpr->prop()->c_str(), outputVar.c_str());
+                "No property `%s' in variable `%s'", propExpr->prop().c_str(), outputVar.c_str());
         }
         userDefinedVarNameList_.emplace(outputVar);
         return outputVar;

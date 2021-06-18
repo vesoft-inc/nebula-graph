@@ -12,7 +12,6 @@
 #include "parser/TraverseSentences.h"
 #include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
-#include "visitor/FoldConstantExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -71,25 +70,23 @@ Status YieldValidator::validateImpl() {
 Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     columns_->addColumn(column);
 
-    auto expr = column->expr();
-    DCHECK(expr != nullptr);
+    auto pool = qctx()->objPool();
+    auto colExpr = column->expr();
+    DCHECK(colExpr != nullptr);
 
+    auto expr = pool->add(colExpr->clone().release());
     NG_RETURN_IF_ERROR(deduceProps(expr, exprProps_));
 
     auto status = deduceExprType(expr);
     NG_RETURN_IF_ERROR(status);
     auto type = std::move(status).value();
 
-    auto name = deduceColName(column);
-    outputColumnNames_.emplace_back(name);
-
+    auto name = column->name();
     // Constant expression folding must be after type deduction
-    FoldConstantExprVisitor visitor;
-    expr->accept(&visitor);
-    if (visitor.canBeFolded()) {
-        column->setExpr(visitor.fold(expr));
-    }
-
+    auto foldedExpr = ExpressionUtils::foldConstantExpr(expr, pool);
+    NG_RETURN_IF_ERROR(foldedExpr);
+    auto foldedExprCopy = std::move(foldedExpr).value()->clone();
+    column->setExpr(foldedExprCopy.release());
     outputs_.emplace_back(name, type);
     return Status::OK();
 }
@@ -97,7 +94,7 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
 void YieldValidator::genConstantExprValues() {
     constantExprVar_ = vctx_->anonVarGen()->getVar();
     DataSet ds;
-    ds.colNames = outputColumnNames_;
+    ds.colNames = getOutColNames();
     QueryExpressionContext ctx;
     Row row;
     for (auto &column : columns_->columns()) {
@@ -143,9 +140,9 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
             auto ipe = static_cast<const InputPropertyExpression *>(expr);
             // Get all props of input expression could NOT be a part of another expression. So
             // it's always a root of expression.
-            if (*ipe->prop() == "*") {
+            if (ipe->prop() == "*") {
                 for (auto &colDef : inputs_) {
-                    auto newExpr = new InputPropertyExpression(new std::string(colDef.name));
+                    auto newExpr = new InputPropertyExpression(colDef.name);
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
                 }
                 continue;
@@ -153,15 +150,14 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
         } else if (expr->kind() == Expression::Kind::kVarProperty) {
             auto vpe = static_cast<const VariablePropertyExpression *>(expr);
             // Get all props of variable expression is same as above input property expression.
-            if (*vpe->prop() == "*") {
-                auto var = DCHECK_NOTNULL(vpe->sym());
-                if (!vctx_->existVar(*var)) {
-                    return Status::SemanticError("variable `%s' not exists.", var->c_str());
+            if (vpe->prop() == "*") {
+                auto &var = vpe->sym();
+                if (!vctx_->existVar(var)) {
+                    return Status::SemanticError("variable `%s' not exists.", var.c_str());
                 }
-                auto &varColDefs = vctx_->getVar(*var);
+                auto &varColDefs = vctx_->getVar(var);
                 for (auto &colDef : varColDefs) {
-                    auto newExpr = new VariablePropertyExpression(new std::string(*var),
-                                                                  new std::string(colDef.name));
+                    auto newExpr = new VariablePropertyExpression(var, colDef.name);
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
                 }
                 continue;
@@ -182,8 +178,9 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
     if (filter != nullptr) {
         NG_RETURN_IF_ERROR(deduceProps(filter, exprProps_));
         auto pool = qctx_->objPool();
-        auto newFilter = ExpressionUtils::foldConstantExpr(filter, pool);
-        filterCondition_ = newFilter;
+        auto foldRes = ExpressionUtils::foldConstantExpr(filter, pool);
+        NG_RETURN_IF_ERROR(foldRes);
+        filterCondition_ = foldRes.value();
     }
     return Status::OK();
 }
@@ -234,9 +231,8 @@ Status YieldValidator::toPlan() {
         }
     } else {
         dedupDep = Project::make(qctx_, filter, columns_);
-        dedupDep->setColNames(std::move(outputColumnNames_));
+        dedupDep->setColNames(getOutColNames());
         if (filter != nullptr) {
-            dedupDep->setInputVar(filter->outputVar());
             tail_ = filter;
         } else {
             tail_ = dedupDep;
@@ -248,10 +244,7 @@ Status YieldValidator::toPlan() {
     }
 
     if (yield->yield()->isDistinct()) {
-        auto dedup = Dedup::make(qctx_, dedupDep);
-        dedup->setColNames(dedupDep->colNames());
-        dedup->setInputVar(dedupDep->outputVar());
-        root_ = dedup;
+        root_ = Dedup::make(qctx_, dedupDep);
     } else {
         root_ = dedupDep;
     }

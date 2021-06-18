@@ -74,8 +74,8 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         ->getProps(ge->space(),
                    std::move(edges),
                    nullptr,
-                   &ge->props(),
-                   ge->exprs().empty() ? nullptr : &ge->exprs(),
+                   ge->props(),
+                   ge->exprs(),
                    ge->dedup(),
                    ge->orderBy(),
                    ge->limit(),
@@ -89,7 +89,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         .thenValue([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
-            return handleResp(std::move(rpcResp), ge->colNamesRef());
+            return handleResp(std::move(rpcResp), ge->colNames());
         });
 }
 
