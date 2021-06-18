@@ -145,6 +145,7 @@ static constexpr size_t kCommentLengthLimit = 256;
     nebula::TextSearchArgument             *fuzzy_text_search_argument;
     nebula::meta::cpp2::FTClient           *text_search_client_item;
     nebula::TSClientList                   *text_search_client_list;
+    nebula::QueryUniqueIdentifier          *query_unique_identifier;
 }
 
 /* destructors */
@@ -196,6 +197,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %token KW_ANY KW_SINGLE KW_NONE
 %token KW_REDUCE
 %token KW_SESSIONS KW_SESSION
+%token KW_KILL KW_QUERY KW_QUERIES KW_TOP
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -332,6 +334,8 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <index_field> index_field
 %type <index_field_list> index_field_list opt_index_field_list
 
+%type <query_unique_identifier> query_unique_identifier
+
 %type <sentence> maintain_sentence
 %type <sentence> create_space_sentence describe_space_sentence drop_space_sentence
 %type <sentence> create_tag_sentence create_edge_sentence
@@ -351,6 +355,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 
 %type <sentence> admin_job_sentence
 %type <sentence> create_user_sentence alter_user_sentence drop_user_sentence change_password_sentence
+%type <sentence> show_queries_sentence kill_query_sentence
 %type <sentence> show_sentence
 
 %type <sentence> mutate_sentence
@@ -512,6 +517,10 @@ unreserved_keyword
     | KW_SESSION            { $$ = new std::string("session"); }
     | KW_SESSIONS           { $$ = new std::string("sessions"); }
     | KW_SAMPLE             { $$ = new std::string("sample"); }
+    | KW_QUERIES            { $$ = new std::string("queries"); }
+    | KW_QUERY              { $$ = new std::string("query"); }
+    | KW_KILL               { $$ = new std::string("kill"); }
+    | KW_TOP                { $$ = new std::string("top"); }
     ;
 
 expression
@@ -2851,6 +2860,21 @@ job_concurrency
     }
     ;
 
+show_queries_sentence
+    : KW_SHOW KW_QUERIES {
+        $$ = new ShowQueriesSentence();
+    }
+    | KW_SHOW KW_QUERIES KW_TOP legal_integer {
+        $$ = new ShowQueriesSentence(false, $4);
+    }
+    | KW_SHOW KW_ALL KW_QUERIES {
+        $$ = new ShowQueriesSentence(true);
+    }
+    | KW_SHOW KW_ALL KW_QUERIES KW_TOP legal_integer {
+        $$ = new ShowQueriesSentence(true, $5);
+    }
+    ;
+
 show_sentence
     : KW_SHOW KW_HOSTS {
         $$ = new ShowHostsSentence(meta::cpp2::ListHostType::ALLOC);
@@ -2943,6 +2967,9 @@ show_sentence
     }
     | KW_SHOW KW_SESSION legal_integer {
         $$ = new ShowSessionsSentence($3);
+    }
+    | show_queries_sentence {
+        $$ = $1;
     }
     ;
 
@@ -3287,6 +3314,23 @@ list_listener_sentence
     }
     ;
 
+kill_query_sentence
+    : KW_KILL KW_QUERY L_BRACKET query_unique_identifier R_BRACKET {
+        $$ = new KillQuerySentence($4);
+    }
+
+query_unique_identifier
+    : KW_PLAN ASSIGN legal_integer {
+        $$ = new QueryUniqueIdentifier($3);
+    }
+    | KW_SESSION ASSIGN legal_integer COMMA KW_PLAN ASSIGN legal_integer {
+        $$ = new QueryUniqueIdentifier($7, $3);
+    }
+    | KW_PLAN ASSIGN legal_integer COMMA KW_SESSION ASSIGN legal_integer {
+        $$ = new QueryUniqueIdentifier($3, $7);
+    }
+    ;
+
 mutate_sentence
     : insert_vertex_sentence { $$ = $1; }
     | insert_edge_sentence { $$ = $1; }
@@ -3346,6 +3390,7 @@ maintain_sentence
     | drop_snapshot_sentence { $$ = $1; }
     | sign_in_text_search_service_sentence { $$ = $1; }
     | sign_out_text_search_service_sentence { $$ = $1; }
+    | kill_query_sentence { $$ = $1; }
     ;
 
 sentence

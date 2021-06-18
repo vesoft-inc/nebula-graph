@@ -732,6 +732,74 @@ private:
     SessionID   sessionId_{0};
     bool        setSeesionId_{false};
 };
+
+class ShowQueriesSentence final : public Sentence {
+public:
+    explicit ShowQueriesSentence(bool isAll = false, int64_t topN = -1) {
+        isAll_ = isAll;
+        topN_ = topN;
+    }
+
+    bool isAll() const {
+        return isAll_;
+    }
+
+    int64_t topN() const {
+        return topN_;
+    }
+
+    std::string toString() const override {
+        // TODO
+        return "";
+    }
+
+private:
+    bool isAll_{false};
+    int64_t topN_{-1};
+};
+
+class QueryUniqueIdentifier final {
+public:
+    explicit QueryUniqueIdentifier(int64_t epId, int64_t sessionId = -1) {
+        sessionId_ = sessionId;
+        epId_ = epId;
+    }
+
+    int64_t sessionId() const {
+        return sessionId_;
+    }
+
+    int64_t epId() const {
+        return epId_;
+    }
+
+private:
+    int64_t sessionId_{-1};
+    int64_t epId_{-1};
+};
+
+class KillQuerySentence final : public Sentence {
+public:
+    explicit KillQuerySentence(QueryUniqueIdentifier* identifier) {
+        identifier_.reset(identifier);
+    }
+
+    int64_t sessionId() const {
+        return identifier_->sessionId();
+    }
+
+    int64_t epId() const {
+        return identifier_->epId();
+    }
+
+    std::string toString() const override {
+        // TODO
+        return "";
+    }
+
+private:
+    std::unique_ptr<QueryUniqueIdentifier> identifier_;
+};
 }   // namespace nebula
 
 #endif  // PARSER_ADMINSENTENCES_H_
