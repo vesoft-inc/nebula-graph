@@ -201,8 +201,7 @@ StatusOr<std::unique_ptr<std::vector<VertexProp>>> GetSubgraphValidator::buildVe
             }
             vp.set_props(std::move(props));
             vertexProps->emplace_back(std::move(vp));
-        }
-        if (!dstTagProps.empty()) {
+        } else if (!dstTagProps.empty()) {
             const auto& found = dstTagProps.find(tag.first);
             if (found != dstTagProps.end()) {
                 vp.set_props(std::vector<std::string>(found->second.begin(), found->second.end()));

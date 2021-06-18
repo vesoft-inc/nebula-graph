@@ -61,3 +61,4 @@ DEFINE_double(system_memory_high_watermark_ratio, 0.8, "high watermark ratio of 
 
 DEFINE_bool(disable_octal_escape_char, false, "Octal escape character will be disabled"
                                          " in next version to ensure compatibility with cypher.");
+DEFINE_bool(match_clause_with_props, true, "Whether to get props in match clause, default true");
