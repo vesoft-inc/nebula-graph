@@ -15,7 +15,8 @@
         "session_reclaim_interval_secs",
         "max_allowed_connections",
         "disable_octal_escape_char",
-        "match_clause_with_props"
+        "match_clause_with_props",
+        "max_allowed_connections"
     ],
     "NESTED": [
         "rocksdb_db_options",
