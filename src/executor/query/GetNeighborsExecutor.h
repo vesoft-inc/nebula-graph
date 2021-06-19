@@ -28,7 +28,8 @@ public:
 
 private:
     using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
-    Status handleResponse(RpcResponse& resps);
+    StatusOr<std::tuple<List, Result::State>> handleResponse(RpcResponse& resps);
+    folly::Future<StatusOr<std::tuple<List, Result::State>>> execute(DataSet ds);
 
 private:
     const GetNeighbors*     gn_;
