@@ -521,5 +521,20 @@ Status ShowSessionsValidator::toPlan() {
     return Status::OK();
 }
 
+Status ShowQueriesValidator::toPlan() {
+    auto sentence = static_cast<ShowQueriesSentence*>(sentence_);
+    auto *node = ShowQueries::make(qctx_, nullptr, sentence->isAll(), sentence->topN());
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status KillQueryValidator::toPlan() {
+    auto sentence = static_cast<KillQuerySentence*>(sentence_);
+    auto *node = KillQuery::make(qctx_, nullptr, sentence->sessionId(), sentence->epId());
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
 }  // namespace graph
 }  // namespace nebula

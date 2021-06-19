@@ -346,6 +346,36 @@ private:
 private:
     SessionID       sessionId_{0};
 };
+
+class ShowQueriesValidator final : public Validator {
+public:
+    ShowQueriesValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override {
+        return Status::OK();
+    }
+
+    Status toPlan() override;
+};
+
+class KillQueryValidator final : public Validator {
+public:
+    KillQueryValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override {
+        return Status::OK();
+    }
+
+    Status toPlan() override;
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_ADMINVALIDATOR_H_

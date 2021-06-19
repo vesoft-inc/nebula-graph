@@ -497,6 +497,11 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kUpdateSession:  {
             return pool->add(new UpdateSessionExecutor(node, qctx));
         }
+        case PlanNode::Kind::kShowQueries:
+        case PlanNode::Kind::kKillQuery: {
+            // TODO
+            return nullptr;
+        }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
             break;
