@@ -26,6 +26,8 @@ using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::GetNeighborsResponse;
 
+using StatefulResp = nebula::graph::GetNeighborsExecutor::StatefulResp;
+
 namespace nebula {
 namespace graph {
 
@@ -37,7 +39,7 @@ DataSet GetNeighborsExecutor::buildRequestDataSet() {
     return buildRequestDataSetByVidType(iter.get(), gn_->src(), gn_->dedup());
 }
 
-folly::Future<StatusOr<std::tuple<List, Result::State>>> GetNeighborsExecutor::execute(DataSet ds) {
+folly::Future<StatusOr<StatefulResp>> GetNeighborsExecutor::execute(DataSet ds) {
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     return storageClient
         ->getNeighbors(gn_->space(),
@@ -96,7 +98,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 
     auto numRows = reqDs.size();
     auto nBatches = numRows / FLAGS_get_nbr_batch_size;
-    std::vector<folly::Future<StatusOr<std::tuple<List, Result::State>>>> futures;
+    std::vector<folly::Future<StatusOr<StatefulResp>>> futures;
     futures.reserve(nBatches + 1);
     for (size_t i = 0; i < nBatches; ++i) {
         auto from = i * FLAGS_get_nbr_batch_size;
@@ -111,7 +113,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 
     // time::Duration getNbrTime;
     return folly::collect(futures).via(runner()).thenValue(
-        [this](std::vector<StatusOr<std::tuple<List, Result::State>>> stats) {
+        [this](std::vector<StatusOr<StatefulResp>> stats) {
             // TODO(yee): Add profiling data
             // SCOPED_TIMER(&getNbrTime);
 
@@ -144,7 +146,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
         });
 }
 
-StatusOr<std::tuple<List, Result::State>> GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
+StatusOr<StatefulResp> GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
     auto result = handleCompleteness(resps, FLAGS_accept_partial_success);
     NG_RETURN_IF_ERROR(result);
 
