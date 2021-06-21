@@ -14,7 +14,7 @@ namespace nebula {
 namespace graph {
 MatchValidator::MatchValidator(Sentence *sentence, QueryContext *context)
     : TraversalValidator(sentence, context) {
-    matchCtx_ = std::make_unique<MatchAstContext>();
+    matchCtx_ = getContext<MatchAstContext>();
 }
 
 AstContext *MatchValidator::getAstContext() {
