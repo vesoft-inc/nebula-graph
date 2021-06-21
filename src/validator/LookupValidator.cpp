@@ -5,22 +5,41 @@
  */
 
 #include "validator/LookupValidator.h"
+#include <glog/logging.h>
+#include "common/base/Status.h"
+#include "common/meta/NebulaSchemaProvider.h"
+#include "context/ast/QueryAstContext.h"
 #include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
-#include "util/SchemaUtil.h"
 #include "util/FTIndexUtils.h"
+#include "util/SchemaUtil.h"
+
+using nebula::meta::NebulaSchemaProvider;
+using std::shared_ptr;
+using std::unique_ptr;
 
 namespace nebula {
 namespace graph {
 
-/*static*/ constexpr char LookupValidator::kSrcVID[];
-/*static*/ constexpr char LookupValidator::kDstVID[];
-/*static*/ constexpr char LookupValidator::kRanking[];
-
-/*static*/ constexpr char LookupValidator::kVertexID[];
+LookupValidator::LookupValidator(Sentence* sentence, QueryContext* context)
+    : Validator(sentence, context) {
+    lookupCtx_ = getContext<LookupContext>();
+}
 
 const LookupSentence* LookupValidator::sentence() const {
     return static_cast<LookupSentence*>(sentence_);
+}
+
+int32_t LookupValidator::schemaId() const {
+    return DCHECK_NOTNULL(lookupCtx_)->schemaId;
+}
+
+GraphSpaceID LookupValidator::spaceId() const {
+    return DCHECK_NOTNULL(lookupCtx_)->space.id;
+}
+
+AstContext* LookupValidator::getAstContext() {
+    return lookupCtx_.get();
 }
 
 Status LookupValidator::validateImpl() {
@@ -30,161 +49,74 @@ Status LookupValidator::validateImpl() {
     return Status::OK();
 }
 
-Status LookupValidator::toPlan() {
-    auto* is = IndexScan::make(qctx_,
-                               nullptr,
-                               spaceId_,
-                               std::move(contexts_),
-                               std::move(returnCols_),
-                               isEdge_,
-                               schemaId_,
-                               isEmptyResultSet_);
-    is->setColNames(std::move(idxScanColNames_));
-    PlanNode* current = is;
-
-    if (withProject_) {
-        current = Project::make(qctx_, current, newYieldColumns_);
-    }
-
-    if (dedup_) {
-        current = Dedup::make(qctx_, current);
-
-        // the framework will add data collect to collect the result
-        // if the result is required
-    }
-
-    root_ = current;
-    tail_ = is;
-    return Status::OK();
-}
-
 Status LookupValidator::prepareFrom() {
-    spaceId_ = vctx_->whichSpace().id;
-    from_ = sentence()->from();
-    auto ret = qctx_->schemaMng()->getSchemaIDByName(spaceId_, from_);
+    auto spaceId = lookupCtx_->space.id;
+    auto from = sentence()->from();
+    auto ret = qctx_->schemaMng()->getSchemaIDByName(spaceId, from);
     NG_RETURN_IF_ERROR(ret);
-    isEdge_ = ret.value().first;
-    schemaId_ = ret.value().second;
+    lookupCtx_->isEdge = ret.value().first;
+    lookupCtx_->schemaId = ret.value().second;
     return Status::OK();
 }
 
 Status LookupValidator::prepareYield() {
-    returnCols_ = std::make_unique<std::vector<std::string>>();
-    // always return
-    if (isEdge_) {
-        returnCols_->emplace_back(kSrc);
-        idxScanColNames_.emplace_back(kSrcVID);
-        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
-        returnCols_->emplace_back(kDst);
-        idxScanColNames_.emplace_back(kDstVID);
-        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
-        returnCols_->emplace_back(kRank);
-        idxScanColNames_.emplace_back(kRanking);
-        outputs_.emplace_back(idxScanColNames_.back(), Value::Type::INT);
-    } else {
-        returnCols_->emplace_back(kVid);
-        idxScanColNames_.emplace_back(kVertexID);
-        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
-    }
-    if (sentence()->yieldClause() == nullptr) {
+    auto yieldClause = sentence()->yieldClause();
+    if (yieldClause == nullptr) {
         return Status::OK();
     }
-    withProject_ = true;
-    if (sentence()->yieldClause()->isDistinct()) {
-        dedup_ = true;
-    }
-    auto* pool = qctx_->objPool();
-    newYieldColumns_ = pool->makeAndAdd<YieldColumns>();
-    if (isEdge_) {
-        // default columns
-        newYieldColumns_->addColumn(
-            new YieldColumn(InputPropertyExpression::make(pool, kSrcVID), kSrcVID));
-        newYieldColumns_->addColumn(
-            new YieldColumn(InputPropertyExpression::make(pool, kDstVID), kDstVID));
-        newYieldColumns_->addColumn(
-            new YieldColumn(InputPropertyExpression::make(pool, kRanking), kRanking));
-    } else {
-        newYieldColumns_->addColumn(
-            new YieldColumn(InputPropertyExpression::make(pool, kVertexID), kVertexID));
-    }
-    auto columns = sentence()->yieldClause()->columns();
-    auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
-                          : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
-    if (schema == nullptr) {
-        return isEdge_ ? Status::EdgeNotFound("Edge schema not found : %s", from_.c_str())
-                       : Status::TagNotFound("Tag schema not found : %s", from_.c_str());
-    }
-    for (auto col : columns) {
-        // TODO(shylock) support more expr
-        if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto la = static_cast<LabelAttributeExpression*>(col->expr());
-            const std::string& schemaName = la->left()->name();
-            const auto& value = la->right()->value();
-            const std::string& colName = value.getStr();
-            if (isEdge_) {
-                newYieldColumns_->addColumn(
-                    new YieldColumn(EdgePropertyExpression::make(pool, schemaName, colName)));
-            } else {
-                newYieldColumns_->addColumn(
-                    new YieldColumn(TagPropertyExpression::make(pool, schemaName, colName)));
-            }
-            if (!col->alias().empty()) {
-                newYieldColumns_->back()->setAlias(col->alias());
-            }
-            if (schemaName != from_) {
-                return Status::SemanticError("Schema name error : %s", schemaName.c_str());
-            }
-            auto ret = schema->getFieldType(colName);
-            if (ret == meta::cpp2::PropertyType::UNKNOWN) {
-                return Status::SemanticError(
-                    "Column %s not found in schema %s", colName.c_str(), from_.c_str());
-            }
-            returnCols_->emplace_back(colName);
-            idxScanColNames_.emplace_back(from_ + "." + colName);
-            auto column = newYieldColumns_->back()->name();
-            outputs_.emplace_back(column, SchemaUtil::propTypeToValueType(ret));
-        } else {
+    lookupCtx_->withProject = true;
+    lookupCtx_->dedup = yieldClause->isDistinct();
+
+    shared_ptr<const NebulaSchemaProvider> schemaProvider;
+    NG_RETURN_IF_ERROR(getSchemaProvider(&schemaProvider));
+
+    auto from = sentence()->from();
+    for (auto col : yieldClause->columns()) {
+        if (col->expr()->kind() != Expression::Kind::kLabelAttribute) {
+            // TODO(shylock) support more expr
             return Status::SemanticError("Yield clauses are not supported: %s",
                                          col->toString().c_str());
+        }
+        auto la = static_cast<LabelAttributeExpression*>(col->expr());
+        const std::string& schemaName = la->left()->name();
+        if (schemaName != from) {
+            return Status::SemanticError("Schema name error : %s", schemaName.c_str());
+        }
+
+        const auto& value = la->right()->value();
+        DCHECK(value.isStr());
+        const std::string& colName = value.getStr();
+        auto ret = schemaProvider->getFieldType(colName);
+        if (ret == meta::cpp2::PropertyType::UNKNOWN) {
+            return Status::SemanticError(
+                "Column %s not found in schema %s", colName.c_str(), from.c_str());
         }
     }
     return Status::OK();
 }
 
 Status LookupValidator::prepareFilter() {
-    if (sentence()->whereClause() == nullptr) {
+    auto whereClause = sentence()->whereClause();
+    if (whereClause == nullptr) {
         return Status::OK();
     }
 
-    auto* filter = sentence()->whereClause()->filter();
-    storage::cpp2::IndexQueryContext ctx;
+    auto* filter = whereClause->filter();
     if (FTIndexUtils::needTextSearch(filter)) {
-        auto tsRet = FTIndexUtils::getTSClients(qctx_->getMetaClient());
-        NG_RETURN_IF_ERROR(tsRet);
-        tsClients_ = std::move(tsRet).value();
-        auto tsIndex = checkTSExpr(filter);
-        NG_RETURN_IF_ERROR(tsIndex);
-        auto retFilter = FTIndexUtils::rewriteTSFilter(qctx_->objPool(),
-                                                       isEdge_,
-                                                       filter,
-                                                       tsIndex.value(),
-                                                       tsClients_);
-        if (!retFilter.ok()) {
-            return retFilter.status();
-        }
-        if (retFilter.value().empty()) {
+        auto retFilter = genTsFilter(filter);
+        NG_RETURN_IF_ERROR(retFilter);
+        auto filterExpr = std::move(retFilter).value();
+        if (filterExpr == nullptr) {
             // return empty result direct.
-            isEmptyResultSet_ = true;
+            lookupCtx_->isEmptyResultSet = true;
             return Status::OK();
         }
-        ctx.set_filter(std::move(retFilter).value());
+        lookupCtx_->filter = filterExpr;
     } else {
         auto ret = checkFilter(filter);
         NG_RETURN_IF_ERROR(ret);
-        ctx.set_filter(Expression::encode(*ret.value()));
+        lookupCtx_->filter = std::move(ret).value();
     }
-    contexts_ = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
-    contexts_->emplace_back(std::move(ctx));
     return Status::OK();
 }
 
@@ -230,7 +162,7 @@ StatusOr<Expression*> LookupValidator::checkRelExpr(RelationalExpression* expr) 
                right->kind() == Expression::Kind::kLabelAttribute) {
         auto ret = rewriteRelExpr(expr);
         NG_RETURN_IF_ERROR(ret);
-        return ret.value();
+        return std::move(ret).value();
     }
     return Status::SemanticError("Expression %s not supported yet", expr->toString().c_str());
 }
@@ -245,7 +177,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
 
     auto left = expr->left();
     auto* la = static_cast<LabelAttributeExpression*>(left);
-    if (la->left()->name() != from_) {
+    if (la->left()->name() != sentence()->from()) {
         return Status::SemanticError("Schema name error : %s", la->left()->name().c_str());
     }
 
@@ -265,7 +197,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     expr->setRight(ConstantExpression::make(pool, std::move(c).value()));
 
     // rewrite PropertyExpression
-    if (isEdge_) {
+    if (lookupCtx_->isEdge) {
         expr->setLeft(ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, la));
     } else {
         expr->setLeft(ExpressionUtils::rewriteLabelAttr2TagProp(pool, la));
@@ -280,8 +212,9 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
         return Status::SemanticError("'%s' is not an evaluable expression.",
                                      expr->toString().c_str());
     }
-    auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
-                          : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
+    auto schemaMgr = qctx_->schemaMng();
+    auto schema = lookupCtx_->isEdge ? schemaMgr->getEdgeSchema(spaceId(), schemaId())
+                                     : schemaMgr->getTagSchema(spaceId(), schemaId());
     auto type = schema->getFieldType(prop);
     QueryExpressionContext dummy(nullptr);
     auto v = Expression::eval(expr, dummy);
@@ -313,11 +246,9 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
 }
 
 StatusOr<std::string> LookupValidator::checkTSExpr(Expression* expr) {
-    auto tsi = qctx_->getMetaClient()->getFTIndexBySpaceSchemaFromCache(spaceId_, schemaId_);
-    if (!tsi.ok()) {
-        return tsi.status();
-    }
-    auto tsExpr = static_cast<TextSearchExpression*>(expr);
+    auto metaClient = qctx_->getMetaClient();
+    auto tsi = metaClient->getFTIndexBySpaceSchemaFromCache(spaceId(), schemaId());
+    NG_RETURN_IF_ERROR(tsi);
     auto tsName = tsi.value().first;
     auto ret = FTIndexUtils::checkTSIndex(tsClients_, tsName);
     NG_RETURN_IF_ERROR(ret);
@@ -325,6 +256,7 @@ StatusOr<std::string> LookupValidator::checkTSExpr(Expression* expr) {
         return Status::SemanticError("text search index not found : %s", tsName.c_str());
     }
     auto ftFields = tsi.value().second.get_fields();
+    auto tsExpr = static_cast<TextSearchExpression*>(expr);
     auto prop = tsExpr->arg()->prop();
 
     auto iter = std::find(ftFields.begin(), ftFields.end(), prop);
@@ -365,5 +297,32 @@ Expression* LookupValidator::reverseRelKind(RelationalExpression* expr) {
     auto* pool = qctx_->objPool();
     return RelationalExpression::makeKind(pool, reversedKind, right->clone(), left->clone());
 }
+
+Status LookupValidator::getSchemaProvider(shared_ptr<const NebulaSchemaProvider>* provider) const {
+    auto from = sentence()->from();
+    auto schemaMgr = qctx_->schemaMng();
+    if (lookupCtx_->isEdge) {
+        *provider = schemaMgr->getEdgeSchema(spaceId(), schemaId());
+        if (*provider == nullptr) {
+            return Status::EdgeNotFound("Edge schema not found : %s", from.c_str());
+        }
+    } else {
+        *provider = schemaMgr->getTagSchema(spaceId(), schemaId());
+        if (*provider == nullptr) {
+            return Status::TagNotFound("Tag schema not found : %s", from.c_str());
+        }
+    }
+    return Status::OK();
+}
+
+StatusOr<Expression*> LookupValidator::genTsFilter(Expression* filter) {
+    auto tsRet = FTIndexUtils::getTSClients(qctx_->getMetaClient());
+    NG_RETURN_IF_ERROR(tsRet);
+    tsClients_ = std::move(tsRet).value();
+    auto tsIndex = checkTSExpr(filter);
+    NG_RETURN_IF_ERROR(tsIndex);
+    return FTIndexUtils::rewriteTSFilter(lookupCtx_->isEdge, filter, tsIndex.value(), tsClients_);
+}
+
 }   // namespace graph
 }   // namespace nebula

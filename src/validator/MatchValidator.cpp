@@ -15,8 +15,6 @@ namespace graph {
 MatchValidator::MatchValidator(Sentence *sentence, QueryContext *context)
     : TraversalValidator(sentence, context) {
     matchCtx_ = std::make_unique<MatchAstContext>();
-    matchCtx_->sentence = sentence;
-    matchCtx_->qctx = context;
 }
 
 AstContext *MatchValidator::getAstContext() {

@@ -1,0 +1,81 @@
+/* Copyright (c) 2021 vesoft inc. All rights reserved.
+ *
+ * This source code is licensed under Apache 2.0 License,
+ * attached with Common Clause Condition 1.0, found in the LICENSES directory.
+ */
+
+#include "planner/ngql/LookupPlanner.h"
+
+#include "common/base/Base.h"
+#include "common/base/Status.h"
+#include "common/expression/Expression.h"
+#include "common/expression/LabelAttributeExpression.h"
+#include "common/expression/PropertyExpression.h"
+#include "context/ast/QueryAstContext.h"
+#include "parser/Clauses.h"
+#include "parser/TraverseSentences.h"
+
+namespace nebula {
+namespace graph {
+
+static constexpr char kSrcVID[] = "SrcVID";
+static constexpr char kDstVID[] = "DstVID";
+static constexpr char kRanking[] = "Ranking";
+static constexpr char kVertexID[] = "VertexID";
+
+std::unique_ptr<Planner> LookupPlanner::make() {
+    return std::unique_ptr<LookupPlanner>(new LookupPlanner());
+}
+
+bool LookupPlanner::match(AstContext* astCtx) {
+    return astCtx->sentence->kind() == Sentence::Kind::kLookup;
+}
+
+StatusOr<SubPlan> LookupPlanner::transform(AstContext* astCtx) {
+    auto lookupCtx = static_cast<LookupContext*>(astCtx);
+    auto returnCols = prepareReturnCols(lookupCtx);
+    UNUSED(returnCols);
+
+    return Status::Error();
+}
+
+YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) const {
+    auto pool = lookupCtx->qctx->objPool();
+    auto columns = pool->makeAndAdd<YieldColumns>();
+    auto inputPropColumn = [](const std::string& name) {
+        return new YieldColumn(new InputPropertyExpression(name), name);
+    };
+    if (lookupCtx->isEdge) {
+        columns->addColumn(inputPropColumn(kSrcVID));
+        columns->addColumn(inputPropColumn(kDstVID));
+        columns->addColumn(inputPropColumn(kRanking));
+    } else {
+        columns->addColumn(inputPropColumn(kVertexID));
+    }
+    if (lookupCtx->withProject) {
+        appendColumns(lookupCtx, columns);
+    }
+    return columns;
+}
+
+void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* columns) const {
+    auto sentence = static_cast<LookupSentence*>(lookupCtx->sentence);
+    auto yieldClause = sentence->yieldClause();
+    for (auto col : yieldClause->columns()) {
+        auto expr = col->expr();
+        DCHECK(expr->kind() == Expression::Kind::kLabelAttribute);
+        auto laExpr = static_cast<LabelAttributeExpression*>(expr);
+        const auto& schemaName = laExpr->left()->name();
+        const auto& colName = laExpr->right()->value().getStr();
+        Expression* propExpr = nullptr;
+        if (lookupCtx->isEdge) {
+            propExpr = new EdgePropertyExpression(schemaName, colName);
+        } else {
+            propExpr = new TagPropertyExpression(schemaName, colName);
+        }
+        columns->addColumn(new YieldColumn(propExpr, col->alias()));
+    }
+}
+
+}   // namespace graph
+}   // namespace nebula

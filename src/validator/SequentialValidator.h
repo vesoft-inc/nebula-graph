@@ -27,8 +27,6 @@ public:
         : Validator(sentence, context) {
         setNoSpaceRequired();
         seqAstCtx_ = std::make_unique<SequentialAstContext>();
-        seqAstCtx_->sentence = sentence;
-        seqAstCtx_->qctx = context;
     }
 
     Status validateImpl() override;

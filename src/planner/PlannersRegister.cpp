@@ -13,11 +13,13 @@
 #include "planner/match/PropIndexSeek.h"
 #include "planner/match/VertexIdSeek.h"
 #include "planner/match/LabelIndexSeek.h"
+#include "planner/ngql/LookupPlanner.h"
 #include "planner/ngql/PathPlanner.h"
 #include "planner/ngql/GoPlanner.h"
 
 namespace nebula {
 namespace graph {
+
 void PlannersRegister::registPlanners() {
     registSequential();
     registMatch();
@@ -28,6 +30,8 @@ void PlannersRegister::registPlanners() {
 void PlannersRegister::registSequential() {
     auto& planners = Planner::plannersMap()[Sentence::Kind::kSequential];
     planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::make);
+    planners.emplace_back(&PathPlanner::match, &PathPlanner::make);
+    planners.emplace_back(&LookupPlanner::match, &LookupPlanner::make);
 }
 
 void PlannersRegister::registMatch() {
