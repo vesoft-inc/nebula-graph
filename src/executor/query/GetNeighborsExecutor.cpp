@@ -119,7 +119,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
             size_t sz = 0;
             for (auto& stat : stats) {
                 NG_RETURN_IF_ERROR(stat);
-                auto tup = std::move(stat).value();
+                const auto& tup = stat.value();
                 if (std::get<Result::State>(tup) != Result::State::kSuccess) {
                     state = std::get<Result::State>(tup);
                 }
