@@ -397,7 +397,7 @@ Feature: Insert string vid of vertex and edge
     # test same tag in different space
     When executing query:
       """
-      CREATE SPACE my_space(partition_num=9, replica_factor=1);
+      CREATE SPACE my_space(partition_num=9, replica_factor=1, vid_type=FIXED_STRING(8));
       USE my_space;
       CREATE TAG animal(name string, kind string);
       """
@@ -428,7 +428,7 @@ Feature: Insert string vid of vertex and edge
     # test same tag in different space
     When executing query:
       """
-      CREATE SPACE test_multi;
+      CREATE SPACE test_multi(vid_type=FIXED_STRING(8));
       USE test_multi;
       CREATE Tag test_tag();
       SHOW TAGS;
@@ -486,7 +486,7 @@ Feature: Insert string vid of vertex and edge
     # test alter tag with default
     When executing query:
       """
-      CREATE SPACE tag_space(partition_num=9);
+      CREATE SPACE tag_space(partition_num=9, vid_type=FIXED_STRING(8));
       USE tag_space;
       CREATE TAG t(name string DEFAULT "N/A", age int DEFAULT -1);
       """
@@ -533,6 +533,7 @@ Feature: Insert string vid of vertex and edge
     Then the result should be, in any order:
       | VertexID | t.name | t.age | t.description |
       | "1"      | "N/A"  | -1    | "some one"    |
+    And wait 3 seconds
     # insert without default prop, failed
     When executing query:
       """
@@ -655,7 +656,7 @@ Feature: Insert string vid of vertex and edge
       """
       CREATE TAG bad_null_default_value(name string DEFAULT "N/A", age int DEFAULT 1%0)
       """
-    Then a ExecutionError should be raised at runtime: Invalid parm!
+    Then a ExecutionError should be raised at runtime: / by zero
     # test alter tag with wrong type default value of string when add
     When executing query:
       """

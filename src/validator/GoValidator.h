@@ -14,6 +14,8 @@ namespace nebula {
 namespace graph {
 class GoValidator final : public TraversalValidator {
 public:
+    using VertexProp = nebula::storage::cpp2::VertexProp;
+    using EdgeProp = nebula::storage::cpp2::EdgeProp;
     GoValidator(Sentence* sentence, QueryContext* context)
         : TraversalValidator(sentence, context) {}
 
@@ -44,15 +46,15 @@ private:
 
     std::vector<std::string> buildDstVertexColNames();
 
-    GetNeighbors::VertexProps buildSrcVertexProps();
+    std::unique_ptr<std::vector<VertexProp>> buildSrcVertexProps();
 
-    std::vector<storage::cpp2::VertexProp> buildDstVertexProps();
+    std::unique_ptr<std::vector<VertexProp>> buildDstVertexProps();
 
-    GetNeighbors::EdgeProps buildEdgeProps();
+    std::unique_ptr<std::vector<EdgeProp>> buildEdgeProps();
 
-    GetNeighbors::EdgeProps buildEdgeDst();
+    std::unique_ptr<std::vector<EdgeProp>> buildEdgeDst();
 
-    void buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEdge);
+    void buildEdgeProps(std::unique_ptr<std::vector<EdgeProp>>& edgeProps, bool isInEdge);
 
     PlanNode* buildLeftVarForTraceJoin(PlanNode* dedupStartVid);
 
@@ -68,9 +70,16 @@ private:
     PlanNode* projectSrcDstVidsFromGN(PlanNode* dep, PlanNode* gn);
 
 private:
+    YieldColumns* yields() const {
+        return newYieldCols_ ? newYieldCols_ : yields_;
+    }
+
+    Expression* filter() const {
+        return newFilter_ ? newFilter_ : filter_;
+    }
+
     Over over_;
     Expression* filter_{nullptr};
-    std::vector<std::string> colNames_;
     YieldColumns* yields_{nullptr};
     bool distinct_{false};
 

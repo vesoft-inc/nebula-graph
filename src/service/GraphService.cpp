@@ -15,6 +15,7 @@
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"
 #include "stats/StatsDef.h"
+#include "common/time/TimeUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -84,7 +85,7 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
             LOG(ERROR) << "Create session for userName: " << user
                        << ", ip: " << cIp << " failed: " << ret.status();
             ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            ctx->resp().errorMsg.reset(new std::string("Create session failed."));
+            ctx->resp().errorMsg.reset(new std::string(ret.status().toString()));
             return ctx->finish();
         }
         auto sessionPtr = std::move(ret).value();
@@ -96,6 +97,10 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
         }
         ctx->setSession(sessionPtr);
         ctx->resp().sessionId.reset(new int64_t(ctx->session()->id()));
+        ctx->resp().timeZoneOffsetSeconds.reset(
+            new int32_t(time::TimeUtils::getGlobalTimezone().utcOffsetSecs()));
+        ctx->resp().timeZoneName.reset(
+            new std::string(time::TimeUtils::getGlobalTimezone().stdZoneName()));
         return ctx->finish();
     };
 
@@ -124,16 +129,18 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
             LOG(ERROR) << "Get session for sessionId: " << sessionId
                         << " failed: " << ret.status();
             ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            ctx->resp().errorMsg.reset(
-                new std::string("SessionId[%ld] does not exist", sessionId));
+            ctx->resp().errorMsg.reset(new std::string(
+                folly::stringPrintf("Get sessionId[%ld] failed: %s",
+                                    sessionId,
+                                    ret.status().toString().c_str())));
             return ctx->finish();
         }
         auto sessionPtr = std::move(ret).value();
         if (sessionPtr == nullptr) {
             LOG(ERROR) << "Get session for sessionId: " << sessionId << " is nullptr";
             ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            ctx->resp().errorMsg.reset(
-                new std::string("SessionId[%ld] does not exist", sessionId));
+            ctx->resp().errorMsg.reset(new std::string(
+                folly::stringPrintf("SessionId[%ld] does not exist", sessionId)));
             return ctx->finish();
         }
         ctx->setSession(std::move(sessionPtr));
@@ -185,8 +192,6 @@ const char* GraphService::getErrorStr(ErrorCode result) {
      **********************/
     return "Unknown error";
 }
-
-
 
 bool GraphService::auth(const std::string& username, const std::string& password) {
     if (!FLAGS_enable_authorize) {
