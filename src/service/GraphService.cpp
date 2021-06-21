@@ -121,6 +121,7 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     auto ctx = std::make_unique<RequestContext<ExecutionResponse>>();
     ctx->setQuery(query);
     ctx->setRunner(getThreadManager());
+    ctx->setSessionMgr(sessionManager_.get());
     auto future = ctx->future();
     stats::StatsManager::addValue(kNumQueries);
     auto cb = [this, sessionId, ctx = std::move(ctx)]

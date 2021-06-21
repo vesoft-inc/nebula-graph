@@ -14,9 +14,7 @@
 #include "common/thread/GenericWorker.h"
 #include "common/clients/meta/MetaClient.h"
 #include "common/interface/gen-cpp2/GraphService.h"
-
 #include "session/ClientSession.h"
-#include "service/RequestContext.h"
 
 /**
  * GraphSessionManager manages the client sessions, e.g. create new, find existing and drop expired.

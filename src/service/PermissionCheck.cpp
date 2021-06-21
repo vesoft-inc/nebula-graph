@@ -205,6 +205,11 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
             // No permission checking for sequential sentence.
             return Status::OK();
         }
+        case Sentence::Kind::kShowQueries:
+        case Sentence::Kind::kKillQuery: {
+            // TODO
+            return Status::OK();
+        }
     }
     LOG(ERROR) << "Impossible permission checking for sentence " << sentence->kind();
     return Status::Error("Impossible permission checking for sentence %d.",

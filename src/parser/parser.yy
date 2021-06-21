@@ -3315,7 +3315,7 @@ list_listener_sentence
     ;
 
 kill_query_sentence
-    : KW_KILL KW_QUERY L_BRACKET query_unique_identifier R_BRACKET {
+    : KW_KILL KW_QUERY L_PAREN query_unique_identifier R_PAREN {
         $$ = new KillQuerySentence($4);
     }
 

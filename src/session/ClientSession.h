@@ -129,6 +129,8 @@ public:
 
     void deleteQuery(QueryContext* qctx);
 
+    bool findQuery(nebula::ExecutionPlanID epId);
+
     void markQueryKilled(nebula::ExecutionPlanID epId);
 
 private:

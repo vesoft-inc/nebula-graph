@@ -46,6 +46,8 @@
 #include "executor/admin/SwitchSpaceExecutor.h"
 #include "executor/admin/UpdateUserExecutor.h"
 #include "executor/admin/ZoneExecutor.h"
+#include "executor/admin/ShowQueriesExecutor.h"
+#include "executor/admin/KillQueryExecutor.h"
 #include "executor/algo/BFSShortestPathExecutor.h"
 #include "executor/algo/CartesianProductExecutor.h"
 #include "executor/algo/ConjunctPathExecutor.h"
@@ -497,10 +499,11 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kUpdateSession:  {
             return pool->add(new UpdateSessionExecutor(node, qctx));
         }
-        case PlanNode::Kind::kShowQueries:
+        case PlanNode::Kind::kShowQueries: {
+            return pool->add(new ShowQueriesExecutor(node, qctx));
+        }
         case PlanNode::Kind::kKillQuery: {
-            // TODO
-            return nullptr;
+            return pool->add(new KillQueryExecutor(node, qctx));
         }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
@@ -527,6 +530,9 @@ Executor::~Executor() {}
 
 Status Executor::open() {
     if (qctx_->isKilled()) {
+        VLOG(1) << "Execution is being killed. session: " << qctx()->rctx()->session()->id()
+            << "ep: " << qctx()->plan()->id()
+            << "query: " << qctx()->rctx()->query();
         return Status::Error("Execution is being killed");
     }
     auto status = MemInfo::make();

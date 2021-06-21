@@ -36,7 +36,7 @@ uint64_t ClientSession::idleSeconds() {
 void ClientSession::addQuery(QueryContext* qctx) {
     auto epId = qctx->plan()->id();
     meta::cpp2::QueryDesc queryDesc;
-    // queryDesc.set_start_time();
+    queryDesc.set_start_time(time::WallClock::fastNowInMicroSec());
     queryDesc.set_status(meta::cpp2::QueryStatus::RUNNING);
     queryDesc.set_query(qctx->rctx()->query());
 
@@ -50,6 +50,20 @@ void ClientSession::deleteQuery(QueryContext* qctx) {
     folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
     contexts_.erase(epId);
     session_.queries_ref()->erase(epId);
+}
+
+bool ClientSession::findQuery(nebula::ExecutionPlanID epId) {
+    folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
+    auto context = contexts_.find(epId);
+    if (context != contexts_.end()) {
+        return true;
+    }
+
+    auto query = session_.queries_ref()->find(epId);
+    if (query != session_.queries_ref()->end()) {
+        return true;
+    }
+    return false;
 }
 
 void ClientSession::markQueryKilled(nebula::ExecutionPlanID epId) {
