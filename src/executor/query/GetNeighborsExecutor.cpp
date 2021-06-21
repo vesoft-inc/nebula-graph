@@ -74,6 +74,15 @@ folly::Future<StatusOr<std::tuple<List, Result::State>>> GetNeighborsExecutor::e
         });
 }
 
+DataSet rangeDataSet(const DataSet& ds, size_t from, size_t sz) {
+    DataSet dataset(ds.colNames);
+    dataset.rows.reserve(sz);
+    for (size_t i = from, e = from + sz; i < e; i++) {
+        dataset.rows.emplace_back(std::move(ds.rows[i]));
+    }
+    return dataset;
+}
+
 folly::Future<Status> GetNeighborsExecutor::execute() {
     DataSet reqDs = buildRequestDataSet();
     if (reqDs.rows.empty()) {
@@ -87,23 +96,16 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
     auto numRows = reqDs.size();
     auto nBatches = numRows / FLAGS_get_nbr_batch_size;
     std::vector<folly::Future<StatusOr<std::tuple<List, Result::State>>>> futures;
-    futures.reserve(nBatches);
+    futures.reserve(nBatches + 1);
     for (size_t i = 0; i < nBatches; ++i) {
-        DataSet ds(reqDs.colNames);
-        ds.rows.reserve(FLAGS_get_nbr_batch_size);
-        for (int32_t j = 0; j < FLAGS_get_nbr_batch_size; ++j) {
-            ds.rows.emplace_back(std::move(reqDs.rows[j + i * FLAGS_get_nbr_batch_size]));
-        }
-        futures.emplace_back(execute(std::move(ds)));
+        auto from = i * FLAGS_get_nbr_batch_size;
+        futures.emplace_back(execute(rangeDataSet(reqDs, from, FLAGS_get_nbr_batch_size)));
     }
 
     auto rem = numRows % FLAGS_get_nbr_batch_size;
     if (rem != 0) {
-        DataSet ds(reqDs.colNames);
-        for (size_t i = 0; i < rem; i++) {
-            ds.rows.emplace_back(std::move(reqDs.rows[i + nBatches * FLAGS_get_nbr_batch_size]));
-        }
-        futures.emplace_back(execute(std::move(ds)));
+        auto from = nBatches * FLAGS_get_nbr_batch_size;
+        futures.emplace_back(execute(rangeDataSet(reqDs, from, rem)));
     }
 
     // time::Duration getNbrTime;
@@ -116,7 +118,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
                 NG_RETURN_IF_ERROR(stat);
                 auto tup = std::move(stat).value();
                 if (std::get<Result::State>(tup) != Result::State::kSuccess) {
-                    state = std::get<1>(tup);
+                    state = std::get<Result::State>(tup);
                 }
                 auto& vals = std::get<List>(tup);
                 // TODO(yee): move values
