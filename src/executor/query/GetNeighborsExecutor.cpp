@@ -20,7 +20,7 @@
 #include "service/GraphFlags.h"
 #include "util/ScopedTimer.h"
 
-DEFINE_int32(get_nbr_batch_size, 128, "batch size each request in get neighbors");
+DEFINE_int32(get_nbr_batch_size, 4096, "batch size each request in get neighbors");
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
