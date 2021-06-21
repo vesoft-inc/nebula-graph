@@ -6,6 +6,7 @@
 
 #include "executor/query/GetNeighborsExecutor.h"
 
+#include <iterator>
 #include <sstream>
 
 #include "common/base/Status.h"
@@ -111,20 +112,30 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
     // time::Duration getNbrTime;
     return folly::collect(futures).via(runner()).thenValue(
         [this](std::vector<StatusOr<std::tuple<List, Result::State>>> stats) {
+            // TODO(yee): Add profiling data
             // SCOPED_TIMER(&getNbrTime);
-            List list;
+
             Result::State state = Result::State::kSuccess;
+            size_t sz = 0;
             for (auto& stat : stats) {
                 NG_RETURN_IF_ERROR(stat);
                 auto tup = std::move(stat).value();
                 if (std::get<Result::State>(tup) != Result::State::kSuccess) {
                     state = std::get<Result::State>(tup);
                 }
-                auto& vals = std::get<List>(tup);
-                // TODO(yee): move values
-                // TODO(yee): Add profiling data
-                list.values.insert(list.values.end(), vals.values.begin(), vals.values.end());
+                sz += std::get<List>(tup).size();
             }
+
+            List list;
+            list.values.reserve(sz);
+            for (auto& stat : stats) {
+                auto tup = std::move(stat).value();
+                auto& vals = std::get<List>(tup).values;
+                list.values.insert(list.values.end(),
+                                   std::make_move_iterator(vals.begin()),
+                                   std::make_move_iterator(vals.end()));
+            }
+
             return finish(ResultBuilder()
                               .state(state)
                               .value(Value(std::move(list)))
