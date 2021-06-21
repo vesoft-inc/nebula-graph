@@ -89,8 +89,7 @@ void ShowQueriesExecutor::addQueries(const meta::cpp2::Session& session, DataSet
             time::TimeUtils::unixSecondsToDateTime(query.second.get_start_time() / 1000000);
         dateTime.microsec = query.second.get_start_time() % 1000000;
         row.values.emplace_back(std::move(dateTime));
-        row.values.emplace_back(time::WallClock::fastNowInMicroSec() -
-                                query.second.get_start_time());
+        row.values.emplace_back(query.second.get_duration());
         row.values.emplace_back(apache::thrift::util::enumNameSafe(query.second.get_status()));
         row.values.emplace_back(query.second.get_query());
         dataSet.rows.emplace_back(std::move(row));

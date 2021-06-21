@@ -4,8 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "common/base/Base.h"
 #include "session/GraphSessionManager.h"
+#include "common/base/Base.h"
+#include "common/time/WallClock.h"
 #include "service/GraphFlags.h"
 
 namespace nebula {
@@ -77,6 +78,7 @@ GraphSessionManager::findSessionFromMetad(SessionID id, folly::Executor* runner)
             auto findPtr = activeSessions_.find(id);
             if (findPtr == activeSessions_.end()) {
                 VLOG(1) << "Add session id: " << id << " from metad";
+                session.set_graph_addr(myAddr_);
                 auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
                 sessionPtr->charge();
                 auto ret = activeSessions_.emplace(id, sessionPtr);
@@ -198,10 +200,13 @@ void GraphSessionManager::updateSessionsToMeta() {
         }
 
         for (auto &ses : activeSessions_) {
-            if (ses.second->getSession().get_graph_addr() == myAddr_) {
-                VLOG(3) << "Add Update session id: " << ses.second->getSession().get_session_id();
-                sessions.emplace_back(ses.second->getSession());
+            VLOG(3) << "Add Update session id: " << ses.second->getSession().get_session_id();
+            auto sessionCopy = ses.second->getSession();
+            for (auto& query : *sessionCopy.queries_ref()) {
+                query.second.set_duration(time::WallClock::fastNowInMicroSec() -
+                                            query.second.get_start_time());
             }
+            sessions.emplace_back(ses.second->getSession());
         }
     }
 

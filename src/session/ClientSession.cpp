@@ -5,7 +5,6 @@
  */
 
 #include "session/ClientSession.h"
-
 #include "common/time/WallClock.h"
 #include "context/QueryContext.h"
 
@@ -15,6 +14,13 @@ namespace graph {
 ClientSession::ClientSession(meta::cpp2::Session &&session, meta::MetaClient* metaClient) {
     session_ = std::move(session);
     metaClient_ = metaClient;
+}
+
+ClientSession::~ClientSession() {
+    folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
+    for (auto& qctx : contexts_) {
+        qctx.second->markKilled();
+    }
 }
 
 std::shared_ptr<ClientSession> ClientSession::create(meta::cpp2::Session &&session,
@@ -39,6 +45,7 @@ void ClientSession::addQuery(QueryContext* qctx) {
     queryDesc.set_start_time(time::WallClock::fastNowInMicroSec());
     queryDesc.set_status(meta::cpp2::QueryStatus::RUNNING);
     queryDesc.set_query(qctx->rctx()->query());
+    // queryDesc.set_graph_addr(session_.get_graph_addr());
 
     folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
     contexts_.emplace(epId, qctx);

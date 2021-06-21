@@ -29,6 +29,8 @@ public:
     static std::shared_ptr<ClientSession> create(meta::cpp2::Session &&session,
                                                  meta::MetaClient* metaClient);
 
+    ~ClientSession();
+
     int64_t id() {
         folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return session_.get_session_id();
@@ -138,7 +140,6 @@ private:
 
     explicit ClientSession(meta::cpp2::Session &&session, meta::MetaClient* metaClient);
 
-
 private:
     SpaceInfo               space_;
     time::Duration          idleDuration_;
@@ -151,7 +152,7 @@ private:
      * But a user has only one role in one space
      */
     std::unordered_map<GraphSpaceID, meta::cpp2::RoleType> roles_;
-    std::unordered_map<int64_t, QueryContext*> contexts_;
+    std::unordered_map<ExecutionPlanID, QueryContext*> contexts_;
 };
 
 }  // namespace graph

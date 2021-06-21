@@ -736,7 +736,7 @@ private:
 class ShowQueriesSentence final : public Sentence {
 public:
     explicit ShowQueriesSentence(bool isAll = false, int64_t topN = -1) {
-        kind_ = Sentence::Kind::kShowQueries;
+        kind_ = Kind::kShowQueries;
         isAll_ = isAll;
         topN_ = topN;
     }
@@ -759,10 +759,30 @@ private:
     int64_t topN_{-1};
 };
 
+class QueryUniqueIdentifier final {
+public:
+    explicit QueryUniqueIdentifier(int64_t epId, int64_t sessionId = -1) {
+        sessionId_ = sessionId;
+        epId_ = epId;
+    }
+
+    int64_t sessionId() const {
+        return sessionId_;
+    }
+
+    int64_t epId() const {
+        return epId_;
+    }
+
+private:
+    int64_t sessionId_{-1};
+    int64_t epId_{-1};
+};
+
 class KillQuerySentence final : public Sentence {
 public:
-    explicit KillQuerySentence(meta::QueryUniqueIdentifier* identifier) {
-        kind_ = Sentence::Kind::kKillQuery;
+    explicit KillQuerySentence(QueryUniqueIdentifier* identifier) {
+        kind_ = Kind::kKillQuery;
         identifier_.reset(identifier);
     }
 
@@ -780,7 +800,7 @@ public:
     }
 
 private:
-    std::unique_ptr<meta::QueryUniqueIdentifier> identifier_;
+    std::unique_ptr<QueryUniqueIdentifier> identifier_;
 };
 }   // namespace nebula
 
