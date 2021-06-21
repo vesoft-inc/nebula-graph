@@ -533,7 +533,7 @@ Status Executor::open() {
         VLOG(1) << "Execution is being killed. session: " << qctx()->rctx()->session()->id()
             << "ep: " << qctx()->plan()->id()
             << "query: " << qctx()->rctx()->query();
-        return Status::Error("Execution is being killed");
+        return Status::Error("Execution had been killed");
     }
     auto status = MemInfo::make();
     NG_RETURN_IF_ERROR(status);

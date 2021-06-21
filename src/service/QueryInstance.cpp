@@ -153,6 +153,7 @@ void QueryInstance::onError(Status status) {
     rctx->resp().latencyInUs = latency;
     stats::StatsManager::addValue(kNumQueryErrors);
     addSlowQueryStats(latency);
+    rctx->session()->deleteQuery(qctx_.get());
     rctx->finish();
     delete this;
 }

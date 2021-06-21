@@ -206,7 +206,7 @@ void GraphSessionManager::updateSessionsToMeta() {
                 query.second.set_duration(time::WallClock::fastNowInMicroSec() -
                                             query.second.get_start_time());
             }
-            sessions.emplace_back(ses.second->getSession());
+            sessions.emplace_back(std::move(sessionCopy));
         }
     }
 
@@ -219,12 +219,15 @@ void GraphSessionManager::updateSessionsToMeta() {
                           }
                           auto& killedQueriesForEachSession = *resp.value().killed_queries_ref();
                           for (auto& killedQueries : killedQueriesForEachSession) {
+                              auto sessionId = killedQueries.first;
                               for (auto& epId : killedQueries.second) {
-                                  auto session = activeSessions_.find(epId);
+                                  auto session = activeSessions_.find(sessionId);
                                   if (session == activeSessions_.end()) {
                                       continue;
                                   }
                                   session->second->markQueryKilled(epId);
+                                  VLOG(1)
+                                      << "Kill query, session: " << sessionId << " plan: " << epId;
                               }
                           }
                           return Status::OK();
