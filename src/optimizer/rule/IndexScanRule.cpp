@@ -5,6 +5,7 @@
  */
 
 #include "optimizer/rule/IndexScanRule.h"
+#include <vector>
 #include "common/expression/LabelAttributeExpression.h"
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
@@ -13,6 +14,8 @@
 
 using nebula::graph::IndexScan;
 using nebula::graph::OptimizerUtils;
+
+using IndexQueryCtx = std::vector<nebula::graph::IndexScan::IndexQueryContext>;
 
 namespace nebula {
 namespace opt {
@@ -54,7 +57,7 @@ StatusOr<OptRule::TransformResult> IndexScanRule::transform(OptContext* ctx,
 
     auto filter = filterExpr(groupNode);
     auto qctx = ctx->qctx();
-    IndexQueryCtx iqctx = std::make_unique<std::vector<IndexQueryContext>>();
+    std::vector<IndexQueryContext> iqctx;
     if (filter == nullptr) {
         // Only filter is nullptr when lookup on tagname
         NG_RETURN_IF_ERROR(createIndexQueryCtx(iqctx, qctx, groupNode));
@@ -117,7 +120,7 @@ Status IndexScanRule::createSingleIQC(IndexQueryCtx &iqctx,
         return Status::IndexNotFound("No valid index found");
     }
     auto in = static_cast<const IndexScan *>(groupNode->node());
-    const auto& filter = in->queryContext()->begin()->get_filter();
+    const auto& filter = in->queryContext().begin()->get_filter();
     return appendIQCtx(index, items, iqctx, filter);
 }
 
@@ -180,7 +183,7 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
         ctx.set_filter(filter);
     }
     ctx.set_column_hints(std::move(hints));
-    iqctx->emplace_back(std::move(ctx));
+    iqctx.emplace_back(std::move(ctx));
     return Status::OK();
 }
 
@@ -189,7 +192,7 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
     IndexQueryContext ctx;
     ctx.set_index_id(index->get_index_id());
     ctx.set_filter("");
-    iqctx->emplace_back(std::move(ctx));
+    iqctx.emplace_back(std::move(ctx));
     return Status::OK();
 }
 
@@ -320,19 +323,19 @@ GraphSpaceID IndexScanRule::spaceId(const OptGroupNode *groupNode) const {
 
 Expression* IndexScanRule::filterExpr(const OptGroupNode* groupNode) const {
     auto in = static_cast<const IndexScan*>(groupNode->node());
-    auto qct = in->queryContext();
-    // The initial IndexScan plan node has only zero or one queryContext.
+    const auto& qct = in->queryContext();
+    // The initial IndexScan plan node has only zeor or one queryContext.
     // TODO(yee): Move this condition to match interface
-    if (qct == nullptr) {
+    if (qct.empty()) {
         return nullptr;
     }
 
-    if (qct->size() != 1) {
+    if (qct.size() != 1) {
         LOG(ERROR) << "Index Scan plan node error";
         return nullptr;
     }
     auto* pool = in->qctx()->objPool();
-    return Expression::decode(pool, qct->begin()->get_filter());
+    return Expression::decode(pool, qct.begin()->get_filter());
 }
 
 Status IndexScanRule::analyzeExpression(Expression* expr,

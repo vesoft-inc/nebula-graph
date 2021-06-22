@@ -434,14 +434,13 @@ private:
  */
 class IndexScan : public Explore {
 public:
-    using IndexQueryCtx = std::unique_ptr<std::vector<storage::cpp2::IndexQueryContext>>;
-    using IndexReturnCols = std::unique_ptr<std::vector<std::string>>;
+    using IndexQueryContext = storage::cpp2::IndexQueryContext;
 
     static IndexScan* make(QueryContext* qctx,
                            PlanNode* input,
                            GraphSpaceID space = -1,  //  TBD: -1 is inValid spaceID?
-                           IndexQueryCtx&& contexts = nullptr,
-                           IndexReturnCols&& returnCols = nullptr,
+                           std::vector<IndexQueryContext>&& contexts = {},
+                           std::vector<std::string>&& returnCols = {},
                            bool isEdge = false,
                            int32_t schemaId = -1,
                            bool isEmptyResultSet = false,
@@ -463,12 +462,12 @@ public:
                                                   std::move(filter)));
     }
 
-    const std::vector<storage::cpp2::IndexQueryContext>* queryContext() const {
-        return contexts_.get();
+    const std::vector<IndexQueryContext>& queryContext() const {
+        return contexts_;
     }
 
-    const std::vector<std::string>* returnColumns() const {
-        return returnCols_.get();
+    const std::vector<std::string>& returnColumns() const {
+        return returnCols_;
     }
 
     bool isEdge() const {
@@ -483,11 +482,11 @@ public:
         return isEmptyResultSet_;
     }
 
-    void setIndexQueryContext(IndexQueryCtx contexts) {
+    void setIndexQueryContext(std::vector<IndexQueryContext> contexts) {
         contexts_ = std::move(contexts);
     }
 
-    void setReturnCols(IndexReturnCols cols) {
+    void setReturnCols(std::vector<std::string> cols) {
         returnCols_ = std::move(cols);
     }
 
@@ -506,8 +505,8 @@ private:
     IndexScan(QueryContext* qctx,
               PlanNode* input,
               GraphSpaceID space,
-              IndexQueryCtx&& contexts,
-              IndexReturnCols&& returnCols,
+              std::vector<IndexQueryContext>&& contexts,
+              std::vector<std::string>&& returnCols,
               bool isEdge,
               int32_t schemaId,
               bool isEmptyResultSet,
@@ -515,14 +514,14 @@ private:
               std::vector<storage::cpp2::OrderBy> orderBy,
               int64_t limit,
               std::string filter)
-    : Explore(qctx,
-              Kind::kIndexScan,
-              input,
-              space,
-              dedup,
-              limit,
-              std::move(filter),
-              std::move(orderBy)) {
+        : Explore(qctx,
+                  Kind::kIndexScan,
+                  input,
+                  space,
+                  dedup,
+                  limit,
+                  std::move(filter),
+                  std::move(orderBy)) {
         contexts_ = std::move(contexts);
         returnCols_ = std::move(returnCols);
         isEdge_ = isEdge;
@@ -533,8 +532,8 @@ private:
     void cloneMembers(const IndexScan&);
 
 private:
-    IndexQueryCtx                                 contexts_;
-    IndexReturnCols                               returnCols_;
+    std::vector<IndexQueryContext>                contexts_;
+    std::vector<std::string>                      returnCols_;
     bool                                          isEdge_;
     int32_t                                       schemaId_;
     bool                                          isEmptyResultSet_;

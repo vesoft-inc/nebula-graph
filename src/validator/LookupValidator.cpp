@@ -73,7 +73,7 @@ Status LookupValidator::prepareYield() {
     auto from = sentence()->from();
     for (auto col : yieldClause->columns()) {
         if (col->expr()->kind() != Expression::Kind::kLabelAttribute) {
-            // TODO(shylock) support more expr
+            // TODO(yee): support more exprs, such as (player.age + 1) AS age
             return Status::SemanticError("Yield clauses are not supported: %s",
                                          col->toString().c_str());
         }

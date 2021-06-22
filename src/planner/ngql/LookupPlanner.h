@@ -8,6 +8,7 @@
 #define PLANNER_NGQL_LOOKUPPLANNER_H_
 
 #include <memory>
+#include <string>
 
 #include "planner/Planner.h"
 
@@ -28,8 +29,10 @@ public:
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
 private:
-    YieldColumns* prepareReturnCols(LookupContext* lookupCtx) const;
-    void appendColumns(LookupContext* lookupCtx, YieldColumns* columns) const;
+    YieldColumns* prepareReturnCols(LookupContext* lookupCtx);
+    void appendColumns(LookupContext* lookupCtx, YieldColumns* columns);
+
+    std::vector<std::string> returnCols_;
 };
 
 }   // namespace graph

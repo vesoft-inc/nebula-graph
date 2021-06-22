@@ -23,6 +23,8 @@ static constexpr char kDstVID[] = "DstVID";
 static constexpr char kRanking[] = "Ranking";
 static constexpr char kVertexID[] = "VertexID";
 
+static const char* kEdgeKeys[3] = {kSrcVID, kDstVID, kRanking};
+
 std::unique_ptr<Planner> LookupPlanner::make() {
     return std::unique_ptr<LookupPlanner>(new LookupPlanner());
 }
@@ -39,18 +41,20 @@ StatusOr<SubPlan> LookupPlanner::transform(AstContext* astCtx) {
     return Status::Error();
 }
 
-YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) const {
+YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) {
     auto pool = lookupCtx->qctx->objPool();
     auto columns = pool->makeAndAdd<YieldColumns>();
-    auto inputPropColumn = [](const std::string& name) {
-        return new YieldColumn(new InputPropertyExpression(name), name);
+    auto addColumn = [this, columns](const std::string& name) {
+        auto expr = new InputPropertyExpression(name);
+        columns->addColumn(new YieldColumn(expr, name));
+        returnCols_.emplace_back(name);
     };
     if (lookupCtx->isEdge) {
-        columns->addColumn(inputPropColumn(kSrcVID));
-        columns->addColumn(inputPropColumn(kDstVID));
-        columns->addColumn(inputPropColumn(kRanking));
+        for (auto& key : kEdgeKeys) {
+            addColumn(key);
+        }
     } else {
-        columns->addColumn(inputPropColumn(kVertexID));
+        addColumn(kVertexID);
     }
     if (lookupCtx->withProject) {
         appendColumns(lookupCtx, columns);
@@ -58,7 +62,7 @@ YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) const {
     return columns;
 }
 
-void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* columns) const {
+void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* columns) {
     auto sentence = static_cast<LookupSentence*>(lookupCtx->sentence);
     auto yieldClause = sentence->yieldClause();
     for (auto col : yieldClause->columns()) {

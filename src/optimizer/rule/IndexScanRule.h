@@ -18,7 +18,6 @@ using storage::cpp2::IndexQueryContext;
 using storage::cpp2::IndexColumnHint;
 using BVO = graph::OptimizerUtils::BoundValueOperator;
 using IndexItem = std::shared_ptr<meta::cpp2::IndexItem>;
-using IndexQueryCtx = std::unique_ptr<std::vector<IndexQueryContext>>;
 
 class OptContext;
 
@@ -97,33 +96,33 @@ private:
 
     IndexScanRule();
 
-    Status createIndexQueryCtx(IndexQueryCtx &iqctx,
+    Status createIndexQueryCtx(std::vector<graph::IndexScan::IndexQueryContext>& iqctx,
                                ScanKind kind,
                                const FilterItems& items,
-                               graph::QueryContext *qctx,
-                               const OptGroupNode *groupNode) const;
+                               graph::QueryContext* qctx,
+                               const OptGroupNode* groupNode) const;
 
-    Status createIndexQueryCtx(IndexQueryCtx &iqctx,
-                               graph::QueryContext *qctx,
-                               const OptGroupNode *groupNode) const;
+    Status createIndexQueryCtx(std::vector<graph::IndexScan::IndexQueryContext>& iqctx,
+                               graph::QueryContext* qctx,
+                               const OptGroupNode* groupNode) const;
 
-    Status createSingleIQC(IndexQueryCtx &iqctx,
+    Status createSingleIQC(std::vector<graph::IndexScan::IndexQueryContext> &iqctx,
                            const FilterItems& items,
                            graph::QueryContext *qctx,
                            const OptGroupNode *groupNode) const;
 
-    Status createMultipleIQC(IndexQueryCtx &iqctx,
+    Status createMultipleIQC(std::vector<graph::IndexScan::IndexQueryContext> &iqctx,
                              const FilterItems& items,
                              graph::QueryContext *qctx,
                              const OptGroupNode *groupNode) const;
 
     Status appendIQCtx(const IndexItem& index,
                        const FilterItems& items,
-                       IndexQueryCtx &iqctx,
+                       std::vector<graph::IndexScan::IndexQueryContext> &iqctx,
                        const std::string& filter = "") const;
 
     Status appendIQCtx(const IndexItem& index,
-                       IndexQueryCtx &iqctx) const;
+                       std::vector<graph::IndexScan::IndexQueryContext> &iqctx) const;
 
     Status appendColHint(std::vector<IndexColumnHint>& hitns,
                          const FilterItems& items,

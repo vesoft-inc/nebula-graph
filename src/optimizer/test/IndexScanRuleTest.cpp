@@ -89,14 +89,14 @@ TEST(IndexScanRuleTest, IQCtxTest) {
     {
         IndexItem index = std::make_unique<meta::cpp2::IndexItem>();
         IndexScanRule::FilterItems items;
-        IndexQueryCtx iqctx = std::make_unique<std::vector<IndexQueryContext>>();
+        std::vector<IndexQueryContext> iqctx;
         auto ret = instance->appendIQCtx(index, items, iqctx);
         ASSERT_TRUE(ret.ok());
     }
     {
         IndexItem index = std::make_unique<meta::cpp2::IndexItem>();
         IndexScanRule::FilterItems items;
-        IndexQueryCtx iqctx = std::make_unique<std::vector<IndexQueryContext>>();
+        std::vector<IndexQueryContext> iqctx;
         // setup index
         {
             std::vector<meta::cpp2::ColumnDef> cols;
@@ -118,11 +118,11 @@ TEST(IndexScanRuleTest, IQCtxTest) {
             auto ret = instance->appendIQCtx(index, items, iqctx);
             ASSERT_TRUE(ret.ok());
 
-            ASSERT_EQ(1, iqctx->size());
-            ASSERT_EQ(1, (iqctx.get()->begin())->get_column_hints().size());
-            ASSERT_EQ(1, (iqctx.get()->begin())->get_index_id());
-            ASSERT_EQ("", (iqctx.get()->begin())->get_filter());
-            const auto& colHints = (iqctx.get()->begin())->get_column_hints();
+            ASSERT_EQ(1, iqctx.size());
+            ASSERT_EQ(1, iqctx.begin()->get_column_hints().size());
+            ASSERT_EQ(1, iqctx.begin()->get_index_id());
+            ASSERT_EQ("", iqctx.begin()->get_filter());
+            const auto& colHints = iqctx.begin()->get_column_hints();
             ASSERT_EQ("col0", colHints.begin()->get_column_name());
             ASSERT_EQ(storage::cpp2::ScanType::RANGE, colHints.begin()->get_scan_type());
             ASSERT_EQ(Value(std::numeric_limits<int64_t>::min()),
@@ -134,7 +134,7 @@ TEST(IndexScanRuleTest, IQCtxTest) {
         //                   and col3 < 4 and col4 == 4
         {
             items.items.clear();
-            iqctx.get()->clear();
+            iqctx.clear();
             items.addItem("col0", RelationalExpression::Kind::kRelGT, Value(1L));
             items.addItem("col1", RelationalExpression::Kind::kRelLE, Value(2L));
             items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(-1L));
@@ -145,11 +145,11 @@ TEST(IndexScanRuleTest, IQCtxTest) {
             auto ret = instance->appendIQCtx(index, items, iqctx);
             ASSERT_TRUE(ret.ok());
 
-            ASSERT_EQ(1, iqctx->size());
-            ASSERT_EQ(1, (iqctx.get()->begin())->get_column_hints().size());
-            ASSERT_EQ(1, (iqctx.get()->begin())->get_index_id());
-            ASSERT_EQ("", (iqctx.get()->begin())->get_filter());
-            const auto& colHints = (iqctx.get()->begin())->get_column_hints();
+            ASSERT_EQ(1, iqctx.size());
+            ASSERT_EQ(1, iqctx.begin()->get_column_hints().size());
+            ASSERT_EQ(1, iqctx.begin()->get_index_id());
+            ASSERT_EQ("", iqctx.begin()->get_filter());
+            const auto& colHints = iqctx.begin()->get_column_hints();
             {
                 auto hint = colHints[0];
                 ASSERT_EQ("col0", hint.get_column_name());
@@ -165,7 +165,7 @@ TEST(IndexScanRuleTest, IQCtxTest) {
         // col2 and col3 should be filter in storage layer.
         {
             items.items.clear();
-            iqctx.get()->clear();
+            iqctx.clear();
             items.addItem("col0", RelationalExpression::Kind::kRelEQ, Value(1L));
             items.addItem("col1", RelationalExpression::Kind::kRelLE, Value(2L));
             items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(-1L));
@@ -175,11 +175,11 @@ TEST(IndexScanRuleTest, IQCtxTest) {
             auto ret = instance->appendIQCtx(index, items, iqctx);
             ASSERT_TRUE(ret.ok());
 
-            ASSERT_EQ(1, iqctx->size());
-            ASSERT_EQ(2, (iqctx.get()->begin())->get_column_hints().size());
-            ASSERT_EQ(1, (iqctx.get()->begin())->get_index_id());
-            ASSERT_EQ("", (iqctx.get()->begin())->get_filter());
-            const auto& colHints = (iqctx.get()->begin())->get_column_hints();
+            ASSERT_EQ(1, iqctx.size());
+            ASSERT_EQ(2, iqctx.begin()->get_column_hints().size());
+            ASSERT_EQ(1, iqctx.begin()->get_index_id());
+            ASSERT_EQ("", iqctx.begin()->get_filter());
+            const auto& colHints = iqctx.begin()->get_column_hints();
             {
                 auto hint = colHints[0];
                 ASSERT_EQ("col0", hint.get_column_name());
@@ -200,7 +200,7 @@ TEST(IndexScanRuleTest, IQCtxTest) {
         // col4 should be filter in storage layer.
         {
             items.items.clear();
-            iqctx.get()->clear();
+            iqctx.clear();
             items.addItem("col0", RelationalExpression::Kind::kRelEQ, Value(1L));
             items.addItem("col1", RelationalExpression::Kind::kRelEQ, Value(2L));
             items.addItem("col2", RelationalExpression::Kind::kRelEQ, Value(-1L));
@@ -210,11 +210,11 @@ TEST(IndexScanRuleTest, IQCtxTest) {
             auto ret = instance->appendIQCtx(index, items, iqctx, "col4 < 4");
             ASSERT_TRUE(ret.ok());
 
-            ASSERT_EQ(1, iqctx->size());
-            ASSERT_EQ(4, (iqctx.get()->begin())->get_column_hints().size());
-            ASSERT_EQ(1, (iqctx.get()->begin())->get_index_id());
-            ASSERT_EQ("col4 < 4", (iqctx.get()->begin())->get_filter());
-            const auto& colHints = (iqctx.get()->begin())->get_column_hints();
+            ASSERT_EQ(1, iqctx.size());
+            ASSERT_EQ(4, iqctx.begin()->get_column_hints().size());
+            ASSERT_EQ(1, iqctx.begin()->get_index_id());
+            ASSERT_EQ("col4 < 4", iqctx.begin()->get_filter());
+            const auto& colHints = iqctx.begin()->get_column_hints();
             {
                 auto hint = colHints[0];
                 ASSERT_EQ("col0", hint.get_column_name());
