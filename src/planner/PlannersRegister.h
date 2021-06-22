@@ -20,8 +20,6 @@ public:
 private:
     static void registSequential();
     static void registMatch();
-    static void registPath();
-    static void registGo();
 };
 
 }  // namespace graph

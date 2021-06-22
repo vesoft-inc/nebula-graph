@@ -23,14 +23,13 @@ namespace graph {
 void PlannersRegister::registPlanners() {
     registSequential();
     registMatch();
-    registPath();
-    registGo();
 }
 
 void PlannersRegister::registSequential() {
     auto& planners = Planner::plannersMap()[Sentence::Kind::kSequential];
     planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::make);
     planners.emplace_back(&PathPlanner::match, &PathPlanner::make);
+    planners.emplace_back(&GoPlanner::match, &GoPlanner::make);
     planners.emplace_back(&LookupPlanner::match, &LookupPlanner::make);
 }
 
@@ -52,16 +51,6 @@ void PlannersRegister::registMatch() {
     // MATCH(n: tag) RETURN n
     // MATCH(s)-[:edge]->(e) RETURN e
     startVidFinders.emplace_back(&LabelIndexSeek::make);
-}
-
-void PlannersRegister::registPath() {
-    auto& planners = Planner::plannersMap()[Sentence::Kind::kFindPath];
-    planners.emplace_back(&PathPlanner::match, &PathPlanner::make);
-}
-
-void PlannersRegister::registGo() {
-    auto& planners = Planner::plannersMap()[Sentence::Kind::kGo];
-    planners.emplace_back(&GoPlanner::match, &GoPlanner::make);
 }
 
 }  // namespace graph

@@ -513,15 +513,9 @@ protected:
               bool dedup,
               std::vector<storage::cpp2::OrderBy> orderBy,
               int64_t limit,
-              std::string filter)
-        : Explore(qctx,
-                  Kind::kIndexScan,
-                  input,
-                  space,
-                  dedup,
-                  limit,
-                  std::move(filter),
-                  std::move(orderBy)) {
+              std::string filter,
+              Kind kind = Kind::kIndexScan)
+        : Explore(qctx, kind, input, space, dedup, limit, std::move(filter), std::move(orderBy)) {
         contexts_ = std::move(contexts);
         returnCols_ = std::move(returnCols);
         isEdge_ = isEdge;
@@ -554,7 +548,8 @@ protected:
                   bool dedup,
                   std::vector<storage::cpp2::OrderBy> orderBy,
                   int64_t limit,
-                  std::string filter)
+                  std::string filter,
+                  Kind kind)
         : IndexScan(qctx,
                     input,
                     space,
@@ -566,7 +561,8 @@ protected:
                     dedup,
                     std::move(orderBy),
                     limit,
-                    std::move(filter)) {}
+                    std::move(filter),
+                    kind) {}
 };
 
 class EdgeIndexPrefixScan : public EdgeIndexScan {
@@ -617,7 +613,8 @@ private:
                         dedup,
                         std::move(orderBy),
                         limit,
-                        std::move(filter)) {}
+                        std::move(filter),
+                        Kind::kEdgeIndexPrefixScan) {}
 };
 
 class EdgeIndexRangeScan : public EdgeIndexScan {
@@ -668,7 +665,8 @@ private:
                         dedup,
                         std::move(orderBy),
                         limit,
-                        std::move(filter)) {}
+                        std::move(filter),
+                        Kind::kEdgeIndexRangeScan) {}
 };
 
 class EdgeIndexFullScan final : public EdgeIndexScan {
@@ -719,7 +717,8 @@ private:
                         dedup,
                         std::move(orderBy),
                         limit,
-                        std::move(filter)) {}
+                        std::move(filter),
+                        Kind::kEdgeIndexFullScan) {}
 };
 
 // class EdgeFullTextIndexScan : public EdgeIndexScan {};
@@ -736,7 +735,8 @@ protected:
                  bool dedup,
                  std::vector<storage::cpp2::OrderBy> orderBy,
                  int64_t limit,
-                 std::string filter)
+                 std::string filter,
+                 Kind kind)
         : IndexScan(qctx,
                     input,
                     space,
@@ -748,7 +748,8 @@ protected:
                     dedup,
                     std::move(orderBy),
                     limit,
-                    std::move(filter)) {}
+                    std::move(filter),
+                    kind) {}
 };
 
 class TagIndexPrefixScan : public TagIndexScan {
@@ -799,7 +800,8 @@ private:
                        dedup,
                        std::move(orderBy),
                        limit,
-                       std::move(filter)) {}
+                       std::move(filter),
+                       Kind::kTagIndexPrefixScan) {}
 };
 
 class TagIndexRangeScan : public TagIndexScan {
@@ -850,7 +852,8 @@ private:
                        dedup,
                        std::move(orderBy),
                        limit,
-                       std::move(filter)) {}
+                       std::move(filter),
+                       Kind::kTagIndexRangeScan) {}
 };
 
 class TagIndexFullScan final : public TagIndexScan {
@@ -901,7 +904,8 @@ private:
                        dedup,
                        std::move(orderBy),
                        limit,
-                       std::move(filter)) {}
+                       std::move(filter),
+                       Kind::kTagIndexFullScan) {}
 };
 
 // class TagFullTextIndexScan : public TagIndexScan {};
