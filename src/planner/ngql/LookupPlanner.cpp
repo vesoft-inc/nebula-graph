@@ -14,6 +14,8 @@
 #include "context/ast/QueryAstContext.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
+#include "planner/Planner.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -35,10 +37,35 @@ bool LookupPlanner::match(AstContext* astCtx) {
 
 StatusOr<SubPlan> LookupPlanner::transform(AstContext* astCtx) {
     auto lookupCtx = static_cast<LookupContext*>(astCtx);
-    auto returnCols = prepareReturnCols(lookupCtx);
-    UNUSED(returnCols);
+    auto yieldCols = prepareReturnCols(lookupCtx);
+    auto qctx = lookupCtx->qctx;
+    SubPlan plan;
+    if (lookupCtx->isEdge) {
+        plan.tail = EdgeIndexFullScan::make(qctx,
+                                            nullptr,
+                                            lookupCtx->space.id,
+                                            {},
+                                            returnCols_,
+                                            lookupCtx->schemaId,
+                                            lookupCtx->isEmptyResultSet);
+    } else {
+        plan.tail = TagIndexFullScan::make(qctx,
+                                           nullptr,
+                                           lookupCtx->space.id,
+                                           {},
+                                           returnCols_,
+                                           lookupCtx->schemaId,
+                                           lookupCtx->isEmptyResultSet);
+    }
 
-    return Status::Error();
+    plan.root = plan.tail;
+
+    if (lookupCtx->filter) {
+        plan.root = Filter::make(qctx, plan.root, lookupCtx->filter);
+    }
+
+    plan.root = Project::make(qctx, plan.root, yieldCols);
+    return plan;
 }
 
 YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) {
@@ -78,6 +105,7 @@ void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* column
             propExpr = new TagPropertyExpression(schemaName, colName);
         }
         columns->addColumn(new YieldColumn(propExpr, col->alias()));
+        returnCols_.emplace_back(colName);
     }
 }
 

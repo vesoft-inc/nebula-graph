@@ -112,7 +112,9 @@ struct LookupContext final : public AstContext {
     bool withProject{false};
     bool isEmptyResultSet{false};
     int32_t schemaId{-1};
+    int32_t limit{-1};
     Expression* filter{nullptr};
+    // order by
 };
 
 }  // namespace graph

@@ -440,7 +440,7 @@ public:
                            PlanNode* input,
                            GraphSpaceID space = -1,  //  TBD: -1 is inValid spaceID?
                            std::vector<IndexQueryContext>&& contexts = {},
-                           std::vector<std::string>&& returnCols = {},
+                           std::vector<std::string> returnCols = {},
                            bool isEdge = false,
                            int32_t schemaId = -1,
                            bool isEmptyResultSet = false,
@@ -501,12 +501,12 @@ public:
     PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
-private:
+protected:
     IndexScan(QueryContext* qctx,
               PlanNode* input,
               GraphSpaceID space,
               std::vector<IndexQueryContext>&& contexts,
-              std::vector<std::string>&& returnCols,
+              std::vector<std::string> returnCols,
               bool isEdge,
               int32_t schemaId,
               bool isEmptyResultSet,
@@ -536,27 +536,373 @@ private:
     std::vector<std::string>                      returnCols_;
     bool                                          isEdge_;
     int32_t                                       schemaId_;
-    bool                                          isEmptyResultSet_;
+
+    // TODO(yee): Generate special plan for this scenario
+    bool isEmptyResultSet_;
 };
 
 // Logical Plan
-class EdgeIndexScan : public IndexScan {};
+class EdgeIndexScan : public IndexScan {
+protected:
+    EdgeIndexScan(QueryContext* qctx,
+                  PlanNode* input,
+                  GraphSpaceID space,
+                  std::vector<IndexQueryContext>&& contexts,
+                  std::vector<std::string> returnCols,
+                  int32_t schemaId,
+                  bool isEmptyResultSet,
+                  bool dedup,
+                  std::vector<storage::cpp2::OrderBy> orderBy,
+                  int64_t limit,
+                  std::string filter)
+        : IndexScan(qctx,
+                    input,
+                    space,
+                    std::move(contexts),
+                    std::move(returnCols),
+                    true,
+                    schemaId,
+                    isEmptyResultSet,
+                    dedup,
+                    std::move(orderBy),
+                    limit,
+                    std::move(filter)) {}
+};
 
-class EdgeIndexPrefixScan : public EdgeIndexScan {};
+class EdgeIndexPrefixScan : public EdgeIndexScan {
+public:
+    static EdgeIndexPrefixScan* make(QueryContext* qctx,
+                                     PlanNode* input,
+                                     GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
+                                     std::vector<IndexQueryContext>&& contexts = {},
+                                     std::vector<std::string> returnCols = {},
+                                     int32_t schemaId = -1,
+                                     bool isEmptyResultSet = false,
+                                     bool dedup = false,
+                                     std::vector<storage::cpp2::OrderBy> orderBy = {},
+                                     int64_t limit = std::numeric_limits<int64_t>::max(),
+                                     std::string filter = "") {
+        return qctx->objPool()->add(new EdgeIndexPrefixScan(qctx,
+                                                            input,
+                                                            space,
+                                                            std::move(contexts),
+                                                            std::move(returnCols),
+                                                            schemaId,
+                                                            isEmptyResultSet,
+                                                            dedup,
+                                                            std::move(orderBy),
+                                                            limit,
+                                                            std::move(filter)));
+    }
 
-class EdgeIndexRangeScan : public EdgeIndexScan {};
+private:
+    EdgeIndexPrefixScan(QueryContext* qctx,
+                        PlanNode* input,
+                        GraphSpaceID space,
+                        std::vector<IndexQueryContext>&& contexts,
+                        std::vector<std::string> returnCols,
+                        int32_t schemaId,
+                        bool isEmptyResultSet,
+                        bool dedup,
+                        std::vector<storage::cpp2::OrderBy> orderBy,
+                        int64_t limit,
+                        std::string filter)
+        : EdgeIndexScan(qctx,
+                        input,
+                        space,
+                        std::move(contexts),
+                        std::move(returnCols),
+                        schemaId,
+                        isEmptyResultSet,
+                        dedup,
+                        std::move(orderBy),
+                        limit,
+                        std::move(filter)) {}
+};
 
-class EdgeIndexFullScan : public EdgeIndexScan {};
+class EdgeIndexRangeScan : public EdgeIndexScan {
+public:
+    static EdgeIndexRangeScan* make(QueryContext* qctx,
+                                    PlanNode* input,
+                                    GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
+                                    std::vector<IndexQueryContext>&& contexts = {},
+                                    std::vector<std::string> returnCols = {},
+                                    int32_t schemaId = -1,
+                                    bool isEmptyResultSet = false,
+                                    bool dedup = false,
+                                    std::vector<storage::cpp2::OrderBy> orderBy = {},
+                                    int64_t limit = std::numeric_limits<int64_t>::max(),
+                                    std::string filter = "") {
+        return qctx->objPool()->add(new EdgeIndexRangeScan(qctx,
+                                                           input,
+                                                           space,
+                                                           std::move(contexts),
+                                                           std::move(returnCols),
+                                                           schemaId,
+                                                           isEmptyResultSet,
+                                                           dedup,
+                                                           std::move(orderBy),
+                                                           limit,
+                                                           std::move(filter)));
+    }
+
+private:
+    EdgeIndexRangeScan(QueryContext* qctx,
+                       PlanNode* input,
+                       GraphSpaceID space,
+                       std::vector<IndexQueryContext>&& contexts,
+                       std::vector<std::string> returnCols,
+                       int32_t schemaId,
+                       bool isEmptyResultSet,
+                       bool dedup,
+                       std::vector<storage::cpp2::OrderBy> orderBy,
+                       int64_t limit,
+                       std::string filter)
+        : EdgeIndexScan(qctx,
+                        input,
+                        space,
+                        std::move(contexts),
+                        std::move(returnCols),
+                        schemaId,
+                        isEmptyResultSet,
+                        dedup,
+                        std::move(orderBy),
+                        limit,
+                        std::move(filter)) {}
+};
+
+class EdgeIndexFullScan final : public EdgeIndexScan {
+public:
+    static EdgeIndexFullScan* make(QueryContext* qctx,
+                                   PlanNode* input,
+                                   GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
+                                   std::vector<IndexQueryContext>&& contexts = {},
+                                   std::vector<std::string> returnCols = {},
+                                   int32_t schemaId = -1,
+                                   bool isEmptyResultSet = false,
+                                   bool dedup = false,
+                                   std::vector<storage::cpp2::OrderBy> orderBy = {},
+                                   int64_t limit = std::numeric_limits<int64_t>::max(),
+                                   std::string filter = "") {
+        return qctx->objPool()->add(new EdgeIndexFullScan(qctx,
+                                                          input,
+                                                          space,
+                                                          std::move(contexts),
+                                                          std::move(returnCols),
+                                                          schemaId,
+                                                          isEmptyResultSet,
+                                                          dedup,
+                                                          std::move(orderBy),
+                                                          limit,
+                                                          std::move(filter)));
+    }
+
+private:
+    EdgeIndexFullScan(QueryContext* qctx,
+                      PlanNode* input,
+                      GraphSpaceID space,
+                      std::vector<IndexQueryContext>&& contexts,
+                      std::vector<std::string> returnCols,
+                      int32_t schemaId,
+                      bool isEmptyResultSet,
+                      bool dedup,
+                      std::vector<storage::cpp2::OrderBy> orderBy,
+                      int64_t limit,
+                      std::string filter)
+        : EdgeIndexScan(qctx,
+                        input,
+                        space,
+                        std::move(contexts),
+                        std::move(returnCols),
+                        schemaId,
+                        isEmptyResultSet,
+                        dedup,
+                        std::move(orderBy),
+                        limit,
+                        std::move(filter)) {}
+};
 
 // class EdgeFullTextIndexScan : public EdgeIndexScan {};
 
-class TagIndexScan : public IndexScan {};
+class TagIndexScan : public IndexScan {
+protected:
+    TagIndexScan(QueryContext* qctx,
+                 PlanNode* input,
+                 GraphSpaceID space,
+                 std::vector<IndexQueryContext>&& contexts,
+                 std::vector<std::string> returnCols,
+                 int32_t schemaId,
+                 bool isEmptyResultSet,
+                 bool dedup,
+                 std::vector<storage::cpp2::OrderBy> orderBy,
+                 int64_t limit,
+                 std::string filter)
+        : IndexScan(qctx,
+                    input,
+                    space,
+                    std::move(contexts),
+                    std::move(returnCols),
+                    true,
+                    schemaId,
+                    isEmptyResultSet,
+                    dedup,
+                    std::move(orderBy),
+                    limit,
+                    std::move(filter)) {}
+};
 
-class TagIndexPrefixScan : public TagIndexScan {};
+class TagIndexPrefixScan : public TagIndexScan {
+public:
+    static TagIndexPrefixScan* make(QueryContext* qctx,
+                                    PlanNode* input,
+                                    GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
+                                    std::vector<IndexQueryContext>&& contexts = {},
+                                    std::vector<std::string> returnCols = {},
+                                    int32_t schemaId = -1,
+                                    bool isEmptyResultSet = false,
+                                    bool dedup = false,
+                                    std::vector<storage::cpp2::OrderBy> orderBy = {},
+                                    int64_t limit = std::numeric_limits<int64_t>::max(),
+                                    std::string filter = "") {
+        return qctx->objPool()->add(new TagIndexPrefixScan(qctx,
+                                                           input,
+                                                           space,
+                                                           std::move(contexts),
+                                                           std::move(returnCols),
+                                                           schemaId,
+                                                           isEmptyResultSet,
+                                                           dedup,
+                                                           std::move(orderBy),
+                                                           limit,
+                                                           std::move(filter)));
+    }
 
-class TagIndexRangeScan : public TagIndexScan {};
+private:
+    TagIndexPrefixScan(QueryContext* qctx,
+                       PlanNode* input,
+                       GraphSpaceID space,
+                       std::vector<IndexQueryContext>&& contexts,
+                       std::vector<std::string> returnCols,
+                       int32_t schemaId,
+                       bool isEmptyResultSet,
+                       bool dedup,
+                       std::vector<storage::cpp2::OrderBy> orderBy,
+                       int64_t limit,
+                       std::string filter)
+        : TagIndexScan(qctx,
+                       input,
+                       space,
+                       std::move(contexts),
+                       std::move(returnCols),
+                       schemaId,
+                       isEmptyResultSet,
+                       dedup,
+                       std::move(orderBy),
+                       limit,
+                       std::move(filter)) {}
+};
 
-class TagIndexFullScan : public TagIndexScan {};
+class TagIndexRangeScan : public TagIndexScan {
+public:
+    static TagIndexRangeScan* make(QueryContext* qctx,
+                                   PlanNode* input,
+                                   GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
+                                   std::vector<IndexQueryContext>&& contexts = {},
+                                   std::vector<std::string> returnCols = {},
+                                   int32_t schemaId = -1,
+                                   bool isEmptyResultSet = false,
+                                   bool dedup = false,
+                                   std::vector<storage::cpp2::OrderBy> orderBy = {},
+                                   int64_t limit = std::numeric_limits<int64_t>::max(),
+                                   std::string filter = "") {
+        return qctx->objPool()->add(new TagIndexRangeScan(qctx,
+                                                          input,
+                                                          space,
+                                                          std::move(contexts),
+                                                          std::move(returnCols),
+                                                          schemaId,
+                                                          isEmptyResultSet,
+                                                          dedup,
+                                                          std::move(orderBy),
+                                                          limit,
+                                                          std::move(filter)));
+    }
+
+private:
+    TagIndexRangeScan(QueryContext* qctx,
+                      PlanNode* input,
+                      GraphSpaceID space,
+                      std::vector<IndexQueryContext>&& contexts,
+                      std::vector<std::string> returnCols,
+                      int32_t schemaId,
+                      bool isEmptyResultSet,
+                      bool dedup,
+                      std::vector<storage::cpp2::OrderBy> orderBy,
+                      int64_t limit,
+                      std::string filter)
+        : TagIndexScan(qctx,
+                       input,
+                       space,
+                       std::move(contexts),
+                       std::move(returnCols),
+                       schemaId,
+                       isEmptyResultSet,
+                       dedup,
+                       std::move(orderBy),
+                       limit,
+                       std::move(filter)) {}
+};
+
+class TagIndexFullScan final : public TagIndexScan {
+public:
+    static TagIndexFullScan* make(QueryContext* qctx,
+                                  PlanNode* input,
+                                  GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
+                                  std::vector<IndexQueryContext>&& contexts = {},
+                                  std::vector<std::string> returnCols = {},
+                                  int32_t schemaId = -1,
+                                  bool isEmptyResultSet = false,
+                                  bool dedup = false,
+                                  std::vector<storage::cpp2::OrderBy> orderBy = {},
+                                  int64_t limit = std::numeric_limits<int64_t>::max(),
+                                  std::string filter = "") {
+        return qctx->objPool()->add(new TagIndexFullScan(qctx,
+                                                         input,
+                                                         space,
+                                                         std::move(contexts),
+                                                         std::move(returnCols),
+                                                         schemaId,
+                                                         isEmptyResultSet,
+                                                         dedup,
+                                                         std::move(orderBy),
+                                                         limit,
+                                                         std::move(filter)));
+    }
+
+private:
+    TagIndexFullScan(QueryContext* qctx,
+                     PlanNode* input,
+                     GraphSpaceID space,
+                     std::vector<IndexQueryContext>&& contexts,
+                     std::vector<std::string> returnCols,
+                     int32_t schemaId,
+                     bool isEmptyResultSet,
+                     bool dedup,
+                     std::vector<storage::cpp2::OrderBy> orderBy,
+                     int64_t limit,
+                     std::string filter)
+        : TagIndexScan(qctx,
+                       input,
+                       space,
+                       std::move(contexts),
+                       std::move(returnCols),
+                       schemaId,
+                       isEmptyResultSet,
+                       dedup,
+                       std::move(orderBy),
+                       limit,
+                       std::move(filter)) {}
+};
 
 // class TagFullTextIndexScan : public TagIndexScan {};
 
