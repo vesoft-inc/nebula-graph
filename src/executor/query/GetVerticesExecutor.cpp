@@ -8,6 +8,7 @@
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
+#include "service/GraphFlags.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -34,6 +35,13 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                           .value(Value(DataSet(gv->colNames())))
                           .iter(Iterator::Kind::kProp)
                           .finish());
+    }
+
+    if (!FLAGS_match_clause_with_props) {
+        return finish(ResultBuilder()
+                      .value(std::move(vertices))
+                      .iter(Iterator::Kind::kProp)
+                      .finish());
     }
 
     time::Duration getPropsTime;

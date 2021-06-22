@@ -58,3 +58,5 @@ DEFINE_uint32(ft_request_retry_times, 3, "Retry times if fulltext request failed
 DEFINE_bool(accept_partial_success, false, "Whether to accept partial success, default false");
 
 DEFINE_double(system_memory_high_watermark_ratio, 0.8, "high watermark ratio of system memory");
+
+DEFINE_bool(match_clause_with_props, true, "Whether to get props in match clause, default true");
