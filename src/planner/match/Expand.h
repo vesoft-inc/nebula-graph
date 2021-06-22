@@ -54,13 +54,6 @@ private:
                        const NodeInfo& dstNode,
                        SubPlan* plan);
 
-    Status expand(const EdgeInfo& edge,
-                  const NodeInfo& dstNode,
-                  PlanNode* dep,
-                  const std::string& inputVar,
-                  const Expression* nodeFilter,
-                  SubPlan* plan);
-
     Status expandStep(const EdgeInfo& edge,
                       PlanNode* dep,
                       const std::string& inputVar,

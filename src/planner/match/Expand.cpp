@@ -102,6 +102,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     int64_t startIndex = 0;
     auto minHop = edge.range ? edge.range->min() : 1;
     auto maxHop = edge.range ? edge.range->max() : 1;
+    bool willExpandInto = expandInto(dstNode.alias);
 
     // Build first step
     // In the case of 0 step, src node is the dst node, return the vertex directly
@@ -119,7 +120,8 @@ Status Expand::expandSteps(const NodeInfo& node,
     } else {   // Case 1 to n steps
         startIndex = 1;
         // Expand first step from src
-        NG_RETURN_IF_ERROR(expand(edge, dstNode, dependency_, inputVar_, node.filter, &subplan));
+        NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter,
+                                     &subplan, dstNode, willExpandInto));
     }
     // No need to further expand if maxHop is the start Index
     if (maxHop == startIndex) {
@@ -130,7 +132,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     PlanNode* firstStep = subplan.root;
 
     // Build Start node from first step
-    if (expandInto(dstNode.alias)) {
+    if (willExpandInto) {
         return Status::SemanticError("Vairable expand to resolved node is not supported.");
     }
 
@@ -172,19 +174,6 @@ Status Expand::expandSteps(const NodeInfo& node,
     subplan.root = uResNode;
     plan->root = subplan.root;
     return Status::OK();
-}
-
-Status Expand::expand(const EdgeInfo& edge,
-                      const NodeInfo& dstNode,
-                      PlanNode* dep,
-                      const std::string& inputVar,
-                      const Expression* nodeFilter,
-                      SubPlan* plan) {
-    if (expandInto(dstNode.alias)) {
-        return expandStep(edge, dep, inputVar, nodeFilter, plan, dstNode, true);
-    } else {
-        return expandStep(edge, dep, inputVar, nodeFilter, plan, dstNode);
-    }
 }
 
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
