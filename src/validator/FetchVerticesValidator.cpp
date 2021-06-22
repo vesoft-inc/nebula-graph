@@ -15,6 +15,8 @@ namespace graph {
 static constexpr char VertexID[] = "VertexID";
 
 Status FetchVerticesValidator::validateImpl() {
+    props_ = std::make_unique<std::vector<VertexProp>>();
+    exprs_ = std::make_unique<std::vector<Expr>>();
     NG_RETURN_IF_ERROR(check());
     NG_RETURN_IF_ERROR(prepareVertices());
     NG_RETURN_IF_ERROR(prepareProperties());
@@ -35,22 +37,16 @@ Status FetchVerticesValidator::toPlan() {
                                               limit_,
                                               std::move(filter_));
     getVerticesNode->setInputVar(vidsVar);
-    getVerticesNode->setColNames(std::move(gvColNames_));
+    getVerticesNode->setColNames(gvColNames_);
     // pipe will set the input variable
     PlanNode *current = getVerticesNode;
 
     if (withYield_) {
-        auto *projectNode = Project::make(qctx_, current, newYieldColumns_);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, newYieldColumns_);
 
         // Project select properties then dedup
         if (dedup_) {
-            auto *dedupNode = Dedup::make(qctx_, current);
-            dedupNode->setInputVar(current->outputVar());
-            dedupNode->setColNames(colNames_);
-            current = dedupNode;
+            current = Dedup::make(qctx_, current);
 
             // the framework will add data collect to collect the result
             // if the result is required
@@ -58,10 +54,7 @@ Status FetchVerticesValidator::toPlan() {
     } else {
         auto *columns = qctx_->objPool()->add(new YieldColumns());
         columns->addColumn(new YieldColumn(new VertexExpression(), "vertices_"));
-        auto *projectNode = Project::make(qctx_, current, columns);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, columns);
     }
     root_ = current;
     tail_ = getVerticesNode;
@@ -149,9 +142,7 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     withYield_ = true;
     // outputs
     auto yieldSize = yield->columns().size();
-    colNames_.reserve(yieldSize + 1);
     outputs_.reserve(yieldSize + 1);
-    colNames_.emplace_back(VertexID);
     gvColNames_.emplace_back(nebula::kVid);
     outputs_.emplace_back(VertexID, vidType_);   // kVid
 
@@ -176,10 +167,9 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
             return Status::SemanticError("Unsupported src/dst property expression in yield.");
         }
 
-        colNames_.emplace_back(deduceColName(col));
         auto typeResult = deduceExprType(col->expr());
         NG_RETURN_IF_ERROR(typeResult);
-        outputs_.emplace_back(colNames_.back(), typeResult.value());
+        outputs_.emplace_back(col->name(), typeResult.value());
         // TODO(shylock) think about the push-down expr
     }
     if (exprProps.tagProps().empty()) {
@@ -201,7 +191,7 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
             gvColNames_.emplace_back(tagNameId.first + "." + prop.toString());
         }
         vProp.set_props(std::move(propNames));
-        props_.emplace_back(std::move(vProp));
+        props_->emplace_back(std::move(vProp));
     }
 
     // insert the reserved properties expression be compatible with 1.0
@@ -217,8 +207,7 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
 }
 
 Status FetchVerticesValidator::preparePropertiesWithoutYield() {
-    props_.clear();
-    colNames_.emplace_back("vertices_");
+    props_->clear();
     outputs_.emplace_back("vertices_", Value::Type::VERTEX);
     gvColNames_.emplace_back(nebula::kVid);
     for (const auto &tagSchema : tagsSchema_) {
@@ -237,7 +226,7 @@ Status FetchVerticesValidator::preparePropertiesWithoutYield() {
         gvColNames_.emplace_back(tagName + "._tag");
         propNames.emplace_back(nebula::kTag);   // "_tag"
         vProp.set_props(std::move(propNames));
-        props_.emplace_back(std::move(vProp));
+        props_->emplace_back(std::move(vProp));
     }
     return Status::OK();
 }
