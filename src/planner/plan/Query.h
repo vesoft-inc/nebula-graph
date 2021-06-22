@@ -701,7 +701,7 @@ private:
     void cloneMembers(const Unwind&);
 
 private:
-    Expression* unwindExpr_;
+    Expression* unwindExpr_{nullptr};
     std::string alias_;
 };
 

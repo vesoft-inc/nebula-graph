@@ -94,7 +94,7 @@ StatusOr<std::string> FTIndexUtils::rewriteTSFilter(
     auto tsExpr = static_cast<TextSearchExpression*>(expr);
     std::vector<Expression*> rels;
     for (const auto& row : vRet.value()) {
-        RelationalExpression* relExpr;
+        RelationalExpression* relExpr = nullptr;
         if (isEdge) {
             relExpr = RelationalExpression::makeEQ(
                 pool,

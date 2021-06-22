@@ -46,13 +46,13 @@ public:
                                        bool isEdgeProperties = false);
 
     static void extractAndDedupVidColumn(QueryContext* qctx,
-                                         Expression* initialExpr,
+                                         Expression** initialExpr,
                                          PlanNode* dep,
                                          const std::string& inputVar,
                                          SubPlan& plan);
 
     static Expression* initialExprOrEdgeDstExpr(QueryContext* qctx,
-                                                Expression* initialExpr,
+                                                Expression** initialExpr,
                                                 const std::string& vidCol);
 
     static Expression* getEndVidInPath(QueryContext* qctx, const std::string& colName);
@@ -66,7 +66,7 @@ public:
     static Status appendFetchVertexPlan(const Expression* nodeFilter,
                                         const SpaceInfo& space,
                                         QueryContext* qctx,
-                                        Expression* initialExpr,
+                                        Expression** initialExpr,
                                         SubPlan& plan);
 
     // In 0 step left expansion case, the result of initial index scan
@@ -74,7 +74,7 @@ public:
     static Status appendFetchVertexPlan(const Expression* nodeFilter,
                                         const SpaceInfo& space,
                                         QueryContext* qctx,
-                                        Expression* initialExpr,
+                                        Expression** initialExpr,
                                         std::string inputVar,
                                         SubPlan& plan);
 };

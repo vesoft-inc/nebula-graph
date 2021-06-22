@@ -198,13 +198,16 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
 }
 
 void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
-                                           Expression* initialExpr,
+                                           Expression** initialExpr,
                                            PlanNode* dep,
                                            const std::string& inputVar,
                                            SubPlan& plan) {
     auto columns = qctx->objPool()->add(new YieldColumns);
     auto* var = qctx->symTable()->getVar(inputVar);
     Expression* vidExpr = initialExprOrEdgeDstExpr(qctx, initialExpr, var->colNames.back());
+    if (initialExpr) {
+        *initialExpr = nullptr;
+    }
     columns->addColumn(new YieldColumn(vidExpr));
     auto project = Project::make(qctx, dep, columns);
     project->setInputVar(inputVar);
@@ -216,10 +219,10 @@ void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
 }
 
 Expression* MatchSolver::initialExprOrEdgeDstExpr(QueryContext* qctx,
-                                                  Expression* initialExpr,
+                                                  Expression** initialExpr,
                                                   const std::string& vidCol) {
-    if (initialExpr != nullptr) {
-        return initialExpr;
+    if (initialExpr != nullptr && *initialExpr != nullptr) {
+        return *initialExpr;
     } else {
         return getEndVidInPath(qctx, vidCol);
     }
@@ -231,7 +234,7 @@ Expression* MatchSolver::getEndVidInPath(QueryContext* qctx, const std::string& 
     auto columnExpr = InputPropertyExpression::make(pool, colName);
     // expr: endNode(path) => vn
     auto args = ArgumentList::make(pool);
-    args->addArgument(std::move(columnExpr));
+    args->addArgument(columnExpr);
     auto endNode = FunctionCallExpression::make(pool, "endNode", args);
     // expr: en[_dst] => dst vid
     auto vidExpr = ConstantExpression::make(pool, kVid);
@@ -244,7 +247,7 @@ Expression* MatchSolver::getStartVidInPath(QueryContext *qctx, const std::string
     auto columnExpr = InputPropertyExpression::make(pool, colName);
     // expr: startNode(path) => v1
     auto args = ArgumentList::make(pool);
-    args->addArgument(std::move(columnExpr));
+    args->addArgument(columnExpr);
     auto firstVertexExpr = FunctionCallExpression::make(pool, "startNode", args);
     // expr: v1[_vid] => vid
     return AttributeExpression::make(pool, firstVertexExpr, ConstantExpression::make(pool, kVid));
@@ -266,7 +269,7 @@ PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
 Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
                                           const SpaceInfo& space,
                                           QueryContext* qctx,
-                                          Expression* initialExpr,
+                                          Expression** initialExpr,
                                           SubPlan& plan) {
     return appendFetchVertexPlan(
         nodeFilter, space, qctx, initialExpr, plan.root->outputVar(), plan);
@@ -275,13 +278,13 @@ Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
 Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
                                           const SpaceInfo& space,
                                           QueryContext* qctx,
-                                          Expression* initialExpr,
+                                          Expression** initialExpr,
                                           std::string inputVar,
                                           SubPlan& plan) {
     auto* pool = qctx->objPool();
     // [Project && Dedup]
     extractAndDedupVidColumn(qctx, initialExpr, plan.root, inputVar, plan);
-    auto srcExpr = InputPropertyExpression::make(pool, kVid);;
+    auto srcExpr = InputPropertyExpression::make(pool, kVid);
     // [Get vertices]
     auto props = SchemaUtil::getAllVertexProp(qctx, space, true);
     NG_RETURN_IF_ERROR(props);

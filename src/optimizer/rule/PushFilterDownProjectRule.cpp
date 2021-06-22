@@ -110,9 +110,8 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
                                       filterPicked, std::move(matcher), std::move(rewriter));
 
     // produce new Filter node below
-    auto* newBelowFilterNode = graph::Filter::make(octx->qctx(),
-                                                   const_cast<graph::PlanNode*>(oldProjNode->dep()),
-                                                   objPool->add(newFilterPicked));
+    auto* newBelowFilterNode = graph::Filter::make(
+        octx->qctx(), const_cast<graph::PlanNode*>(oldProjNode->dep()), newFilterPicked);
     newBelowFilterNode->setInputVar(oldProjNode->inputVar());
     auto newBelowFilterGroup = OptGroup::create(octx);
     auto newFilterGroupNode = newBelowFilterGroup->makeGroupNode(newBelowFilterNode);
@@ -128,8 +127,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
     result.eraseAll = true;
     if (filterUnpicked) {
         // produce new Filter node above
-        auto* newAboveFilterNode =
-            graph::Filter::make(octx->qctx(), newProjNode, objPool->add(filterUnpicked));
+        auto* newAboveFilterNode = graph::Filter::make(octx->qctx(), newProjNode, filterUnpicked);
         newAboveFilterNode->setOutputVar(oldFilterNode->outputVar());
         auto newAboveFilterGroupNode =
             OptGroupNode::create(octx, newAboveFilterNode, filterGroupNode->group());

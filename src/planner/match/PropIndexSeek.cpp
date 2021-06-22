@@ -107,14 +107,14 @@ StatusOr<SubPlan> PropIndexSeek::transformEdge(EdgeContext* edgeCtx) {
         auto* project = Project::make(qctx, scan, yieldColumns);
         project->setColNames({kVid});
 
-        auto* unwindExpr = pool->add(ColumnExpression::make(pool, 0));
+        auto* unwindExpr = ColumnExpression::make(pool, 0);
         auto* unwind = Unwind::make(qctx, project, unwindExpr, kVid);
         unwind->setColNames({"vidList", kVid});
         plan.root = unwind;
     }
 
     // initialize start expression in project edge
-    edgeCtx->initialExpr = VariablePropertyExpression::make(pool, kVid);
+    edgeCtx->initialExpr = VariablePropertyExpression::make(pool, "", kVid);
     return plan;
 }
 
@@ -183,7 +183,7 @@ StatusOr<SubPlan> PropIndexSeek::transformNode(NodeContext* nodeCtx) {
 
     // initialize start expression in project node
     auto* pool = matchClauseCtx->qctx->objPool();
-    nodeCtx->initialExpr = VariablePropertyExpression::make(pool, kVid);
+    nodeCtx->initialExpr = VariablePropertyExpression::make(pool, "", kVid);
     return plan;
 }
 

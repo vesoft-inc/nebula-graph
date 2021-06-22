@@ -107,7 +107,7 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
         NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(node.filter,
                                                               matchCtx_->space,
                                                               matchCtx_->qctx,
-                                                              initialExpr_,
+                                                              &initialExpr_,
                                                               inputVar_,
                                                               subplan));
     } else {   // Case 1 to n steps
@@ -172,7 +172,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
     curr.root = dep;
-    MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_, dep, inputVar, curr);
+    MatchSolver::extractAndDedupVidColumn(qctx, &initialExpr_, dep, inputVar, curr);
     // [GetNeighbors]
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = InputPropertyExpression::make(pool, kVid);
@@ -242,7 +242,7 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, 
     auto args = ArgumentList::make(pool);
     // Expr: length(relationships(p)) >= minHop
     auto pathExpr = InputPropertyExpression::make(pool, kPathStr);
-    args->addArgument(std::move(pathExpr));
+    args->addArgument(pathExpr);
     auto edgeExpr = FunctionCallExpression::make(pool, "length", args);
     auto minHop = edge.range == nullptr ? 1 : edge.range->min();
     auto minHopExpr = ConstantExpression::make(pool, minHop);

@@ -81,7 +81,7 @@ private:
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
 
 private:
-    Expression* initialExpr_;
+    Expression* initialExpr_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

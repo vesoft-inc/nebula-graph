@@ -419,7 +419,7 @@ public:
     std::string toString() const override;
 
 private:
-    Expression* expr_;
+    Expression* expr_{nullptr};
     std::string alias_;
 };
 

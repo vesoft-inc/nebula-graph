@@ -70,7 +70,7 @@ Status YieldValidator::validateImpl() {
 Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     columns_->addColumn(column);
 
-    auto pool = qctx()->objPool();
+    auto* pool = qctx()->objPool();
     auto colExpr = column->expr();
     DCHECK(colExpr != nullptr);
 

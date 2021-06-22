@@ -62,7 +62,7 @@ std::shared_ptr<const meta::NebulaSchemaProvider> SchemaUtil::generateSchemaProv
     auto schemaPtr = std::make_shared<meta::NebulaSchemaProvider>(ver);
     for (auto col : schema.get_columns()) {
         bool hasDef = col.default_value_ref().has_value();
-        Expression* defaultValueExpr;
+        Expression* defaultValueExpr = nullptr;
         if (hasDef) {
             defaultValueExpr = Expression::decode(pool, *col.default_value_ref());
         }

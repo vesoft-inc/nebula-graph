@@ -135,7 +135,7 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
         }
     }
     // initialize start expression in project node
-    nodeCtx->initialExpr = VariablePropertyExpression::make(pool, kVid);
+    nodeCtx->initialExpr = VariablePropertyExpression::make(pool, "", kVid);
     return plan;
 }
 
@@ -197,7 +197,7 @@ StatusOr<SubPlan> LabelIndexSeek::transformEdge(EdgeContext* edgeCtx) {
     }
 
     // initialize start expression in project node
-    edgeCtx->initialExpr = VariablePropertyExpression::make(pool, kVid);
+    edgeCtx->initialExpr = VariablePropertyExpression::make(pool, "", kVid);
     return plan;
 }
 

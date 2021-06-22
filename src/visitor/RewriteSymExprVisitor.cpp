@@ -43,8 +43,8 @@ void RewriteSymExprVisitor::visit(LabelExpression *expr) {
 
 void RewriteSymExprVisitor::visit(LabelAttributeExpression *expr) {
     if (isEdge_) {
-        expr_ = EdgePropertyExpression::make(pool_, expr->left()->name(),
-                                                         expr->right()->value().getStr());
+        expr_ = EdgePropertyExpression::make(
+            pool_, expr->left()->name(), expr->right()->value().getStr());
         hasWrongType_ = false;
     } else {
         hasWrongType_ = true;

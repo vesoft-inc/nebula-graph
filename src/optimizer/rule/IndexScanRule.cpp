@@ -305,7 +305,7 @@ GraphSpaceID IndexScanRule::spaceId(const OptGroupNode *groupNode) const {
 Expression* IndexScanRule::filterExpr(const OptGroupNode* groupNode) const {
     auto in = static_cast<const IndexScan*>(groupNode->node());
     auto qct = in->queryContext();
-    // The initial IndexScan plan node has only zeor or one queryContext.
+    // The initial IndexScan plan node has only zero or one queryContext.
     // TODO(yee): Move this condition to match interface
     if (qct == nullptr) {
         return nullptr;

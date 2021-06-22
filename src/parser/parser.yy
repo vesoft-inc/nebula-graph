@@ -843,7 +843,6 @@ predicate_expression
         nebula::graph::ParserUtil::rewritePred(qctx, expr, innerVar);
         $$ = expr;
         delete $1;
-        delete $3;
     }
     | KW_EXISTS L_PAREN expression R_PAREN {
         if ($3->kind() != Expression::Kind::kLabelAttribute && $3->kind() != Expression::Kind::kAttribute &&
@@ -863,7 +862,6 @@ list_comprehension_expression
         auto *expr = ListComprehensionExpression::make(qctx->objPool(), innerVar, $4, $6, nullptr);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
-        delete $2;
     }
     | L_BRACKET expression KW_IN expression PIPE expression R_BRACKET {
         if ($2->kind() != Expression::Kind::kLabel) {
@@ -873,7 +871,6 @@ list_comprehension_expression
         auto *expr = ListComprehensionExpression::make(qctx->objPool(), innerVar, $4, nullptr, $6);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
-        delete $2;
     }
     | L_BRACKET expression KW_IN expression KW_WHERE expression PIPE expression R_BRACKET {
         if ($2->kind() != Expression::Kind::kLabel) {
@@ -883,7 +880,6 @@ list_comprehension_expression
         auto *expr = ListComprehensionExpression::make(qctx->objPool(), innerVar, $4, $6, $8);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
-        delete $2;
     }
     ;
 
@@ -976,7 +972,6 @@ function_call_expression
             delete($1);
         } else {
             delete($1);
-            delete($4);
             throw nebula::GraphParser::syntax_error(@1, "Unknown aggregate function ");
         }
     }
@@ -1043,13 +1038,13 @@ opt_argument_list
 argument_list
     : expression {
         $$ = ArgumentList::make(qctx->objPool());
-        Expression* arg;
+        Expression* arg = nullptr;
         arg = $1;
         $$->addArgument(arg);
     }
     | argument_list COMMA expression {
         $$ = $1;
-        Expression* arg;
+        Expression* arg = nullptr;
         arg = $3;
         $$->addArgument(arg);
     }

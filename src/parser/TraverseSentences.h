@@ -248,7 +248,7 @@ public:
     std::string toString() const;
 
 private:
-    Expression* expr_;
+    Expression* expr_{nullptr};
     OrderType orderType_;
 };
 

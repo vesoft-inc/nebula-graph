@@ -175,12 +175,13 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
 
     VLOG(1) << subplan;
     auto left = subplan.root;
-    NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(
-        nodeInfos.front().filter,
-        matchClauseCtx->space,
-        matchClauseCtx->qctx,
-        edgeInfos.empty() ? initialExpr_->clone() : nullptr,
-        subplan));
+    auto* initialExprCopy = initialExpr_->clone();
+    NG_RETURN_IF_ERROR(
+        MatchSolver::appendFetchVertexPlan(nodeInfos.front().filter,
+                                           matchClauseCtx->space,
+                                           matchClauseCtx->qctx,
+                                           edgeInfos.empty() ? &initialExprCopy : nullptr,
+                                           subplan));
     if (!edgeInfos.empty()) {
         auto right = subplan.root;
         VLOG(1) << "left: " << folly::join(",", left->colNames())
@@ -223,12 +224,13 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
 
     VLOG(1) << subplan;
     auto left = subplan.root;
-    NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(
-        nodeInfos.back().filter,
-        matchClauseCtx->space,
-        matchClauseCtx->qctx,
-        edgeInfos.empty() ? initialExpr_->clone() : nullptr,
-        subplan));
+    auto* initialExprCopy = initialExpr_->clone();
+    NG_RETURN_IF_ERROR(
+        MatchSolver::appendFetchVertexPlan(nodeInfos.back().filter,
+                                           matchClauseCtx->space,
+                                           matchClauseCtx->qctx,
+                                           edgeInfos.empty() ? &initialExprCopy : nullptr,
+                                           subplan));
     if (!edgeInfos.empty()) {
         auto right = subplan.root;
         VLOG(1) << "left: " << folly::join(",", left->colNames())

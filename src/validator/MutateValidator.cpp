@@ -602,10 +602,10 @@ Status UpdateValidator::checkAndResetSymExpr(Expression* inExpr,
 }
 
 // rewrite the expr which has kSymProperty expr to toExpr
-Expression* UpdateValidator::rewriteSymExpr(Expression *expr,
-                                                            const std::string &sym,
-                                                            bool &hasWrongType,
-                                                            bool isEdge) {
+Expression *UpdateValidator::rewriteSymExpr(Expression *expr,
+                                            const std::string &sym,
+                                            bool &hasWrongType,
+                                            bool isEdge) {
     RewriteSymExprVisitor visitor(qctx_->objPool(), sym, isEdge);
     expr->accept(&visitor);
     hasWrongType = visitor.hasWrongType();
