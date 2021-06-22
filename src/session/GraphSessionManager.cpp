@@ -210,28 +210,35 @@ void GraphSessionManager::updateSessionsToMeta() {
         }
     }
 
+    auto handleKilledQueries = [this] (auto&& resp) {
+        if (!resp.ok()) {
+            LOG(ERROR) << "Update sessions failed: " << resp.status();
+            return Status::Error("Update sessions failed: %s",
+                                resp.status().toString().c_str());
+        }
+        auto& killedQueriesForEachSession = *resp.value().killed_queries_ref();
+        for (auto& killedQueries : killedQueriesForEachSession) {
+            auto sessionId = killedQueries.first;
+            for (auto& desc : killedQueries.second) {
+                auto session = activeSessions_.find(sessionId);
+                if (session == activeSessions_.end()) {
+                    continue;
+                }
+                if (desc.second.get_graph_addr() !=
+                    session->second->getGraphAddr()) {
+                    continue;
+                }
+                auto epId = desc.first;
+                session->second->markQueryKilled(epId);
+                VLOG(1)
+                    << "Kill query, session: " << sessionId << " plan: " << epId;
+            }
+        }
+        return Status::OK();
+    };
+
     auto result = metaClient_->updateSessions(sessions)
-                      .thenValue([this](auto&& resp) {
-                          if (!resp.ok()) {
-                              LOG(ERROR) << "Update sessions failed: " << resp.status();
-                              return Status::Error("Update sessions failed: %s",
-                                                   resp.status().toString().c_str());
-                          }
-                          auto& killedQueriesForEachSession = *resp.value().killed_queries_ref();
-                          for (auto& killedQueries : killedQueriesForEachSession) {
-                              auto sessionId = killedQueries.first;
-                              for (auto& epId : killedQueries.second) {
-                                  auto session = activeSessions_.find(sessionId);
-                                  if (session == activeSessions_.end()) {
-                                      continue;
-                                  }
-                                  session->second->markQueryKilled(epId);
-                                  VLOG(1)
-                                      << "Kill query, session: " << sessionId << " plan: " << epId;
-                              }
-                          }
-                          return Status::OK();
-                      })
+                      .thenValue(handleKilledQueries)
                       .get();
     if (!result.ok()) {
         LOG(ERROR) << "Update sessions failed: " << result;
@@ -244,6 +251,38 @@ void GraphSessionManager::updateSessionInfo(ClientSession* session) {
     for (const auto &role : roles) {
         session->setRole(role.get_space_id(), role.get_role_type());
     }
+}
+
+Status GraphSessionManager::init() {
+    auto listSessionsRet = metaClient_->listSessions().get();
+    if (!listSessionsRet.ok()) {
+        return Status::Error("Load sessions from meta failed.");
+    }
+    auto& sessions = *listSessionsRet.value().sessions_ref();
+    for (auto& session : sessions) {
+        if (session.get_graph_addr() != myAddr_) {
+            continue;
+        }
+        auto sessionId = session.get_session_id();
+        auto idleSecs =
+            (time::WallClock::fastNowInMicroSec() - session.get_update_time()) / 1000000;
+        VLOG(1) << "session_idle_timeout_secs: " << FLAGS_session_idle_timeout_secs
+            << " idleSecs: " << idleSecs;
+        if (FLAGS_session_idle_timeout_secs > 0 && idleSecs > FLAGS_session_idle_timeout_secs) {
+            // remove session if expired
+            VLOG(1) << "Remove session: " << sessionId;
+            metaClient_->removeSession(sessionId);
+            continue;
+        }
+        session.queries_ref()->clear();
+        auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
+        auto ret = activeSessions_.emplace(sessionId, sessionPtr);
+        if (!ret.second) {
+            return Status::Error("Insert session to local cache failed.");
+        }
+        updateSessionInfo(sessionPtr.get());
+    }
+    return Status::OK();
 }
 }   // namespace graph
 }   // namespace nebula

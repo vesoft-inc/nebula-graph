@@ -29,6 +29,8 @@ public:
     GraphSessionManager(meta::MetaClient* metaClient, const HostAddr &hostAddr);
     ~GraphSessionManager() {}
 
+    Status init();
+
     /**
      * Create a new session
      */

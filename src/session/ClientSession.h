@@ -98,6 +98,11 @@ public:
         return session_.get_timezone();
     }
 
+    HostAddr getGraphAddr() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
+        return session_.get_graph_addr();
+    }
+
     void setTimezone(int32_t timezone) {
         {
             folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);

@@ -47,6 +47,10 @@ Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecuto
     }
 
     sessionManager_ = std::make_unique<GraphSessionManager>(metaClient_.get(), hostAddr);
+    auto initSessionMgrStatus = sessionManager_->init();
+    if (!initSessionMgrStatus.ok()) {
+        LOG(WARNING) << "Init sessin manager failed: " << initSessionMgrStatus.toString();
+    }
     queryEngine_ = std::make_unique<QueryEngine>();
 
     myAddr_ = hostAddr;

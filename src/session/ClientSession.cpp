@@ -45,7 +45,7 @@ void ClientSession::addQuery(QueryContext* qctx) {
     queryDesc.set_start_time(time::WallClock::fastNowInMicroSec());
     queryDesc.set_status(meta::cpp2::QueryStatus::RUNNING);
     queryDesc.set_query(qctx->rctx()->query());
-    // queryDesc.set_graph_addr(session_.get_graph_addr());
+    queryDesc.set_graph_addr(session_.get_graph_addr());
 
     folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
     contexts_.emplace(epId, qctx);
