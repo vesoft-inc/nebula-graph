@@ -324,6 +324,7 @@ public:
     const std::string* spaceName() const {
         return spaceName_.get();
     }
+
     const std::string* groupName() const {
         return groupName_.get();
     }
@@ -334,10 +335,6 @@ public:
 
     void setGroupName(std::string* name) {
         groupName_.reset(name);
-    }
-
-    const std::string* groupName() const {
-        return groupName_.get();
     }
 
     const SpaceOptList* spaceOpts() const {
