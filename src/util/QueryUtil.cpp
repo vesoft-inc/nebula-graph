@@ -42,7 +42,7 @@ SubPlan QueryUtil::buildRuntimeInput(QueryContext* qctx, Starts& starts) {
     if (starts.fromType == kVariable) {
         project->setInputVar(starts.userDefinedVarName);
     }
-    starts.src = pool->add(new InputPropertyExpression(kVid));
+    starts.src = InputPropertyExpression::make(pool, kVid);
 
     auto* dedup = Dedup::make(qctx, project);
 
@@ -65,8 +65,9 @@ SubPlan QueryUtil::buildStart(QueryContext* qctx, Starts& starts, std::string& v
 }
 
 PlanNode* QueryUtil::extractDstFromGN(QueryContext* qctx, PlanNode* gn, const std::string& output) {
-    auto* columns = qctx->objPool()->add(new YieldColumns());
-    auto* column = new YieldColumn(new EdgePropertyExpression("*", kDst), kVid);
+    auto pool = qctx->objPool();
+    auto* columns = pool->add(new YieldColumns());
+    auto* column = new YieldColumn(EdgePropertyExpression::make(pool, "*", kDst), kVid);
     columns->addColumn(column);
 
     auto* project = Project::make(qctx, gn, columns);

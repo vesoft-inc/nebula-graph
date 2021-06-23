@@ -196,16 +196,16 @@ private:
 class TruncateClause {
 public:
     TruncateClause(Expression* expr, bool isSample) {
-        truncate_.reset(expr);
+        truncate_ = expr;
         isSample_ = isSample;
     }
 
     Expression* truncate() const {
-        return truncate_.get();
+        return truncate_;
     }
 
     std::unique_ptr<TruncateClause> clone() const {
-        return std::make_unique<TruncateClause>(truncate_->clone().release(), isSample_);
+        return std::make_unique<TruncateClause>(truncate_->clone(), isSample_);
     }
 
     bool isSample() const {
@@ -216,7 +216,7 @@ public:
 
 private:
     bool isSample_{false};
-    std::unique_ptr<Expression> truncate_;
+    Expression* truncate_{nullptr};
 };
 
 class WhereClause {

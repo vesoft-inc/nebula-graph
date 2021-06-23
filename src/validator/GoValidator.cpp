@@ -194,7 +194,6 @@ Status GoValidator::buildColumns() {
     const auto& inputProps = exprProps.inputProps();
     const auto& varProps = exprProps.varProps();
     const auto& from = goCtx_->from;
-    auto* pool = qctx_->objPool();
 
     if (dstTagProps.empty() && inputProps.empty() && varProps.empty() &&
         from.fromType == FromType::kInstantExpr) {
@@ -219,7 +218,6 @@ Status GoValidator::buildColumns() {
         extractPropExprs(filter);
         auto newFilter = filter->clone();
         goCtx_->filter = rewrite2VarProp(newFilter);
-        pool->add(goCtx_->filter);
     }
 
     auto* newYieldExpr = pool->add(new YieldColumns());
