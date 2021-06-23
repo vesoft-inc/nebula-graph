@@ -207,7 +207,6 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
         }
         case Sentence::Kind::kShowQueries:
         case Sentence::Kind::kKillQuery: {
-            // TODO
             return Status::OK();
         }
     }

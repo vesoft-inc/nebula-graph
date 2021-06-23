@@ -369,4 +369,27 @@ std::string ShowSessionsSentence::toString() const {
     return "SHOW SESSIONS";
 }
 
+std::string ShowQueriesSentence::toString() const {
+    std::string buf = "SHOW";
+    if (isAll()) {
+        buf += " ALL";
+    }
+    buf += " QUERIES";
+    return buf;
+}
+
+std::string KillQuerySentence::toString() const {
+    std::string buf = "KILL QUERY (";
+    if  (sessionId() > 0) {
+        buf += "session=";
+        buf += folly::to<std::string>(sessionId());
+        buf += ", ";
+    }
+    if (epId() > 0) {
+        buf += "plan=";
+        buf += folly::to<std::string>(epId());
+    }
+    buf += ")";
+    return buf;
+}
 }   // namespace nebula

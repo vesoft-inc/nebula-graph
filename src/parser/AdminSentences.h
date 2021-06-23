@@ -749,10 +749,7 @@ public:
         return topN_;
     }
 
-    std::string toString() const override {
-        // TODO
-        return "";
-    }
+    std::string toString() const override;
 
 private:
     bool isAll_{false};
@@ -794,10 +791,7 @@ public:
         return identifier_->epId();
     }
 
-    std::string toString() const override {
-        // TODO
-        return "";
-    }
+    std::string toString() const override;
 
 private:
     std::unique_ptr<QueryUniqueIdentifier> identifier_;
