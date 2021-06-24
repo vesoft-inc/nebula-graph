@@ -125,9 +125,9 @@ Feature: IndexTest_Vid_String
       Show TAG INDEXES;
       """
     Then the result should be, in any order:
-      | Names                |
-      | "disorder_tag_index" |
-      | "single_tag_index"   |
+      | Index Name           | By Tag  | Columns      |
+      | "disorder_tag_index" | "tag_1" | "col3, col2" |
+      | "single_tag_index"   | "tag_1" | "col2"       |
     When executing query:
       """
       DESCRIBE TAG INDEX multi_tag_index;
@@ -265,9 +265,9 @@ Feature: IndexTest_Vid_String
       SHOW EDGE INDEXES
       """
     Then the result should be, in any order:
-      | Names                   |
-      | "disorder_edge_1_index" |
-      | "single_edge_index"     |
+      | Index Name              | By Edge  | Columns      |
+      | "disorder_edge_1_index" | "edge_1" | "col3, col2" |
+      | "single_edge_index"     | "edge_1" | "col2"       |
     When executing query:
       """
       DESCRIBE EDGE INDEX multi_edge_1_index;
