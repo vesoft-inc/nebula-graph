@@ -144,6 +144,7 @@ void GraphSessionManager::removeSession(SessionID id) {
         return;
     }
 
+    iter->second->markAllQueryKilled();
     auto resp = metaClient_->removeSession(id).get();
     if (!resp.ok()) {
         // it will delete by reclaim
@@ -182,6 +183,7 @@ void GraphSessionManager::reclaimExpiredSessions() {
         }
         FLOG_INFO("ClientSession %ld has expired", iter->first);
 
+        iter->second->markAllQueryKilled();
         auto resp = metaClient_->removeSession(iter->first).get();
         if (!resp.ok()) {
             // TODO: Handle cases where the delete client failed

@@ -29,8 +29,6 @@ public:
     static std::shared_ptr<ClientSession> create(meta::cpp2::Session &&session,
                                                  meta::MetaClient* metaClient);
 
-    ~ClientSession();
-
     int64_t id() {
         folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return session_.get_session_id();
@@ -139,6 +137,8 @@ public:
     bool findQuery(nebula::ExecutionPlanID epId);
 
     void markQueryKilled(nebula::ExecutionPlanID epId);
+
+    void markAllQueryKilled();
 
 private:
     ClientSession() = default;

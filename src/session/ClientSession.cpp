@@ -16,13 +16,6 @@ ClientSession::ClientSession(meta::cpp2::Session &&session, meta::MetaClient* me
     metaClient_ = metaClient;
 }
 
-ClientSession::~ClientSession() {
-    folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
-    for (auto& qctx : contexts_) {
-        qctx.second->markKilled();
-    }
-}
-
 std::shared_ptr<ClientSession> ClientSession::create(meta::cpp2::Session &&session,
                                                      meta::MetaClient* metaClient) {
     return std::shared_ptr<ClientSession>(new ClientSession(std::move(session), metaClient));
@@ -88,5 +81,12 @@ void ClientSession::markQueryKilled(nebula::ExecutionPlanID epId) {
     query->second.set_status(meta::cpp2::QueryStatus::KILLING);
 }
 
+void ClientSession::markAllQueryKilled() {
+    folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
+    for (auto& context : contexts_) {
+        context.second->markKilled();
+        session_.queries_ref()->clear();
+    }
+}
 }  // namespace graph
 }  // namespace nebula
