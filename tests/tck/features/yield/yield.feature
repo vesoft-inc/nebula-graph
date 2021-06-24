@@ -432,13 +432,12 @@ Feature: Yield Sentence
     Then the result should be, in any order, with relax comparison:
       | 1 |
       | 1 |
-      | 1 |
-      | 1 |
     When executing query:
       """
       GO FROM "Nobody" OVER like | YIELD 1
       """
     Then the result should be, in any order, with relax comparison:
+      | 1 |
       | 1 |
     When executing query:
       """
@@ -518,9 +517,7 @@ Feature: Yield Sentence
       """
       yield split('123,456,789', ',') as l| yield [e in $-.l | (int)(e)] as c;
       """
-    Then the result should be, in any order, with relax comparison:
-      | c             |
-      | [123,456,789] |
+    Then a SemanticError should be raised at runtime: Multiple inputs not supported yet.
     When executing query:
       """
       yield [e in ['123', '456', '789'] | (int)(e)] as c;
