@@ -303,12 +303,12 @@ Status GetSubgraphValidator::toPlan() {
     dc->addDep(dcDep);
     if (dstFilter_) {
         // tagfilter
-        dc->setInputVars({gn->outputVar(), dcDep->outputVar()});
+        dc->setInputVars({dep->outputVar(), dcDep->outputVar()});
     } else {
         // edgefilter
-        dc->setInputVars({gn->outputVar(), subgraph->outputVar()});
+        dc->setInputVars({dep->outputVar(), subgraph->outputVar()});
     }
-    dc->setColNames({"_vertices", "_edges"});
+    dc->setColNames({"vertices", "edges"});
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;
 
