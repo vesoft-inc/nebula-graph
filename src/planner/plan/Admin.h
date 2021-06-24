@@ -1382,10 +1382,7 @@ public:
         return topN_;
     }
 
-    std::unique_ptr<PlanNodeDescription> explain() const override {
-        // TODO
-        return nullptr;
-    }
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     explicit ShowQueries(QueryContext* qctx, PlanNode* input, bool isAll, int64_t topN)
@@ -1409,10 +1406,7 @@ public:
         return epId_;
     }
 
-    std::unique_ptr<PlanNodeDescription> explain() const override {
-        // TODO
-        return nullptr;
-    }
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     explicit KillQuery(QueryContext* qctx, PlanNode* input, int64_t sessionId, int64_t epId)

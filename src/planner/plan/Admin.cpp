@@ -161,5 +161,19 @@ std::unique_ptr<PlanNodeDescription> ShowBalance::explain() const {
     return desc;
 }
 
+std::unique_ptr<PlanNodeDescription> ShowQueries::explain() const {
+    auto desc = SingleDependencyNode::explain();
+    addDescription("isAll", util::toJson(isAll()), desc.get());
+    addDescription("topN", topN() > 0 ? folly::to<std::string>(topN()) : "", desc.get());
+    return desc;
+}
+
+std::unique_ptr<PlanNodeDescription> KillQuery::explain() const {
+    auto desc = SingleDependencyNode::explain();
+    addDescription(
+        "sessionId", sessionId() > 0 ? folly::to<std::string>(sessionId()) : "", desc.get());
+    addDescription("planId", folly::to<std::string>(epId()), desc.get());
+    return desc;
+}
 }   // namespace graph
 }   // namespace nebula
