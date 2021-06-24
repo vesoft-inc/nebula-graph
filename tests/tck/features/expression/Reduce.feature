@@ -10,12 +10,16 @@ Feature: Reduce
       """
       YIELD reduce(totalNum = 10, n IN range(1, 3) | totalNum + n) AS r
       """
-    Then a SemanticError should be raised at runtime: Multiple user defined vars not supported yet.
+    Then the result should be, in any order:
+      | r  |
+      | 16 |
     When executing query:
       """
       YIELD reduce(totalNum = -4 * 5, n IN [1, 2] | totalNum + n * 2) AS r
       """
-    Then a SemanticError should be raised at runtime: Multiple user defined vars not supported yet.
+    Then the result should be, in any order:
+      | r   |
+      | -14 |
 
   Scenario: use a reduce in GO
     Given a graph with space named "nba"
@@ -87,7 +91,9 @@ Feature: Reduce
       """
       YIELD reduce(totalNum = 10, n IN NULL | totalNum + n) AS r
       """
-    Then a SemanticError should be raised at runtime: Multiple user defined vars not supported yet.
+    Then the result should be, in any order:
+      | r    |
+      | NULL |
 
   Scenario: aggregate function in collection
     Given a graph with space named "nba"

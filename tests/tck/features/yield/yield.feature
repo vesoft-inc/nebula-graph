@@ -517,7 +517,9 @@ Feature: Yield Sentence
       """
       yield split('123,456,789', ',') as l| yield [e in $-.l | (int)(e)] as c;
       """
-    Then a SemanticError should be raised at runtime: Multiple inputs not supported yet.
+    Then the result should be, in any order, with relax comparison:
+      | c             |
+      | [123,456,789] |
     When executing query:
       """
       yield [e in ['123', '456', '789'] | (int)(e)] as c;

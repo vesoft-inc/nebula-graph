@@ -57,7 +57,8 @@ Status YieldValidator::validateImpl() {
     }
 
     if (!userDefinedVarNameList_.empty()) {
-        // TODO: Support Multiple userDefinedVars
+        // Now disable yield multiple user defined input for that means implicit dataset join
+        // As the inner variable take care don't make it a dataset
         if (userDefinedVarNameList_.size() != 1) {
             return Status::SemanticError("Multiple user defined vars not supported yet.");
         }
