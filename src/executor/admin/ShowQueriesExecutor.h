@@ -19,6 +19,7 @@ public:
     folly::Future<Status> execute() override;
 
 private:
+    friend class ShowQueriesTest_TestAddQueryAndTopN_Test;
     folly::Future<Status> showCurrentSessionQueries(int64_t topN);
 
     folly::Future<Status> showAllSessionQueries(int64_t topN);

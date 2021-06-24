@@ -80,6 +80,7 @@ nebula_add_test(
         ProduceAllPathsTest.cpp
         CartesianProductTest.cpp
         AssignTest.cpp
+        ShowQueriesTest.cpp
     OBJECTS
         ${EXEC_QUERY_TEST_OBJS}
     LIBRARIES

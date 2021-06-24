@@ -35,7 +35,7 @@ folly::Future<Status> ShowQueriesExecutor::showCurrentSessionQueries(int64_t top
                      "User",
                      "Host",
                      "StartTime",
-                     "Duration",
+                     "DurationInUSec",
                      "Status",
                      "Query"});
     auto* session = qctx()->rctx()->session();
@@ -63,7 +63,7 @@ folly::Future<Status> ShowQueriesExecutor::showAllSessionQueries(int64_t topN) {
                                  "User",
                                  "Host",
                                  "StartTime",
-                                 "Duration",
+                                 "DurationInUSec",
                                  "Status",
                                  "Query"});
                 for (auto& session : sessions) {
@@ -84,7 +84,7 @@ void ShowQueriesExecutor::addQueries(const meta::cpp2::Session& session, DataSet
         row.values.emplace_back(session.get_session_id());
         row.values.emplace_back(query.first);
         row.values.emplace_back(session.get_user_name());
-        row.values.emplace_back(session.get_graph_addr().toString());
+        row.values.emplace_back(query.second.get_graph_addr().toString());
         auto dateTime =
             time::TimeUtils::unixSecondsToDateTime(query.second.get_start_time() / 1000000);
         dateTime.microsec = query.second.get_start_time() % 1000000;
@@ -98,7 +98,7 @@ void ShowQueriesExecutor::addQueries(const meta::cpp2::Session& session, DataSet
 
 void ShowQueriesExecutor::findTopN(int64_t topN, DataSet& dataSet) const {
     auto cmp = [] (const Row& lhs, const Row& rhs) {
-        if (lhs[5] < rhs[5]) {
+        if (lhs[5] > rhs[5]) {
             return true;
         }
         return false;
@@ -107,7 +107,7 @@ void ShowQueriesExecutor::findTopN(int64_t topN, DataSet& dataSet) const {
         std::sort(dataSet.rows.begin(), dataSet.rows.end(), cmp);
         auto rowSize = dataSet.rows.size();
         if (rowSize > static_cast<size_t>(topN)) {
-            dataSet.rows.erase(dataSet.rows.begin() + topN, dataSet.rows.end() - 1);
+            dataSet.rows.erase(dataSet.rows.begin() + topN, dataSet.rows.end());
         }
     }
 }
