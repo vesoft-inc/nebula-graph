@@ -37,6 +37,8 @@ Status GetSubgraphValidator::validateImpl() {
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
         return Status::SemanticError("Not support both input and variable in Subgraph sentence.");
     }
+    outputs_.emplace_back("vertices", Value::Type::LIST);
+    outputs_.emplace_back("edges", Value::Type::LIST);
 
     return Status::OK();
 }
