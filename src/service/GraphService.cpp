@@ -186,6 +186,9 @@ const char* GraphService::getErrorStr(ErrorCode result) {
             return "Too many connections in the cluster";
         case ErrorCode::E_PARTIAL_SUCCEEDED:
             return "Partial results";
+        default:
+            // TODO
+            return "Unknown error";
     }
     /**********************
      * Unknown error
