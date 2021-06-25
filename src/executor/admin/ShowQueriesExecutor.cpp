@@ -43,8 +43,10 @@ folly::Future<Status> ShowQueriesExecutor::showCurrentSessionQueries(int64_t top
 
     addQueries(sessionInMeta, dataSet);
     findTopN(topN, dataSet);
-    return finish(
-        ResultBuilder().value(Value(std::move(dataSet))).iter(Iterator::Kind::kDefault).finish());
+    return finish(ResultBuilder()
+                      .value(Value(std::move(dataSet)))
+                      .iter(Iterator::Kind::kSequential)
+                      .finish());
 }
 
 // The queries might not sync to meta completely.
@@ -72,7 +74,7 @@ folly::Future<Status> ShowQueriesExecutor::showAllSessionQueries(int64_t topN) {
                 findTopN(topN, dataSet);
                 return finish(ResultBuilder()
                                     .value(Value(std::move(dataSet)))
-                                    .iter(Iterator::Kind::kDefault)
+                                    .iter(Iterator::Kind::kSequential)
                                     .finish());
         });
 }

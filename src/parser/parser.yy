@@ -2523,6 +2523,7 @@ traverse_sentence
     | get_subgraph_sentence { $$ = $1; }
     | delete_vertex_sentence { $$ = $1; }
     | delete_edge_sentence { $$ = $1; }
+    | show_queries_sentence { $$ = $1; }
     ;
 
 piped_sentence
@@ -2864,14 +2865,8 @@ show_queries_sentence
     : KW_SHOW KW_QUERIES {
         $$ = new ShowQueriesSentence();
     }
-    | KW_SHOW KW_QUERIES KW_TOP legal_integer {
-        $$ = new ShowQueriesSentence(false, $4);
-    }
     | KW_SHOW KW_ALL KW_QUERIES {
         $$ = new ShowQueriesSentence(true);
-    }
-    | KW_SHOW KW_ALL KW_QUERIES KW_TOP legal_integer {
-        $$ = new ShowQueriesSentence(true, $5);
     }
     ;
 
@@ -2967,9 +2962,6 @@ show_sentence
     }
     | KW_SHOW KW_SESSION legal_integer {
         $$ = new ShowSessionsSentence($3);
-    }
-    | show_queries_sentence {
-        $$ = $1;
     }
     ;
 

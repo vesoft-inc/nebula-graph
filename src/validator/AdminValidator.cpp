@@ -521,6 +521,21 @@ Status ShowSessionsValidator::toPlan() {
     return Status::OK();
 }
 
+Status ShowQueriesValidator::validateImpl() {
+    if (!inputs_.empty()) {
+        return Status::SemanticError("Show queries sentence do not support input");
+    }
+    outputs_.emplace_back("SessionID", Value::Type::INT);
+    outputs_.emplace_back("ExecutionPlanID", Value::Type::INT);
+    outputs_.emplace_back("User", Value::Type::STRING);
+    outputs_.emplace_back("Host", Value::Type::STRING);
+    outputs_.emplace_back("StartTime", Value::Type::DATETIME);
+    outputs_.emplace_back("DurationInUSec", Value::Type::INT);
+    outputs_.emplace_back("Status", Value::Type::STRING);
+    outputs_.emplace_back("Query", Value::Type::STRING);
+    return Status::OK();
+}
+
 Status ShowQueriesValidator::toPlan() {
     auto sentence = static_cast<ShowQueriesSentence*>(sentence_);
     auto *node = ShowQueries::make(qctx_, nullptr, sentence->isAll(), sentence->topN());
