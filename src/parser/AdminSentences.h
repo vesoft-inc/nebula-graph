@@ -758,22 +758,31 @@ private:
 
 class QueryUniqueIdentifier final {
 public:
-    explicit QueryUniqueIdentifier(int64_t epId, int64_t sessionId = -1) {
-        sessionId_ = sessionId;
-        epId_ = epId;
+    explicit QueryUniqueIdentifier(Expression* epId, Expression* sessionId) {
+        sessionId_.reset(sessionId);
+        epId_.reset(epId);
     }
 
-    int64_t sessionId() const {
-        return sessionId_;
+    Expression* sessionId() const {
+        return sessionId_.get();
     }
 
-    int64_t epId() const {
-        return epId_;
+    Expression* epId() const {
+        return epId_.get();
+    }
+
+    void setSession() {
+        isSetSession_ = true;
+    }
+
+    bool isSetSession() const {
+        return isSetSession_;
     }
 
 private:
-    int64_t sessionId_{-1};
-    int64_t epId_{-1};
+    std::unique_ptr<Expression> sessionId_;
+    bool                        isSetSession_{false};
+    std::unique_ptr<Expression> epId_;
 };
 
 class KillQuerySentence final : public Sentence {
@@ -783,17 +792,21 @@ public:
         identifier_.reset(identifier);
     }
 
-    int64_t sessionId() const {
+    Expression* sessionId() const {
         return identifier_->sessionId();
     }
 
-    int64_t epId() const {
+    Expression* epId() const {
         return identifier_->epId();
     }
 
     std::string toString() const override;
 
 private:
+    bool isSetSession() const {
+        return identifier_->isSetSession();
+    }
+
     std::unique_ptr<QueryUniqueIdentifier> identifier_;
 };
 }   // namespace nebula

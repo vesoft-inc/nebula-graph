@@ -380,15 +380,13 @@ std::string ShowQueriesSentence::toString() const {
 
 std::string KillQuerySentence::toString() const {
     std::string buf = "KILL QUERY (";
-    if  (sessionId() > 0) {
+    if (isSetSession()) {
         buf += "session=";
-        buf += folly::to<std::string>(sessionId());
+        buf += sessionId()->toString();
         buf += ", ";
     }
-    if (epId() > 0) {
-        buf += "plan=";
-        buf += folly::to<std::string>(epId());
-    }
+    buf += "plan=";
+    buf += epId()->toString();
     buf += ")";
     return buf;
 }

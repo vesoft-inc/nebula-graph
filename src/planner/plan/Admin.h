@@ -1368,7 +1368,7 @@ private:
     meta::cpp2::Session session_;
 };
 
-class ShowQueries final : public SingleDependencyNode {
+class ShowQueries final : public SingleInputNode {
 public:
     static ShowQueries* make(QueryContext* qctx, PlanNode* input, bool isAll, int64_t topN) {
         return qctx->objPool()->add(new ShowQueries(qctx, input, isAll, topN));
@@ -1386,34 +1386,37 @@ public:
 
 private:
     explicit ShowQueries(QueryContext* qctx, PlanNode* input, bool isAll, int64_t topN)
-        : SingleDependencyNode(qctx, Kind::kShowQueries, input), isAll_(isAll), topN_(topN) {}
+        : SingleInputNode(qctx, Kind::kShowQueries, input), isAll_(isAll), topN_(topN) {}
 
     bool isAll_{false};
     int64_t topN_{-1};
 };
 
-class KillQuery final : public SingleDependencyNode {
+class KillQuery final : public SingleInputNode {
 public:
-    static KillQuery* make(QueryContext* qctx, PlanNode* input, int64_t sessionId, int64_t epId) {
+    static KillQuery* make(QueryContext* qctx,
+                           PlanNode* input,
+                           Expression* sessionId,
+                           Expression* epId) {
         return qctx->objPool()->add(new KillQuery(qctx, input, sessionId, epId));
     }
 
-    int64_t sessionId() const {
+    Expression* sessionId() const {
         return sessionId_;
     }
 
-    int64_t epId() const {
+    Expression* epId() const {
         return epId_;
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
-    explicit KillQuery(QueryContext* qctx, PlanNode* input, int64_t sessionId, int64_t epId)
-        : SingleDependencyNode(qctx, Kind::kKillQuery, input), sessionId_(sessionId), epId_(epId) {}
+    explicit KillQuery(QueryContext* qctx, PlanNode* input, Expression* sessionId, Expression* epId)
+        : SingleInputNode(qctx, Kind::kKillQuery, input), sessionId_(sessionId), epId_(epId) {}
 
-    int64_t sessionId_{-1};
-    int64_t epId_{-1};
+    Expression* sessionId_;
+    Expression* epId_;
 };
 }  // namespace graph
 }  // namespace nebula

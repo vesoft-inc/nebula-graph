@@ -170,9 +170,8 @@ std::unique_ptr<PlanNodeDescription> ShowQueries::explain() const {
 
 std::unique_ptr<PlanNodeDescription> KillQuery::explain() const {
     auto desc = SingleDependencyNode::explain();
-    addDescription(
-        "sessionId", sessionId() > 0 ? folly::to<std::string>(sessionId()) : "", desc.get());
-    addDescription("planId", folly::to<std::string>(epId()), desc.get());
+    addDescription("sessionId", sessionId()->toString(), desc.get());
+    addDescription("planId", epId()->toString(), desc.get());
     return desc;
 }
 }   // namespace graph

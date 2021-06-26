@@ -238,6 +238,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <expr> compound_expression
 %type <expr> text_search_expression
 %type <expr> constant_expression
+%type <expr> query_unique_identifier_value
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -2524,6 +2525,7 @@ traverse_sentence
     | delete_vertex_sentence { $$ = $1; }
     | delete_edge_sentence { $$ = $1; }
     | show_queries_sentence { $$ = $1; }
+    | kill_query_sentence { $$ = $1; }
     ;
 
 piped_sentence
@@ -3311,15 +3313,26 @@ kill_query_sentence
         $$ = new KillQuerySentence($4);
     }
 
+query_unique_identifier_value
+    : legal_integer {
+        $$ = new ConstantExpression($1);
+    }
+    | input_prop_expression {
+        $$ = $1;
+    }
+    ;
+
 query_unique_identifier
-    : KW_PLAN ASSIGN legal_integer {
-        $$ = new QueryUniqueIdentifier($3);
+    : KW_PLAN ASSIGN query_unique_identifier_value {
+        $$ = new QueryUniqueIdentifier($3, new ConstantExpression(Value(-1)));
     }
-    | KW_SESSION ASSIGN legal_integer COMMA KW_PLAN ASSIGN legal_integer {
+    | KW_SESSION ASSIGN query_unique_identifier_value COMMA KW_PLAN ASSIGN query_unique_identifier_value {
         $$ = new QueryUniqueIdentifier($7, $3);
+        $$->setSession();
     }
-    | KW_PLAN ASSIGN legal_integer COMMA KW_SESSION ASSIGN legal_integer {
+    | KW_PLAN ASSIGN query_unique_identifier_value COMMA KW_SESSION ASSIGN query_unique_identifier_value {
         $$ = new QueryUniqueIdentifier($3, $7);
+        $$->setSession();
     }
     ;
 
@@ -3382,7 +3395,6 @@ maintain_sentence
     | drop_snapshot_sentence { $$ = $1; }
     | sign_in_text_search_service_sentence { $$ = $1; }
     | sign_out_text_search_service_sentence { $$ = $1; }
-    | kill_query_sentence { $$ = $1; }
     ;
 
 sentence

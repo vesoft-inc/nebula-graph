@@ -15,6 +15,7 @@
 #include "planner/plan/Admin.h"
 #include "planner/plan/Query.h"
 #include "service/GraphFlags.h"
+#include "util/ExpressionUtils.h"
 #include "util/SchemaUtil.h"
 
 namespace nebula {
@@ -546,28 +547,19 @@ Status ShowQueriesValidator::toPlan() {
 
 Status KillQueryValidator::validateImpl() {
     auto sentence = static_cast<KillQuerySentence*>(sentence_);
-    auto sessionId = sentence->sessionId();
-    auto epId = sentence->epId();
-    auto* sessionMgr = qctx_->rctx()->sessionMgr();
-    auto cb = [sessionId, epId] (StatusOr<std::shared_ptr<ClientSession>> ret) {
-        if (!ret.ok()) {
-            LOG(ERROR) << "Get session for sessionId: " << sessionId
-                        << " failed: " << ret.status();
-            return Status::Error("SessionId[%ld] does not exist", sessionId);
-        }
-        auto sessionPtr = std::move(ret).value();
-        if (sessionPtr == nullptr) {
-            LOG(ERROR) << "Get session for sessionId: " << sessionId << " is nullptr";
-            return Status::Error("SessionId[%ld] does not exist", sessionId);
-        }
-
-        if (!sessionPtr->findQuery(epId)) {
-            return Status::Error("ExecutionPlanId[%ld] does not exist.", epId);
-        }
-        return Status::OK();
-    };
-    return sessionMgr->findSession(sessionId, qctx_->rctx()->runner())
-        .thenValue(cb).get();
+    auto* sessionExpr = sentence->sessionId();
+    auto* epIdExpr = sentence->epId();
+    if (!ExpressionUtils::isKindOf(
+            sessionExpr, {Expression::Kind::kConstant, Expression::Kind::kInputProperty})) {
+        return Status::SemanticError("Session must be an integer or a input prop: %s",
+                                     sessionExpr->toString().c_str());
+    }
+    if (!ExpressionUtils::isKindOf(
+            epIdExpr, {Expression::Kind::kConstant, Expression::Kind::kInputProperty})) {
+        return Status::SemanticError("Session must be an integer or a input prop: %s",
+                                     epIdExpr->toString().c_str());
+    }
+    return Status::OK();
 }
 
 Status KillQueryValidator::toPlan() {
