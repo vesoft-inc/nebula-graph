@@ -546,19 +546,30 @@ Status ShowQueriesValidator::toPlan() {
 }
 
 Status KillQueryValidator::validateImpl() {
-    auto sentence = static_cast<KillQuerySentence*>(sentence_);
-    auto* sessionExpr = sentence->sessionId();
-    auto* epIdExpr = sentence->epId();
-    if (!ExpressionUtils::isKindOf(
-            sessionExpr, {Expression::Kind::kConstant, Expression::Kind::kInputProperty})) {
-        return Status::SemanticError("Session must be an integer or a input prop: %s",
-                                     sessionExpr->toString().c_str());
+    auto sentence = static_cast<KillQuerySentence *>(sentence_);
+    auto *sessionExpr = sentence->sessionId();
+    auto *epIdExpr = sentence->epId();
+    auto sessionTypeStatus = deduceExprType(sessionExpr);
+    if (!sessionTypeStatus.ok()) {
+        return sessionTypeStatus.status();
     }
-    if (!ExpressionUtils::isKindOf(
-            epIdExpr, {Expression::Kind::kConstant, Expression::Kind::kInputProperty})) {
-        return Status::SemanticError("Session must be an integer or a input prop: %s",
-                                     epIdExpr->toString().c_str());
+    if (sessionTypeStatus.value() != Value::Type::INT) {
+        std::stringstream ss;
+        ss << sessionExpr->toString() << ", Session ID must be an integer but was "
+           << sessionTypeStatus.value();
+        return Status::SemanticError(ss.str());
     }
+    auto epIdStatus = deduceExprType(epIdExpr);
+    if (!epIdStatus.ok()) {
+        return epIdStatus.status();
+    }
+    if (epIdStatus.value() != Value::Type::INT) {
+        std::stringstream ss;
+        ss << epIdExpr->toString() << ", Session ID must be an integer but was "
+           << epIdStatus.value();
+        return Status::SemanticError(ss.str());
+    }
+
     return Status::OK();
 }
 
