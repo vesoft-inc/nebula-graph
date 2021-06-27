@@ -11,12 +11,12 @@
 namespace nebula {
 namespace graph {
 
-ClientSession::ClientSession(meta::cpp2::Session &&session, meta::MetaClient* metaClient) {
+ClientSession::ClientSession(meta::cpp2::Session&& session, meta::MetaClient* metaClient) {
     session_ = std::move(session);
     metaClient_ = metaClient;
 }
 
-std::shared_ptr<ClientSession> ClientSession::create(meta::cpp2::Session &&session,
+std::shared_ptr<ClientSession> ClientSession::create(meta::cpp2::Session&& session,
                                                      meta::MetaClient* metaClient) {
     return std::shared_ptr<ClientSession>(new ClientSession(std::move(session), metaClient));
 }
@@ -39,6 +39,7 @@ void ClientSession::addQuery(QueryContext* qctx) {
     queryDesc.set_status(meta::cpp2::QueryStatus::RUNNING);
     queryDesc.set_query(qctx->rctx()->query());
     queryDesc.set_graph_addr(session_.get_graph_addr());
+    VLOG(1) << "Add query: " << qctx->rctx()->query() << ", epId: " << epId;
 
     folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
     contexts_.emplace(epId, qctx);
@@ -47,6 +48,7 @@ void ClientSession::addQuery(QueryContext* qctx) {
 
 void ClientSession::deleteQuery(QueryContext* qctx) {
     auto epId = qctx->plan()->id();
+    VLOG(1) << "Delete query, epId: " << epId;
     folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
     contexts_.erase(epId);
     session_.queries_ref()->erase(epId);
@@ -73,12 +75,14 @@ void ClientSession::markQueryKilled(nebula::ExecutionPlanID epId) {
         return;
     }
     context->second->markKilled();
+    VLOG(1) << "Mark query killed in local cache, epId: " << epId;
 
     auto query = session_.queries_ref()->find(epId);
     if (query == session_.queries_ref()->end()) {
         return;
     }
     query->second.set_status(meta::cpp2::QueryStatus::KILLING);
+    VLOG(1) << "Mark query killed in meta, epId: " << epId;
 }
 
 void ClientSession::markAllQueryKilled() {
@@ -88,5 +92,5 @@ void ClientSession::markAllQueryKilled() {
         session_.queries_ref()->clear();
     }
 }
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula
