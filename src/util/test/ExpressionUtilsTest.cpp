@@ -237,38 +237,38 @@ TEST_F(ExpressionUtilsTest, PullAnds) {
     {
         auto *first = ConstantExpression::make(pool, true);
         auto *second = ConstantExpression::make(pool, false);
-        auto expr = *LogicalExpression::makeAnd(pool, first, second);
-        auto expected = *LogicalExpression::makeAnd(pool, first->clone(), second->clone());
-        ExpressionUtils::pullAnds(&expr);
-        ASSERT_EQ(expected, expr);
+        auto expr = LogicalExpression::makeAnd(pool, first, second);
+        auto expected = LogicalExpression::makeAnd(pool, first->clone(), second->clone());
+        ExpressionUtils::pullAnds(expr);
+        ASSERT_EQ(*expected, *expr);
     }
     // true AND false AND true
     {
         auto *first = ConstantExpression::make(pool, true);
         auto *second = ConstantExpression::make(pool, false);
         auto *third = ConstantExpression::make(pool, true);
-        auto expr = *LogicalExpression::makeAnd(
+        auto expr = LogicalExpression::makeAnd(
             pool, LogicalExpression::makeAnd(pool, first, second), third);
-        auto expected = *LogicalExpression::makeAnd(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        expected.addOperand(third->clone());
-        ExpressionUtils::pullAnds(&expr);
-        ASSERT_EQ(expected, expr);
+        auto expected = LogicalExpression::makeAnd(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        expected->addOperand(third->clone());
+        ExpressionUtils::pullAnds(expr);
+        ASSERT_EQ(*expected, *expr);
     }
     // true AND (false AND true)
     {
         auto *first = ConstantExpression::make(pool, true);
         auto *second = ConstantExpression::make(pool, false);
         auto *third = ConstantExpression::make(pool, true);
-        auto expr = *LogicalExpression::makeAnd(
+        auto expr = LogicalExpression::makeAnd(
             pool, first, LogicalExpression::makeAnd(pool, second, third));
-        auto expected = *LogicalExpression::makeAnd(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        expected.addOperand(third->clone());
-        ExpressionUtils::pullAnds(&expr);
-        ASSERT_EQ(expected, expr);
+        auto expected = LogicalExpression::makeAnd(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        expected->addOperand(third->clone());
+        ExpressionUtils::pullAnds(expr);
+        ASSERT_EQ(*expected, *expr);
     }
     // (true OR false) AND (true OR false)
     {
@@ -276,12 +276,12 @@ TEST_F(ExpressionUtilsTest, PullAnds) {
             pool, ConstantExpression::make(pool, true), ConstantExpression::make(pool, false));
         auto *second = LogicalExpression::makeOr(
             pool, ConstantExpression::make(pool, true), ConstantExpression::make(pool, false));
-        auto expr = *LogicalExpression::makeAnd(pool, first, second);
-        auto expected = *LogicalExpression::makeAnd(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        ExpressionUtils::pullAnds(&expr);
-        ASSERT_EQ(expected, expr);
+        auto expr = LogicalExpression::makeAnd(pool, first, second);
+        auto expected = LogicalExpression::makeAnd(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        ExpressionUtils::pullAnds(expr);
+        ASSERT_EQ(*expected, *expr);
     }
     // true AND ((false AND true) OR false) AND true
     {
@@ -292,14 +292,14 @@ TEST_F(ExpressionUtilsTest, PullAnds) {
                 pool, ConstantExpression::make(pool, false), ConstantExpression::make(pool, true)),
             ConstantExpression::make(pool, false));
         auto *third = ConstantExpression::make(pool, true);
-        auto expr = *LogicalExpression::makeAnd(
+        auto expr = LogicalExpression::makeAnd(
             pool, LogicalExpression::makeAnd(pool, first, second), third);
-        auto expected = *LogicalExpression::makeAnd(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        expected.addOperand(third->clone());
-        ExpressionUtils::pullAnds(&expr);
-        ASSERT_EQ(expected, expr);
+        auto expected = LogicalExpression::makeAnd(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        expected->addOperand(third->clone());
+        ExpressionUtils::pullAnds(expr);
+        ASSERT_EQ(*expected, *expr);
     }
 }
 
@@ -308,10 +308,10 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
     {
         auto *first = ConstantExpression::make(pool, true);
         auto *second = ConstantExpression::make(pool, false);
-        auto expr = *LogicalExpression::makeOr(pool, first, second);
-        auto expected = *LogicalExpression::makeOr(pool, first->clone(), second->clone());
-        ExpressionUtils::pullOrs(&expr);
-        ASSERT_EQ(expected, expr);
+        auto expr = LogicalExpression::makeOr(pool, first, second);
+        auto expected = LogicalExpression::makeOr(pool, first->clone(), second->clone());
+        ExpressionUtils::pullOrs(expr);
+        ASSERT_EQ(*expected, *expr);
     }
     // true OR false OR true
     {
@@ -319,13 +319,13 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
         auto *second = ConstantExpression::make(pool, false);
         auto *third = ConstantExpression::make(pool, true);
         auto expr =
-            *LogicalExpression::makeOr(pool, LogicalExpression::makeOr(pool, first, second), third);
-        auto expected = *LogicalExpression::makeOr(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        expected.addOperand(third->clone());
-        ExpressionUtils::pullOrs(&expr);
-        ASSERT_EQ(expected, expr);
+            LogicalExpression::makeOr(pool, LogicalExpression::makeOr(pool, first, second), third);
+        auto expected = LogicalExpression::makeOr(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        expected->addOperand(third->clone());
+        ExpressionUtils::pullOrs(expr);
+        ASSERT_EQ(*expected, *expr);
     }
     // true OR (false OR true)
     {
@@ -333,13 +333,13 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
         auto *second = ConstantExpression::make(pool, false);
         auto *third = ConstantExpression::make(pool, true);
         auto expr =
-            *LogicalExpression::makeOr(pool, first, LogicalExpression::makeOr(pool, second, third));
-        auto expected = *LogicalExpression::makeOr(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        expected.addOperand(third->clone());
-        ExpressionUtils::pullOrs(&expr);
-        ASSERT_EQ(expected, expr);
+            LogicalExpression::makeOr(pool, first, LogicalExpression::makeOr(pool, second, third));
+        auto expected = LogicalExpression::makeOr(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        expected->addOperand(third->clone());
+        ExpressionUtils::pullOrs(expr);
+        ASSERT_EQ(*expected, *expr);
     }
     // (true AND false) OR (true AND false)
     {
@@ -347,10 +347,10 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
             pool, ConstantExpression::make(pool, true), ConstantExpression::make(pool, false));
         auto *second = LogicalExpression::makeAnd(
             pool, ConstantExpression::make(pool, true), ConstantExpression::make(pool, false));
-        auto expr = *LogicalExpression::makeOr(pool, first, second);
-        auto expected = *LogicalExpression::makeOr(pool, first->clone(), second->clone());
-        ExpressionUtils::pullOrs(&expr);
-        ASSERT_EQ(expected, expr);
+        auto expr = LogicalExpression::makeOr(pool, first, second);
+        auto expected = LogicalExpression::makeOr(pool, first->clone(), second->clone());
+        ExpressionUtils::pullOrs(expr);
+        ASSERT_EQ(*expected, *expr);
     }
     // true OR ((false OR true) AND false) OR true
     {
@@ -362,13 +362,13 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
             ConstantExpression::make(pool, false));
         auto *third = ConstantExpression::make(pool, true);
         auto expr =
-            *LogicalExpression::makeOr(pool, LogicalExpression::makeOr(pool, first, second), third);
-        auto expected = *LogicalExpression::makeOr(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        expected.addOperand(third->clone());
-        ExpressionUtils::pullOrs(&expr);
-        ASSERT_EQ(expected, expr);
+            LogicalExpression::makeOr(pool, LogicalExpression::makeOr(pool, first, second), third);
+        auto expected = LogicalExpression::makeOr(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        expected->addOperand(third->clone());
+        ExpressionUtils::pullOrs(expr);
+        ASSERT_EQ(*expected, *expr);
     }
 }
 
@@ -420,14 +420,14 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
         auto *first = ConstantExpression::make(pool, true);
         auto *second = ConstantExpression::make(pool, false);
         auto *third = ConstantExpression::make(pool, true);
-        auto expr = *LogicalExpression::makeAnd(
+        auto expr = LogicalExpression::makeAnd(
             pool, LogicalExpression::makeAnd(pool, first, second), third);
-        auto expected = *LogicalExpression::makeAnd(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        expected.addOperand(third->clone());
-        auto newExpr = ExpressionUtils::flattenInnerLogicalExpr(&expr);
-        ASSERT_EQ(expected, *newExpr);
+        auto expected = LogicalExpression::makeAnd(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        expected->addOperand(third->clone());
+        auto newExpr = ExpressionUtils::flattenInnerLogicalExpr(expr);
+        ASSERT_EQ(*expected, *newExpr);
     }
     // true OR false OR true
     {
@@ -435,13 +435,13 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
         auto *second = ConstantExpression::make(pool, false);
         auto *third = ConstantExpression::make(pool, true);
         auto expr =
-            *LogicalExpression::makeOr(pool, LogicalExpression::makeOr(pool, first, second), third);
-        auto expected = *LogicalExpression::makeOr(pool);
-        expected.addOperand(first->clone());
-        expected.addOperand(second->clone());
-        expected.addOperand(third->clone());
-        auto newExpr = ExpressionUtils::flattenInnerLogicalExpr(&expr);
-        ASSERT_EQ(expected, *newExpr);
+            LogicalExpression::makeOr(pool, LogicalExpression::makeOr(pool, first, second), third);
+        auto expected = LogicalExpression::makeOr(pool);
+        expected->addOperand(first->clone());
+        expected->addOperand(second->clone());
+        expected->addOperand(third->clone());
+        auto newExpr = ExpressionUtils::flattenInnerLogicalExpr(expr);
+        ASSERT_EQ(*expected, *newExpr);
     }
     // (true OR false OR true)==(true AND false AND true)
     {
@@ -455,7 +455,7 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
         auto *and3 = ConstantExpression::make(pool, true);
         auto *logicAndExpr =
             LogicalExpression::makeAnd(pool, LogicalExpression::makeAnd(pool, and1, and2), and3);
-        auto expr = *RelationalExpression ::makeEQ(pool, logicOrExpr, logicAndExpr);
+        auto expr = RelationalExpression ::makeEQ(pool, logicOrExpr, logicAndExpr);
 
         auto *logicOrFlatten = LogicalExpression::makeOr(pool);
         logicOrFlatten->addOperand(or1->clone());
@@ -465,10 +465,10 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
         logicAndFlatten->addOperand(and1->clone());
         logicAndFlatten->addOperand(and2->clone());
         logicAndFlatten->addOperand(and3->clone());
-        auto expected = *RelationalExpression ::makeEQ(pool, logicOrFlatten, logicAndFlatten);
+        auto expected = RelationalExpression ::makeEQ(pool, logicOrFlatten, logicAndFlatten);
 
-        auto newExpr = ExpressionUtils::flattenInnerLogicalExpr(&expr);
-        ASSERT_EQ(expected, *newExpr);
+        auto newExpr = ExpressionUtils::flattenInnerLogicalExpr(expr);
+        ASSERT_EQ(*expected, *newExpr);
     }
     // (true OR false OR true) AND (true AND false AND true)
     {
@@ -482,20 +482,20 @@ TEST_F(ExpressionUtilsTest, flattenInnerLogicalExpr) {
         auto *and3 = ConstantExpression::make(pool, true);
         auto *logicAndExpr =
             LogicalExpression::makeAnd(pool, LogicalExpression::makeAnd(pool, and1, and2), and3);
-        auto expr = *LogicalExpression::makeAnd(pool, logicOrExpr, logicAndExpr);
+        auto expr = LogicalExpression::makeAnd(pool, logicOrExpr, logicAndExpr);
 
         auto *logicOrFlatten = LogicalExpression::makeOr(pool);
         logicOrFlatten->addOperand(or1->clone());
         logicOrFlatten->addOperand(or2->clone());
         logicOrFlatten->addOperand(or3->clone());
-        auto expected = *LogicalExpression::makeAnd(pool);
-        expected.addOperand(logicOrFlatten);
-        expected.addOperand(and1->clone());
-        expected.addOperand(and2->clone());
-        expected.addOperand(and3->clone());
+        auto expected = LogicalExpression::makeAnd(pool);
+        expected->addOperand(logicOrFlatten);
+        expected->addOperand(and1->clone());
+        expected->addOperand(and2->clone());
+        expected->addOperand(and3->clone());
 
-        auto newExpr = ExpressionUtils::flattenInnerLogicalExpr(&expr);
-        ASSERT_EQ(expected, *newExpr);
+        auto newExpr = ExpressionUtils::flattenInnerLogicalExpr(expr);
+        ASSERT_EQ(*expected, *newExpr);
     }
 }
 
@@ -506,11 +506,11 @@ TEST_F(ExpressionUtilsTest, splitFilter) {
         auto *first = ConstantExpression::make(pool, true);
         auto *second = ConstantExpression::make(pool, false);
         auto *third = ConstantExpression::make(pool, true);
-        auto expr = *LogicalExpression::makeAnd(
+        auto expr = LogicalExpression::makeAnd(
             pool, LogicalExpression::makeAnd(pool, first, second), third);
-        auto expected1 = *LogicalExpression::makeAnd(pool);
-        expected1.addOperand(first->clone());
-        expected1.addOperand(third->clone());
+        auto expected1 = LogicalExpression::makeAnd(pool);
+        expected1->addOperand(first->clone());
+        expected1->addOperand(third->clone());
         auto picker = [](const Expression *e) {
             if (e->kind() != Kind::kConstant) return false;
             auto &v = static_cast<const ConstantExpression *>(e)->value();
@@ -519,8 +519,8 @@ TEST_F(ExpressionUtilsTest, splitFilter) {
         };
         Expression *newExpr1 = nullptr;
         Expression *newExpr2 = nullptr;
-        ExpressionUtils::splitFilter(pool, &expr, picker, &newExpr1, &newExpr2);
-        ASSERT_EQ(expected1, *newExpr1);
+        ExpressionUtils::splitFilter(pool, expr, picker, &newExpr1, &newExpr2);
+        ASSERT_EQ(*expected1, *newExpr1);
         ASSERT_EQ(*second, *newExpr2);
     }
     {

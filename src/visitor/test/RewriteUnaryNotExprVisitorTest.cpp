@@ -175,12 +175,12 @@ TEST_F(RewriteUnaryNotExprVisitorTest, TestLogicalExpr) {
                                     leExpr(constantExpr(30), constantExpr(20))));
         auto res = ExpressionUtils::reduceUnaryNotExpr(expr, pool);
 
-        auto expected = *LogicalExpression::makeOr(pool);
-        expected.addOperand(eqExpr(constantExpr(1), constantExpr(1)));
-        expected.addOperand(ltExpr(constantExpr(2), constantExpr(3)));
-        expected.addOperand(gtExpr(constantExpr(30), constantExpr(20)));
+        auto expected = LogicalExpression::makeOr(pool);
+        expected->addOperand(eqExpr(constantExpr(1), constantExpr(1)));
+        expected->addOperand(ltExpr(constantExpr(2), constantExpr(3)));
+        expected->addOperand(gtExpr(constantExpr(30), constantExpr(20)));
 
-        ASSERT_EQ(*res, expected) << res->toString() << " vs. " << expected.toString();
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
     }
     // !( 1 != 1 || 2 >= 3 || 30 <= 20)  =>  (1 == 1 && 2 < 3 && 30 > 20)
     {
@@ -189,12 +189,12 @@ TEST_F(RewriteUnaryNotExprVisitorTest, TestLogicalExpr) {
                                    leExpr(constantExpr(30), constantExpr(20))));
         auto res = ExpressionUtils::reduceUnaryNotExpr(expr, pool);
 
-        auto expected = *LogicalExpression::makeAnd(pool);
-        expected.addOperand(eqExpr(constantExpr(1), constantExpr(1)));
-        expected.addOperand(ltExpr(constantExpr(2), constantExpr(3)));
-        expected.addOperand(gtExpr(constantExpr(30), constantExpr(20)));
+        auto expected = LogicalExpression::makeAnd(pool);
+        expected->addOperand(eqExpr(constantExpr(1), constantExpr(1)));
+        expected->addOperand(ltExpr(constantExpr(2), constantExpr(3)));
+        expected->addOperand(gtExpr(constantExpr(30), constantExpr(20)));
 
-        ASSERT_EQ(*res, expected) << res->toString() << " vs. " << expected.toString();
+        ASSERT_EQ(*res, *expected) << res->toString() << " vs. " << expected->toString();
     }
     // !( 1 != 1 && 2 >= 3 || 30 <= 20)  =>  ((1 == 1 || 2 < 3) && 30 > 20)
     {

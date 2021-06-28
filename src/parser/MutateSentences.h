@@ -99,7 +99,7 @@ public:
 
     std::string toString() const;
 
-    std::vector<Expression*> values() const {
+    const std::vector<Expression*> &values() const {
         return values_;
     }
 

@@ -69,8 +69,8 @@ StatusOr<OptRule::TransformResult> PushFilterDownGetNbrsRule::transform(
     auto newGNFilter = condition->encode();
     if (!gn->filter().empty()) {
         auto filterExpr = Expression::decode(pool, gn->filter());
-        auto logicExpr = *LogicalExpression::makeAnd(pool, condition, filterExpr);
-        newGNFilter = logicExpr.encode();
+        auto logicExpr = LogicalExpression::makeAnd(pool, condition, filterExpr);
+        newGNFilter = logicExpr->encode();
     }
 
     auto newGN = static_cast<GetNeighbors *>(gn->clone());

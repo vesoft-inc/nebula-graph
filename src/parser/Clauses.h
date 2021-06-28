@@ -61,7 +61,7 @@ public:
         vidList_.emplace_back(expr);
     }
 
-    std::vector<Expression*> vidList() const {
+    const std::vector<Expression*> &vidList() const {
         return vidList_;
     }
 

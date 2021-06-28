@@ -89,10 +89,10 @@ protected:
 
 void JoinTest::testInnerJoin(std::string left, std::string right,
                             DataSet& expected, int64_t line) {
-    auto key = *VariablePropertyExpression::make(pool_, left, "dst");
-    std::vector<Expression*> hashKeys = {&key};
-    auto probe = *VariablePropertyExpression::make(pool_, right, "_vid");
-    std::vector<Expression*> probeKeys = {&probe};
+    auto key = VariablePropertyExpression::make(pool_, left, "dst");
+    std::vector<Expression*> hashKeys = {key};
+    auto probe = VariablePropertyExpression::make(pool_, right, "_vid");
+    std::vector<Expression*> probeKeys = {probe};
 
     auto* join =
         InnerJoin::make(qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys),
@@ -127,10 +127,10 @@ void JoinTest::testInnerJoin(std::string left, std::string right,
 
 void JoinTest::testLeftJoin(std::string left, std::string right,
                             DataSet& expected, int64_t line) {
-    auto key = *VariablePropertyExpression::make(pool_, left, "_vid");
-    std::vector<Expression*> hashKeys = {&key};
-    auto probe = *VariablePropertyExpression::make(pool_, right, "dst");
-    std::vector<Expression*> probeKeys = {&probe};
+    auto key = VariablePropertyExpression::make(pool_, left, "_vid");
+    std::vector<Expression*> hashKeys = {key};
+    auto probe = VariablePropertyExpression::make(pool_, right, "dst");
+    std::vector<Expression*> probeKeys = {probe};
 
     auto* join =
         LeftJoin::make(qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys),
@@ -196,10 +196,10 @@ TEST_F(JoinTest, InnerJoinTwice) {
     {
         std::string left = "var2";
         std::string right = "var1";
-        auto key = *VariablePropertyExpression::make(pool_, left, "dst");
-        std::vector<Expression*> hashKeys = {&key};
-        auto probe = *VariablePropertyExpression::make(pool_, right, "_vid");
-        std::vector<Expression*> probeKeys = {&probe};
+        auto key = VariablePropertyExpression::make(pool_, left, "dst");
+        std::vector<Expression*> hashKeys = {key};
+        auto probe = VariablePropertyExpression::make(pool_, right, "_vid");
+        std::vector<Expression*> probeKeys = {probe};
 
         auto* join =
             InnerJoin::make(qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys),
@@ -216,10 +216,10 @@ TEST_F(JoinTest, InnerJoinTwice) {
 
     std::string left = joinOutput;
     std::string right = "var3";
-    auto key = *VariablePropertyExpression::make(pool_, left, "src");
-    std::vector<Expression*> hashKeys = {&key};
-    auto probe = *VariablePropertyExpression::make(pool_, right, "col1");
-    std::vector<Expression*> probeKeys = {&probe};
+    auto key = VariablePropertyExpression::make(pool_, left, "src");
+    std::vector<Expression*> hashKeys = {key};
+    auto probe = VariablePropertyExpression::make(pool_, right, "col1");
+    std::vector<Expression*> probeKeys = {probe};
 
     auto* join =
         InnerJoin::make(qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys),
@@ -318,10 +318,10 @@ TEST_F(JoinTest, LeftJoinTwice) {
     {
         std::string left = "var1";
         std::string right = "var2";
-        auto key = *VariablePropertyExpression::make(pool_, left, "_vid");
-        std::vector<Expression*> hashKeys = {&key};
-        auto probe = *VariablePropertyExpression::make(pool_, right, "dst");
-        std::vector<Expression*> probeKeys = {&probe};
+        auto key = VariablePropertyExpression::make(pool_, left, "_vid");
+        std::vector<Expression*> hashKeys = {key};
+        auto probe = VariablePropertyExpression::make(pool_, right, "dst");
+        std::vector<Expression*> probeKeys = {probe};
 
         auto* join = LeftJoin::make(
             qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
@@ -336,10 +336,10 @@ TEST_F(JoinTest, LeftJoinTwice) {
 
     std::string left = joinOutput;
     std::string right = "var3";
-    auto key = *VariablePropertyExpression::make(pool_, left, "src");
-    std::vector<Expression*> hashKeys = {&key};
-    auto probe = *VariablePropertyExpression::make(pool_, right, "col1");
-    std::vector<Expression*> probeKeys = {&probe};
+    auto key = VariablePropertyExpression::make(pool_, left, "src");
+    std::vector<Expression*> hashKeys = {key};
+    auto probe = VariablePropertyExpression::make(pool_, right, "col1");
+    std::vector<Expression*> probeKeys = {probe};
 
     auto* join = LeftJoin::make(
         qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
@@ -421,10 +421,10 @@ TEST_F(JoinTest, LeftJoinAndInnerjoin) {
     {
         std::string left = "var1";
         std::string right = "var2";
-        auto key = *VariablePropertyExpression::make(pool_, left, "_vid");
-        std::vector<Expression*> hashKeys = {&key};
-        auto probe = *VariablePropertyExpression::make(pool_, right, "dst");
-        std::vector<Expression*> probeKeys = {&probe};
+        auto key = VariablePropertyExpression::make(pool_, left, "_vid");
+        std::vector<Expression*> hashKeys = {key};
+        auto probe = VariablePropertyExpression::make(pool_, right, "dst");
+        std::vector<Expression*> probeKeys = {probe};
 
         auto* join = LeftJoin::make(
             qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
@@ -439,10 +439,10 @@ TEST_F(JoinTest, LeftJoinAndInnerjoin) {
 
     std::string left = joinOutput;
     std::string right = "var3";
-    auto key = *VariablePropertyExpression::make(pool_, left, "src");
-    std::vector<Expression*> hashKeys = {&key};
-    auto probe = *VariablePropertyExpression::make(pool_, right, "col1");
-    std::vector<Expression*> probeKeys = {&probe};
+    auto key = VariablePropertyExpression::make(pool_, left, "src");
+    std::vector<Expression*> hashKeys = {key};
+    auto probe = VariablePropertyExpression::make(pool_, right, "col1");
+    std::vector<Expression*> probeKeys = {probe};
 
     auto* join = InnerJoin::make(
         qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
@@ -490,10 +490,10 @@ TEST_F(JoinTest, InnerJoinAndLeftjoin) {
     {
         std::string left = "var1";
         std::string right = "var2";
-        auto key = *VariablePropertyExpression::make(pool_, left, "_vid");
-        std::vector<Expression*> hashKeys = {&key};
-        auto probe = *VariablePropertyExpression::make(pool_, right, "dst");
-        std::vector<Expression*> probeKeys = {&probe};
+        auto key = VariablePropertyExpression::make(pool_, left, "_vid");
+        std::vector<Expression*> hashKeys = {key};
+        auto probe = VariablePropertyExpression::make(pool_, right, "dst");
+        std::vector<Expression*> probeKeys = {probe};
 
         auto* join = InnerJoin::make(
             qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
@@ -508,10 +508,10 @@ TEST_F(JoinTest, InnerJoinAndLeftjoin) {
 
     std::string left = joinOutput;
     std::string right = "var3";
-    auto key = *VariablePropertyExpression::make(pool_, left, "src");
-    std::vector<Expression*> hashKeys = {&key};
-    auto probe = *VariablePropertyExpression::make(pool_, right, "col1");
-    std::vector<Expression*> probeKeys = {&probe};
+    auto key = VariablePropertyExpression::make(pool_, left, "src");
+    std::vector<Expression*> hashKeys = {key};
+    auto probe = VariablePropertyExpression::make(pool_, right, "col1");
+    std::vector<Expression*> probeKeys = {probe};
 
     auto* join = LeftJoin::make(
         qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
