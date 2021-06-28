@@ -733,6 +733,7 @@ private:
     bool        setSeesionId_{false};
 };
 
+<<<<<<< HEAD
 class ShowQueriesSentence final : public Sentence {
 public:
     explicit ShowQueriesSentence(bool isAll = false) {
@@ -790,16 +791,37 @@ public:
 
     Expression* epId() const {
         return identifier_->epId();
+=======
+class RemoveSessionsSentence final : public Sentence {
+public:
+    explicit RemoveSessionsSentence(SessionID sessionId) {
+        kind_ = Kind::kRemoveSessions;
+        sessionIdList_ = std::make_unique<std::vector<SessionID>>();
+        sessionIdList_->push_back(sessionId);
+    }
+
+    explicit RemoveSessionsSentence(std::vector<SessionID> *sessionIdList) {
+        kind_ = Kind::kRemoveSessions;
+        sessionIdList_.reset(sessionIdList);
+    }
+
+    std::vector<SessionID>* getSessionIdList() const {
+        return sessionIdList_.get();
+>>>>>>> supported to remove sessions
     }
 
     std::string toString() const override;
 
 private:
+<<<<<<< HEAD
     bool isSetSession() const {
         return identifier_->isSetSession();
     }
 
     std::unique_ptr<QueryUniqueIdentifier> identifier_;
+=======
+    std::unique_ptr<std::vector<SessionID>>   sessionIdList_;
+>>>>>>> supported to remove sessions
 };
 }   // namespace nebula
 

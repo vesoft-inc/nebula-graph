@@ -329,6 +329,21 @@ private:
     Status toPlan() override;
 };
 
+class RemoveSessionsValidator final : public Validator {
+public:
+    RemoveSessionsValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override {
+        return Status::OK();
+    }
+
+    Status toPlan() override;
+};
+
 class GetSessionValidator final : public Validator {
 public:
     GetSessionValidator(Sentence* sentence, QueryContext* context)

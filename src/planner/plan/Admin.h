@@ -1350,6 +1350,30 @@ private:
     SessionID sessionId_{-1};
 };
 
+class RemoveSessions final : public SingleInputNode {
+public:
+    static RemoveSessions* make(QueryContext* qctx,
+                                PlanNode* input,
+                                std::vector<SessionID> sessionIdList) {
+        return qctx->objPool()->add(new RemoveSessions(qctx, input, std::move(sessionIdList)));
+    }
+
+    std::vector<SessionID>  getSessionIdList() const {
+        return sessionIdList_;
+    }
+
+private:
+    RemoveSessions(QueryContext* qctx,
+                   PlanNode* input,
+                   std::vector<SessionID> sessionIdList)
+        : SingleInputNode(qctx, Kind::kRemoveSessions, input) {
+            sessionIdList_ = std::move(sessionIdList);
+        }
+
+private:
+     std::vector<SessionID> sessionIdList_;
+};
+
 class UpdateSession final : public SingleInputNode {
 public:
     static UpdateSession* make(QueryContext* qctx, PlanNode* input, meta::cpp2::Session session) {

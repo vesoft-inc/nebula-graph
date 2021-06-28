@@ -221,4 +221,28 @@ class TestSession(NebulaTestSuite):
         time.sleep(2)
         resp = conn.execute(session_id, 'SHOW HOSTS')
         assert resp.error_code == ttypes.ErrorCode.E_SESSION_INVALID, resp.error_msg
+<<<<<<< HEAD
         assert resp.error_msg.find(b'Session not existed!') > 0
+=======
+        assert resp.error_msg.find(b'Session does not exist')> 0
+
+
+    def test_remove_sessions(self):
+        # remove nonexistent session id
+        resp = self.execute('REMOVE SESSIONS 123')
+        self.check_resp_failed(resp)
+        print(resp.error_msg())
+        assert resp.error_msg() == 'Session does not exist!'
+
+        resp = self.execute('SHOW SESSIONS')
+        self.check_resp_succeeded(resp)
+
+        id_list = []
+        for recode in resp:
+            id_list.append(str(recode.get_value(0).as_int()))
+        resp = self.execute('REMOVE SESSIONS {}'.format(','.join(id_list)))
+        self.check_resp_succeeded(resp)
+        resp = self.execute('SHOW SESSIONS')
+        self.check_resp_succeeded(resp)
+        assert resp.is_empty()
+>>>>>>> supported to remove sessions

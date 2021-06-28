@@ -371,6 +371,7 @@ std::string ShowSessionsSentence::toString() const {
     return "SHOW SESSIONS";
 }
 
+<<<<<<< HEAD
 std::string ShowQueriesSentence::toString() const {
     std::string buf = "SHOW";
     if (isAll()) {
@@ -392,4 +393,10 @@ std::string KillQuerySentence::toString() const {
     buf += ")";
     return buf;
 }
+=======
+std::string RemoveSessionsSentence::toString() const {
+    return "REMOVE SESSIONS " + folly::join(",", *sessionIdList_);
+}
+
+>>>>>>> supported to remove sessions
 }   // namespace nebula

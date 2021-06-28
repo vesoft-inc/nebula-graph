@@ -140,8 +140,12 @@ void GraphSessionManager::removeSession(SessionID id) {
         return;
     }
 
+<<<<<<< HEAD:src/session/GraphSessionManager.cpp
     iter->second->markAllQueryKilled();
     auto resp = metaClient_->removeSession(id).get();
+=======
+    auto resp = metaClient_->removeSessions({id}).get();
+>>>>>>> supported to remove sessions:src/session/SessionManager.cpp
     if (!resp.ok()) {
         // it will delete by reclaim
         LOG(ERROR) << "Remove session `" << id << "' failed: " << resp.status();
@@ -179,8 +183,12 @@ void GraphSessionManager::reclaimExpiredSessions() {
         }
         FLOG_INFO("ClientSession %ld has expired", iter->first);
 
+<<<<<<< HEAD:src/session/GraphSessionManager.cpp
         iter->second->markAllQueryKilled();
         auto resp = metaClient_->removeSession(iter->first).get();
+=======
+        auto resp = metaClient_->removeSessions({iter->first}).get();
+>>>>>>> supported to remove sessions:src/session/SessionManager.cpp
         if (!resp.ok()) {
             // TODO: Handle cases where the delete client failed
             LOG(ERROR) << "Remove session `" << iter->first << "' failed: " << resp.status();
