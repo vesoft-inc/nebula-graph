@@ -112,5 +112,21 @@ folly::Future<Status> UpdateSessionExecutor::execute() {
             });
 }
 
+folly::Future<Status> RemoveSessionsExecutor::execute() {
+    VLOG(2) << "Remove sessions to metad";
+    SCOPED_TIMER(&execTime_);
+    auto *removeNode = asNode<RemoveSessions>(node());
+    return qctx()->getMetaClient()->removeSessions(removeNode->getSessionIdList())
+            .via(runner())
+            .thenValue([this](auto&& resp) {
+                SCOPED_TIMER(&execTime_);
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                return Status::OK();
+            });
+}
+
 }   // namespace graph
 }   // namespace nebula

@@ -42,6 +42,14 @@ public:
     folly::Future<Status> execute() override;
 };
 
+class RemoveSessionsExecutor final : public Executor {
+public:
+    RemoveSessionsExecutor(const PlanNode *node, QueryContext *ectx)
+        : Executor("RemoveSessionsExecutor", node, ectx) {}
+
+    folly::Future<Status> execute() override;
+};
+
 }   // namespace graph
 }   // namespace nebula
 

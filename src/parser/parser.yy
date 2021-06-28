@@ -76,6 +76,7 @@ static constexpr size_t kCommentLengthLimit = 256;
     nebula::FromClause                     *from_clause;
     nebula::ToClause                       *to_clause;
     nebula::VertexIDList                   *vid_list;
+    std::vector<int64_t>                   *session_id_list;
     nebula::NameLabelList                  *name_label_list;
     nebula::OverEdge                       *over_edge;
     nebula::OverEdges                      *over_edges;
@@ -329,6 +330,8 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <index_field> index_field
 %type <index_field_list> index_field_list opt_index_field_list
 
+%type <session_id_list> session_id_list
+
 %type <sentence> maintain_sentence
 %type <sentence> create_space_sentence describe_space_sentence drop_space_sentence
 %type <sentence> create_tag_sentence create_edge_sentence
@@ -349,6 +352,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <sentence> admin_job_sentence
 %type <sentence> create_user_sentence alter_user_sentence drop_user_sentence change_password_sentence
 %type <sentence> show_sentence
+%type <sentence> remove_sessions_sentence
 
 %type <sentence> mutate_sentence
 %type <sentence> insert_vertex_sentence insert_edge_sentence
@@ -3306,6 +3310,26 @@ list_listener_sentence
     }
     ;
 
+remove_sessions_sentence
+    : KW_REMOVE KW_SESSION legal_integer {
+        $$ = new RemoveSessionsSentence($3);
+    }
+    | KW_REMOVE KW_SESSIONS session_id_list {
+        $$ = new RemoveSessionsSentence($3);
+    }
+    ;
+
+session_id_list
+    : legal_integer {
+        $$ = new std::vector<int64_t>();
+        $$->emplace_back($1);
+    }
+    | session_id_list COMMA legal_integer {
+        $$ = $1;
+        $$->emplace_back($3);
+    }
+    ;
+
 mutate_sentence
     : insert_vertex_sentence { $$ = $1; }
     | insert_edge_sentence { $$ = $1; }
@@ -3365,6 +3389,7 @@ maintain_sentence
     | drop_snapshot_sentence { $$ = $1; }
     | sign_in_text_search_service_sentence { $$ = $1; }
     | sign_out_text_search_service_sentence { $$ = $1; }
+    | remove_sessions_sentence { $$ = $1; }
     ;
 
 sentence

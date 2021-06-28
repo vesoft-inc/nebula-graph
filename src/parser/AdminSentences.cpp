@@ -369,4 +369,8 @@ std::string ShowSessionsSentence::toString() const {
     return "SHOW SESSIONS";
 }
 
+std::string RemoveSessionsSentence::toString() const {
+    return "REMOVE SESSIONS " + folly::join(",", *sessionIdList_);
+}
+
 }   // namespace nebula

@@ -521,5 +521,14 @@ Status ShowSessionsValidator::toPlan() {
     return Status::OK();
 }
 
+Status RemoveSessionsValidator::toPlan() {
+    auto sentence = static_cast<RemoveSessionsSentence*>(sentence_);
+    auto *node = RemoveSessions::make(
+            qctx_, nullptr, *sentence->getSessionIdList());
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

@@ -667,6 +667,20 @@ class TestPermission(NebulaTestSuite):
         resp = self.guestClient.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
+        # admin session test
+        query = 'SHOW SESSIONS'
+        resp = self.adminClient.execute(query)
+        self.check_resp_failed(resp)
+
+        query = 'REMOVE SESSION 123'
+        resp = self.adminClient.execute(query)
+        self.check_resp_failed(resp)
+
+        query = 'REMOVE SESSIONS 123,123'
+        resp = self.adminClient.execute(query)
+        self.check_resp_failed(resp)
+
+
     def test_show_test(self):
         ret, self.adminClient = self.spawn_nebula_client_and_auth('admin', 'admin')
         assert ret

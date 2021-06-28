@@ -732,6 +732,29 @@ private:
     SessionID   sessionId_{0};
     bool        setSeesionId_{false};
 };
+
+class RemoveSessionsSentence final : public Sentence {
+public:
+    explicit RemoveSessionsSentence(SessionID sessionId) {
+        kind_ = Kind::kRemoveSessions;
+        sessionIdList_ = std::make_unique<std::vector<SessionID>>();
+        sessionIdList_->push_back(sessionId);
+    }
+
+    explicit RemoveSessionsSentence(std::vector<SessionID> *sessionIdList) {
+        kind_ = Kind::kRemoveSessions;
+        sessionIdList_.reset(sessionIdList);
+    }
+
+    std::vector<SessionID>* getSessionIdList() const {
+        return sessionIdList_.get();
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::vector<SessionID>>   sessionIdList_;
+};
 }   // namespace nebula
 
 #endif  // PARSER_ADMINSENTENCES_H_

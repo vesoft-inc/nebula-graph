@@ -154,7 +154,7 @@ void SessionManager::removeSession(SessionID id) {
         return;
     }
 
-    auto resp = metaClient_->removeSession(id).get();
+    auto resp = metaClient_->removeSessions({id}).get();
     if (!resp.ok()) {
         // it will delete by reclaim
         LOG(ERROR) << "Remove session `" << id << "' failed: " << resp.status();
@@ -193,7 +193,7 @@ void SessionManager::reclaimExpiredSessions() {
         }
         FLOG_INFO("ClientSession %ld has expired", iter->first);
 
-        auto resp = metaClient_->removeSession(iter->first).get();
+        auto resp = metaClient_->removeSessions({iter->first}).get();
         if (!resp.ok()) {
             // TODO: Handle cases where the delete client failed
             LOG(ERROR) << "Remove session `" << iter->first << "' failed: " << resp.status();

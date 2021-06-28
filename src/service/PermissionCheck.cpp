@@ -185,7 +185,8 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
         case Sentence::Kind::kShowUsers:
         case Sentence::Kind::kShowSnapshots:
         case Sentence::Kind::kShowTSClients:
-        case Sentence::Kind::kShowSessions: {
+        case Sentence::Kind::kShowSessions:
+        case Sentence::Kind::kRemoveSessions: {
             /**
              * Only GOD role can be show.
              */
