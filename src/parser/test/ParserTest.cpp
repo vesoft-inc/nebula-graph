@@ -2796,7 +2796,7 @@ TEST_F(ParserTest, FullTextServiceTest) {
 }
 
 TEST_F(ParserTest, JobTest) {
-    auto checkTest = [&] (const std::string& query, const std::string expectedStr) {
+    auto checkTest = [&, this] (const std::string& query, const std::string expectedStr) {
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << query << ":" << result.status();
         ASSERT_EQ(result.value()->toString(), expectedStr);

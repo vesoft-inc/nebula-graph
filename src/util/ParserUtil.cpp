@@ -30,7 +30,7 @@ void ParserUtil::rewriteLC(QueryContext *qctx,
                expr->kind() == Expression::Kind::kLabelAttribute;
     };
 
-    auto rewriter = [&](const Expression *expr) {
+    auto rewriter = [&, pool, newVarName](const Expression *expr) {
         Expression *ret = nullptr;
         if (expr->kind() == Expression::Kind::kLabel) {
             auto *label = static_cast<const LabelExpression *>(expr);

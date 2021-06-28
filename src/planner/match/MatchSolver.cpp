@@ -23,7 +23,7 @@ Expression* MatchSolver::rewriteLabel2Vertex(QueryContext* qctx, const Expressio
         return e->kind() == Expression::Kind::kLabel ||
                e->kind() == Expression::Kind::kLabelAttribute;
     };
-    auto rewriter = [&](const Expression* e) -> Expression* {
+    auto rewriter = [&, pool](const Expression* e) -> Expression* {
         DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
                e->kind() == Expression::Kind::kLabel);
         if (e->kind() == Expression::Kind::kLabelAttribute) {
@@ -43,7 +43,7 @@ Expression* MatchSolver::rewriteLabel2Edge(QueryContext* qctx, const Expression*
         return e->kind() == Expression::Kind::kLabel ||
                e->kind() == Expression::Kind::kLabelAttribute;
     };
-    auto rewriter = [&](const Expression* e) -> Expression* {
+    auto rewriter = [&pool](const Expression* e) -> Expression* {
         DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
                e->kind() == Expression::Kind::kLabel);
         if (e->kind() == Expression::Kind::kLabelAttribute) {
@@ -63,7 +63,7 @@ Expression* MatchSolver::rewriteLabel2VarProp(QueryContext* qctx, const Expressi
         return e->kind() == Expression::Kind::kLabel ||
                e->kind() == Expression::Kind::kLabelAttribute;
     };
-    auto rewriter = [&](const Expression* e) -> Expression* {
+    auto rewriter = [&pool](const Expression* e) -> Expression* {
         DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
                e->kind() == Expression::Kind::kLabel);
         if (e->kind() == Expression::Kind::kLabelAttribute) {

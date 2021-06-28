@@ -313,7 +313,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     YieldColumns *columns = nullptr;
     auto *pool = qctx_->objPool();
     if (ret->isAll()) {
-        auto makeColumn = [&](const std::string &name) {
+        auto makeColumn = [&pool](const std::string &name) {
             auto *expr = LabelExpression::make(pool, name);
             return new YieldColumn(expr, name);
         };

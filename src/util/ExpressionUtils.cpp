@@ -113,7 +113,7 @@ Expression *ExpressionUtils::rewriteLabelAttr2EdgeProp(ObjectPool *pool, const E
     auto matcher = [](const Expression *e) -> bool {
         return e->kind() == Expression::Kind::kLabelAttribute;
     };
-    auto rewriter = [&](const Expression *e) -> Expression * {
+    auto rewriter = [&pool](const Expression *e) -> Expression * {
         DCHECK_EQ(e->kind(), Expression::Kind::kLabelAttribute);
         auto labelAttrExpr = static_cast<const LabelAttributeExpression *>(e);
         auto leftName = labelAttrExpr->left()->name();
@@ -146,7 +146,7 @@ Expression *ExpressionUtils::rewriteLabelAttr2TagProp(ObjectPool* pool, const Ex
     auto matcher = [](const Expression *e) -> bool {
         return e->kind() == Expression::Kind::kLabelAttribute;
     };
-    auto rewriter = [&](const Expression *e) -> Expression * {
+    auto rewriter = [&pool](const Expression *e) -> Expression * {
         DCHECK_EQ(e->kind(), Expression::Kind::kLabelAttribute);
         auto labelAttrExpr = static_cast<const LabelAttributeExpression *>(e);
         auto leftName = labelAttrExpr->left()->name();
@@ -162,7 +162,7 @@ Expression *ExpressionUtils::rewriteAgg2VarProp(ObjectPool *pool, const Expressi
     auto matcher = [](const Expression *e) -> bool {
         return e->kind() == Expression::Kind::kAggregate;
     };
-    auto rewriter = [&](const Expression *e) -> Expression * {
+    auto rewriter = [&pool](const Expression *e) -> Expression * {
         return VariablePropertyExpression::make(pool, "", e->toString());
     };
 
@@ -196,7 +196,7 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
     };
 
     // Match the root expression
-    auto rootMatcher = [&](const Expression *e) -> bool {
+    auto rootMatcher = [&operandMatcher](const Expression *e) -> bool {
         if (e->kind() == Expression::Kind::kUnaryNot) {
             auto operand = static_cast<const UnaryExpression *>(e)->operand();
             return (operandMatcher(operand));
@@ -230,7 +230,7 @@ Expression *ExpressionUtils::reduceUnaryNotExpr(const Expression *expr, ObjectPo
 
 Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *pool) {
     // Match relational expressions containing at least one airthmetic expr
-    auto matcher = [&](const Expression *e) -> bool {
+    auto matcher = [](const Expression *e) -> bool {
         if (e->isRelExpr()) {
             auto relExpr = static_cast<const RelationalExpression *>(e);
             if (isEvaluableExpr(relExpr->right())) {
@@ -247,8 +247,9 @@ Expression *ExpressionUtils::rewriteRelExpr(const Expression *expr, ObjectPool *
     };
 
     // Simplify relational expressions involving boolean literals
-    auto simplifyBoolOperand =
-        [&](RelationalExpression *relExpr, Expression *lExpr, Expression *rExpr) -> Expression * {
+    auto simplifyBoolOperand = [&pool](RelationalExpression *relExpr,
+                                       Expression *lExpr,
+                                       Expression *rExpr) -> Expression * {
         QueryExpressionContext ctx(nullptr);
         if (rExpr->kind() == Expression::Kind::kConstant) {
             auto conExpr = static_cast<ConstantExpression *>(rExpr);
