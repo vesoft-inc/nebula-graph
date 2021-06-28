@@ -5,6 +5,24 @@
  */
 
 #include "optimizer/OptimizerUtils.h"
+#include <algorithm>
+#include <memory>
+#include "common/base/Status.h"
+#include "common/expression/ConstantExpression.h"
+#include "common/expression/Expression.h"
+#include "common/expression/LogicalExpression.h"
+#include "common/expression/PropertyExpression.h"
+#include "common/expression/RelationalExpression.h"
+#include "common/interface/gen-cpp2/meta_types.h"
+#include "common/interface/gen-cpp2/storage_types.h"
+
+using nebula::meta::cpp2::ColumnDef;
+using nebula::meta::cpp2::IndexItem;
+using nebula::storage::cpp2::IndexColumnHint;
+
+using IndexResult = nebula::graph::OptimizerUtils::IndexResult;
+using IndexPriority = nebula::graph::OptimizerUtils::IndexPriority;
+using BVO = nebula::graph::OptimizerUtils::BoundValueOperator;
 
 namespace nebula {
 namespace graph {
@@ -470,6 +488,238 @@ Value OptimizerUtils::normalizeValue(const meta::cpp2::ColumnDef& col, const Val
     }
     DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
     return Value::kNullBadType;;
+}
+
+Status OptimizerUtils::boundValue(Expression::Kind kind,
+                                  const Value& val,
+                                  const meta::cpp2::ColumnDef& col,
+                                  Value& begin,
+                                  Value& end) {
+    if (val.type() != graph::SchemaUtil::propTypeToValueType(col.type.type)) {
+        return Status::SemanticError("Data type error of field : %s", col.get_name().c_str());
+    }
+    switch (kind) {
+        case Expression::Kind::kRelLE: {
+            // if c1 <= int(5) , the range pair should be (min, 6)
+            // if c1 < int(5), the range pair should be (min, 5)
+            auto v = OptimizerUtils::boundValue(col, BoundValueOperator::GREATER_THAN, val);
+            if (v == Value::kNullBadType) {
+                LOG(ERROR) << "Get bound value error. field : " << col.get_name();
+                return Status::Error("Get bound value error. field : %s", col.get_name().c_str());
+            }
+            // where c <= 1 and c <= 2 , 1 should be valid.
+            if (end == Value()) {
+                end = v;
+            } else {
+                end = v < end ? v : end;
+            }
+            break;
+        }
+        case Expression::Kind::kRelGE: {
+            // where c >= 1 and c >= 2 , 2 should be valid.
+            if (begin == Value()) {
+                begin = val;
+            } else {
+                begin = val < begin ? begin : val;
+            }
+            break;
+        }
+        case Expression::Kind::kRelLT: {
+            // c < 5 and c < 6 , 5 should be valid.
+            if (end == Value()) {
+                end = val;
+            } else {
+                end = val < end ? val : end;
+            }
+            break;
+        }
+        case Expression::Kind::kRelGT: {
+            // if c >= 5, the range pair should be (5, max)
+            // if c > 5, the range pair should be (6, max)
+            auto v = OptimizerUtils::boundValue(col, BoundValueOperator::GREATER_THAN, val);
+            if (v == Value::kNullBadType) {
+                LOG(ERROR) << "Get bound value error. field : " << col.get_name();
+                return Status::Error("Get bound value error. field : %s", col.get_name().c_str());
+            }
+            // where c > 1 and c > 2 , 2 should be valid.
+            if (begin == Value()) {
+                begin = v;
+            } else {
+                begin = v < begin ? begin : v;
+            }
+            break;
+        }
+        default: {
+            // TODO(yee): Semantic error
+            return Status::Error("Invalid expression kind.");
+        }
+    }
+    return Status::OK();
+}
+
+Status checkValue(const ColumnDef& field, BVO bvo, Value* value) {
+    if (*value == Value()) {
+        *value = OptimizerUtils::boundValue(field, bvo, Value());
+        if (*value == Value::kNullBadType) {
+            return Status::Error("Get bound value error. field : %s", field.get_name().c_str());
+        }
+    }
+    return Status::OK();
+}
+
+Status handleRangeIndex(const meta::cpp2::ColumnDef& field,
+                        const Expression* expr,
+                        const Value& value,
+                        IndexColumnHint* hint) {
+    if (field.get_type().get_type() == meta::cpp2::PropertyType::BOOL) {
+        return Status::Error("Range scan for bool type is illegal");
+    }
+    Value begin, end;
+    NG_RETURN_IF_ERROR(OptimizerUtils::boundValue(expr->kind(), value, field, begin, end));
+    NG_RETURN_IF_ERROR(checkValue(field, BVO::MIN, &begin));
+    NG_RETURN_IF_ERROR(checkValue(field, BVO::MAX, &end));
+    hint->set_begin_value(std::move(begin));
+    hint->set_end_value(std::move(end));
+    hint->set_scan_type(storage::cpp2::ScanType::RANGE);
+    hint->set_column_name(field.get_name());
+    return Status::OK();
+}
+
+void handleEqualIndex(const ColumnDef& field, const Value& value, IndexColumnHint* hint) {
+    hint->set_scan_type(storage::cpp2::ScanType::PREFIX);
+    hint->set_column_name(field.get_name());
+    hint->set_begin_value(OptimizerUtils::normalizeValue(field, value));
+}
+
+// void handleNotEqualIndex(IndexResult* result) {
+//     result->priorities.emplace_back(IndexPriority::kNotEqual);
+// }
+
+StatusOr<std::pair<IndexColumnHint, IndexPriority>> selectRelExprIndex(
+    const ColumnDef& field,
+    const RelationalExpression* expr) {
+    // TODO(yee): Reverse expression
+    auto left = expr->left();
+    DCHECK(left->kind() == Expression::Kind::kEdgeProperty ||
+           left->kind() == Expression::Kind::kTagProperty);
+    auto propExpr = static_cast<const PropertyExpression*>(left);
+    if (propExpr->prop() != field.get_name()) {
+        return Status::Error("Invalid field name.");
+    }
+
+    auto right = expr->right();
+    DCHECK(right->kind() == Expression::Kind::kConstant);
+    const auto& value = static_cast<const ConstantExpression*>(right)->value();
+
+    IndexColumnHint hint;
+    IndexPriority priority;
+    switch (expr->kind()) {
+        case Expression::Kind::kRelEQ: {
+            handleEqualIndex(field, value, &hint);
+            priority = IndexPriority::kPrefix;
+            break;
+        }
+        case Expression::Kind::kRelGE:
+        case Expression::Kind::kRelGT:
+        case Expression::Kind::kRelLE:
+        case Expression::Kind::kRelLT: {
+            NG_RETURN_IF_ERROR(handleRangeIndex(field, expr, value, &hint));
+            priority = IndexPriority::kRange;
+            break;
+        }
+        case Expression::Kind::kRelNE: {
+            priority = IndexPriority::kNotEqual;
+            break;
+        }
+        default: {
+            return Status::Error("Invalid expression kind");
+        }
+    }
+    return std::make_pair(std::move(hint), priority);
+}
+
+StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const IndexItem& index) {
+    const auto& fields = index.get_fields();
+    if (fields.size() != 1U) {
+        return Status::Error("Not single column index.");
+    }
+    auto status = selectRelExprIndex(fields[0], expr);
+    NG_RETURN_IF_ERROR(status);
+    auto pair = std::move(status).value();
+    IndexResult result;
+    result.priorities.emplace_back(pair.second);
+    result.hints.emplace_back(std::move(pair.first));
+    return result;
+}
+
+Status getIndexColumnHintInExpr(const ColumnDef& field,
+                                const LogicalExpression* expr,
+                                IndexColumnHint* hint,
+                                IndexPriority* priority,
+                                Expression** which) {
+    for (auto& operand : expr->operands()) {
+        if (!operand->isRelExpr()) continue;
+        auto relExpr = static_cast<const RelationalExpression*>(operand.get());
+        auto status = selectRelExprIndex(field, relExpr);
+        if (status.ok()) {
+            auto pair = std::move(status).value();
+            *hint = std::move(pair.first);
+            *priority = pair.second;
+            *which = operand.get();
+            break;
+        }
+    }
+    return Status::OK();
+}
+
+std::unique_ptr<Expression> cloneUnusedExpr(const LogicalExpression* expr,
+                                            const std::vector<Expression*>& usedOperands) {
+    std::vector<std::unique_ptr<Expression>> unusedOperands;
+    for (auto& operand : expr->operands()) {
+        auto iter = std::find(usedOperands.begin(), usedOperands.end(), operand.get());
+        if (iter == usedOperands.end()) {
+            unusedOperands.emplace_back(operand->clone());
+        }
+    }
+    if (unusedOperands.empty()) {
+        return nullptr;
+    }
+    auto logExpr = std::make_unique<LogicalExpression>(expr->kind());
+    logExpr->setOperands(std::move(unusedOperands));
+    return logExpr;
+}
+
+StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
+                                             const IndexItem& index) {
+    if (expr->kind() != Expression::Kind::kLogicalAnd) {
+        return Status::Error("Invalid expression kind.");
+    }
+    IndexResult result;
+    result.hints.reserve(index.get_fields().size());
+    std::vector<Expression*> usedOperands;
+    for (auto& field : index.get_fields()) {
+        IndexColumnHint hint;
+        IndexPriority priority;
+        Expression* operand = nullptr;
+        NG_RETURN_IF_ERROR(getIndexColumnHintInExpr(field, expr, &hint, &priority, &operand));
+        result.hints.emplace_back(std::move(hint));
+        result.priorities.emplace_back(priority);
+        usedOperands.emplace_back(operand);
+    }
+    result.unusedExpr = cloneUnusedExpr(expr, usedOperands);
+    return result;
+}
+
+StatusOr<IndexResult> OptimizerUtils::selectIndex(const Expression* expr, const IndexItem& index) {
+    if (expr->isRelExpr()) {
+        return selectRelExprIndex(static_cast<const RelationalExpression*>(expr), index);
+    }
+
+    if (expr->isLogicalExpr()) {
+        return selectLogicalExprIndex(static_cast<const LogicalExpression*>(expr), index);
+    }
+
+    return Status::Error("Invalid expression kind.");
 }
 
 }  // namespace graph

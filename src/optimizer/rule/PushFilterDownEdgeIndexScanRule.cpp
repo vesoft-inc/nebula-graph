@@ -5,11 +5,20 @@
  */
 
 #include "optimizer/rule/PushFilterDownEdgeIndexScanRule.h"
+#include <memory>
+#include <vector>
 
 #include "common/base/Base.h"
+#include "common/base/Status.h"
 #include "common/expression/Expression.h"
 #include "common/expression/LogicalExpression.h"
+#include "common/expression/PropertyExpression.h"
+#include "common/expression/RelationalExpression.h"
+#include "common/interface/gen-cpp2/meta_types.h"
+#include "context/QueryContext.h"
+#include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
+#include "optimizer/OptimizerUtils.h"
 #include "planner/plan/PlanNode.h"
 #include "planner/plan/Query.h"
 
@@ -18,9 +27,13 @@ using nebula::graph::EdgeIndexFullScan;
 using nebula::graph::EdgeIndexPrefixScan;
 using nebula::graph::EdgeIndexRangeScan;
 using nebula::graph::Filter;
+using nebula::graph::OptimizerUtils;
+using nebula::meta::cpp2::IndexItem;
 
 using Kind = nebula::graph::PlanNode::Kind;
+using ExprKind = nebula::Expression::Kind;
 using TransformResult = nebula::opt::OptRule::TransformResult;
+using IndexItems = std::vector<std::shared_ptr<IndexItem>>;
 
 namespace nebula {
 namespace opt {
@@ -41,41 +54,50 @@ const Pattern& PushFilterDownEdgeIndexScanRule::pattern() const {
 bool PushFilterDownEdgeIndexScanRule::match(OptContext* ctx, const MatchedResult& matched) const {
     UNUSED(ctx);
     auto filter = static_cast<const Filter*>(matched.planNode());
-    // auto edgeIndexScan = static_cast<const EdgeIndexFullScan*>(matched.planNode({0, 0}));
-
     auto condition = filter->condition();
     if (condition->isRelExpr()) {
-        return checkRelExpr(condition);
+        auto relExpr = static_cast<const RelationalExpression*>(condition);
+        return relExpr->left()->kind() == ExprKind::kEdgeProperty &&
+               relExpr->right()->kind() == ExprKind::kConstant;
     }
-
     if (condition->isLogicalExpr()) {
-        return checkLogicalExpr(condition);
+        return condition->kind() == Expression::Kind::kLogicalAnd;
     }
 
-    return true;
-}
-
-bool PushFilterDownEdgeIndexScanRule::checkRelExpr(const Expression* expr) const {
-    UNUSED(expr);
-    return false;
-}
-
-bool PushFilterDownEdgeIndexScanRule::checkLogicalExpr(const Expression* expr) const {
-    if (expr->kind() != Expression::Kind::kLogicalAnd) {
-        return false;
-    }
-    auto logicExpr = static_cast<const LogicalExpression*>(expr);
-    for (auto& op : logicExpr->operands()) {
-        UNUSED(op);
-    }
     return true;
 }
 
 StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
     OptContext* ctx,
     const MatchedResult& matched) const {
-    UNUSED(ctx);
-    UNUSED(matched);
+    auto filter = static_cast<const Filter*>(matched.planNode());
+    auto scan = static_cast<const EdgeIndexFullScan*>(matched.planNode({0, 0}));
+
+    auto metaClient = ctx->qctx()->getMetaClient();
+    auto status = metaClient->getEdgeIndexesFromCache(scan->space());
+    NG_RETURN_IF_ERROR(status);
+    auto indexItems = std::move(status).value();
+
+    // Erase invalid index items
+    for (auto iter = indexItems.begin(); iter != indexItems.end();) {
+        if ((*iter)->get_schema_id().get_edge_type() != scan->schemaId()) {
+            iter = indexItems.erase(iter);
+        } else {
+            iter++;
+        }
+    }
+
+    // Return directly if there is not valid index to use.
+    if (indexItems.empty()) {
+        return TransformResult::noTransform();
+    }
+
+    auto condition = filter->condition();
+    for (auto& index : indexItems) {
+        auto status = OptimizerUtils::selectIndex(condition, *index);
+        UNUSED(status);
+    }
+
     return Status::OK();
 }
 

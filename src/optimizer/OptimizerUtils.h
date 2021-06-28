@@ -6,10 +6,14 @@
 #ifndef NEBULA_GRAPH_OPTIMIZER_OPTIMIZERUTILS_H_
 #define NEBULA_GRAPH_OPTIMIZER_OPTIMIZERUTILS_H_
 
+#include "common/interface/gen-cpp2/meta_types.h"
+#include "common/interface/gen-cpp2/storage_types.h"
 #include "util/SchemaUtil.h"
-#include <common/interface/gen-cpp2/meta_types.h>
 
 namespace nebula {
+
+class Expression;
+
 namespace graph {
 
 class OptimizerUtils {
@@ -21,7 +25,19 @@ public:
         MIN,
     };
 
-public:
+    // {2, 1, 0} > {2, 1} > {2, 0} > {2} > {1, 2} > {1, 1} > {1}
+    enum class IndexPriority : uint8_t {
+        kNotEqual = 0,
+        kRange,
+        kPrefix,
+    };
+
+    struct IndexResult {
+        std::unique_ptr<Expression> unusedExpr;
+        std::vector<IndexPriority> priorities;
+        std::vector<storage::cpp2::IndexColumnHint> hints;
+    };
+
     OptimizerUtils() = delete;
 
     static Value boundValue(const meta::cpp2::ColumnDef& col,
@@ -37,8 +53,17 @@ public:
     static Value boundValueWithMin(const meta::cpp2::ColumnDef& col);
 
     static Value normalizeValue(const meta::cpp2::ColumnDef& col, const Value& v);
+
+    static Status boundValue(Expression::Kind kind,
+                             const Value& val,
+                             const meta::cpp2::ColumnDef& col,
+                             Value& begin,
+                             Value& end);
+
+    static StatusOr<IndexResult> selectIndex(const Expression* expr,
+                                             const meta::cpp2::IndexItem& index);
 };
 
-}  // namespace graph
-}  // namespace nebula
-#endif  // NEBULA_GRAPH_OPTIMIZER_OPTIMIZERUTILS_H_
+}   // namespace graph
+}   // namespace nebula
+#endif   // NEBULA_GRAPH_OPTIMIZER_OPTIMIZERUTILS_H_

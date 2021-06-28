@@ -537,9 +537,15 @@ private:
 
 // Logical Plan
 class EdgeIndexScan : public IndexScan {
+public:
+    const std::string& edgeType() const {
+        return edgeType_;
+    }
+
 protected:
     EdgeIndexScan(QueryContext* qctx,
                   PlanNode* input,
+                  const std::string& edgeType,
                   GraphSpaceID space,
                   std::vector<IndexQueryContext>&& contexts,
                   std::vector<std::string> returnCols,
@@ -562,13 +568,17 @@ protected:
                     std::move(orderBy),
                     limit,
                     std::move(filter),
-                    kind) {}
+                    kind),
+          edgeType_(edgeType) {}
+
+    std::string edgeType_;
 };
 
 class EdgeIndexPrefixScan : public EdgeIndexScan {
 public:
     static EdgeIndexPrefixScan* make(QueryContext* qctx,
                                      PlanNode* input,
+                                     const std::string& edgeType,
                                      GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
                                      std::vector<IndexQueryContext>&& contexts = {},
                                      std::vector<std::string> returnCols = {},
@@ -580,6 +590,7 @@ public:
                                      std::string filter = "") {
         return qctx->objPool()->add(new EdgeIndexPrefixScan(qctx,
                                                             input,
+                                                            edgeType,
                                                             space,
                                                             std::move(contexts),
                                                             std::move(returnCols),
@@ -594,6 +605,7 @@ public:
 private:
     EdgeIndexPrefixScan(QueryContext* qctx,
                         PlanNode* input,
+                        const std::string& edgeType,
                         GraphSpaceID space,
                         std::vector<IndexQueryContext>&& contexts,
                         std::vector<std::string> returnCols,
@@ -605,6 +617,7 @@ private:
                         std::string filter)
         : EdgeIndexScan(qctx,
                         input,
+                        edgeType,
                         space,
                         std::move(contexts),
                         std::move(returnCols),
@@ -621,6 +634,7 @@ class EdgeIndexRangeScan : public EdgeIndexScan {
 public:
     static EdgeIndexRangeScan* make(QueryContext* qctx,
                                     PlanNode* input,
+                                    const std::string& edgeType,
                                     GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
                                     std::vector<IndexQueryContext>&& contexts = {},
                                     std::vector<std::string> returnCols = {},
@@ -632,6 +646,7 @@ public:
                                     std::string filter = "") {
         return qctx->objPool()->add(new EdgeIndexRangeScan(qctx,
                                                            input,
+                                                           edgeType,
                                                            space,
                                                            std::move(contexts),
                                                            std::move(returnCols),
@@ -646,6 +661,7 @@ public:
 private:
     EdgeIndexRangeScan(QueryContext* qctx,
                        PlanNode* input,
+                       const std::string& edgeType,
                        GraphSpaceID space,
                        std::vector<IndexQueryContext>&& contexts,
                        std::vector<std::string> returnCols,
@@ -657,6 +673,7 @@ private:
                        std::string filter)
         : EdgeIndexScan(qctx,
                         input,
+                        edgeType,
                         space,
                         std::move(contexts),
                         std::move(returnCols),
@@ -673,6 +690,7 @@ class EdgeIndexFullScan final : public EdgeIndexScan {
 public:
     static EdgeIndexFullScan* make(QueryContext* qctx,
                                    PlanNode* input,
+                                   const std::string& edgeType,
                                    GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
                                    std::vector<IndexQueryContext>&& contexts = {},
                                    std::vector<std::string> returnCols = {},
@@ -684,6 +702,7 @@ public:
                                    std::string filter = "") {
         return qctx->objPool()->add(new EdgeIndexFullScan(qctx,
                                                           input,
+                                                          edgeType,
                                                           space,
                                                           std::move(contexts),
                                                           std::move(returnCols),
@@ -698,6 +717,7 @@ public:
 private:
     EdgeIndexFullScan(QueryContext* qctx,
                       PlanNode* input,
+                      const std::string& edgeType,
                       GraphSpaceID space,
                       std::vector<IndexQueryContext>&& contexts,
                       std::vector<std::string> returnCols,
@@ -709,6 +729,7 @@ private:
                       std::string filter)
         : EdgeIndexScan(qctx,
                         input,
+                        edgeType,
                         space,
                         std::move(contexts),
                         std::move(returnCols),
@@ -724,9 +745,15 @@ private:
 // class EdgeFullTextIndexScan : public EdgeIndexScan {};
 
 class TagIndexScan : public IndexScan {
+public:
+    const std::string& tagName() const {
+        return tagName_;
+    }
+
 protected:
     TagIndexScan(QueryContext* qctx,
                  PlanNode* input,
+                 const std::string& tagName,
                  GraphSpaceID space,
                  std::vector<IndexQueryContext>&& contexts,
                  std::vector<std::string> returnCols,
@@ -749,13 +776,17 @@ protected:
                     std::move(orderBy),
                     limit,
                     std::move(filter),
-                    kind) {}
+                    kind),
+          tagName_(tagName) {}
+
+    std::string tagName_;
 };
 
 class TagIndexPrefixScan : public TagIndexScan {
 public:
     static TagIndexPrefixScan* make(QueryContext* qctx,
                                     PlanNode* input,
+                                    const std::string& tagName,
                                     GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
                                     std::vector<IndexQueryContext>&& contexts = {},
                                     std::vector<std::string> returnCols = {},
@@ -767,6 +798,7 @@ public:
                                     std::string filter = "") {
         return qctx->objPool()->add(new TagIndexPrefixScan(qctx,
                                                            input,
+                                                           tagName,
                                                            space,
                                                            std::move(contexts),
                                                            std::move(returnCols),
@@ -781,6 +813,7 @@ public:
 private:
     TagIndexPrefixScan(QueryContext* qctx,
                        PlanNode* input,
+                       const std::string& tagName,
                        GraphSpaceID space,
                        std::vector<IndexQueryContext>&& contexts,
                        std::vector<std::string> returnCols,
@@ -792,6 +825,7 @@ private:
                        std::string filter)
         : TagIndexScan(qctx,
                        input,
+                       tagName,
                        space,
                        std::move(contexts),
                        std::move(returnCols),
@@ -808,6 +842,7 @@ class TagIndexRangeScan : public TagIndexScan {
 public:
     static TagIndexRangeScan* make(QueryContext* qctx,
                                    PlanNode* input,
+                                   const std::string& tagName,
                                    GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
                                    std::vector<IndexQueryContext>&& contexts = {},
                                    std::vector<std::string> returnCols = {},
@@ -819,6 +854,7 @@ public:
                                    std::string filter = "") {
         return qctx->objPool()->add(new TagIndexRangeScan(qctx,
                                                           input,
+                                                          tagName,
                                                           space,
                                                           std::move(contexts),
                                                           std::move(returnCols),
@@ -833,6 +869,7 @@ public:
 private:
     TagIndexRangeScan(QueryContext* qctx,
                       PlanNode* input,
+                      const std::string& tagName,
                       GraphSpaceID space,
                       std::vector<IndexQueryContext>&& contexts,
                       std::vector<std::string> returnCols,
@@ -844,6 +881,7 @@ private:
                       std::string filter)
         : TagIndexScan(qctx,
                        input,
+                       tagName,
                        space,
                        std::move(contexts),
                        std::move(returnCols),
@@ -860,6 +898,7 @@ class TagIndexFullScan final : public TagIndexScan {
 public:
     static TagIndexFullScan* make(QueryContext* qctx,
                                   PlanNode* input,
+                                  const std::string& tagName,
                                   GraphSpaceID space = -1,   //  TBD: -1 is inValid spaceID?
                                   std::vector<IndexQueryContext>&& contexts = {},
                                   std::vector<std::string> returnCols = {},
@@ -871,6 +910,7 @@ public:
                                   std::string filter = "") {
         return qctx->objPool()->add(new TagIndexFullScan(qctx,
                                                          input,
+                                                         tagName,
                                                          space,
                                                          std::move(contexts),
                                                          std::move(returnCols),
@@ -885,6 +925,7 @@ public:
 private:
     TagIndexFullScan(QueryContext* qctx,
                      PlanNode* input,
+                     const std::string& tagName,
                      GraphSpaceID space,
                      std::vector<IndexQueryContext>&& contexts,
                      std::vector<std::string> returnCols,
@@ -896,6 +937,7 @@ private:
                      std::string filter)
         : TagIndexScan(qctx,
                        input,
+                       tagName,
                        space,
                        std::move(contexts),
                        std::move(returnCols),

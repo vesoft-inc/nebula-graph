@@ -128,10 +128,6 @@ private:
                          const FilterItems& items,
                          const meta::cpp2::ColumnDef& col) const;
 
-    Status boundValue(const FilterItem& item,
-                      const meta::cpp2::ColumnDef& col,
-                      Value& begin, Value& end) const;
-
     size_t hintCount(const FilterItems& items) const noexcept;
 
     bool isEdge(const OptGroupNode *groupNode) const;
@@ -149,8 +145,6 @@ private:
               typename = std::enable_if_t<std::is_same<E, EdgePropertyExpression>::value ||
                                           std::is_same<E, TagPropertyExpression>::value>>
     Status addFilterItem(RelationalExpression* expr, FilterItems* items) const;
-
-    Expression::Kind reverseRelationalExprKind(Expression::Kind kind) const;
 
     IndexItem findOptimalIndex(graph::QueryContext *qctx,
                                const OptGroupNode *groupNode,

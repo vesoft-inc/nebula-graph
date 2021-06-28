@@ -39,10 +39,12 @@ StatusOr<SubPlan> LookupPlanner::transform(AstContext* astCtx) {
     auto lookupCtx = static_cast<LookupContext*>(astCtx);
     auto yieldCols = prepareReturnCols(lookupCtx);
     auto qctx = lookupCtx->qctx;
+    auto from = static_cast<const LookupSentence*>(lookupCtx->sentence)->from();
     SubPlan plan;
     if (lookupCtx->isEdge) {
         plan.tail = EdgeIndexFullScan::make(qctx,
                                             nullptr,
+                                            from,
                                             lookupCtx->space.id,
                                             {},
                                             returnCols_,
@@ -51,6 +53,7 @@ StatusOr<SubPlan> LookupPlanner::transform(AstContext* astCtx) {
     } else {
         plan.tail = TagIndexFullScan::make(qctx,
                                            nullptr,
+                                           from,
                                            lookupCtx->space.id,
                                            {},
                                            returnCols_,
