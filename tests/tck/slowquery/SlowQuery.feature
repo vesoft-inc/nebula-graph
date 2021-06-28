@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@slow_query
 Feature: Slow Query Test
 
   # There should be a least 2 thread to run this test case suite.
