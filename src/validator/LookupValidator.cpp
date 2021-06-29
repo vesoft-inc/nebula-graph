@@ -23,7 +23,6 @@ namespace graph {
 
 LookupValidator::LookupValidator(Sentence* sentence, QueryContext* context)
     : Validator(sentence, context) {
-    lookupCtx_ = getContext<LookupContext>();
 }
 
 const LookupSentence* LookupValidator::sentence() const {
@@ -43,6 +42,8 @@ AstContext* LookupValidator::getAstContext() {
 }
 
 Status LookupValidator::validateImpl() {
+    lookupCtx_ = getContext<LookupContext>();
+
     NG_RETURN_IF_ERROR(prepareFrom());
     NG_RETURN_IF_ERROR(prepareYield());
     NG_RETURN_IF_ERROR(prepareFilter());

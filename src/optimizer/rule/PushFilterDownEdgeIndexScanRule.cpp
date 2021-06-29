@@ -154,6 +154,9 @@ StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
                                               scan->filter());
     auto filterGroup = matched.node->group();
     auto optScanNode = OptGroupNode::create(ctx, scanNode, filterGroup);
+    for (auto group : matched.dependencies[0].node->dependencies()) {
+        optScanNode->dependsOn(group);
+    }
     TransformResult result;
     result.newGroupNodes.emplace_back(optScanNode);
     result.eraseCurr = true;

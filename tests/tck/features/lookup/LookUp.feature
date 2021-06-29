@@ -46,6 +46,213 @@ Feature: LookUpTest_Vid_String
     Then the result should be, in any order:
       | VertexID | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
       | "200"    | 200               | 200               | 200               |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 == 200 AND
+        lookup_tag_1.col3 == 200
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 == 200 AND
+        lookup_tag_1.col3 == 200
+      YIELD
+        lookup_tag_1.col1 AS col1
+        lookup_tag_1.col2 AS col2
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 >= 200 AND
+        lookup_tag_1.col3 == 200
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 >= 200 AND
+        lookup_tag_1.col3 == 200
+      YIELD
+        lookup_tag_1.col1 AS col1
+        lookup_tag_1.col2 AS col2
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 >= 200 AND
+        lookup_tag_1.col3 != 200
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 >= 200 AND
+        lookup_tag_1.col3 != 200
+      YIELD
+        lookup_tag_1.col1 AS col1
+        lookup_tag_1.col2 AS col2
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 == 200
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 == 200
+      YIELD
+        lookup_tag_1.col1 AS col1
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 != 200
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 == 200 AND
+        lookup_tag_1.col2 != 200
+      YIELD
+        lookup_tag_1.col1 AS col1
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 >= 200 AND
+        lookup_tag_1.col2 == 200
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 >= 200 AND
+        lookup_tag_1.col2 == 200
+      YIELD
+        lookup_tag_1.col1 AS col1
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 >= 200 AND
+        lookup_tag_1.col2 != 200
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 >= 200 AND
+        lookup_tag_1.col2 != 200
+      YIELD
+        lookup_tag_1.col1 AS col1
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 != 200
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 != 200
+      YIELD
+        lookup_tag_1.col1 AS col1
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID |
+      | "200"    |
     Then drop the used space
 
   Scenario: LookupTest SimpleEdge

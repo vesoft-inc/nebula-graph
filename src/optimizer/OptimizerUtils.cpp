@@ -592,10 +592,6 @@ void handleEqualIndex(const ColumnDef& field, const Value& value, IndexColumnHin
     hint->set_begin_value(OptimizerUtils::normalizeValue(field, value));
 }
 
-// void handleNotEqualIndex(IndexResult* result) {
-//     result->priorities.emplace_back(IndexPriority::kNotEqual);
-// }
-
 StatusOr<PriorityColumnHint> selectRelExprIndex(const ColumnDef& field,
                                                 const RelationalExpression* expr) {
     // TODO(yee): Reverse expression
@@ -651,10 +647,10 @@ StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const
     return result;
 }
 
-Status getIndexColumnHintInExpr(const ColumnDef& field,
-                                const LogicalExpression* expr,
-                                PriorityColumnHint* hint,
-                                Expression** which) {
+bool getIndexColumnHintInExpr(const ColumnDef& field,
+                              const LogicalExpression* expr,
+                              PriorityColumnHint* hint,
+                              Expression** which) {
     for (auto& operand : expr->operands()) {
         if (!operand->isRelExpr()) continue;
         auto relExpr = static_cast<const RelationalExpression*>(operand.get());
@@ -662,10 +658,10 @@ Status getIndexColumnHintInExpr(const ColumnDef& field,
         if (status.ok()) {
             *hint = std::move(status).value();
             *which = operand.get();
-            break;
+            return true;
         }
     }
-    return Status::OK();
+    return false;
 }
 
 std::unique_ptr<Expression> cloneUnusedExpr(const LogicalExpression* expr,
@@ -696,7 +692,9 @@ StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
     for (auto& field : index.get_fields()) {
         PriorityColumnHint hint;
         Expression* operand = nullptr;
-        NG_RETURN_IF_ERROR(getIndexColumnHintInExpr(field, expr, &hint, &operand));
+        if (!getIndexColumnHintInExpr(field, expr, &hint, &operand)) {
+            break;
+        }
         result.hints.emplace_back(std::move(hint));
         usedOperands.emplace_back(operand);
     }

@@ -26,11 +26,22 @@ void PlannersRegister::registPlanners() {
 }
 
 void PlannersRegister::registSequential() {
-    auto& planners = Planner::plannersMap()[Sentence::Kind::kSequential];
-    planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::make);
-    planners.emplace_back(&PathPlanner::match, &PathPlanner::make);
-    planners.emplace_back(&GoPlanner::match, &GoPlanner::make);
-    planners.emplace_back(&LookupPlanner::match, &LookupPlanner::make);
+    {
+        auto& planners = Planner::plannersMap()[Sentence::Kind::kSequential];
+        planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::make);
+    }
+    {
+        auto& planners = Planner::plannersMap()[Sentence::Kind::kFindPath];
+        planners.emplace_back(&PathPlanner::match, &PathPlanner::make);
+    }
+    {
+        auto& planners = Planner::plannersMap()[Sentence::Kind::kGo];
+        planners.emplace_back(&GoPlanner::match, &GoPlanner::make);
+    }
+    {
+        auto& planners = Planner::plannersMap()[Sentence::Kind::kLookup];
+        planners.emplace_back(&LookupPlanner::match, &LookupPlanner::make);
+    }
 }
 
 void PlannersRegister::registMatch() {
