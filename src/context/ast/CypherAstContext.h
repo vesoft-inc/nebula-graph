@@ -79,7 +79,7 @@ struct CypherClauseContextBase : AstContext {
 struct WhereClauseContext final : CypherClauseContextBase {
     WhereClauseContext() : CypherClauseContextBase(CypherClauseKind::kWhere) {}
 
-    Expression* filter;
+    Expression* filter{nullptr};
     std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
 };
 
@@ -135,7 +135,7 @@ struct MatchClauseContext final : CypherClauseContextBase {
 
     std::vector<NodeInfo>                       nodeInfos;
     std::vector<EdgeInfo>                       edgeInfos;
-    std::unique_ptr<PathBuildExpression>        pathBuild;
+    PathBuildExpression*                        pathBuild{nullptr};
     const std::string                          *pathAlias;
     std::unique_ptr<WhereClauseContext>         where;
     std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
@@ -176,7 +176,7 @@ struct NodeContext final : PatternContext {
     ScanInfo                    scanInfo;
     List                        ids;
     // initialize start expression in project node
-    std::unique_ptr<Expression> initialExpr;
+    Expression* initialExpr{nullptr};
 };
 
 struct EdgeContext final : PatternContext {
@@ -188,7 +188,7 @@ struct EdgeContext final : PatternContext {
     // Output fields
     ScanInfo                    scanInfo;
     // initialize start expression in project node
-    std::unique_ptr<Expression> initialExpr;
+    Expression* initialExpr{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

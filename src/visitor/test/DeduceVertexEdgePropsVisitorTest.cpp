@@ -21,7 +21,7 @@ TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
                                                        {"e", AliasType::kEdge}};
     {
         // v.prop
-        auto expr = std::unique_ptr<LabelAttributeExpression>(laExpr("v", "prop"));
+        auto expr = laExpr("v", "prop");
         VertexEdgeProps props;
         DeduceVertexEdgePropsVisitor visitor(props, aliases);
         expr->accept(&visitor);
@@ -32,8 +32,7 @@ TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
     }
     {
         // (v.prop + 3) > e.prop1
-        auto expr = std::unique_ptr<Expression>(
-            gtExpr(addExpr(laExpr("v", "prop"), constantExpr(3)), laExpr("e", "prop1")));
+        auto expr = gtExpr(addExpr(laExpr("v", "prop"), constantExpr(3)), laExpr("e", "prop1"));
         VertexEdgeProps props;
         DeduceVertexEdgePropsVisitor visitor(props, aliases);
         expr->accept(&visitor);
@@ -46,8 +45,7 @@ TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
     }
     {
         // id(v) > v.prop
-        auto expr = std::unique_ptr<Expression>(
-            gtExpr(fnExpr("id", {labelExpr("v")}), laExpr("v", "prop")));
+        auto expr = gtExpr(fnExpr("id", {labelExpr("v")}), laExpr("v", "prop"));
         VertexEdgeProps props;
         DeduceVertexEdgePropsVisitor visitor(props, aliases);
         expr->accept(&visitor);
@@ -60,8 +58,7 @@ TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
     }
     {
         // v + e + v.prop
-        auto expr = std::unique_ptr<Expression>(
-            addExpr(addExpr(labelExpr("v"), labelExpr("e")), laExpr("v", "prop")));
+        auto expr = addExpr(addExpr(labelExpr("v"), labelExpr("e")), laExpr("v", "prop"));
         VertexEdgeProps props;
         DeduceVertexEdgePropsVisitor visitor(props, aliases);
         expr->accept(&visitor);

@@ -22,10 +22,10 @@ namespace graph {
 class Expand final {
 public:
     Expand(MatchClauseContext* matchClauseCtx,
-           std::unique_ptr<Expression> initialExpr,
+           Expression* initialExpr,
            const VertexEdgeProps &propsUsed)
         : matchClauseCtx_(matchClauseCtx),
-          initialExpr_(std::move(initialExpr)),
+          initialExpr_(initialExpr),
           propsUsed_(propsUsed) {}
 
     Expand* reversely() {
@@ -84,7 +84,7 @@ private:
                        std::vector<std::string> &props);
 
     MatchClauseContext*                 matchClauseCtx_;
-    std::unique_ptr<Expression>         initialExpr_;
+    Expression*                         initialExpr_{nullptr};
     bool                                reversely_{false};
     PlanNode*                           dependency_{nullptr};
     std::string                         inputVar_;
