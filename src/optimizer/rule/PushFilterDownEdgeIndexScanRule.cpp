@@ -28,8 +28,10 @@ using nebula::Expression;
 using nebula::graph::EdgeIndexFullScan;
 using nebula::graph::EdgeIndexPrefixScan;
 using nebula::graph::EdgeIndexRangeScan;
+using nebula::graph::EdgeIndexScan;
 using nebula::graph::Filter;
 using nebula::graph::OptimizerUtils;
+using nebula::graph::QueryContext;
 using nebula::meta::cpp2::IndexItem;
 using nebula::storage::cpp2::IndexQueryContext;
 
@@ -69,7 +71,25 @@ bool PushFilterDownEdgeIndexScanRule::match(OptContext* ctx, const MatchedResult
         return condition->kind() == Expression::Kind::kLogicalAnd;
     }
 
-    return true;
+    return false;
+}
+
+EdgeIndexScan* makeEdgeIndexScan(QueryContext* qctx, const EdgeIndexScan* scan, bool isPrefixScan) {
+    EdgeIndexScan* scanNode = nullptr;
+    if (isPrefixScan) {
+        scanNode = EdgeIndexPrefixScan::make(qctx, nullptr, scan->edgeType());
+    } else {
+        scanNode = EdgeIndexRangeScan::make(qctx, nullptr, scan->edgeType());
+    }
+    scanNode->setDedup(scan->dedup());
+    scanNode->setFilter(scan->filter());
+    scanNode->setLimit(scan->limit());
+    scanNode->setOrderBy(scan->orderBy());
+    scanNode->setReturnCols(scan->returnColumns());
+    scanNode->setSchemaId(scan->schemaId());
+    scanNode->setEmptyResultSet(scan->isEmptyResultSet());
+    scanNode->setSpace(scan->space());
+    return scanNode;
 }
 
 StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
@@ -117,6 +137,7 @@ StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
         return TransformResult::noTransform();
     }
 
+    bool isPrefixScan = false;
     std::vector<IndexQueryContext> idxCtxs;
     IndexQueryContext ictx;
     ictx.set_index_id(index.index->get_index_id());
@@ -127,6 +148,7 @@ StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
         auto& hint = *iter;
         if (hint.priority == IndexPriority::kPrefix) {
             hints.emplace_back(std::move(hint.hint));
+            isPrefixScan = true;
             continue;
         }
         if (hint.priority == IndexPriority::kRange) {
@@ -140,18 +162,10 @@ StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
     ictx.set_column_hints(std::move(hints));
     idxCtxs.emplace_back(std::move(ictx));
 
-    auto scanNode = EdgeIndexPrefixScan::make(ctx->qctx(),
-                                              nullptr,
-                                              scan->edgeType(),
-                                              scan->space(),
-                                              std::move(idxCtxs),
-                                              scan->returnColumns(),
-                                              scan->schemaId(),
-                                              scan->isEmptyResultSet(),
-                                              scan->dedup(),
-                                              scan->orderBy(),
-                                              scan->limit(),
-                                              scan->filter());
+    EdgeIndexScan* scanNode = makeEdgeIndexScan(ctx->qctx(), scan, isPrefixScan);
+    scanNode->setIndexQueryContext(std::move(idxCtxs));
+    scanNode->setOutputVar(filter->outputVar());
+    scanNode->setColNames(filter->colNames());
     auto filterGroup = matched.node->group();
     auto optScanNode = OptGroupNode::create(ctx, scanNode, filterGroup);
     for (auto group : matched.dependencies[0].node->dependencies()) {

@@ -9,6 +9,7 @@
 
 #include "common/expression/AggregateExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "common/thrift/ThriftTypes.h"
 #include "context/QueryContext.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
@@ -31,6 +32,10 @@ class Explore : public SingleInputNode {
 public:
     GraphSpaceID space() const {
         return space_;
+    }
+
+    void setSpace(GraphSpaceID spaceId) {
+        space_ = spaceId;
     }
 
     bool dedup() const {
@@ -478,8 +483,16 @@ public:
         return schemaId_;
     }
 
+    void setSchemaId(int32_t schema) {
+        schemaId_ = schema;
+    }
+
     bool isEmptyResultSet() const {
         return isEmptyResultSet_;
+    }
+
+    void setEmptyResultSet(bool isEmptyResultSet) {
+        isEmptyResultSet_ = isEmptyResultSet;
     }
 
     void setIndexQueryContext(std::vector<IndexQueryContext> contexts) {
@@ -492,10 +505,6 @@ public:
 
     void setIsEdge(bool isEdge) {
         isEdge_ = isEdge;
-    }
-
-    void setSchemaId(int32_t schema) {
-        schemaId_ = schema;
     }
 
     PlanNode* clone() const override;
@@ -532,7 +541,7 @@ private:
     int32_t                                       schemaId_;
 
     // TODO(yee): Generate special plan for this scenario
-    bool isEmptyResultSet_;
+    bool isEmptyResultSet_{false};
 };
 
 // Logical Plan
