@@ -752,17 +752,15 @@ private:
 
 class QueryUniqueIdentifier final {
 public:
-    explicit QueryUniqueIdentifier(Expression* epId, Expression* sessionId) {
-        sessionId_.reset(sessionId);
-        epId_.reset(epId);
-    }
+    explicit QueryUniqueIdentifier(Expression* epId, Expression* sessionId)
+        : epId_(epId), sessionId_(sessionId) {}
 
     Expression* sessionId() const {
-        return sessionId_.get();
+        return sessionId_;
     }
 
     Expression* epId() const {
-        return epId_.get();
+        return epId_;
     }
 
     void setSession() {
@@ -774,9 +772,9 @@ public:
     }
 
 private:
-    std::unique_ptr<Expression> sessionId_;
-    bool                        isSetSession_{false};
-    std::unique_ptr<Expression> epId_;
+    Expression* epId_{nullptr};
+    Expression* sessionId_{nullptr};
+    bool        isSetSession_{false};
 };
 
 class KillQuerySentence final : public Sentence {

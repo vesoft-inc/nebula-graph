@@ -151,8 +151,8 @@ static constexpr size_t kCommentLengthLimit = 256;
 /* destructors */
 %destructor {} <sentences>
 // Expression related memory will be managed by object pool
-%destructor {} <expr> <argument_list> <case_list> <expression_list> <map_item_list> 
-%destructor {} <text_search_argument> <base_text_search_argument> <fuzzy_text_search_argument> 
+%destructor {} <expr> <argument_list> <case_list> <expression_list> <map_item_list>
+%destructor {} <text_search_argument> <base_text_search_argument> <fuzzy_text_search_argument>
 %destructor {} <boolval> <intval> <doubleval> <type> <config_module> <integer_list> <list_host_type>
 %destructor { delete $$; } <*>
 
@@ -3315,7 +3315,7 @@ kill_query_sentence
 
 query_unique_identifier_value
     : legal_integer {
-        $$ = new ConstantExpression($1);
+        $$ = ConstantExpression::make(qctx->objPool(), $1);
     }
     | input_prop_expression {
         $$ = $1;
@@ -3324,7 +3324,7 @@ query_unique_identifier_value
 
 query_unique_identifier
     : KW_PLAN ASSIGN query_unique_identifier_value {
-        $$ = new QueryUniqueIdentifier($3, new ConstantExpression(Value(-1)));
+        $$ = new QueryUniqueIdentifier($3, ConstantExpression::make(qctx->objPool(), Value(-1)));
     }
     | KW_SESSION ASSIGN query_unique_identifier_value COMMA KW_PLAN ASSIGN query_unique_identifier_value {
         $$ = new QueryUniqueIdentifier($7, $3);

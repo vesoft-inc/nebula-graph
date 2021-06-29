@@ -2782,16 +2782,14 @@ TEST_F(ParserTest, FullTextServiceTest) {
 }
 
 
-TEST(Parser, SessionTest) {
+TEST_F(ParserTest, SessionTest) {
     {
-        // GQLParser parser(qctx.get());
         std::string query = "SHOW SESSIONS";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
         ASSERT_EQ(result.value()->toString(), "SHOW SESSIONS");
     }
     {
-        // GQLParser parser(qctx.get());
         std::string query = "SHOW SESSION 123";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
@@ -2825,39 +2823,34 @@ TEST_F(ParserTest, JobTest) {
             "REBUILD EDGE INDEX name_index,age_index");
 }
 
-TEST(Parser, ShowAndKillQueryTest) {
+TEST_F(ParserTest, ShowAndKillQueryTest) {
     {
-        GQLParser parser;
         std::string query = "SHOW QUERIES";
-        auto result = parser.parse(query);
+        auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
         ASSERT_EQ(result.value()->toString(), "SHOW QUERIES");
     }
     {
-        GQLParser parser;
         std::string query = "SHOW ALL QUERIES";
-        auto result = parser.parse(query);
+        auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
         ASSERT_EQ(result.value()->toString(), "SHOW ALL QUERIES");
     }
     {
-        GQLParser parser;
         std::string query = "KILL QUERY (plan=123)";
-        auto result = parser.parse(query);
+        auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
         ASSERT_EQ(result.value()->toString(), "KILL QUERY (plan=123)");
     }
     {
-        GQLParser parser;
         std::string query = "KILL QUERY (session=123, plan=123)";
-        auto result = parser.parse(query);
+        auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
         ASSERT_EQ(result.value()->toString(), "KILL QUERY (session=123, plan=123)");
     }
     {
-        GQLParser parser;
         std::string query = "KILL QUERY (plan=123, session=123)";
-        auto result = parser.parse(query);
+        auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
         ASSERT_EQ(result.value()->toString(), "KILL QUERY (session=123, plan=123)");
     }
