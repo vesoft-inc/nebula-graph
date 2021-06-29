@@ -57,12 +57,11 @@ public:
                 if (hints[i].priority < rhs.hints[i].priority) {
                     return true;
                 }
+                if (hints[i].priority > rhs.hints[i].priority) {
+                    return false;
+                }
             }
-            if (hints.size() < rhs.hints.size()) {
-                return true;
-            }
-
-            return false;
+            return hints.size() < rhs.hints.size();
         }
     };
 

@@ -33,6 +33,7 @@ private:
     void appendColumns(LookupContext* lookupCtx, YieldColumns* columns);
 
     std::vector<std::string> returnCols_;
+    std::vector<std::string> colNames_;
 };
 
 }   // namespace graph

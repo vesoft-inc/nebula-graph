@@ -6,6 +6,8 @@
 
 #include "planner/ngql/LookupPlanner.h"
 
+#include <tuple>
+
 #include "common/base/Base.h"
 #include "common/base/Status.h"
 #include "common/expression/Expression.h"
@@ -25,7 +27,11 @@ static constexpr char kDstVID[] = "DstVID";
 static constexpr char kRanking[] = "Ranking";
 static constexpr char kVertexID[] = "VertexID";
 
-static const char* kEdgeKeys[3] = {kSrcVID, kDstVID, kRanking};
+static std::tuple<const char*, const char*> kEdgeKeys[3] = {
+    {kSrcVID, kSrc},
+    {kDstVID, kDst},
+    {kRanking, kRank},
+};
 
 std::unique_ptr<Planner> LookupPlanner::make() {
     return std::unique_ptr<LookupPlanner>(new LookupPlanner());
@@ -60,6 +66,7 @@ StatusOr<SubPlan> LookupPlanner::transform(AstContext* astCtx) {
                                            lookupCtx->schemaId,
                                            lookupCtx->isEmptyResultSet);
     }
+    plan.tail->setColNames(colNames_);
 
     plan.root = plan.tail;
 
@@ -74,17 +81,19 @@ StatusOr<SubPlan> LookupPlanner::transform(AstContext* astCtx) {
 YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) {
     auto pool = lookupCtx->qctx->objPool();
     auto columns = pool->makeAndAdd<YieldColumns>();
-    auto addColumn = [this, columns](const std::string& name) {
+    auto addColumn = [this, columns](const auto& tup) {
+        std::string name(std::get<0>(tup));
         auto expr = new InputPropertyExpression(name);
         columns->addColumn(new YieldColumn(expr, name));
-        returnCols_.emplace_back(name);
+        returnCols_.emplace_back(std::get<1>(tup));
+        colNames_.emplace_back(name);
     };
     if (lookupCtx->isEdge) {
         for (auto& key : kEdgeKeys) {
             addColumn(key);
         }
     } else {
-        addColumn(kVertexID);
+        addColumn(std::make_tuple(kVertexID, kVid));
     }
     if (lookupCtx->withProject) {
         appendColumns(lookupCtx, columns);
@@ -109,6 +118,7 @@ void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* column
         }
         columns->addColumn(new YieldColumn(propExpr, col->alias()));
         returnCols_.emplace_back(colName);
+        colNames_.emplace_back(propExpr->toString());
     }
 }
 

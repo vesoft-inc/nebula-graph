@@ -636,8 +636,8 @@ StatusOr<PriorityColumnHint> selectRelExprIndex(const ColumnDef& field,
 
 StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const IndexItem& index) {
     const auto& fields = index.get_fields();
-    if (fields.size() != 1U) {
-        return Status::Error("Not single column index.");
+    if (fields.empty()) {
+        return Status::Error("Index(%s) does not have any fields.", index.get_index_name().c_str());
     }
     auto status = selectRelExprIndex(fields[0], expr);
     NG_RETURN_IF_ERROR(status);
@@ -697,6 +697,9 @@ StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
         }
         result.hints.emplace_back(std::move(hint));
         usedOperands.emplace_back(operand);
+    }
+    if (result.hints.empty()) {
+        return Status::Error("There is not index to use.");
     }
     result.unusedExpr = cloneUnusedExpr(expr, usedOperands);
     result.index = &index;

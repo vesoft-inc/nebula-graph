@@ -778,7 +778,7 @@ protected:
                     space,
                     std::move(contexts),
                     std::move(returnCols),
-                    true,
+                    false,
                     schemaId,
                     isEmptyResultSet,
                     dedup,

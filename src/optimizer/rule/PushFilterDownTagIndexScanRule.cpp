@@ -89,13 +89,13 @@ StatusOr<TransformResult> PushFilterDownTagIndexScanRule::transform(
     auto scan = static_cast<const TagIndexFullScan*>(matched.planNode({0, 0}));
 
     auto metaClient = ctx->qctx()->getMetaClient();
-    auto status = metaClient->getEdgeIndexesFromCache(scan->space());
+    auto status = metaClient->getTagIndexesFromCache(scan->space());
     NG_RETURN_IF_ERROR(status);
     auto indexItems = std::move(status).value();
 
     // Erase invalid index items
     for (auto iter = indexItems.begin(); iter != indexItems.end();) {
-        if ((*iter)->get_schema_id().get_edge_type() != scan->schemaId()) {
+        if ((*iter)->get_schema_id().get_tag_id() != scan->schemaId()) {
             iter = indexItems.erase(iter);
         } else {
             iter++;
@@ -122,7 +122,7 @@ StatusOr<TransformResult> PushFilterDownTagIndexScanRule::transform(
 
     std::sort(results.begin(), results.end());
 
-    auto& index = results.front();
+    auto& index = results.back();
     if (index.hints.empty()) {
         return TransformResult::noTransform();
     }
@@ -143,8 +143,11 @@ StatusOr<TransformResult> PushFilterDownTagIndexScanRule::transform(
         }
         if (hint.priority == IndexPriority::kRange) {
             hints.emplace_back(std::move(hint.hint));
-            break;
+            // skip the case first range hint is the last hint
+            // when set filter in index query context
+            ++iter;
         }
+        break;
     }
     if (iter != index.hints.end() || index.unusedExpr) {
         ictx.set_filter(condition->encode());

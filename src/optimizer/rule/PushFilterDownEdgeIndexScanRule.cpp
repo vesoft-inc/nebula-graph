@@ -132,7 +132,7 @@ StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
 
     std::sort(results.begin(), results.end());
 
-    auto& index = results.front();
+    auto& index = results.back();
     if (index.hints.empty()) {
         return TransformResult::noTransform();
     }
@@ -153,8 +153,11 @@ StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
         }
         if (hint.priority == IndexPriority::kRange) {
             hints.emplace_back(std::move(hint.hint));
-            break;
+            // skip the case first range hint is the last hint
+            // when set filter in index query context
+            ++iter;
         }
+        break;
     }
     if (iter != index.hints.end() || index.unusedExpr) {
         ictx.set_filter(condition->encode());

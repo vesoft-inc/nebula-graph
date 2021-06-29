@@ -56,6 +56,7 @@ private:
 private:
     Status getSchemaProvider(std::shared_ptr<const meta::NebulaSchemaProvider>* provider) const;
     StatusOr<Expression*> genTsFilter(Expression* filter);
+    StatusOr<Expression*> handleLogicalExprOperands(LogicalExpression* lExpr);
 
     std::unique_ptr<LookupContext> lookupCtx_;
     std::vector<nebula::plugin::HttpClient> tsClients_;

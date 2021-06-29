@@ -22,8 +22,7 @@ namespace nebula {
 namespace graph {
 
 LookupValidator::LookupValidator(Sentence* sentence, QueryContext* context)
-    : Validator(sentence, context) {
-}
+    : Validator(sentence, context) {}
 
 const LookupSentence* LookupValidator::sentence() const {
     return static_cast<LookupSentence*>(sentence_);
@@ -121,19 +120,29 @@ Status LookupValidator::prepareFilter() {
     return Status::OK();
 }
 
+StatusOr<Expression*> LookupValidator::handleLogicalExprOperands(LogicalExpression* lExpr) {
+    auto& operands = lExpr->operands();
+    for (auto i = 0u; i < operands.size(); i++) {
+        auto operand = lExpr->operand(i);
+        auto ret = checkFilter(operand);
+        NG_RETURN_IF_ERROR(ret);
+        auto newOperand = ret.value();
+        if (operand != newOperand) {
+            lExpr->setOperand(i, newOperand);
+        }
+    }
+    return lExpr;
+}
+
 StatusOr<Expression*> LookupValidator::checkFilter(Expression* expr) {
     switch (expr->kind()) {
-        case Expression::Kind::kLogicalOr:
+        case Expression::Kind::kLogicalOr: {
+            ExpressionUtils::pullOrs(expr);
+            return handleLogicalExprOperands(static_cast<LogicalExpression*>(expr));
+        }
         case Expression::Kind::kLogicalAnd: {
-            // TODO(dutor) Deal with n-ary operands
-            auto lExpr = static_cast<LogicalExpression*>(expr);
-            auto& operands = lExpr->operands();
-            for (auto i = 0u; i < operands.size(); i++) {
-                auto ret = checkFilter(lExpr->operand(i));
-                NG_RETURN_IF_ERROR(ret);
-                lExpr->setOperand(i, ret.value()->clone());
-            }
-            break;
+            ExpressionUtils::pullAnds(expr);
+            return handleLogicalExprOperands(static_cast<LogicalExpression*>(expr));
         }
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGE:
@@ -141,15 +150,13 @@ StatusOr<Expression*> LookupValidator::checkFilter(Expression* expr) {
         case Expression::Kind::kRelLT:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelNE: {
-            auto* rExpr = static_cast<RelationalExpression*>(expr);
-            return checkRelExpr(rExpr);
+            return checkRelExpr(static_cast<RelationalExpression*>(expr));
         }
         default: {
             return Status::SemanticError("Expression %s not supported yet",
                                          expr->toString().c_str());
         }
     }
-    return expr;
 }
 
 StatusOr<Expression*> LookupValidator::checkRelExpr(RelationalExpression* expr) {
