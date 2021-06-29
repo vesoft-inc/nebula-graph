@@ -20,16 +20,15 @@ folly::Future<Status> ShowQueriesExecutor::execute() {
 
     auto* showQueries = asNode<ShowQueries>(node());
     auto isAll = showQueries->isAll();
-    auto topN = showQueries->topN();
 
     if (!isAll) {
-        return showCurrentSessionQueries(topN);
+        return showCurrentSessionQueries();
     } else {
-        return showAllSessionQueries(topN);
+        return showAllSessionQueries();
     }
 }
 
-folly::Future<Status> ShowQueriesExecutor::showCurrentSessionQueries(int64_t topN) {
+folly::Future<Status> ShowQueriesExecutor::showCurrentSessionQueries() {
     DataSet dataSet({"SessionID",
                      "ExecutionPlanID",
                      "User",
@@ -42,7 +41,6 @@ folly::Future<Status> ShowQueriesExecutor::showCurrentSessionQueries(int64_t top
     auto sessionInMeta = session->getSession();
 
     addQueries(sessionInMeta, dataSet);
-    findTopN(topN, dataSet);
     return finish(ResultBuilder()
                       .value(Value(std::move(dataSet)))
                       .iter(Iterator::Kind::kSequential)
@@ -50,10 +48,10 @@ folly::Future<Status> ShowQueriesExecutor::showCurrentSessionQueries(int64_t top
 }
 
 // The queries might not sync to meta completely.
-folly::Future<Status> ShowQueriesExecutor::showAllSessionQueries(int64_t topN) {
+folly::Future<Status> ShowQueriesExecutor::showAllSessionQueries() {
     return qctx()->getMetaClient()->listSessions()
             .via(runner())
-            .thenValue([topN, this](StatusOr<meta::cpp2::ListSessionsResp> resp) {
+            .thenValue([this](StatusOr<meta::cpp2::ListSessionsResp> resp) {
                 SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     return Status::Error("Show sessions failed: %s.",
@@ -71,7 +69,6 @@ folly::Future<Status> ShowQueriesExecutor::showAllSessionQueries(int64_t topN) {
                 for (auto& session : sessions) {
                     addQueries(session, dataSet);
                 }
-                findTopN(topN, dataSet);
                 return finish(ResultBuilder()
                                     .value(Value(std::move(dataSet)))
                                     .iter(Iterator::Kind::kSequential)
@@ -98,20 +95,5 @@ void ShowQueriesExecutor::addQueries(const meta::cpp2::Session& session, DataSet
     }
 }
 
-void ShowQueriesExecutor::findTopN(int64_t topN, DataSet& dataSet) const {
-    auto cmp = [] (const Row& lhs, const Row& rhs) {
-        if (lhs[5] > rhs[5]) {
-            return true;
-        }
-        return false;
-    };
-    if (topN > 0) {
-        std::sort(dataSet.rows.begin(), dataSet.rows.end(), cmp);
-        auto rowSize = dataSet.rows.size();
-        if (rowSize > static_cast<size_t>(topN)) {
-            dataSet.rows.erase(dataSet.rows.begin() + topN, dataSet.rows.end());
-        }
-    }
-}
 }  // namespace graph
 }  // namespace nebula

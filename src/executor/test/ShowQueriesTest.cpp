@@ -54,25 +54,44 @@ TEST_F(ShowQueriesTest, TestAddQueryAndTopN) {
                      "Status",
                      "Query"});
     DataSet expected = dataSet;
-    Row row;
-    row.emplace_back(1);
-    row.emplace_back(2);
-    row.emplace_back("root");
-    row.emplace_back("\"127.0.0.1\":9669");
-    auto dateTime =
-        time::TimeUtils::unixSecondsToDateTime(123 / 1000000);
-    dateTime.microsec = 123;
-    row.emplace_back(std::move(dateTime));
-    row.emplace_back(200);
-    row.emplace_back("RUNNING");
-    row.emplace_back("");
-    expected.rows.emplace_back(std::move(row));
+    {
+        Row row;
+        row.emplace_back(1);
+        row.emplace_back(1);
+        row.emplace_back("root");
+        row.emplace_back("\"127.0.0.1\":9669");
+        auto dateTime =
+            time::TimeUtils::unixSecondsToDateTime(123 / 1000000);
+        dateTime.microsec = 123;
+        row.emplace_back(std::move(dateTime));
+        row.emplace_back(100);
+        row.emplace_back("RUNNING");
+        row.emplace_back("");
+        expected.rows.emplace_back(std::move(row));
+    }
+    {
+        Row row;
+        row.emplace_back(1);
+        row.emplace_back(2);
+        row.emplace_back("root");
+        row.emplace_back("\"127.0.0.1\":9669");
+        auto dateTime =
+            time::TimeUtils::unixSecondsToDateTime(123 / 1000000);
+        dateTime.microsec = 123;
+        row.emplace_back(std::move(dateTime));
+        row.emplace_back(200);
+        row.emplace_back("RUNNING");
+        row.emplace_back("");
+        expected.rows.emplace_back(std::move(row));
+    }
 
-    auto* showQueries = ShowQueries::make(qctx_.get(), nullptr, true, 1);
+    auto* showQueries = ShowQueries::make(qctx_.get(), nullptr, true);
     ShowQueriesExecutor exe(showQueries, qctx_.get());
     exe.addQueries(session, dataSet);
-    exe.findTopN(1, dataSet);
-    EXPECT_EQ(expected, dataSet);
+    EXPECT_EQ(expected.size(), dataSet.size());
+    for (auto& row : expected) {
+        EXPECT_TRUE(std::find(dataSet.rows.begin(), dataSet.rows.end(), row) != dataSet.rows.end());
+    }
 }
 }  // namespace graph
 }  // namespace nebula

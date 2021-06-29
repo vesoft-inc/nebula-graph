@@ -20,13 +20,11 @@ public:
 
 private:
     friend class ShowQueriesTest_TestAddQueryAndTopN_Test;
-    folly::Future<Status> showCurrentSessionQueries(int64_t topN);
+    folly::Future<Status> showCurrentSessionQueries();
 
-    folly::Future<Status> showAllSessionQueries(int64_t topN);
+    folly::Future<Status> showAllSessionQueries();
 
     void addQueries(const meta::cpp2::Session& session, DataSet& dataSet) const;
-
-    void findTopN(int64_t topN, DataSet& dataSet) const;
 };
 }  // namespace graph
 }  // namespace nebula

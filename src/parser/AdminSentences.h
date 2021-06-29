@@ -735,25 +735,19 @@ private:
 
 class ShowQueriesSentence final : public Sentence {
 public:
-    explicit ShowQueriesSentence(bool isAll = false, int64_t topN = -1) {
+    explicit ShowQueriesSentence(bool isAll = false) {
         kind_ = Kind::kShowQueries;
         isAll_ = isAll;
-        topN_ = topN;
     }
 
     bool isAll() const {
         return isAll_;
     }
 
-    int64_t topN() const {
-        return topN_;
-    }
-
     std::string toString() const override;
 
 private:
     bool isAll_{false};
-    int64_t topN_{-1};
 };
 
 class QueryUniqueIdentifier final {

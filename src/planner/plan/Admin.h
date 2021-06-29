@@ -1370,26 +1370,21 @@ private:
 
 class ShowQueries final : public SingleInputNode {
 public:
-    static ShowQueries* make(QueryContext* qctx, PlanNode* input, bool isAll, int64_t topN) {
-        return qctx->objPool()->add(new ShowQueries(qctx, input, isAll, topN));
+    static ShowQueries* make(QueryContext* qctx, PlanNode* input, bool isAll) {
+        return qctx->objPool()->add(new ShowQueries(qctx, input, isAll));
     }
 
     bool isAll() const {
         return isAll_;
     }
 
-    int64_t topN() const {
-        return topN_;
-    }
-
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
-    explicit ShowQueries(QueryContext* qctx, PlanNode* input, bool isAll, int64_t topN)
-        : SingleInputNode(qctx, Kind::kShowQueries, input), isAll_(isAll), topN_(topN) {}
+    explicit ShowQueries(QueryContext* qctx, PlanNode* input, bool isAll)
+        : SingleInputNode(qctx, Kind::kShowQueries, input), isAll_(isAll) {}
 
     bool isAll_{false};
-    int64_t topN_{-1};
 };
 
 class KillQuery final : public SingleInputNode {

@@ -539,7 +539,7 @@ Status ShowQueriesValidator::validateImpl() {
 
 Status ShowQueriesValidator::toPlan() {
     auto sentence = static_cast<ShowQueriesSentence*>(sentence_);
-    auto *node = ShowQueries::make(qctx_, nullptr, sentence->isAll(), sentence->topN());
+    auto *node = ShowQueries::make(qctx_, nullptr, sentence->isAll());
     root_ = node;
     tail_ = root_;
     return Status::OK();
