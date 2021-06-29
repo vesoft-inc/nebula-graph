@@ -49,8 +49,8 @@ folly::Future<Status> KillQueryExecutor::execute() {
                 return Status::Error("ExecutionPlanId[%ld] does not exist in current Session.",
                                      epId);
             }
-            return Status::OK();
             session->markQueryKilled(epId);
+            killQueries[session->id()].emplace(epId);
         } else {
             auto cb = [sessionId, epId] (StatusOr<std::shared_ptr<ClientSession>> ret) {
                 if (!ret.ok()) {
