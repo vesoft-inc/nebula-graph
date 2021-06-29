@@ -623,7 +623,7 @@ Feature: Basic Aggregate and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,abs(avg(distinct count($-.age))) AS age
       """
-    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `abs(avg(distinct count($-.age)))'
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `avg(distinct count($-.age))'
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
