@@ -22,6 +22,7 @@ using nebula::storage::cpp2::IndexColumnHint;
 
 using IndexResult = nebula::graph::OptimizerUtils::IndexResult;
 using IndexPriority = nebula::graph::OptimizerUtils::IndexPriority;
+using PriorityColumnHint = nebula::graph::OptimizerUtils::PriorityColumnHint;
 using BVO = nebula::graph::OptimizerUtils::BoundValueOperator;
 
 namespace nebula {
@@ -595,9 +596,8 @@ void handleEqualIndex(const ColumnDef& field, const Value& value, IndexColumnHin
 //     result->priorities.emplace_back(IndexPriority::kNotEqual);
 // }
 
-StatusOr<std::pair<IndexColumnHint, IndexPriority>> selectRelExprIndex(
-    const ColumnDef& field,
-    const RelationalExpression* expr) {
+StatusOr<PriorityColumnHint> selectRelExprIndex(const ColumnDef& field,
+                                                const RelationalExpression* expr) {
     // TODO(yee): Reverse expression
     auto left = expr->left();
     DCHECK(left->kind() == Expression::Kind::kEdgeProperty ||
@@ -611,31 +611,31 @@ StatusOr<std::pair<IndexColumnHint, IndexPriority>> selectRelExprIndex(
     DCHECK(right->kind() == Expression::Kind::kConstant);
     const auto& value = static_cast<const ConstantExpression*>(right)->value();
 
-    IndexColumnHint hint;
-    IndexPriority priority;
+    PriorityColumnHint hint;
     switch (expr->kind()) {
         case Expression::Kind::kRelEQ: {
-            handleEqualIndex(field, value, &hint);
-            priority = IndexPriority::kPrefix;
+            handleEqualIndex(field, value, &hint.hint);
+            hint.priority = IndexPriority::kPrefix;
             break;
         }
         case Expression::Kind::kRelGE:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelLT: {
-            NG_RETURN_IF_ERROR(handleRangeIndex(field, expr, value, &hint));
-            priority = IndexPriority::kRange;
+            NG_RETURN_IF_ERROR(handleRangeIndex(field, expr, value, &hint.hint));
+            hint.priority = IndexPriority::kRange;
             break;
         }
         case Expression::Kind::kRelNE: {
-            priority = IndexPriority::kNotEqual;
+            hint.priority = IndexPriority::kNotEqual;
             break;
         }
         default: {
             return Status::Error("Invalid expression kind");
         }
     }
-    return std::make_pair(std::move(hint), priority);
+    hint.expr = expr;
+    return hint;
 }
 
 StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const IndexItem& index) {
@@ -645,26 +645,22 @@ StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const
     }
     auto status = selectRelExprIndex(fields[0], expr);
     NG_RETURN_IF_ERROR(status);
-    auto pair = std::move(status).value();
     IndexResult result;
-    result.priorities.emplace_back(pair.second);
-    result.hints.emplace_back(std::move(pair.first));
+    result.hints.emplace_back(std::move(status).value());
+    result.index = &index;
     return result;
 }
 
 Status getIndexColumnHintInExpr(const ColumnDef& field,
                                 const LogicalExpression* expr,
-                                IndexColumnHint* hint,
-                                IndexPriority* priority,
+                                PriorityColumnHint* hint,
                                 Expression** which) {
     for (auto& operand : expr->operands()) {
         if (!operand->isRelExpr()) continue;
         auto relExpr = static_cast<const RelationalExpression*>(operand.get());
         auto status = selectRelExprIndex(field, relExpr);
         if (status.ok()) {
-            auto pair = std::move(status).value();
-            *hint = std::move(pair.first);
-            *priority = pair.second;
+            *hint = std::move(status).value();
             *which = operand.get();
             break;
         }
@@ -698,15 +694,14 @@ StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
     result.hints.reserve(index.get_fields().size());
     std::vector<Expression*> usedOperands;
     for (auto& field : index.get_fields()) {
-        IndexColumnHint hint;
-        IndexPriority priority;
+        PriorityColumnHint hint;
         Expression* operand = nullptr;
-        NG_RETURN_IF_ERROR(getIndexColumnHintInExpr(field, expr, &hint, &priority, &operand));
+        NG_RETURN_IF_ERROR(getIndexColumnHintInExpr(field, expr, &hint, &operand));
         result.hints.emplace_back(std::move(hint));
-        result.priorities.emplace_back(priority);
         usedOperands.emplace_back(operand);
     }
     result.unusedExpr = cloneUnusedExpr(expr, usedOperands);
+    result.index = &index;
     return result;
 }
 

@@ -25,17 +25,45 @@ public:
         MIN,
     };
 
-    // {2, 1, 0} > {2, 1} > {2, 0} > {2} > {1, 2} > {1, 1} > {1}
+    // {2, 1, 0} >
+    // {2, 1} >
+    // {2, 0, 1} >
+    // {2, 0} >
+    // {2} >
+    // {1, 2} >
+    // {1, 1} >
+    // {1}
     enum class IndexPriority : uint8_t {
         kNotEqual = 0,
         kRange,
         kPrefix,
     };
 
+    struct PriorityColumnHint {
+        storage::cpp2::IndexColumnHint hint;
+        const Expression* expr;
+        IndexPriority priority;
+    };
+
     struct IndexResult {
+        const meta::cpp2::IndexItem* index;
         std::unique_ptr<Expression> unusedExpr;
-        std::vector<IndexPriority> priorities;
-        std::vector<storage::cpp2::IndexColumnHint> hints;
+        std::vector<PriorityColumnHint> hints;
+
+        bool operator<(const IndexResult& rhs) const {
+            if (hints.empty()) return true;
+            auto sz = std::min(hints.size(), rhs.hints.size());
+            for (size_t i = 0; i < sz; i++) {
+                if (hints[i].priority < rhs.hints[i].priority) {
+                    return true;
+                }
+            }
+            if (hints.size() < rhs.hints.size()) {
+                return true;
+            }
+
+            return false;
+        }
     };
 
     OptimizerUtils() = delete;

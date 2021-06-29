@@ -15,8 +15,6 @@ namespace opt {
 
 TEST(IndexScanRuleTest, BoundValueTest) {
     meta::cpp2::ColumnDef col;
-    auto* inst = std::move(IndexScanRule::kInstance).get();
-    auto* instance = static_cast<IndexScanRule*>(inst);
     IndexScanRule::FilterItems items;
     {
         Value begin, end;
@@ -26,7 +24,7 @@ TEST(IndexScanRuleTest, BoundValueTest) {
         items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(1L));
         items.addItem("col1", RelationalExpression::Kind::kRelLT, Value(5L));
         for (const auto& item : items.items) {
-            auto ret = instance->boundValue(item, col, begin, end);
+            auto ret = OptimizerUtils::boundValue(item.relOP_, item.value_, col, begin, end);
             ASSERT_TRUE(ret.ok());
         }
         // Expect begin = 2 , end = 5;
@@ -42,7 +40,7 @@ TEST(IndexScanRuleTest, BoundValueTest) {
         items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(1L));
         items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(6L));
         for (const auto& item : items.items) {
-            auto ret = instance->boundValue(item, col, begin, end);
+            auto ret = OptimizerUtils::boundValue(item.relOP_, item.value_, col, begin, end);
             ASSERT_TRUE(ret.ok());
         }
         // Expect begin = 7
@@ -58,7 +56,7 @@ TEST(IndexScanRuleTest, BoundValueTest) {
         items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(1L));
         items.addItem("col1", RelationalExpression::Kind::kRelGE, Value(6L));
         for (const auto& item : items.items) {
-            auto ret = instance->boundValue(item, col, begin, end);
+            auto ret = OptimizerUtils::boundValue(item.relOP_, item.value_, col, begin, end);
             ASSERT_TRUE(ret.ok());
         }
         // Expect begin = 6
@@ -74,7 +72,7 @@ TEST(IndexScanRuleTest, BoundValueTest) {
         items.addItem("col1", RelationalExpression::Kind::kRelLT, Value(1L));
         items.addItem("col1", RelationalExpression::Kind::kRelLE, Value(6L));
         for (const auto& item : items.items) {
-            auto ret = instance->boundValue(item, col, begin, end);
+            auto ret = OptimizerUtils::boundValue(item.relOP_, item.value_, col, begin, end);
             ASSERT_TRUE(ret.ok());
         }
         // Expect end = 1
