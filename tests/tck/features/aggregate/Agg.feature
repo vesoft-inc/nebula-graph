@@ -33,6 +33,13 @@ Feature: Basic Aggregate and GroupBy
     Then the result should be, in any order, with relax comparison:
       | v1 | v2   | v3 | v4   | v5   | v6   | v9   | v10  | v11  |
       | 0  | NULL | 0  | NULL | NULL | NULL | NULL | NULL | NULL |
+    When executing query:
+      """
+      YIELD 3 AS x | YIELD case COUNT($-.x) == 1 when true THEN 1 ELSE 0 END as a
+      """
+    Then the result should be, in any order, with relax comparison:
+      | a |
+      | 1 |
 
   Scenario: [1] Basic GroupBy
     When executing query:
@@ -598,6 +605,11 @@ Feature: Basic Aggregate and GroupBy
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.dst,$-.x YIELD avg(distinct $-.age) AS age
+      """
+    Then a SemanticError should be raised at runtime:  `$-.x', not exist prop `x'
+    When executing query:
+      """
+      YIELD case COUNT($-.x) == 1 when true THEN 1 ELSE 0 END as a
       """
     Then a SemanticError should be raised at runtime:  `$-.x', not exist prop `x'
     When executing query:
