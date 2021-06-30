@@ -92,21 +92,16 @@ StatusOr<Expression*> FTIndexUtils::rewriteTSFilter(
     }
 
     auto tsArg = static_cast<TextSearchExpression*>(expr)->arg();
-    auto& from = tsArg->from();
-    auto& prop = tsArg->prop();
+    Expression* propExpr;
+    if (isEdge) {
+        propExpr = EdgePropertyExpression::make(pool, tsArg->from(), tsArg->prop());
+    } else {
+        propExpr = TagPropertyExpression::make(pool, tsArg->from(), tsArg->prop());
+    }
     std::vector<Expression*> rels;
     for (const auto& row : vRet.value()) {
-        RelationalExpression* relExpr = nullptr;
-        if (isEdge) {
-            relExpr = RelationalExpression::makeEQ(pool,
-                                                   EdgePropertyExpression::make(pool, from, prop),
-                                                   ConstantExpression::make(pool, Value(row)));
-        } else {
-            relExpr = RelationalExpression::makeEQ(pool,
-                                                   TagPropertyExpression::make(pool, from, prop),
-                                                   ConstantExpression::make(pool, Value(row)));
-        }
-        rels.emplace_back(std::move(relExpr));
+        auto constExpr = ConstantExpression::make(pool, Value(row));
+        rels.emplace_back(RelationalExpression::makeEQ(pool, propExpr, constExpr));
     }
     if (rels.size() == 1) {
         return std::move(rels[0]);

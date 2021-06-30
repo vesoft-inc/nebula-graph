@@ -9,7 +9,6 @@
 
 #include "common/expression/AggregateExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
-#include "common/thrift/ThriftTypes.h"
 #include "context/QueryContext.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
