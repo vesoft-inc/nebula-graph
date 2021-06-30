@@ -98,20 +98,20 @@ StatusOr<Expression*> FTIndexUtils::rewriteTSFilter(
     for (const auto& row : vRet.value()) {
         RelationalExpression* relExpr = nullptr;
         if (isEdge) {
-            r = RelationalExpression::makeEQ(pool,
-                                             EdgePropertyExpression::make(pool, from, prop),
-                                             ConstantExpression::make(pool, Value(row)));
+            relExpr = RelationalExpression::makeEQ(pool,
+                                                   EdgePropertyExpression::make(pool, from, prop),
+                                                   ConstantExpression::make(pool, Value(row)));
         } else {
-            r = RelationalExpression::makeEQ(pool,
-                                             TagPropertyExpression::make(pool, from, prop),
-                                             ConstantExpression::make(pool, Value(row)));
+            relExpr = RelationalExpression::makeEQ(pool,
+                                                   TagPropertyExpression::make(pool, from, prop),
+                                                   ConstantExpression::make(pool, Value(row)));
         }
         rels.emplace_back(std::move(relExpr));
     }
     if (rels.size() == 1) {
         return std::move(rels[0]);
     }
-    return ExpressionUtils::pushOrs(rels);
+    return ExpressionUtils::pushOrs(pool, rels);
 }
 
 StatusOr<std::vector<std::string>>

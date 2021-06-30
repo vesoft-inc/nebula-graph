@@ -38,6 +38,7 @@ public:
                 const std::string& index);
 
     static StatusOr<Expression*> rewriteTSFilter(
+        ObjectPool* pool,
         bool isEdge,
         Expression* expr,
         const std::string& index,

@@ -653,30 +653,30 @@ bool getIndexColumnHintInExpr(const ColumnDef& field,
                               Expression** which) {
     for (auto& operand : expr->operands()) {
         if (!operand->isRelExpr()) continue;
-        auto relExpr = static_cast<const RelationalExpression*>(operand.get());
+        auto relExpr = static_cast<const RelationalExpression*>(operand);
         auto status = selectRelExprIndex(field, relExpr);
         if (status.ok()) {
             *hint = std::move(status).value();
-            *which = operand.get();
+            *which = operand;
             return true;
         }
     }
     return false;
 }
 
-std::unique_ptr<Expression> cloneUnusedExpr(const LogicalExpression* expr,
-                                            const std::vector<Expression*>& usedOperands) {
-    std::vector<std::unique_ptr<Expression>> unusedOperands;
+Expression* cloneUnusedExpr(const LogicalExpression* expr,
+                            const std::vector<Expression*>& usedOperands) {
+    std::vector<Expression*> unusedOperands;
     for (auto& operand : expr->operands()) {
-        auto iter = std::find(usedOperands.begin(), usedOperands.end(), operand.get());
+        auto iter = std::find(usedOperands.begin(), usedOperands.end(), operand);
         if (iter == usedOperands.end()) {
-            unusedOperands.emplace_back(operand->clone());
+            unusedOperands.emplace_back(operand);
         }
     }
     if (unusedOperands.empty()) {
         return nullptr;
     }
-    auto logExpr = std::make_unique<LogicalExpression>(expr->kind());
+    auto logExpr = LogicalExpression::makeKind(expr->getObjPool(), expr->kind());
     logExpr->setOperands(std::move(unusedOperands));
     return logExpr;
 }

@@ -47,7 +47,7 @@ public:
 
     struct IndexResult {
         const meta::cpp2::IndexItem* index;
-        std::unique_ptr<Expression> unusedExpr;
+        Expression* unusedExpr;
         std::vector<PriorityColumnHint> hints;
 
         bool operator<(const IndexResult& rhs) const {

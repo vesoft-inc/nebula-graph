@@ -81,9 +81,9 @@ StatusOr<SubPlan> LookupPlanner::transform(AstContext* astCtx) {
 YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) {
     auto pool = lookupCtx->qctx->objPool();
     auto columns = pool->makeAndAdd<YieldColumns>();
-    auto addColumn = [this, columns](const auto& tup) {
+    auto addColumn = [this, pool, columns](const auto& tup) {
         std::string name(std::get<0>(tup));
-        auto expr = new InputPropertyExpression(name);
+        auto expr = InputPropertyExpression::make(pool, name);
         columns->addColumn(new YieldColumn(expr, name));
         returnCols_.emplace_back(std::get<1>(tup));
         colNames_.emplace_back(name);
@@ -104,6 +104,7 @@ YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) {
 void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* columns) {
     auto sentence = static_cast<LookupSentence*>(lookupCtx->sentence);
     auto yieldClause = sentence->yieldClause();
+    auto pool = lookupCtx->qctx->objPool();
     for (auto col : yieldClause->columns()) {
         auto expr = col->expr();
         DCHECK(expr->kind() == Expression::Kind::kLabelAttribute);
@@ -112,9 +113,9 @@ void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* column
         const auto& colName = laExpr->right()->value().getStr();
         Expression* propExpr = nullptr;
         if (lookupCtx->isEdge) {
-            propExpr = new EdgePropertyExpression(schemaName, colName);
+            propExpr = EdgePropertyExpression::make(pool, schemaName, colName);
         } else {
-            propExpr = new TagPropertyExpression(schemaName, colName);
+            propExpr = TagPropertyExpression::make(pool, schemaName, colName);
         }
         columns->addColumn(new YieldColumn(propExpr, col->alias()));
         returnCols_.emplace_back(colName);

@@ -329,7 +329,8 @@ StatusOr<Expression*> LookupValidator::genTsFilter(Expression* filter) {
     tsClients_ = std::move(tsRet).value();
     auto tsIndex = checkTSExpr(filter);
     NG_RETURN_IF_ERROR(tsIndex);
-    return FTIndexUtils::rewriteTSFilter(lookupCtx_->isEdge, filter, tsIndex.value(), tsClients_);
+    return FTIndexUtils::rewriteTSFilter(
+        qctx_->objPool(), lookupCtx_->isEdge, filter, tsIndex.value(), tsClients_);
 }
 
 }   // namespace graph
