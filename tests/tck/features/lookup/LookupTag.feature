@@ -17,7 +17,7 @@ Feature: Test lookup on tag index
       CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
       """
     And wait all indexes ready
-    And executing query:
+    And having executed:
       """
       INSERT VERTEX
         lookup_tag_1(col1, col2, col3)
@@ -71,12 +71,20 @@ Feature: Test lookup on tag index
       | where_condition                                                                    |
       | lookup_tag_1.col1 == 201                                                           |
       | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 == 201                              |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 >= 200                              |
       | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 != 200                              |
       | lookup_tag_1.col1 >= 201 AND lookup_tag_1.col2 == 201                              |
       | lookup_tag_1.col1 >= 201 AND lookup_tag_1.col2 != 202                              |
       | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 == 201 AND lookup_tag_1.col3 == 201 |
       | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 >= 201 AND lookup_tag_1.col3 == 201 |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 >= 201 AND lookup_tag_1.col3 >= 201 |
       | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 >= 201 AND lookup_tag_1.col3 != 202 |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 != 202 AND lookup_tag_1.col3 == 201 |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 != 202 AND lookup_tag_1.col3 >= 201 |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 != 202 AND lookup_tag_1.col3 != 202 |
+      | lookup_tag_1.col1 != 202 AND lookup_tag_1.col2 == 201 AND lookup_tag_1.col3 == 201 |
+      | lookup_tag_1.col1 != 202 AND lookup_tag_1.col2 == 201 AND lookup_tag_1.col3 >= 201 |
+      | lookup_tag_1.col1 != 202 AND lookup_tag_1.col2 >= 201 AND lookup_tag_1.col3 >= 201 |
 
   Scenario Outline: [tag] scan without hints
     When executing query:
@@ -86,7 +94,7 @@ Feature: Test lookup on tag index
       WHERE
         lookup_tag_1.col1 != 200
       """
-    Then the result should be:
+    Then the result should be, in any order:
       | VertexID |
       | <id_201> |
       | <id_202> |
@@ -100,7 +108,7 @@ Feature: Test lookup on tag index
         lookup_tag_1.col1 AS col1,
         lookup_tag_1.col3
       """
-    Then the result should be:
+    Then the result should be, in any order:
       | VertexID | col1 | lookup_tag_1.col3 |
       | <id_201> | 201  | 201               |
       | <id_202> | 202  | 202               |
