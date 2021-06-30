@@ -17,7 +17,7 @@
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
 #include "planner/Planner.h"
-#include "planner/plan/Query.h"
+#include "planner/plan/Scan.h"
 
 namespace nebula {
 namespace graph {

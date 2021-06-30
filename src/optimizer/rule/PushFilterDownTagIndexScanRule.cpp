@@ -14,7 +14,7 @@
 #include "optimizer/OptimizerUtils.h"
 #include "optimizer/rule/IndexScanRule.h"
 #include "planner/plan/PlanNode.h"
-#include "planner/plan/Query.h"
+#include "planner/plan/Scan.h"
 
 using nebula::graph::Filter;
 using nebula::graph::OptimizerUtils;

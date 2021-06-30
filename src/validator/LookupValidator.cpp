@@ -5,7 +5,7 @@
  */
 
 #include "validator/LookupValidator.h"
-#include <glog/logging.h>
+
 #include "common/base/Status.h"
 #include "common/meta/NebulaSchemaProvider.h"
 #include "context/ast/QueryAstContext.h"

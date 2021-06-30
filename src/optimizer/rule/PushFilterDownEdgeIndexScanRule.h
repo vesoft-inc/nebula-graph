@@ -12,20 +12,6 @@
 #include "optimizer/OptRule.h"
 
 namespace nebula {
-
-class Expression;
-
-namespace meta {
-namespace cpp2 {
-class IndexItem;
-}   // namespace cpp2
-}   // namespace meta
-
-namespace graph {
-class Filter;
-class EdgeIndexFullScan;
-}   // namespace graph
-
 namespace opt {
 
 class PushFilterDownEdgeIndexScanRule final : public OptRule {

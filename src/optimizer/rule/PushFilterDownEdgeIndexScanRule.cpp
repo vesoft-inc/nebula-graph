@@ -22,7 +22,7 @@
 #include "optimizer/OptGroup.h"
 #include "optimizer/OptimizerUtils.h"
 #include "planner/plan/PlanNode.h"
-#include "planner/plan/Query.h"
+#include "planner/plan/Scan.h"
 
 using nebula::Expression;
 using nebula::graph::EdgeIndexFullScan;

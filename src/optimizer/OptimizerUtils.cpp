@@ -565,29 +565,29 @@ namespace {
 // {1}
 enum class IndexScore : uint8_t {
     kNotEqual = 0,
-    kRange,
-    kPrefix,
+    kRange = 1,
+    kPrefix = 2,
 };
 
-struct PriorityColumnHint {
+struct ScoredColumnHint {
     storage::cpp2::IndexColumnHint hint;
     const Expression* expr;
-    IndexScore priority;
+    IndexScore score;
 };
 
 struct IndexResult {
     const meta::cpp2::IndexItem* index;
     Expression* unusedExpr;
-    std::vector<PriorityColumnHint> hints;
+    std::vector<ScoredColumnHint> hints;
 
     bool operator<(const IndexResult& rhs) const {
         if (hints.empty()) return true;
         auto sz = std::min(hints.size(), rhs.hints.size());
         for (size_t i = 0; i < sz; i++) {
-            if (hints[i].priority < rhs.hints[i].priority) {
+            if (hints[i].score < rhs.hints[i].score) {
                 return true;
             }
-            if (hints[i].priority > rhs.hints[i].priority) {
+            if (hints[i].score > rhs.hints[i].score) {
                 return false;
             }
         }
@@ -629,8 +629,8 @@ void handleEqualIndex(const ColumnDef& field, const Value& value, IndexColumnHin
     hint->set_begin_value(OptimizerUtils::normalizeValue(field, value));
 }
 
-StatusOr<PriorityColumnHint> selectRelExprIndex(const ColumnDef& field,
-                                                const RelationalExpression* expr) {
+StatusOr<ScoredColumnHint> selectRelExprIndex(const ColumnDef& field,
+                                              const RelationalExpression* expr) {
     // TODO(yee): Reverse expression
     auto left = expr->left();
     DCHECK(left->kind() == Expression::Kind::kEdgeProperty ||
@@ -644,11 +644,11 @@ StatusOr<PriorityColumnHint> selectRelExprIndex(const ColumnDef& field,
     DCHECK(right->kind() == Expression::Kind::kConstant);
     const auto& value = static_cast<const ConstantExpression*>(right)->value();
 
-    PriorityColumnHint hint;
+    ScoredColumnHint hint;
     switch (expr->kind()) {
         case Expression::Kind::kRelEQ: {
             handleEqualIndex(field, value, &hint.hint);
-            hint.priority = IndexScore::kPrefix;
+            hint.score = IndexScore::kPrefix;
             break;
         }
         case Expression::Kind::kRelGE:
@@ -656,11 +656,11 @@ StatusOr<PriorityColumnHint> selectRelExprIndex(const ColumnDef& field,
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelLT: {
             NG_RETURN_IF_ERROR(handleRangeIndex(field, expr, value, &hint.hint));
-            hint.priority = IndexScore::kRange;
+            hint.score = IndexScore::kRange;
             break;
         }
         case Expression::Kind::kRelNE: {
-            hint.priority = IndexScore::kNotEqual;
+            hint.score = IndexScore::kNotEqual;
             break;
         }
         default: {
@@ -686,7 +686,7 @@ StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const
 
 bool getIndexColumnHintInExpr(const ColumnDef& field,
                               const LogicalExpression* expr,
-                              PriorityColumnHint* hint,
+                              ScoredColumnHint* hint,
                               Expression** which) {
     for (auto& operand : expr->operands()) {
         if (!operand->isRelExpr()) continue;
@@ -727,7 +727,7 @@ StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
     result.hints.reserve(index.get_fields().size());
     std::vector<Expression*> usedOperands;
     for (auto& field : index.get_fields()) {
-        PriorityColumnHint hint;
+        ScoredColumnHint hint;
         Expression* operand = nullptr;
         if (!getIndexColumnHintInExpr(field, expr, &hint, &operand)) {
             break;
@@ -801,12 +801,12 @@ bool OptimizerUtils::findOptimalIndex(int32_t schemaId,
     auto iter = index.hints.begin();
     for (; iter != index.hints.end(); ++iter) {
         auto& hint = *iter;
-        if (hint.priority == IndexScore::kPrefix) {
+        if (hint.score == IndexScore::kPrefix) {
             hints.emplace_back(std::move(hint.hint));
             *isPrefixScan = true;
             continue;
         }
-        if (hint.priority == IndexScore::kRange) {
+        if (hint.score == IndexScore::kRange) {
             hints.emplace_back(std::move(hint.hint));
             // skip the case first range hint is the last hint
             // when set filter in index query context
