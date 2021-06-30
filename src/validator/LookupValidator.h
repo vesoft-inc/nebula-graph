@@ -44,7 +44,7 @@ private:
 
     StatusOr<std::string> checkTSExpr(Expression* expr);
 
-    std::unique_ptr<Expression> reverseRelKind(RelationalExpression* expr);
+    Expression* reverseRelKind(RelationalExpression* expr);
 
 private:
     static constexpr char kSrcVID[] = "SrcVID";
@@ -62,7 +62,6 @@ private:
     std::string                       from_;
     std::vector<nebula::plugin::HttpClient> tsClients_;
     std::vector<std::string>          idxScanColNames_;
-    std::vector<std::string>          colNames_;
     bool                              withProject_{false};
     bool                              dedup_{false};
     YieldColumns                     *newYieldColumns_{nullptr};

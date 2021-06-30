@@ -39,17 +39,11 @@ Status LookupValidator::toPlan() {
     PlanNode* current = is;
 
     if (withProject_) {
-        auto* projectNode = Project::make(qctx_, current, newYieldColumns_);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, newYieldColumns_);
     }
 
     if (dedup_) {
-        auto* dedupNode = Dedup::make(qctx_, current);
-        dedupNode->setInputVar(current->outputVar());
-        dedupNode->setColNames(colNames_);
-        current = dedupNode;
+        current = Dedup::make(qctx_, current);
 
         // the framework will add data collect to collect the result
         // if the result is required
@@ -80,21 +74,17 @@ Status LookupValidator::prepareYield() {
     if (isEdge_) {
         returnCols_->emplace_back(kSrc);
         idxScanColNames_.emplace_back(kSrcVID);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
         returnCols_->emplace_back(kDst);
         idxScanColNames_.emplace_back(kDstVID);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
         returnCols_->emplace_back(kRank);
         idxScanColNames_.emplace_back(kRanking);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), Value::Type::INT);
+        outputs_.emplace_back(idxScanColNames_.back(), Value::Type::INT);
     } else {
         returnCols_->emplace_back(kVid);
         idxScanColNames_.emplace_back(kVertexID);
-        colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), vidType_);
+        outputs_.emplace_back(idxScanColNames_.back(), vidType_);
     }
     if (sentence->yieldClause() == nullptr) {
         return Status::OK();
@@ -103,18 +93,19 @@ Status LookupValidator::prepareYield() {
     if (sentence->yieldClause()->isDistinct()) {
         dedup_ = true;
     }
-    newYieldColumns_ = qctx_->objPool()->makeAndAdd<YieldColumns>();
+    auto* pool = qctx_->objPool();
+    newYieldColumns_ = pool->makeAndAdd<YieldColumns>();
     if (isEdge_) {
         // default columns
         newYieldColumns_->addColumn(
-            new YieldColumn(new InputPropertyExpression(kSrcVID), kSrcVID));
+            new YieldColumn(InputPropertyExpression::make(pool, kSrcVID), kSrcVID));
         newYieldColumns_->addColumn(
-            new YieldColumn(new InputPropertyExpression(kDstVID), kDstVID));
+            new YieldColumn(InputPropertyExpression::make(pool, kDstVID), kDstVID));
         newYieldColumns_->addColumn(
-            new YieldColumn(new InputPropertyExpression(kRanking), kRanking));
+            new YieldColumn(InputPropertyExpression::make(pool, kRanking), kRanking));
     } else {
         newYieldColumns_->addColumn(
-            new YieldColumn(new InputPropertyExpression(kVertexID), kVertexID));
+            new YieldColumn(InputPropertyExpression::make(pool, kVertexID), kVertexID));
     }
     auto columns = sentence->yieldClause()->columns();
     auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
@@ -132,10 +123,10 @@ Status LookupValidator::prepareYield() {
             const std::string& colName = value.getStr();
             if (isEdge_) {
                 newYieldColumns_->addColumn(
-                    new YieldColumn(new EdgePropertyExpression(schemaName, colName)));
+                    new YieldColumn(EdgePropertyExpression::make(pool, schemaName, colName)));
             } else {
                 newYieldColumns_->addColumn(
-                    new YieldColumn(new TagPropertyExpression(schemaName, colName)));
+                    new YieldColumn(TagPropertyExpression::make(pool, schemaName, colName)));
             }
             if (!col->alias().empty()) {
                 newYieldColumns_->back()->setAlias(col->alias());
@@ -150,11 +141,11 @@ Status LookupValidator::prepareYield() {
             }
             returnCols_->emplace_back(colName);
             idxScanColNames_.emplace_back(from_ + "." + colName);
-            colNames_.emplace_back(deduceColName(newYieldColumns_->back()));
-            outputs_.emplace_back(colNames_.back(), SchemaUtil::propTypeToValueType(ret));
+            auto column = newYieldColumns_->back()->name();
+            outputs_.emplace_back(column, SchemaUtil::propTypeToValueType(ret));
         } else {
-            return Status::SemanticError("Yield clauses are not supported : %s",
-                                         col->expr()->toString().c_str());
+            return Status::SemanticError("Yield clauses are not supported: %s",
+                                         col->toString().c_str());
         }
     }
     return Status::OK();
@@ -174,7 +165,8 @@ Status LookupValidator::prepareFilter() {
         tsClients_ = std::move(tsRet).value();
         auto tsIndex = checkTSExpr(filter);
         NG_RETURN_IF_ERROR(tsIndex);
-        auto retFilter = FTIndexUtils::rewriteTSFilter(isEdge_,
+        auto retFilter = FTIndexUtils::rewriteTSFilter(qctx_->objPool(),
+                                                       isEdge_,
                                                        filter,
                                                        tsIndex.value(),
                                                        tsClients_);
@@ -207,7 +199,7 @@ StatusOr<Expression*> LookupValidator::checkFilter(Expression* expr) {
             for (auto i = 0u; i < operands.size(); i++) {
                 auto ret = checkFilter(lExpr->operand(i));
                 NG_RETURN_IF_ERROR(ret);
-                lExpr->setOperand(i, ret.value()->clone().release());
+                lExpr->setOperand(i, ret.value()->clone());
             }
             break;
         }
@@ -249,8 +241,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     // so that LabelAttributeExpr is always on the left
     auto right = expr->right();
     if (right->kind() == Expression::Kind::kLabelAttribute) {
-        expr = qctx_->objPool()->add(
-            static_cast<RelationalExpression*>(reverseRelKind(expr).release()));
+        expr = static_cast<RelationalExpression*>(reverseRelKind(expr));
     }
 
     auto left = expr->left();
@@ -261,7 +252,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
 
     // fold constant expression
     auto pool = qctx_->objPool();
-    auto foldRes = ExpressionUtils::foldConstantExpr(expr, pool);
+    auto foldRes = ExpressionUtils::foldConstantExpr(pool, expr);
     NG_RETURN_IF_ERROR(foldRes);
     expr = static_cast<RelationalExpression*>(foldRes.value());
     DCHECK_EQ(expr->left()->kind(), Expression::Kind::kLabelAttribute);
@@ -272,13 +263,13 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     if (!c.ok()) {
         return Status::SemanticError("expression error : %s", expr->right()->toString().c_str());
     }
-    expr->setRight(new ConstantExpression(std::move(c).value()));
+    expr->setRight(ConstantExpression::make(pool, std::move(c).value()));
 
     // rewrite PropertyExpression
     if (isEdge_) {
-        expr->setLeft(ExpressionUtils::rewriteLabelAttr2EdgeProp(la));
+        expr->setLeft(ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, la));
     } else {
-        expr->setLeft(ExpressionUtils::rewriteLabelAttr2TagProp(la));
+        expr->setLeft(ExpressionUtils::rewriteLabelAttr2TagProp(pool, la));
     }
     return expr;
 }
@@ -344,7 +335,7 @@ StatusOr<std::string> LookupValidator::checkTSExpr(Expression* expr) {
     return tsName;
 }
 // Transform (A > B) to (B < A)
-std::unique_ptr<Expression> LookupValidator::reverseRelKind(RelationalExpression* expr) {
+Expression* LookupValidator::reverseRelKind(RelationalExpression* expr) {
     auto kind = expr->kind();
     auto reversedKind = kind;
 
@@ -372,9 +363,8 @@ std::unique_ptr<Expression> LookupValidator::reverseRelKind(RelationalExpression
 
     auto left = expr->left();
     auto right = expr->right();
-
-    return std::make_unique<RelationalExpression>(
-        reversedKind, right->clone().release(), left->clone().release());
+    auto* pool = qctx_->objPool();
+    return RelationalExpression::makeKind(pool, reversedKind, right->clone(), left->clone());
 }
 }   // namespace graph
 }   // namespace nebula

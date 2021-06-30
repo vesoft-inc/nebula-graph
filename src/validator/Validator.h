@@ -63,6 +63,8 @@ public:
         outputs_ = outputCols;
     }
 
+    std::vector<std::string> getOutColNames() const;
+
     ColsDef inputCols() const {
         return inputs_;
     }
@@ -123,7 +125,8 @@ protected:
     // Do all permission checking in validator except which need execute
     // TODO(shylock) do all permission which don't need execute in here
     virtual Status checkPermission() {
-        return PermissionCheck::permissionCheck(qctx_->rctx()->session(), sentence_, space_.id);
+        return PermissionCheck::permissionCheck(
+                qctx_->rctx()->session(), sentence_, qctx_->vctx(), space_.id);
     }
 
     /**
@@ -139,10 +142,6 @@ protected:
     virtual AstContext* getAstContext() {
         return nullptr;
     }
-
-    std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
-
-    std::string deduceColName(const YieldColumn* col) const;
 
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
 

@@ -26,32 +26,55 @@ void QueryUtil::buildConstantInput(QueryContext *qctx, Starts& starts, std::stri
         ds.rows.emplace_back(std::move(row));
     }
     qctx->ectx()->setResult(vidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
-
+    auto* pool = qctx->objPool();
     // If possible, use column numbers in preference to column names,
-    starts.src = new ColumnExpression(0);
-    qctx->objPool()->add(starts.src);
+    starts.src = ColumnExpression::make(pool, 0);
 }
 
 // static
 SubPlan QueryUtil::buildRuntimeInput(QueryContext* qctx, Starts& starts) {
     auto pool = qctx->objPool();
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(starts.originalSrc->clone().release(), kVid);
+    auto* column = new YieldColumn(starts.originalSrc->clone(), kVid);
     columns->addColumn(column);
 
     auto* project = Project::make(qctx, nullptr, columns);
     if (starts.fromType == kVariable) {
         project->setInputVar(starts.userDefinedVarName);
     }
-    project->setColNames({kVid});
+    starts.src = InputPropertyExpression::make(pool, kVid);
 
     auto* dedup = Dedup::make(qctx, project);
-    dedup->setColNames({kVid});
 
     SubPlan subPlan;
     subPlan.root = dedup;
     subPlan.tail = project;
     return subPlan;
+}
+
+// static
+SubPlan QueryUtil::buildStart(QueryContext* qctx, Starts& starts, std::string& vidsVar) {
+    SubPlan subPlan;
+    if (!starts.vids.empty() && starts.originalSrc == nullptr) {
+        buildConstantInput(qctx, starts, vidsVar);
+    } else {
+        subPlan = buildRuntimeInput(qctx, starts);
+        vidsVar = subPlan.root->outputVar();
+    }
+    return subPlan;
+}
+
+PlanNode* QueryUtil::extractDstFromGN(QueryContext* qctx, PlanNode* gn, const std::string& output) {
+    auto pool = qctx->objPool();
+    auto* columns = pool->add(new YieldColumns());
+    auto* column = new YieldColumn(EdgePropertyExpression::make(pool, "*", kDst), kVid);
+    columns->addColumn(column);
+
+    auto* project = Project::make(qctx, gn, columns);
+
+    auto* dedup = Dedup::make(qctx, project);
+    dedup->setOutputVar(output);
+    return dedup;
 }
 
 }  // namespace graph

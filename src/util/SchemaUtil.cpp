@@ -55,20 +55,22 @@ Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps
 }
 
 // static
-std::shared_ptr<const meta::NebulaSchemaProvider>
-SchemaUtil::generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema &schema) {
+std::shared_ptr<const meta::NebulaSchemaProvider> SchemaUtil::generateSchemaProvider(
+    ObjectPool *pool,
+    const SchemaVer ver,
+    const meta::cpp2::Schema &schema) {
     auto schemaPtr = std::make_shared<meta::NebulaSchemaProvider>(ver);
     for (auto col : schema.get_columns()) {
         bool hasDef = col.default_value_ref().has_value();
-        std::unique_ptr<Expression> defaultValueExpr;
+        Expression* defaultValueExpr = nullptr;
         if (hasDef) {
-            defaultValueExpr = Expression::decode(*col.default_value_ref());
+            defaultValueExpr = Expression::decode(pool, *col.default_value_ref());
         }
         schemaPtr->addField(col.get_name(),
                             col.get_type().get_type(),
                             col.type.type_length_ref().value_or(0),
                             col.nullable_ref().value_or(false),
-                            hasDef ? defaultValueExpr.release() : nullptr);
+                            hasDef ? defaultValueExpr : nullptr);
     }
     return schemaPtr;
 }
@@ -160,8 +162,10 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
         auto nullable = col.nullable_ref().has_value() ? *col.nullable_ref() : false;
         row.values.emplace_back(nullable ? "YES" : "NO");
         auto defaultValue = Value::kEmpty;
+        ObjectPool tempPool;
+
         if (col.default_value_ref().has_value()) {
-            auto expr = Expression::decode(*col.default_value_ref());
+            auto expr = Expression::decode(&tempPool, *col.default_value_ref());
             if (expr == nullptr) {
                 LOG(ERROR) << "Internal error: Wrong default value expression.";
                 defaultValue = Value();
@@ -169,7 +173,7 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
             }
             if (expr->kind() == Expression::Kind::kConstant) {
                 QueryExpressionContext ctx;
-                defaultValue = Expression::eval(expr.get(), ctx(nullptr));
+                defaultValue = Expression::eval(expr, ctx(nullptr));
             } else {
                 defaultValue = Value(expr->toString());
             }
@@ -198,8 +202,10 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
         dataSet.colNames = {"Edge", "Create Edge"};
         createStr = "CREATE EDGE `" + name + "` (\n";
     }
+
     Row row;
     row.emplace_back(name);
+    ObjectPool tempPool;
     for (auto &col : schema.get_columns()) {
         createStr += " `" + col.get_name() + "`";
         createStr += " " + typeToString(col);
@@ -212,7 +218,7 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
 
         if (col.default_value_ref().has_value()) {
             auto encodeStr = *col.default_value_ref();
-            auto expr = Expression::decode(encodeStr);
+            auto expr = Expression::decode(&tempPool, encodeStr);
             if (expr == nullptr) {
                 LOG(ERROR) << "Internal error: the default value is wrong expression.";
                 continue;
@@ -312,51 +318,56 @@ bool SchemaUtil::isValidVid(const Value &value) {
     return value.isStr() || value.isInt();
 }
 
-StatusOr<std::vector<storage::cpp2::VertexProp>>
-SchemaUtil::getAllVertexProp(QueryContext *qctx, const SpaceInfo &space) {
+StatusOr<std::unique_ptr<std::vector<storage::cpp2::VertexProp>>>
+SchemaUtil::getAllVertexProp(QueryContext *qctx, const SpaceInfo &space, bool withProp) {
     // Get all tags in the space
     const auto allTagsResult = qctx->schemaMng()->getAllLatestVerTagSchema(space.id);
     NG_RETURN_IF_ERROR(allTagsResult);
     // allTags: std::unordered_map<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>
     const auto allTags = std::move(allTagsResult).value();
 
-    std::vector<storage::cpp2::VertexProp> props;
-    props.reserve(allTags.size());
+    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    vertexProps->reserve(allTags.size());
     // Retrieve prop names of each tag and append "_tag" to the name list to query empty tags
     for (const auto &tag : allTags) {
         // tag: pair<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>
         std::vector<std::string> propNames;
+        if (withProp) {
+            const auto tagSchema = tag.second;   // nebulaSchemaProvider
+            for (size_t i = 0; i < tagSchema->getNumFields(); i++) {
+                const auto propName = tagSchema->getFieldName(i);
+                propNames.emplace_back(propName);
+            }
+        }
         storage::cpp2::VertexProp vProp;
-
         const auto tagId = tag.first;
         vProp.set_tag(tagId);
-        const auto tagSchema = tag.second;   // nebulaSchemaProvider
-        for (size_t i = 0; i < tagSchema->getNumFields(); i++) {
-            const auto propName = tagSchema->getFieldName(i);
-            propNames.emplace_back(propName);
-        }
         propNames.emplace_back(nebula::kTag);   // "_tag"
         vProp.set_props(std::move(propNames));
-        props.emplace_back(std::move(vProp));
+        vertexProps->emplace_back(std::move(vProp));
     }
-    return props;
+    return vertexProps;
 }
 
-StatusOr<std::vector<storage::cpp2::EdgeProp>> SchemaUtil::getEdgeProp(
+StatusOr<std::unique_ptr<std::vector<storage::cpp2::EdgeProp>>> SchemaUtil::getEdgeProps(
     QueryContext *qctx,
     const SpaceInfo &space,
-    const std::vector<EdgeType> &edgeTypes) {
-    std::vector<storage::cpp2::EdgeProp> edgeProps;
-    for (const auto& edgeType : edgeTypes) {
+    const std::vector<EdgeType> &edgeTypes,
+    bool withProp) {
+    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
+    edgeProps->reserve(edgeTypes.size());
+    for (const auto &edgeType : edgeTypes) {
         std::vector<std::string> propNames = {kSrc, kType, kRank, kDst};
-        auto edgeSchema = qctx->schemaMng()->getEdgeSchema(space.id, edgeType);
-        for (size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
-            propNames.emplace_back(edgeSchema->getFieldName(i));
+        if (withProp) {
+            auto edgeSchema = qctx->schemaMng()->getEdgeSchema(space.id, std::abs(edgeType));
+            for (size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
+                propNames.emplace_back(edgeSchema->getFieldName(i));
+            }
         }
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
         prop.set_props(std::move(propNames));
-        edgeProps.emplace_back(std::move(prop));
+        edgeProps->emplace_back(std::move(prop));
     }
     return edgeProps;
 }

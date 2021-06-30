@@ -28,7 +28,8 @@ void YieldClausePlanner::rewriteYieldColumns(const YieldClauseContext* yctx,
                                              YieldColumns* newYields) {
     auto* aliasesUsed = yctx->aliasesUsed;
     for (auto* col : yields->columns()) {
-        newYields->addColumn(new YieldColumn(MatchSolver::doRewrite(*aliasesUsed, col->expr())));
+        newYields->addColumn(
+            new YieldColumn(MatchSolver::doRewrite(yctx->qctx, *aliasesUsed, col->expr())));
     }
 }
 
@@ -38,8 +39,7 @@ void YieldClausePlanner::rewriteGroupExprs(const YieldClauseContext* yctx,
     auto* aliasesUsed = yctx->aliasesUsed;
 
     for (auto* expr : *exprs) {
-        auto* newExpr = MatchSolver::doRewrite(*aliasesUsed, expr);
-        yctx->qctx->objPool()->add(newExpr);
+        auto* newExpr = MatchSolver::doRewrite(yctx->qctx, *aliasesUsed, expr);
         newExprs->emplace_back(newExpr);
     }
 }
@@ -75,11 +75,7 @@ Status YieldClausePlanner::buildYield(YieldClauseContext* yctx, SubPlan& subplan
     }
 
     if (yctx->distinct) {
-        auto root = subplan.root;
-        auto* dedup = Dedup::make(yctx->qctx, root);
-        dedup->setInputVar(root->outputVar());
-        dedup->setColNames(root->colNames());
-        subplan.root = dedup;
+        subplan.root = Dedup::make(yctx->qctx, subplan.root);
     }
 
     return Status::OK();

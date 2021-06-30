@@ -218,6 +218,10 @@ public:
         outputVarPtr(0)->colNames = std::move(cols);
     }
 
+    const auto& dependencies() const {
+        return dependencies_;
+    }
+
     const PlanNode* dep(size_t index = 0) const {
         DCHECK_LT(index, dependencies_.size());
         return dependencies_.at(index);
@@ -294,6 +298,7 @@ public:
 
     PlanNode* clone() const override {
         LOG(FATAL) << "Shouldn't call the unimplemented method";
+        return nullptr;
     }
 
 protected:
@@ -315,6 +320,7 @@ public:
 
     PlanNode* clone() const override {
         LOG(FATAL) << "Shouldn't call the unimplemented method";
+        return nullptr;
     }
 
 protected:
@@ -322,14 +328,13 @@ protected:
         SingleDependencyNode::cloneMembers(node);
     }
 
-    SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
-        : SingleDependencyNode(qctx, kind, dep) {
-        if (dep != nullptr) {
-            readVariable(dep->outputVarPtr());
-        } else {
-            inputVars_.emplace_back(nullptr);
+    void copyInputColNames(const PlanNode* input) {
+        if (input != nullptr) {
+            setColNames(input->colNames());
         }
     }
+
+    SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep);
 };
 
 class BinaryInputNode : public PlanNode {
@@ -368,6 +373,7 @@ public:
 
     PlanNode* clone() const override {
         LOG(FATAL) << "Shouldn't call the unimplemented method";
+        return nullptr;
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
@@ -388,6 +394,7 @@ public:
 
     PlanNode* clone() const override {
         LOG(FATAL) << "Shouldn't call the unimplemented method";
+        return nullptr;
     }
 
 protected:
