@@ -17,6 +17,11 @@ public:
         : Executor("KillQueryExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
+
+private:
+    using KillQueriesMap = std::unordered_map<SessionID, std::unordered_set<ExecutionPlanID>>;
+    Status buildKillQueries(const std::vector<meta::cpp2::Session> &sessionsInMeta,
+                            KillQueriesMap &killQueries);
 };
 }  // namespace graph
 }  // namespace nebula

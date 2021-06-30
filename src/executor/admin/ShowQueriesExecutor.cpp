@@ -70,9 +70,9 @@ folly::Future<Status> ShowQueriesExecutor::showAllSessionQueries() {
                     addQueries(session, dataSet);
                 }
                 return finish(ResultBuilder()
-                                    .value(Value(std::move(dataSet)))
-                                    .iter(Iterator::Kind::kSequential)
-                                    .finish());
+                                  .value(Value(std::move(dataSet)))
+                                  .iter(Iterator::Kind::kSequential)
+                                  .finish());
         });
 }
 

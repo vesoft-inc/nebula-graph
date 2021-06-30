@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 vesoft inc. All rights reserved.
+/* Copyright (c) 2021 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -13,7 +13,44 @@ namespace nebula {
 namespace graph {
 folly::Future<Status> KillQueryExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    auto *killQuery = asNode<KillQuery>(node());
+
+    // TODO: permision check
+
+    folly::Promise<Status> pro;
+    auto result = pro.getFuture();
+    qctx()->getMetaClient()->listSessions().via(runner()).thenValue(
+        [pro = std::move(pro), this](StatusOr<meta::cpp2::ListSessionsResp> listResp) mutable {
+            std::vector<meta::cpp2::Session> sessionsInMeta;
+            if (listResp.ok()) {
+                sessionsInMeta = std::move(listResp.value()).get_sessions();
+            }
+            KillQueriesMap killQueries;
+            auto retStatus = buildKillQueries(sessionsInMeta, killQueries);
+            if (!retStatus.ok()) {
+                pro.setValue(retStatus);
+                return;
+            }
+
+            qctx()
+                ->getMetaClient()
+                ->killQuery(std::move(killQueries))
+                .via(runner())
+                .thenValue([pro = std::move(pro), this](auto&& resp) mutable {
+                    SCOPED_TIMER(&execTime_);
+                    Status status = Status::OK();
+                    if (!resp.ok()) {
+                        status = Status::Error("Kill query failed.");
+                    }
+                    pro.setValue(std::move(status));
+                });
+        });
+    return result;
+}
+
+Status KillQueryExecutor::buildKillQueries(const std::vector<meta::cpp2::Session>& sessionsInMeta,
+                                           KillQueriesMap& killQueries) {
+    SCOPED_TIMER(&execTime_);
+    auto* killQuery = asNode<KillQuery>(node());
     auto inputVar = killQuery->inputVar();
     auto iter = ectx_->getResult(inputVar).iter();
     DCHECK(!!iter);
@@ -21,38 +58,21 @@ folly::Future<Status> KillQueryExecutor::execute() {
     auto sessionExpr = killQuery->sessionId();
     auto epExpr = killQuery->epId();
 
-    // TODO: permision check
-
-    std::vector<meta::cpp2::Session> sessionsInMeta;
-    auto listSessionStatus = qctx()->getMetaClient()->listSessions().via(runner()).thenValue(
-        [&sessionsInMeta](StatusOr<meta::cpp2::ListSessionsResp> resp) {
-            if (!resp.ok()) {
-                return resp.status();
-            }
-            sessionsInMeta = std::move(resp.value()).get_sessions();
-            return Status::OK();
-        }).get();
-    if (!listSessionStatus.ok()) {
-        // Ignore the errors.
-        LOG(ERROR) << "List sessions error.";
-    }
-
     auto* session = qctx()->rctx()->session();
     auto* sessionMgr = qctx_->rctx()->sessionMgr();
-    std::unordered_map<SessionID, std::unordered_set<ExecutionPlanID>> killQueries;
     for (; iter->valid(); iter->next()) {
         auto& sessionVal = sessionExpr->eval(ctx(iter.get()));
         if (!sessionVal.isInt()) {
             std::stringstream ss;
             ss << "Session `" << sessionExpr->toString() << "' is not kind of"
-                << " int, but was " << sessionVal.type();
+               << " int, but was " << sessionVal.type();
             return Status::Error(ss.str());
         }
         auto& epVal = epExpr->eval(ctx(iter.get()));
         if (!epVal.isInt()) {
             std::stringstream ss;
             ss << "ExecutionPlanID `" << epExpr->toString() << "' is not kind of"
-                << " int, but was " << epVal.type();
+               << " int, but was " << epVal.type();
             return Status::Error(ss.str());
         }
 
@@ -84,18 +104,7 @@ folly::Future<Status> KillQueryExecutor::execute() {
             killQueries[sessionId].emplace(epId);
         }
     }
-
-    return qctx()
-        ->getMetaClient()
-        ->killQuery(std::move(killQueries))
-        .via(runner())
-        .thenValue([this](auto&& resp) {
-            SCOPED_TIMER(&execTime_);
-            if (!resp.ok()) {
-                return Status::Error("Kill query failed.");
-            }
-            return Status::OK();
-        });
+    return Status::OK();
 }
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula
