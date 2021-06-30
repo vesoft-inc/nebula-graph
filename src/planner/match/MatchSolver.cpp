@@ -299,6 +299,7 @@ Status MatchSolver::appendFetchVertexPlan(const NodeInfo& node,
                                 srcExpr,
                                 std::move(props).value(),
                                 {});
+    gv->setRealVid(true);
 
     PlanNode* root = gv;
     if (node.filter != nullptr) {

@@ -283,6 +283,14 @@ public:
     PlanNode* clone() const override;
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
+    void setRealVid(bool realVid) {
+        realVid_ = realVid;
+    }
+
+    bool realVid() const {
+        return realVid_;
+    }
+
 private:
     GetVertices(QueryContext* qctx,
                 PlanNode* input,
@@ -315,6 +323,7 @@ private:
     std::unique_ptr<std::vector<VertexProp>>   props_;
     // expression to get
     std::unique_ptr<std::vector<Expr>>         exprs_;
+    bool                                       realVid_{false};
 };
 
 /**
