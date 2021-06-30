@@ -56,12 +56,12 @@ public:
     folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
     findSession(SessionID id, folly::Executor* runner) override;
 
-private:
     /**
      * Find an existing session
      */
     std::shared_ptr<ClientSession> findSessionFromCache(SessionID id);
 
+private:
     folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
     findSessionFromMetad(SessionID id, folly::Executor* runner);
 

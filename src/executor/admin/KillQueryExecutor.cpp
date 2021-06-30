@@ -23,6 +23,20 @@ folly::Future<Status> KillQueryExecutor::execute() {
 
     // TODO: permision check
 
+    std::vector<meta::cpp2::Session> sessionsInMeta;
+    auto listSessionStatus = qctx()->getMetaClient()->listSessions().via(runner()).thenValue(
+        [&sessionsInMeta](StatusOr<meta::cpp2::ListSessionsResp> resp) {
+            if (!resp.ok()) {
+                return resp.status();
+            }
+            sessionsInMeta = std::move(resp.value()).get_sessions();
+            return Status::OK();
+        }).get();
+    if (!listSessionStatus.ok()) {
+        // Ignore the errors.
+        LOG(ERROR) << "List sessions error.";
+    }
+
     auto* session = qctx()->rctx()->session();
     auto* sessionMgr = qctx_->rctx()->sessionMgr();
     std::unordered_map<SessionID, std::unordered_set<ExecutionPlanID>> killQueries;
@@ -52,26 +66,21 @@ folly::Future<Status> KillQueryExecutor::execute() {
             session->markQueryKilled(epId);
             killQueries[session->id()].emplace(epId);
         } else {
-            auto cb = [sessionId, epId] (StatusOr<std::shared_ptr<ClientSession>> ret) {
-                if (!ret.ok()) {
-                    LOG(ERROR) << "Get session for sessionId: " << sessionId
-                                << " failed: " << ret.status();
+            auto sessionPtr = sessionMgr->findSessionFromCache(sessionId);
+            if (sessionPtr == nullptr) {
+                auto found = std::find_if(
+                    sessionsInMeta.begin(), sessionsInMeta.end(), [sessionId](auto& val) {
+                        return val.get_session_id() == sessionId;
+                    });
+                if (found == sessionsInMeta.end()) {
                     return Status::Error("SessionId[%ld] does not exist", sessionId);
                 }
-                auto sessionPtr = std::move(ret).value();
-                if (sessionPtr == nullptr) {
-                    LOG(ERROR) << "Get session for sessionId: " << sessionId << " is nullptr";
-                    return Status::Error("SessionId[%ld] does not exist", sessionId);
-                }
-
-                if (!sessionPtr->findQuery(epId)) {
+                if (found->get_queries().find(epId) == found->get_queries().end()) {
                     return Status::Error("ExecutionPlanId[%ld] does not exist.", epId);
                 }
-                return Status::OK();
-            };
-            auto findSessionStatus = sessionMgr->findSession(sessionId, qctx_->rctx()->runner())
-                .thenValue(cb).get();
-            NG_RETURN_IF_ERROR(findSessionStatus);
+            } else if (!sessionPtr->findQuery(epId)) {
+                return Status::Error("ExecutionPlanId[%ld] does not exist.", epId);
+            }
             killQueries[sessionId].emplace(epId);
         }
     }
