@@ -6,6 +6,7 @@
 
 #include "planner/ngql/LookupPlanner.h"
 
+#include <algorithm>
 #include <tuple>
 
 #include "common/base/Base.h"
@@ -18,6 +19,7 @@
 #include "parser/TraverseSentences.h"
 #include "planner/Planner.h"
 #include "planner/plan/Scan.h"
+#include "visitor/FindVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -85,8 +87,7 @@ YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) {
         std::string name(std::get<0>(tup));
         auto expr = InputPropertyExpression::make(pool, name);
         columns->addColumn(new YieldColumn(expr, name));
-        returnCols_.emplace_back(std::get<1>(tup));
-        colNames_.emplace_back(name);
+        addLookupColumns(std::get<1>(tup), name);
     };
     if (lookupCtx->isEdge) {
         for (auto& key : kEdgeKeys) {
@@ -95,15 +96,15 @@ YieldColumns* LookupPlanner::prepareReturnCols(LookupContext* lookupCtx) {
     } else {
         addColumn(std::make_tuple(kVertexID, kVid));
     }
-    if (lookupCtx->withProject) {
-        appendColumns(lookupCtx, columns);
-    }
+    extractUsedColumns(lookupCtx->filter);
+    appendColumns(lookupCtx, columns);
     return columns;
 }
 
 void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* columns) {
     auto sentence = static_cast<LookupSentence*>(lookupCtx->sentence);
     auto yieldClause = sentence->yieldClause();
+    if (yieldClause == nullptr) return;
     auto pool = lookupCtx->qctx->objPool();
     for (auto col : yieldClause->columns()) {
         auto expr = col->expr();
@@ -118,8 +119,33 @@ void LookupPlanner::appendColumns(LookupContext* lookupCtx, YieldColumns* column
             propExpr = TagPropertyExpression::make(pool, schemaName, colName);
         }
         columns->addColumn(new YieldColumn(propExpr, col->alias()));
-        returnCols_.emplace_back(colName);
-        colNames_.emplace_back(propExpr->toString());
+        addLookupColumns(colName, propExpr->toString());
+    }
+}
+
+void LookupPlanner::extractUsedColumns(Expression* filter) {
+    if (filter == nullptr) return;
+
+    auto finder = [](Expression* expr) {
+        return expr->kind() == Expression::Kind::kTagProperty ||
+               expr->kind() == Expression::Kind::kEdgeProperty;
+    };
+    FindVisitor visitor(finder, true);
+    filter->accept(&visitor);
+    for (auto expr : std::move(visitor).results()) {
+        auto propExpr = static_cast<const PropertyExpression*>(expr);
+        addLookupColumns(propExpr->prop(), propExpr->toString());
+    }
+}
+
+void LookupPlanner::addLookupColumns(const std::string& retCol, const std::string& outCol) {
+    auto iter = std::find(returnCols_.begin(), returnCols_.end(), retCol);
+    if (iter == returnCols_.end()) {
+        returnCols_.emplace_back(retCol);
+    }
+    iter = std::find(colNames_.begin(), colNames_.end(), outCol);
+    if (iter == colNames_.end()) {
+        colNames_.emplace_back(outCol);
     }
 }
 

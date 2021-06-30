@@ -14,6 +14,7 @@
 
 namespace nebula {
 
+class Expression;
 class YieldColumns;
 
 namespace graph {
@@ -31,6 +32,8 @@ public:
 private:
     YieldColumns* prepareReturnCols(LookupContext* lookupCtx);
     void appendColumns(LookupContext* lookupCtx, YieldColumns* columns);
+    void extractUsedColumns(Expression* filter);
+    void addLookupColumns(const std::string& retCol, const std::string& outCol);
 
     std::vector<std::string> returnCols_;
     std::vector<std::string> colNames_;

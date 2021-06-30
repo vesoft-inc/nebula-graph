@@ -65,7 +65,6 @@ Status LookupValidator::prepareYield() {
     if (yieldClause == nullptr) {
         return Status::OK();
     }
-    lookupCtx_->withProject = true;
     lookupCtx_->dedup = yieldClause->isDistinct();
 
     shared_ptr<const NebulaSchemaProvider> schemaProvider;
@@ -81,7 +80,7 @@ Status LookupValidator::prepareYield() {
         auto la = static_cast<LabelAttributeExpression*>(col->expr());
         const std::string& schemaName = la->left()->name();
         if (schemaName != from) {
-            return Status::SemanticError("Schema name error : %s", schemaName.c_str());
+            return Status::SemanticError("Schema name error: %s", schemaName.c_str());
         }
 
         const auto& value = la->right()->value();
@@ -126,7 +125,7 @@ StatusOr<Expression*> LookupValidator::handleLogicalExprOperands(LogicalExpressi
     for (auto i = 0u; i < operands.size(); i++) {
         auto operand = lExpr->operand(i);
         if (operand->isLogicalExpr()) {
-            // Not allow different logical expression to use
+            // Not allow different logical expression to use: A AND B OR C
             return Status::SemanticError("Not supported filter: %s", lExpr->toString().c_str());
         }
         auto ret = checkFilter(operand);
@@ -171,11 +170,10 @@ StatusOr<Expression*> LookupValidator::checkRelExpr(RelationalExpression* expr) 
     if (left->kind() == Expression::Kind::kLabelAttribute &&
         right->kind() == Expression::Kind::kLabelAttribute) {
         return Status::SemanticError("Expression %s not supported yet", expr->toString().c_str());
-    } else if (left->kind() == Expression::Kind::kLabelAttribute ||
-               right->kind() == Expression::Kind::kLabelAttribute) {
-        auto ret = rewriteRelExpr(expr);
-        NG_RETURN_IF_ERROR(ret);
-        return std::move(ret).value();
+    }
+    if (left->kind() == Expression::Kind::kLabelAttribute ||
+        right->kind() == Expression::Kind::kLabelAttribute) {
+        return rewriteRelExpr(expr);
     }
     return Status::SemanticError("Expression %s not supported yet", expr->toString().c_str());
 }
