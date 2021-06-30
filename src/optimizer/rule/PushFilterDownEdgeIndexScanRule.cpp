@@ -58,6 +58,12 @@ const Pattern& PushFilterDownEdgeIndexScanRule::pattern() const {
 bool PushFilterDownEdgeIndexScanRule::match(OptContext* ctx, const MatchedResult& matched) const {
     UNUSED(ctx);
     auto filter = static_cast<const Filter*>(matched.planNode());
+    auto scan = static_cast<const EdgeIndexFullScan*>(matched.planNode({0, 0}));
+    for (auto& ictx : scan->queryContext()) {
+        if (ictx.column_hints_ref().is_set()) {
+            return false;
+        }
+    }
     auto condition = filter->condition();
     if (condition->isRelExpr()) {
         auto relExpr = static_cast<const RelationalExpression*>(condition);
@@ -78,14 +84,7 @@ EdgeIndexScan* makeEdgeIndexScan(QueryContext* qctx, const EdgeIndexScan* scan, 
     } else {
         scanNode = EdgeIndexRangeScan::make(qctx, nullptr, scan->edgeType());
     }
-    scanNode->setDedup(scan->dedup());
-    scanNode->setFilter(scan->filter());
-    scanNode->setLimit(scan->limit());
-    scanNode->setOrderBy(scan->orderBy());
-    scanNode->setReturnCols(scan->returnColumns());
-    scanNode->setSchemaId(scan->schemaId());
-    scanNode->setEmptyResultSet(scan->isEmptyResultSet());
-    scanNode->setSpace(scan->space());
+    OptimizerUtils::copyIndexScanData(scan, scanNode);
     return scanNode;
 }
 
@@ -100,10 +99,11 @@ StatusOr<TransformResult> PushFilterDownEdgeIndexScanRule::transform(
     NG_RETURN_IF_ERROR(status);
     auto indexItems = std::move(status).value();
 
+    OptimizerUtils::eraseInvalidIndexItems(scan->schemaId(), &indexItems);
+
     IndexQueryContext ictx;
     bool isPrefixScan = false;
-    if (!OptimizerUtils::findOptimalIndex(
-            scan->schemaId(), filter->condition(), &indexItems, &isPrefixScan, &ictx)) {
+    if (!OptimizerUtils::findOptimalIndex(filter->condition(), indexItems, &isPrefixScan, &ictx)) {
         return TransformResult::noTransform();
     }
     std::vector<IndexQueryContext> idxCtxs = {ictx};

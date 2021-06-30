@@ -17,6 +17,7 @@
 #include "common/expression/RelationalExpression.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "planner/plan/Query.h"
 
 using nebula::meta::cpp2::ColumnDef;
 using nebula::meta::cpp2::IndexItem;
@@ -757,11 +758,9 @@ StatusOr<IndexResult> selectIndex(const Expression* expr, const IndexItem& index
 
 }   // namespace
 
-bool OptimizerUtils::findOptimalIndex(int32_t schemaId,
-                                      const Expression* condition,
-                                      std::vector<std::shared_ptr<IndexItem>>* indexItems,
-                                      bool* isPrefixScan,
-                                      IndexQueryContext* ictx) {
+void OptimizerUtils::eraseInvalidIndexItems(
+    int32_t schemaId,
+    std::vector<std::shared_ptr<nebula::meta::cpp2::IndexItem>>* indexItems) {
     // Erase invalid index items
     for (auto iter = indexItems->begin(); iter != indexItems->end();) {
         auto schema = (*iter)->get_schema_id();
@@ -773,14 +772,19 @@ bool OptimizerUtils::findOptimalIndex(int32_t schemaId,
             iter++;
         }
     }
+}
 
+bool OptimizerUtils::findOptimalIndex(const Expression* condition,
+                                      const std::vector<std::shared_ptr<IndexItem>>& indexItems,
+                                      bool* isPrefixScan,
+                                      IndexQueryContext* ictx) {
     // Return directly if there is not valid index to use.
-    if (indexItems->empty()) {
+    if (indexItems.empty()) {
         return false;
     }
 
     std::vector<IndexResult> results;
-    for (auto& index : *indexItems) {
+    for (auto& index : indexItems) {
         auto resStatus = selectIndex(condition, *index);
         if (resStatus.ok()) {
             results.emplace_back(std::move(resStatus).value());
@@ -823,6 +827,18 @@ bool OptimizerUtils::findOptimalIndex(int32_t schemaId,
     ictx->set_index_id(index.index->get_index_id());
     ictx->set_column_hints(std::move(hints));
     return true;
+}
+
+void OptimizerUtils::copyIndexScanData(const nebula::graph::IndexScan* from,
+                                       nebula::graph::IndexScan* to) {
+    to->setEmptyResultSet(from->isEmptyResultSet());
+    to->setSpace(from->space());
+    to->setReturnCols(from->returnColumns());
+    to->setSchemaId(from->schemaId());
+    to->setDedup(from->dedup());
+    to->setOrderBy(from->orderBy());
+    to->setLimit(from->limit());
+    to->setFilter(from->filter());
 }
 
 }   // namespace graph

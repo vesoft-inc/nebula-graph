@@ -14,22 +14,20 @@ class Expression;
 
 namespace meta {
 namespace cpp2 {
-
 class ColumnDef;
 class IndexItem;
-
 }   // namespace cpp2
 }   // namespace meta
 
 namespace storage {
 namespace cpp2 {
-
 class IndexQueryContext;
-
 }   // namespace cpp2
 }   // namespace storage
 
 namespace graph {
+
+class IndexScan;
 
 class OptimizerUtils {
 public:
@@ -62,12 +60,18 @@ public:
                              Value& begin,
                              Value& end);
 
-    static bool findOptimalIndex(
+    static void eraseInvalidIndexItems(
         int32_t schemaId,
+        std::vector<std::shared_ptr<nebula::meta::cpp2::IndexItem>>* indexItems);
+
+    static bool findOptimalIndex(
         const Expression* condition,
-        std::vector<std::shared_ptr<nebula::meta::cpp2::IndexItem>>* indexItems,
+        const std::vector<std::shared_ptr<nebula::meta::cpp2::IndexItem>>& indexItems,
         bool* isPrefixScan,
         nebula::storage::cpp2::IndexQueryContext* ictx);
+
+    static void copyIndexScanData(const nebula::graph::IndexScan* from,
+                                  nebula::graph::IndexScan* to);
 };
 
 }   // namespace graph

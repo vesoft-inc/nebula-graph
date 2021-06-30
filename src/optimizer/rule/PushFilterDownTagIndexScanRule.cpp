@@ -49,6 +49,12 @@ const Pattern& PushFilterDownTagIndexScanRule::pattern() const {
 bool PushFilterDownTagIndexScanRule::match(OptContext* ctx, const MatchedResult& matched) const {
     UNUSED(ctx);
     auto filter = static_cast<const Filter*>(matched.planNode());
+    auto scan = static_cast<const TagIndexFullScan*>(matched.planNode({0, 0}));
+    for (auto& ictx : scan->queryContext()) {
+        if (ictx.column_hints_ref().is_set()) {
+            return false;
+        }
+    }
     auto condition = filter->condition();
     if (condition->isRelExpr()) {
         auto relExpr = static_cast<const RelationalExpression*>(condition);
@@ -70,14 +76,7 @@ TagIndexScan* makeTagIndexScan(QueryContext* qctx, const TagIndexScan* scan, boo
         tagScan = TagIndexRangeScan::make(qctx, nullptr, scan->tagName());
     }
 
-    tagScan->setEmptyResultSet(scan->isEmptyResultSet());
-    tagScan->setSpace(scan->space());
-    tagScan->setReturnCols(scan->returnColumns());
-    tagScan->setSchemaId(scan->schemaId());
-    tagScan->setDedup(scan->dedup());
-    tagScan->setOrderBy(scan->orderBy());
-    tagScan->setLimit(scan->limit());
-    tagScan->setFilter(scan->filter());
+    OptimizerUtils::copyIndexScanData(scan, tagScan);
     return tagScan;
 }
 
@@ -92,10 +91,11 @@ StatusOr<TransformResult> PushFilterDownTagIndexScanRule::transform(
     NG_RETURN_IF_ERROR(status);
     auto indexItems = std::move(status).value();
 
+    OptimizerUtils::eraseInvalidIndexItems(scan->schemaId(), &indexItems);
+
     IndexQueryContext ictx;
     bool isPrefixScan = false;
-    if (!OptimizerUtils::findOptimalIndex(
-            scan->schemaId(), filter->condition(), &indexItems, &isPrefixScan, &ictx)) {
+    if (!OptimizerUtils::findOptimalIndex(filter->condition(), indexItems, &isPrefixScan, &ictx)) {
         return TransformResult::noTransform();
     }
 

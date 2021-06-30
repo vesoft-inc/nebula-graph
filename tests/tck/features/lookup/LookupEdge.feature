@@ -89,3 +89,4 @@ Feature: Test lookup on edge index
 
 # TODO(yee): Test bool expression
 # TODO(yee): Test or expression
+# TODO(yee): Test lookup on edge
