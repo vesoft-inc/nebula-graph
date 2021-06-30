@@ -10,25 +10,24 @@ Feature: Test lookup on tag index
       | partition_num  | 9          |
       | replica_factor | 1          |
       | vid_type       | <vid_type> |
-
-  Scenario Outline: LookupTest SimpleVertex
-    Given having executed:
+    And having executed:
       """
       CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
       CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
       CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
       """
-    And wait 6 seconds
-    When executing query:
+    And wait all indexes ready
+    And executing query:
       """
       INSERT VERTEX
         lookup_tag_1(col1, col2, col3)
       VALUES
-        <vid_200>:(200, 200, 200),
-        <vid_201>:(201, 201, 201),
-        <vid_202>:(202, 202, 202);
+        <id_200>:(200, 200, 200),
+        <id_201>:(201, 201, 201),
+        <id_202>:(202, 202, 202);
       """
-    Then the execution should be successful
+
+  Scenario Outline: [tag] simple tag test cases
     When executing query:
       """
       LOOKUP ON lookup_tag_1 WHERE col1 == 200;
@@ -40,19 +39,24 @@ Feature: Test lookup on tag index
       """
     Then the result should be, in any order:
       | VertexID |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200
-      """
-    Then the result should be, in any order:
-      | VertexID |
-      | <id_200> |
+
+  Scenario Outline: [tag] different condition and yield test
     When executing query:
       """
       LOOKUP ON
         lookup_tag_1
       WHERE
-        lookup_tag_1.col1 == 200
+        <where_condition>
+      """
+    Then the result should be, in any order:
+      | VertexID |
+      | <id_201> |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        <where_condition>
       YIELD
         lookup_tag_1.col1,
         lookup_tag_1.col2,
@@ -60,215 +64,47 @@ Feature: Test lookup on tag index
       """
     Then the result should be, in any order:
       | VertexID | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
-      | <id_200> | 200               | 200               | 200               |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 == 200 AND
-        lookup_tag_1.col3 == 200
-      """
-    Then the result should be:
-      | VertexID |
-      | <id_200> |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 == 200 AND
-        lookup_tag_1.col3 == 200
-      YIELD
-        lookup_tag_1.col1 AS col1,
-        lookup_tag_1.col2 AS col2,
-        lookup_tag_1.col3
-      """
-    Then the result should be:
-      | VertexID | col1 | col2 | lookup_tag_1.col3 |
-      | <id_200> | 200  | 200  | 200               |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 >= 200 AND
-        lookup_tag_1.col3 == 200
-      """
-    Then the result should be:
-      | VertexID |
-      | <id_200> |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 >= 200 AND
-        lookup_tag_1.col3 == 200
-      YIELD
-        lookup_tag_1.col1 AS col1,
-        lookup_tag_1.col2 AS col2,
-        lookup_tag_1.col3
-      """
-    Then the result should be:
-      | VertexID | col1 | col2 | lookup_tag_1.col3 |
-      | <id_200> | 200  | 200  | 200               |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 >= 200 AND
-        lookup_tag_1.col3 != 200
-      """
-    Then the result should be:
-      | VertexID |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 >= 200 AND
-        lookup_tag_1.col3 != 200
-      YIELD
-        lookup_tag_1.col1 AS col1,
-        lookup_tag_1.col2 AS col2,
-        lookup_tag_1.col3
-      """
-    Then the result should be:
-      | VertexID |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 == 200
-      """
-    Then the result should be:
-      | VertexID |
-      | <id_200> |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 == 200
-      YIELD
-        lookup_tag_1.col1 AS col1,
-        lookup_tag_1.col3
-      """
-    Then the result should be:
-      | VertexID | col1 | lookup_tag_1.col3 |
-      | <id_200> | 200  | 200               |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 != 200
-      """
-    Then the result should be:
-      | VertexID |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 == 200 AND
-        lookup_tag_1.col2 != 200
-      YIELD
-        lookup_tag_1.col1 AS col1,
-        lookup_tag_1.col3
-      """
-    Then the result should be:
-      | VertexID |
-      | <id_200> |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 >= 200 AND
-        lookup_tag_1.col2 == 200
-      """
-    Then the result should be:
-      | VertexID |
-      | <id_200> |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 >= 200 AND
-        lookup_tag_1.col2 == 200
-      YIELD
-        lookup_tag_1.col1 AS col1,
-        lookup_tag_1.col3
-      """
-    Then the result should be:
-      | VertexID | col1 | lookup_tag_1.col3 |
-      | <id_200> | 200  | 200               |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 >= 200 AND
-        lookup_tag_1.col2 != 200
-      """
-    Then the result should be:
-      | VertexID |
-      | <id_201> |
-      | <id_202> |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 >= 200 AND
-        lookup_tag_1.col2 != 200
-      YIELD
-        lookup_tag_1.col1 AS col1,
-        lookup_tag_1.col3
-      """
-    Then the result should be:
-      | VertexID | col1 | lookup_tag_1.col3 |
-      | <id_201> | 201  | 201               |
-      | <id_202> | 202  | 202               |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 != 200
-      """
-    Then the result should be:
-      | VertexID |
-      | <id_201> |
-      | <id_202> |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_tag_1
-      WHERE
-        lookup_tag_1.col1 != 200
-      YIELD
-        lookup_tag_1.col1 AS col1,
-        lookup_tag_1.col3
-      """
-    Then the result should be:
-      | VertexID | col1 | lookup_tag_1.col3 |
-      | <id_201> | 201  | 201               |
-      | <id_202> | 202  | 202               |
-    # TODO(yee): Test bool expression
-    # TODO(yee): Test or expression
+      | <id_201> | 201               | 201               | 201               |
     Then drop the used space
+
+    Examples:
+      | where_condition                                                                    |
+      | lookup_tag_1.col1 == 201                                                           |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 == 201                              |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 != 200                              |
+      | lookup_tag_1.col1 >= 201 AND lookup_tag_1.col2 == 201                              |
+      | lookup_tag_1.col1 >= 201 AND lookup_tag_1.col2 != 202                              |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 == 201 AND lookup_tag_1.col3 == 201 |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 >= 201 AND lookup_tag_1.col3 == 201 |
+      | lookup_tag_1.col1 == 201 AND lookup_tag_1.col2 >= 201 AND lookup_tag_1.col3 != 202 |
+
+  Scenario Outline: [tag] scan without hints
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 != 200
+      """
+    Then the result should be:
+      | VertexID |
+      | <id_201> |
+      | <id_202> |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_tag_1
+      WHERE
+        lookup_tag_1.col1 != 200
+      YIELD
+        lookup_tag_1.col1 AS col1,
+        lookup_tag_1.col3
+      """
+    Then the result should be:
+      | VertexID | col1 | lookup_tag_1.col3 |
+      | <id_201> | 201  | 201               |
+      | <id_202> | 202  | 202               |
+    Then drop the used space
+
+# TODO(yee): Test bool expression
+# TODO(yee): Test or expression

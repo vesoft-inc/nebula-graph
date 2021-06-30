@@ -764,7 +764,10 @@ bool OptimizerUtils::findOptimalIndex(int32_t schemaId,
                                       IndexQueryContext* ictx) {
     // Erase invalid index items
     for (auto iter = indexItems->begin(); iter != indexItems->end();) {
-        if ((*iter)->get_schema_id().get_tag_id() != schemaId) {
+        auto schema = (*iter)->get_schema_id();
+        if (schema.tag_id_ref().has_value() && schema.get_tag_id() != schemaId) {
+            iter = indexItems->erase(iter);
+        } else if (schema.edge_type_ref().has_value() && schema.get_edge_type() != schemaId) {
             iter = indexItems->erase(iter);
         } else {
             iter++;

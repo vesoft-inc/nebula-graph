@@ -10,16 +10,14 @@ Feature: Test lookup on edge index
       | partition_num  | 9          |
       | replica_factor | 1          |
       | vid_type       | <vid_type> |
-
-  Scenario Outline: LookupTest IntVid SimpleEdge
-    Given having executed:
+    And having executed:
       """
       CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
       CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
       CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
       """
-    And wait 6 seconds
-    When try to execute query:
+    And wait all indexes ready
+    And having executed:
       """
       INSERT EDGE
         lookup_edge_1(col1, col2, col3)
@@ -27,7 +25,8 @@ Feature: Test lookup on edge index
         <id_200> -> <id_201>@0:(201, 201, 201),
         <id_200> -> <id_202>@0:(202, 202, 202)
       """
-    Then the execution should be successful
+
+  Scenario Outline: [edge] Simple test cases
     When executing query:
       """
       LOOKUP ON lookup_edge_1 WHERE col1 == 201
@@ -39,467 +38,54 @@ Feature: Test lookup on edge index
       """
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking |
-    When executing query:
-      """
-      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 >= 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 >= 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 != 200
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 != 200
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 >= 201 AND
-        lookup_edge_1.col2 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 >= 201 AND
-        lookup_edge_1.col2 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 != 200 AND
-        lookup_edge_1.col2 >= 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-      | <id_200> | <id_202> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 != 200 AND
-        lookup_edge_1.col2 >= 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-      | <id_200> | <id_202> | 0       | 202  | 202  | 202                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 == 201 AND
-        lookup_edge_1.col3 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 == 201 AND
-        lookup_edge_1.col3 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 == 201 AND
-        lookup_edge_1.col3 >= 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 == 201 AND
-        lookup_edge_1.col3 >= 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 == 201 AND
-        lookup_edge_1.col3 != 200
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 == 201 AND
-        lookup_edge_1.col3 != 200
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 >= 201 AND
-        lookup_edge_1.col3 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 >= 201 AND
-        lookup_edge_1.col3 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 >= 201 AND
-        lookup_edge_1.col3 >= 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 >= 201 AND
-        lookup_edge_1.col3 >= 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 >= 201 AND
-        lookup_edge_1.col3 != 200
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 >= 201 AND
-        lookup_edge_1.col3 != 200
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 != 200 AND
-        lookup_edge_1.col3 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 == 201 AND
-        lookup_edge_1.col2 != 200 AND
-        lookup_edge_1.col3 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 >= 201 AND
-        lookup_edge_1.col2 == 201 AND
-        lookup_edge_1.col3 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 >= 201 AND
-        lookup_edge_1.col2 == 201 AND
-        lookup_edge_1.col3 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 >= 201 AND
-        lookup_edge_1.col2 >= 201 AND
-        lookup_edge_1.col3 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 >= 201 AND
-        lookup_edge_1.col2 >= 201 AND
-        lookup_edge_1.col3 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 >= 201 AND
-        lookup_edge_1.col2 != 200 AND
-        lookup_edge_1.col3 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 >= 201 AND
-        lookup_edge_1.col2 != 200 AND
-        lookup_edge_1.col3 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 != 200 AND
-        lookup_edge_1.col2 != 200 AND
-        lookup_edge_1.col3 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking |
-      | <id_200> | <id_201> | 0       |
-    When executing query:
-      """
-      LOOKUP ON
-        lookup_edge_1
-      WHERE
-        lookup_edge_1.col1 != 200 AND
-        lookup_edge_1.col2 != 200 AND
-        lookup_edge_1.col3 == 201
-      YIELD
-        lookup_edge_1.col1 AS col1,
-        lookup_edge_1.col2 AS col2,
-        lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
-      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
-    # TODO(yee): Test bool expression
-    # TODO(yee): Test or expression
     Then drop the used space
+
+  Scenario Outline: [edge] different condition and yield test
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_edge_1
+      WHERE
+        <where_condition>
+      """
+    Then the result should be, in any order:
+      | SrcVID   | DstVID   | Ranking |
+      | <id_200> | <id_201> | 0       |
+    When executing query:
+      """
+      LOOKUP ON
+        lookup_edge_1
+      WHERE
+        <where_condition>
+      YIELD
+        lookup_edge_1.col1 AS col1,
+        lookup_edge_1.col2 AS col2,
+        lookup_edge_1.col3
+      """
+    Then the result should be, in any order:
+      | SrcVID   | DstVID   | Ranking | col1 | col2 | lookup_edge_1.col3 |
+      | <id_200> | <id_201> | 0       | 201  | 201  | 201                |
+    Then drop the used space
+
+    Examples:
+      | where_condition                                                                       |
+      | lookup_edge_1.col1 == 201                                                             |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 == 201                               |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 >= 201                               |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 != 200                               |
+      | lookup_edge_1.col1 >= 201 AND lookup_edge_1.col2 == 201                               |
+      | lookup_edge_1.col1 != 202 AND lookup_edge_1.col2 >= 201                               |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 == 201 AND lookup_edge_1.col3 == 201 |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 == 201 AND lookup_edge_1.col3 >= 201 |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 == 201 AND lookup_edge_1.col3 != 200 |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 >= 201 AND lookup_edge_1.col3 == 201 |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 >= 201 AND lookup_edge_1.col3 >= 201 |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 >= 201 AND lookup_edge_1.col3 != 200 |
+      | lookup_edge_1.col1 == 201 AND lookup_edge_1.col2 != 200 AND lookup_edge_1.col3 == 201 |
+      | lookup_edge_1.col1 >= 201 AND lookup_edge_1.col2 == 201 AND lookup_edge_1.col3 == 201 |
+      | lookup_edge_1.col1 >= 201 AND lookup_edge_1.col2 >= 201 AND lookup_edge_1.col3 == 201 |
+      | lookup_edge_1.col1 >= 201 AND lookup_edge_1.col2 != 200 AND lookup_edge_1.col3 == 201 |
+      | lookup_edge_1.col1 != 200 AND lookup_edge_1.col2 != 200 AND lookup_edge_1.col3 == 201 |
+
+# TODO(yee): Test bool expression
+# TODO(yee): Test or expression
