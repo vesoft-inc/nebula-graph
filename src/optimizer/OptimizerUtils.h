@@ -6,13 +6,28 @@
 #ifndef NEBULA_GRAPH_OPTIMIZER_OPTIMIZERUTILS_H_
 #define NEBULA_GRAPH_OPTIMIZER_OPTIMIZERUTILS_H_
 
-#include "common/interface/gen-cpp2/meta_types.h"
-#include "common/interface/gen-cpp2/storage_types.h"
 #include "util/SchemaUtil.h"
 
 namespace nebula {
 
 class Expression;
+
+namespace meta {
+namespace cpp2 {
+
+class ColumnDef;
+class IndexItem;
+
+}   // namespace cpp2
+}   // namespace meta
+
+namespace storage {
+namespace cpp2 {
+
+class IndexQueryContext;
+
+}   // namespace cpp2
+}   // namespace storage
 
 namespace graph {
 
@@ -23,46 +38,6 @@ public:
         LESS_THAN,
         MAX,
         MIN,
-    };
-
-    // {2, 1, 0} >
-    // {2, 1} >
-    // {2, 0, 1} >
-    // {2, 0} >
-    // {2} >
-    // {1, 2} >
-    // {1, 1} >
-    // {1}
-    enum class IndexPriority : uint8_t {
-        kNotEqual = 0,
-        kRange,
-        kPrefix,
-    };
-
-    struct PriorityColumnHint {
-        storage::cpp2::IndexColumnHint hint;
-        const Expression* expr;
-        IndexPriority priority;
-    };
-
-    struct IndexResult {
-        const meta::cpp2::IndexItem* index;
-        Expression* unusedExpr;
-        std::vector<PriorityColumnHint> hints;
-
-        bool operator<(const IndexResult& rhs) const {
-            if (hints.empty()) return true;
-            auto sz = std::min(hints.size(), rhs.hints.size());
-            for (size_t i = 0; i < sz; i++) {
-                if (hints[i].priority < rhs.hints[i].priority) {
-                    return true;
-                }
-                if (hints[i].priority > rhs.hints[i].priority) {
-                    return false;
-                }
-            }
-            return hints.size() < rhs.hints.size();
-        }
     };
 
     OptimizerUtils() = delete;
@@ -87,8 +62,12 @@ public:
                              Value& begin,
                              Value& end);
 
-    static StatusOr<IndexResult> selectIndex(const Expression* expr,
-                                             const meta::cpp2::IndexItem& index);
+    static bool findOptimalIndex(
+        int32_t schemaId,
+        const Expression* condition,
+        std::vector<std::shared_ptr<nebula::meta::cpp2::IndexItem>>* indexItems,
+        bool* isPrefixScan,
+        nebula::storage::cpp2::IndexQueryContext* ictx);
 };
 
 }   // namespace graph

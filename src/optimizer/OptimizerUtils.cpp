@@ -5,8 +5,10 @@
  */
 
 #include "optimizer/OptimizerUtils.h"
+
 #include <algorithm>
 #include <memory>
+
 #include "common/base/Status.h"
 #include "common/expression/ConstantExpression.h"
 #include "common/expression/Expression.h"
@@ -19,10 +21,8 @@
 using nebula::meta::cpp2::ColumnDef;
 using nebula::meta::cpp2::IndexItem;
 using nebula::storage::cpp2::IndexColumnHint;
+using nebula::storage::cpp2::IndexQueryContext;
 
-using IndexResult = nebula::graph::OptimizerUtils::IndexResult;
-using IndexPriority = nebula::graph::OptimizerUtils::IndexPriority;
-using PriorityColumnHint = nebula::graph::OptimizerUtils::PriorityColumnHint;
 using BVO = nebula::graph::OptimizerUtils::BoundValueOperator;
 
 namespace nebula {
@@ -32,16 +32,16 @@ Value OptimizerUtils::boundValue(const meta::cpp2::ColumnDef& col,
                                  BoundValueOperator op,
                                  const Value& v) {
     switch (op) {
-        case BoundValueOperator::GREATER_THAN : {
+        case BoundValueOperator::GREATER_THAN: {
             return boundValueWithGT(col, v);
         }
-        case BoundValueOperator::LESS_THAN : {
+        case BoundValueOperator::LESS_THAN: {
             return boundValueWithLT(col, v);
         }
-        case BoundValueOperator::MAX : {
+        case BoundValueOperator::MAX: {
             return boundValueWithMax(col);
         }
-        case BoundValueOperator::MIN : {
+        case BoundValueOperator::MIN: {
             return boundValueWithMin(col);
         }
     }
@@ -51,14 +51,14 @@ Value OptimizerUtils::boundValue(const meta::cpp2::ColumnDef& col,
 Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const Value& v) {
     auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
     switch (type) {
-        case Value::Type::INT : {
+        case Value::Type::INT: {
             if (v.getInt() == std::numeric_limits<int64_t>::max()) {
                 return v;
             } else {
                 return v + 1;
             }
         }
-        case Value::Type::FLOAT : {
+        case Value::Type::FLOAT: {
             if (v.getFloat() > 0.0) {
                 if (v.getFloat() == std::numeric_limits<double_t>::max()) {
                     return v;
@@ -72,7 +72,7 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             }
             return v.getFloat() + kEpsilon;
         }
-        case Value::Type::STRING : {
+        case Value::Type::STRING: {
             if (!col.type.type_length_ref().has_value()) {
                 return Value::kNullBadType;
             }
@@ -80,14 +80,14 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             bytes.resize(*col.get_type().type_length_ref());
             for (size_t i = bytes.size();; i--) {
                 if (i > 0) {
-                    if (bytes[i-1]++ != 255) break;
+                    if (bytes[i - 1]++ != 255) break;
                 } else {
                     return Value(std::string(*col.get_type().type_length_ref(), '\377'));
                 }
             }
             return Value(std::string(bytes.begin(), bytes.end()));
         }
-        case Value::Type::DATE : {
+        case Value::Type::DATE: {
             if (Date(std::numeric_limits<int16_t>::max(), 12, 31) == v.getDate()) {
                 return v.getDate();
             } else if (Date() == v.getDate()) {
@@ -111,7 +111,7 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             }
             return Value(d);
         }
-        case Value::Type::TIME : {
+        case Value::Type::TIME: {
             auto t = v.getTime();
             // Ignore the time zone.
             if (t.microsec < 999999) {
@@ -136,7 +136,7 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             }
             return Value(t);
         }
-        case Value::Type::DATETIME : {
+        case Value::Type::DATETIME: {
             auto dt = v.getDateTime();
             // Ignore the time zone.
             if (dt.microsec < 999999) {
@@ -186,8 +186,7 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
         case Value::Type::MAP:
         case Value::Type::DATASET:
         case Value::Type::PATH: {
-            DLOG(FATAL) << "Not supported value type " << type
-                        << "for index.";
+            DLOG(FATAL) << "Not supported value type " << type << "for index.";
             return Value::kNullBadType;
         }
     }
@@ -198,14 +197,14 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
 Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const Value& v) {
     auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
     switch (type) {
-        case Value::Type::INT : {
+        case Value::Type::INT: {
             if (v.getInt() == std::numeric_limits<int64_t>::min()) {
                 return v;
             } else {
                 return v - 1;
             }
         }
-        case Value::Type::FLOAT : {
+        case Value::Type::FLOAT: {
             if (v.getFloat() < 0.0) {
                 if (v.getFloat() == -std::numeric_limits<double_t>::max()) {
                     return v;
@@ -217,7 +216,7 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             }
             return v.getFloat() - kEpsilon;
         }
-        case Value::Type::STRING : {
+        case Value::Type::STRING: {
             if (!col.type.type_length_ref().has_value()) {
                 return Value::kNullBadType;
             }
@@ -225,14 +224,14 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             bytes.resize(*col.get_type().type_length_ref());
             for (size_t i = bytes.size();; i--) {
                 if (i > 0) {
-                    if (bytes[i-1]-- != 0) break;
+                    if (bytes[i - 1]-- != 0) break;
                 } else {
                     return Value(std::string(*col.get_type().type_length_ref(), '\0'));
                 }
             }
             return Value(std::string(bytes.begin(), bytes.end()));
         }
-        case Value::Type::DATE : {
+        case Value::Type::DATE: {
             if (Date() == v.getDate()) {
                 return v.getDate();
             }
@@ -254,7 +253,7 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             }
             return Value(d);
         }
-        case Value::Type::TIME : {
+        case Value::Type::TIME: {
             if (Time() == v.getTime()) {
                 return v.getTime();
             }
@@ -281,7 +280,7 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             }
             return Value(t);
         }
-        case Value::Type::DATETIME : {
+        case Value::Type::DATETIME: {
             if (DateTime() == v.getDateTime()) {
                 return v.getDateTime();
             }
@@ -333,8 +332,7 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
         case Value::Type::MAP:
         case Value::Type::DATASET:
         case Value::Type::PATH: {
-            DLOG(FATAL) << "Not supported value type " << type
-                        << "for index.";
+            DLOG(FATAL) << "Not supported value type " << type << "for index.";
             return Value::kNullBadType;
         }
     }
@@ -345,19 +343,19 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
 Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col) {
     auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
     switch (type) {
-        case Value::Type::INT : {
+        case Value::Type::INT: {
             return Value(std::numeric_limits<int64_t>::max());
         }
-        case Value::Type::FLOAT : {
+        case Value::Type::FLOAT: {
             return Value(std::numeric_limits<double>::max());
         }
-        case Value::Type::STRING : {
+        case Value::Type::STRING: {
             if (!col.type.type_length_ref().has_value()) {
                 return Value::kNullBadType;
             }
             return Value(std::string(*col.get_type().type_length_ref(), '\377'));
         }
-        case Value::Type::DATE : {
+        case Value::Type::DATE: {
             Date d;
             d.year = std::numeric_limits<int16_t>::max();
             d.month = 12;
@@ -393,8 +391,7 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col) {
         case Value::Type::MAP:
         case Value::Type::DATASET:
         case Value::Type::PATH: {
-            DLOG(FATAL) << "Not supported value type " << type
-                        << "for index.";
+            DLOG(FATAL) << "Not supported value type " << type << "for index.";
             return Value::kNullBadType;
         }
     }
@@ -405,25 +402,25 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col) {
 Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col) {
     auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
     switch (type) {
-        case Value::Type::INT : {
+        case Value::Type::INT: {
             return Value(std::numeric_limits<int64_t>::min());
         }
-        case Value::Type::FLOAT : {
+        case Value::Type::FLOAT: {
             return Value(-std::numeric_limits<double>::max());
         }
-        case Value::Type::STRING : {
+        case Value::Type::STRING: {
             if (!col.type.type_length_ref().has_value()) {
                 return Value::kNullBadType;
             }
             return Value(std::string(*col.get_type().type_length_ref(), '\0'));
         }
-        case Value::Type::DATE : {
+        case Value::Type::DATE: {
             return Value(Date());
         }
         case Value::Type::TIME: {
             return Value(Time());
         }
-        case Value::Type::DATETIME : {
+        case Value::Type::DATETIME: {
             return Value(DateTime());
         }
         case Value::Type::__EMPTY__:
@@ -436,8 +433,7 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col) {
         case Value::Type::MAP:
         case Value::Type::DATASET:
         case Value::Type::PATH: {
-            DLOG(FATAL) << "Not supported value type " << type
-                        << "for index.";
+            DLOG(FATAL) << "Not supported value type " << type << "for index.";
             return Value::kNullBadType;
         }
     }
@@ -456,7 +452,7 @@ Value OptimizerUtils::normalizeValue(const meta::cpp2::ColumnDef& col, const Val
         case Value::Type::DATETIME: {
             return v;
         }
-        case Value::Type::STRING : {
+        case Value::Type::STRING: {
             if (!col.type.type_length_ref().has_value()) {
                 return Value::kNullBadType;
             }
@@ -482,13 +478,12 @@ Value OptimizerUtils::normalizeValue(const meta::cpp2::ColumnDef& col, const Val
         case Value::Type::MAP:
         case Value::Type::DATASET:
         case Value::Type::PATH: {
-            DLOG(FATAL) << "Not supported value type " << type
-                        << "for index.";
+            DLOG(FATAL) << "Not supported value type " << type << "for index.";
             return Value::kNullBadType;
         }
     }
     DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
-    return Value::kNullBadType;;
+    return Value::kNullBadType;
 }
 
 Status OptimizerUtils::boundValue(Expression::Kind kind,
@@ -558,6 +553,48 @@ Status OptimizerUtils::boundValue(Expression::Kind kind,
     return Status::OK();
 }
 
+namespace {
+
+// {2, 1, 0} >
+// {2, 1} >
+// {2, 0, 1} >
+// {2, 0} >
+// {2} >
+// {1, 2} >
+// {1, 1} >
+// {1}
+enum class IndexScore : uint8_t {
+    kNotEqual = 0,
+    kRange,
+    kPrefix,
+};
+
+struct PriorityColumnHint {
+    storage::cpp2::IndexColumnHint hint;
+    const Expression* expr;
+    IndexScore priority;
+};
+
+struct IndexResult {
+    const meta::cpp2::IndexItem* index;
+    Expression* unusedExpr;
+    std::vector<PriorityColumnHint> hints;
+
+    bool operator<(const IndexResult& rhs) const {
+        if (hints.empty()) return true;
+        auto sz = std::min(hints.size(), rhs.hints.size());
+        for (size_t i = 0; i < sz; i++) {
+            if (hints[i].priority < rhs.hints[i].priority) {
+                return true;
+            }
+            if (hints[i].priority > rhs.hints[i].priority) {
+                return false;
+            }
+        }
+        return hints.size() < rhs.hints.size();
+    }
+};
+
 Status checkValue(const ColumnDef& field, BVO bvo, Value* value) {
     if (*value == Value()) {
         *value = OptimizerUtils::boundValue(field, bvo, Value());
@@ -611,7 +648,7 @@ StatusOr<PriorityColumnHint> selectRelExprIndex(const ColumnDef& field,
     switch (expr->kind()) {
         case Expression::Kind::kRelEQ: {
             handleEqualIndex(field, value, &hint.hint);
-            hint.priority = IndexPriority::kPrefix;
+            hint.priority = IndexScore::kPrefix;
             break;
         }
         case Expression::Kind::kRelGE:
@@ -619,11 +656,11 @@ StatusOr<PriorityColumnHint> selectRelExprIndex(const ColumnDef& field,
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelLT: {
             NG_RETURN_IF_ERROR(handleRangeIndex(field, expr, value, &hint.hint));
-            hint.priority = IndexPriority::kRange;
+            hint.priority = IndexScore::kRange;
             break;
         }
         case Expression::Kind::kRelNE: {
-            hint.priority = IndexPriority::kNotEqual;
+            hint.priority = IndexScore::kNotEqual;
             break;
         }
         default: {
@@ -706,7 +743,7 @@ StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
     return result;
 }
 
-StatusOr<IndexResult> OptimizerUtils::selectIndex(const Expression* expr, const IndexItem& index) {
+StatusOr<IndexResult> selectIndex(const Expression* expr, const IndexItem& index) {
     if (expr->isRelExpr()) {
         return selectRelExprIndex(static_cast<const RelationalExpression*>(expr), index);
     }
@@ -718,5 +755,72 @@ StatusOr<IndexResult> OptimizerUtils::selectIndex(const Expression* expr, const 
     return Status::Error("Invalid expression kind.");
 }
 
-}  // namespace graph
-}  // namespace nebula
+}   // namespace
+
+bool OptimizerUtils::findOptimalIndex(int32_t schemaId,
+                                      const Expression* condition,
+                                      std::vector<std::shared_ptr<IndexItem>>* indexItems,
+                                      bool* isPrefixScan,
+                                      IndexQueryContext* ictx) {
+    // Erase invalid index items
+    for (auto iter = indexItems->begin(); iter != indexItems->end();) {
+        if ((*iter)->get_schema_id().get_tag_id() != schemaId) {
+            iter = indexItems->erase(iter);
+        } else {
+            iter++;
+        }
+    }
+
+    // Return directly if there is not valid index to use.
+    if (indexItems->empty()) {
+        return false;
+    }
+
+    std::vector<IndexResult> results;
+    for (auto& index : *indexItems) {
+        auto resStatus = selectIndex(condition, *index);
+        if (resStatus.ok()) {
+            results.emplace_back(std::move(resStatus).value());
+        }
+    }
+
+    if (results.empty()) {
+        return false;
+    }
+
+    std::sort(results.begin(), results.end());
+
+    auto& index = results.back();
+    if (index.hints.empty()) {
+        return false;
+    }
+
+    *isPrefixScan = false;
+    std::vector<storage::cpp2::IndexColumnHint> hints;
+    hints.reserve(index.hints.size());
+    auto iter = index.hints.begin();
+    for (; iter != index.hints.end(); ++iter) {
+        auto& hint = *iter;
+        if (hint.priority == IndexScore::kPrefix) {
+            hints.emplace_back(std::move(hint.hint));
+            *isPrefixScan = true;
+            continue;
+        }
+        if (hint.priority == IndexScore::kRange) {
+            hints.emplace_back(std::move(hint.hint));
+            // skip the case first range hint is the last hint
+            // when set filter in index query context
+            ++iter;
+        }
+        break;
+    }
+    if (iter != index.hints.end() || index.unusedExpr) {
+        ictx->set_filter(condition->encode());
+    }
+    ictx->set_index_id(index.index->get_index_id());
+    ictx->set_column_hints(std::move(hints));
+    return true;
+}
+
+}   // namespace graph
+}   // namespace nebula
