@@ -578,7 +578,7 @@ struct ScoredColumnHint {
 
 struct IndexResult {
     const meta::cpp2::IndexItem* index;
-    Expression* unusedExpr;
+    Expression* unusedExpr{nullptr};
     std::vector<ScoredColumnHint> hints;
 
     bool operator<(const IndexResult& rhs) const {
