@@ -7,6 +7,7 @@
 #include "validator/LookupValidator.h"
 
 #include "common/base/Status.h"
+#include "common/interface/gen-cpp2/meta_types.h"
 #include "common/meta/NebulaSchemaProvider.h"
 #include "context/ast/QueryAstContext.h"
 #include "planner/plan/Query.h"
@@ -190,7 +191,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     auto left = expr->left();
     auto* la = static_cast<LabelAttributeExpression*>(left);
     if (la->left()->name() != sentence()->from()) {
-        return Status::SemanticError("Schema name error : %s", la->left()->name().c_str());
+        return Status::SemanticError("Schema name error: %s", la->left()->name().c_str());
     }
 
     // fold constant expression
@@ -203,9 +204,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     std::string prop = la->right()->value().getStr();
     auto relExprType = expr->kind();
     auto c = checkConstExpr(expr->right(), prop, relExprType);
-    if (!c.ok()) {
-        return Status::SemanticError("expression error : %s", expr->right()->toString().c_str());
-    }
+    NG_RETURN_IF_ERROR(c);
     expr->setRight(ConstantExpression::make(pool, std::move(c).value()));
 
     // rewrite PropertyExpression
@@ -228,6 +227,9 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
     auto schema = lookupCtx_->isEdge ? schemaMgr->getEdgeSchema(spaceId(), schemaId())
                                      : schemaMgr->getTagSchema(spaceId(), schemaId());
     auto type = schema->getFieldType(prop);
+    if (type == meta::cpp2::PropertyType::UNKNOWN) {
+        return Status::SemanticError("Invalid column: %s", prop.c_str());
+    }
     QueryExpressionContext dummy(nullptr);
     auto v = Expression::eval(expr, dummy);
     // TODO(Aiee) extract the type cast logic as a method if we decide to support more cross-type

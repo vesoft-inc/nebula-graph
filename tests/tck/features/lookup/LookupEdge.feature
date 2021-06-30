@@ -34,6 +34,11 @@ Feature: Test lookup on edge index
     Then a SemanticError should be raised at runtime: Expression (col1==201) not supported yet
     When executing query:
       """
+      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201 OR lookup_edge_1.col5 == 20
+      """
+    Then a SemanticError should be raised at runtime: Invalid column: col5
+    When executing query:
+      """
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 300
       """
     Then the result should be, in any order:

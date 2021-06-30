@@ -35,6 +35,11 @@ Feature: Test lookup on tag index
     Then a SemanticError should be raised at runtime: Expression (col1==200) not supported yet
     When executing query:
       """
+      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200 OR lookup_tag_1.col5 == 20;
+      """
+    Then a SemanticError should be raised at runtime: Invalid column: col5
+    When executing query:
+      """
       LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 300
       """
     Then the result should be, in any order:
