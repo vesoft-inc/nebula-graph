@@ -10,6 +10,12 @@
 #include "optimizer/OptRule.h"
 
 namespace nebula {
+class PlanNode;
+
+namespace graph {
+class IndexScan;
+}   // namespace graph
+
 namespace opt {
 
 class IndexFullScanBaseRule : public OptRule {
@@ -17,6 +23,9 @@ public:
     bool match(OptContext *ctx, const MatchedResult &matched) const override;
     StatusOr<TransformResult> transform(OptContext *ctx,
                                         const MatchedResult &matched) const override;
+
+protected:
+    virtual graph::IndexScan *scan(OptContext *ctx, const graph::PlanNode *node) const = 0;
 };
 
 }   // namespace opt

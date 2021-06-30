@@ -5,6 +5,8 @@
  */
 
 #include "optimizer/rule/TagIndexFullScanRule.h"
+#include "optimizer/OptContext.h"
+#include "planner/plan/Scan.h"
 
 using Kind = nebula::graph::PlanNode::Kind;
 
@@ -25,6 +27,11 @@ const Pattern& TagIndexFullScanRule::pattern() const {
 
 std::string TagIndexFullScanRule::toString() const {
     return "TagIndexFullScanRule";
+}
+
+graph::IndexScan* TagIndexFullScanRule::scan(OptContext* ctx, const graph::PlanNode* node) const {
+    auto scan = static_cast<const graph::TagIndexFullScan*>(node);
+    return graph::TagIndexFullScan::make(ctx->qctx(), nullptr, scan->tagName());
 }
 
 }   // namespace opt

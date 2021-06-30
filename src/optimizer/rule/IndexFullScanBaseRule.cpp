@@ -7,6 +7,7 @@
 #include "optimizer/rule/IndexFullScanBaseRule.h"
 
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "context/QueryContext.h"
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
 #include "optimizer/OptRule.h"
@@ -58,7 +59,7 @@ StatusOr<TransformResult> IndexFullScanBaseRule::transform(OptContext* ctx,
     ictx.set_index_id(idxId);
     idxCtxs.emplace_back(std::move(ictx));
 
-    auto scanNode = static_cast<IndexScan*>(scan->clone());
+    auto scanNode = this->scan(ctx, scan);
     OptimizerUtils::copyIndexScanData(scan, scanNode);
     scanNode->setOutputVar(scan->outputVar());
     scanNode->setColNames(scan->colNames());

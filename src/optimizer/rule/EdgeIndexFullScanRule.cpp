@@ -5,6 +5,12 @@
  */
 
 #include "optimizer/rule/EdgeIndexFullScanRule.h"
+#include "optimizer/OptContext.h"
+#include "planner/plan/Query.h"
+#include "planner/plan/Scan.h"
+
+using nebula::graph::EdgeIndexFullScan;
+using nebula::graph::IndexScan;
 
 using Kind = nebula::graph::PlanNode::Kind;
 
@@ -25,6 +31,11 @@ const Pattern& EdgeIndexFullScanRule::pattern() const {
 
 std::string EdgeIndexFullScanRule::toString() const {
     return "EdgeIndexFullScanRule";
+}
+
+IndexScan* EdgeIndexFullScanRule::scan(OptContext* ctx, const graph::PlanNode* node) const {
+    auto scan = static_cast<const EdgeIndexFullScan*>(node);
+    return EdgeIndexFullScan::make(ctx->qctx(), nullptr, scan->edgeType());
 }
 
 }   // namespace opt

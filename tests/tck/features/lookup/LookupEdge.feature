@@ -34,9 +34,14 @@ Feature: Test lookup on edge index
     Then a SemanticError should be raised at runtime: Expression (col1==201) not supported yet
     When executing query:
       """
-      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201 OR lookup_edge_1.col5 == 20
+      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201 OR lookup_edge_1.col5 == 201
       """
     Then a SemanticError should be raised at runtime: Invalid column: col5
+    When executing query:
+      """
+      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201 OR lookup_edge_1.col2 == 201 AND lookup_edge_1.col3 == 202
+      """
+    Then a SemanticError should be raised at runtime: Not supported filter
     When executing query:
       """
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 300
@@ -91,6 +96,7 @@ Feature: Test lookup on edge index
       | lookup_edge_1.col1 >= 201 AND lookup_edge_1.col2 >= 201 AND lookup_edge_1.col3 == 201 |
       | lookup_edge_1.col1 >= 201 AND lookup_edge_1.col2 != 200 AND lookup_edge_1.col3 == 201 |
       | lookup_edge_1.col1 != 200 AND lookup_edge_1.col2 != 200 AND lookup_edge_1.col3 == 201 |
+      | lookup_edge_1.col1 == 201 OR lookup_edge_1.col2 == 201                                |
 
 # TODO(yee): Test bool expression
 # TODO(yee): Test or expression

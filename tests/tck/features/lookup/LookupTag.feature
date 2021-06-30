@@ -40,6 +40,11 @@ Feature: Test lookup on tag index
     Then a SemanticError should be raised at runtime: Invalid column: col5
     When executing query:
       """
+      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 201 OR lookup_tag_1.col2 == 201 AND lookup_tag_1.col3 == 202
+      """
+    Then a SemanticError should be raised at runtime: Not supported filter
+    When executing query:
+      """
       LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 300
       """
     Then the result should be, in any order:
@@ -90,6 +95,7 @@ Feature: Test lookup on tag index
       | lookup_tag_1.col1 != 202 AND lookup_tag_1.col2 == 201 AND lookup_tag_1.col3 == 201 |
       | lookup_tag_1.col1 != 202 AND lookup_tag_1.col2 == 201 AND lookup_tag_1.col3 >= 201 |
       | lookup_tag_1.col1 != 202 AND lookup_tag_1.col2 >= 201 AND lookup_tag_1.col3 >= 201 |
+      | lookup_tag_1.col1 == 201 OR lookup_tag_1.col2 == 201                               |
 
   Scenario Outline: [tag] scan without hints
     When executing query:

@@ -14,11 +14,12 @@ namespace opt {
 
 class TagIndexFullScanRule final : public IndexFullScanBaseRule {
 public:
-    const Pattern &pattern() const override;
+    const Pattern& pattern() const override;
     std::string toString() const override;
 
 private:
     TagIndexFullScanRule();
+    graph::IndexScan* scan(OptContext* ctx, const graph::PlanNode* node) const override;
 
     static std::unique_ptr<OptRule> kInstance;
 };
