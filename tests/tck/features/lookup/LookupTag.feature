@@ -49,6 +49,7 @@ Feature: Test lookup on tag index
       """
     Then the result should be, in any order:
       | VertexID |
+    Then drop the used space
 
   Scenario Outline: [tag] different condition and yield test
     When executing query:
