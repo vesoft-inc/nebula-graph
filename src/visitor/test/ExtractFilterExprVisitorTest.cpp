@@ -16,15 +16,12 @@
 namespace nebula {
 namespace graph {
 
-class ExtractFilterExprVisitorTest : public VisitorTestBase {
-protected:
-    ObjectPool pool_;
-};
+class ExtractFilterExprVisitorTest : public VisitorTestBase {};
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanBePushNoAnd) {
     // true
-    ExtractFilterExprVisitor visitor;
-    auto expr = pool_.add(constantExpr(true));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto expr = constantExpr(true);
     expr->accept(&visitor);
     ASSERT_TRUE(visitor.ok());
     ASSERT(std::move(visitor).remainedExpr() == nullptr);
@@ -32,8 +29,8 @@ TEST_F(ExtractFilterExprVisitorTest, TestCanBePushNoAnd) {
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanBePushAnd) {
     // true AND false
-    ExtractFilterExprVisitor visitor;
-    auto expr = pool_.add(andExpr(constantExpr(true), constantExpr(false)));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto expr = andExpr(constantExpr(true), constantExpr(false));
     expr->accept(&visitor);
     ASSERT_TRUE(visitor.ok());
     ASSERT(std::move(visitor).remainedExpr() == nullptr);
@@ -41,8 +38,8 @@ TEST_F(ExtractFilterExprVisitorTest, TestCanBePushAnd) {
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanBePushOr) {
     // true OR false
-    ExtractFilterExprVisitor visitor;
-    auto expr = pool_.add(orExpr(constantExpr(true), constantExpr(false)));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto expr = orExpr(constantExpr(true), constantExpr(false));
     expr->accept(&visitor);
     ASSERT_TRUE(visitor.ok());
     ASSERT(std::move(visitor).remainedExpr() == nullptr);
@@ -50,9 +47,8 @@ TEST_F(ExtractFilterExprVisitorTest, TestCanBePushOr) {
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanNotBePushNoAnd) {
     // $$.player.name
-    ExtractFilterExprVisitor visitor;
-    auto expr =
-        pool_.add(new DestPropertyExpression(new std::string("player"), new std::string("name")));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto expr = DestPropertyExpression::make(pool_.get(), "player", "name");
     expr->accept(&visitor);
     ASSERT_FALSE(visitor.ok());
     ASSERT(std::move(visitor).remainedExpr() == nullptr);
@@ -60,10 +56,10 @@ TEST_F(ExtractFilterExprVisitorTest, TestCanNotBePushNoAnd) {
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanNotBePushAnd) {
     // $$.player.name AND $var.name
-    ExtractFilterExprVisitor visitor;
-    auto dstExpr = new DestPropertyExpression(new std::string("player"), new std::string("name"));
-    auto varExpr = new VariablePropertyExpression(new std::string("var"), new std::string("name"));
-    auto expr = pool_.add(andExpr(dstExpr, varExpr));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto dstExpr = DestPropertyExpression::make(pool_.get(), "player", "name");
+    auto varExpr = VariablePropertyExpression::make(pool_.get(), "var", "name");
+    auto expr = andExpr(dstExpr, varExpr);
     expr->accept(&visitor);
     ASSERT_FALSE(visitor.ok());
     ASSERT(std::move(visitor).remainedExpr() == nullptr);
@@ -71,10 +67,10 @@ TEST_F(ExtractFilterExprVisitorTest, TestCanNotBePushAnd) {
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanNotBePushOr) {
     // $$.player.name OR $var.name
-    ExtractFilterExprVisitor visitor;
-    auto dstExpr = new DestPropertyExpression(new std::string("player"), new std::string("name"));
-    auto varExpr = new VariablePropertyExpression(new std::string("var"), new std::string("name"));
-    auto expr = pool_.add(orExpr(dstExpr, varExpr));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto dstExpr = DestPropertyExpression::make(pool_.get(), "player", "name");
+    auto varExpr = VariablePropertyExpression::make(pool_.get(), "var", "name");
+    auto expr = orExpr(dstExpr, varExpr);
     expr->accept(&visitor);
     ASSERT_FALSE(visitor.ok());
     ASSERT(std::move(visitor).remainedExpr() == nullptr);
@@ -82,9 +78,9 @@ TEST_F(ExtractFilterExprVisitorTest, TestCanNotBePushOr) {
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanBePushSomeAnd) {
     // $$.player.name AND true
-    ExtractFilterExprVisitor visitor;
-    auto dstExpr = new DestPropertyExpression(new std::string("player"), new std::string("name"));
-    auto expr = pool_.add(andExpr(dstExpr, constantExpr(true)));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto dstExpr = DestPropertyExpression::make(pool_.get(), "player", "name");
+    auto expr = andExpr(dstExpr, constantExpr(true));
     expr->accept(&visitor);
     ASSERT_TRUE(visitor.ok());
     auto rmExpr = std::move(visitor).remainedExpr();
@@ -93,9 +89,9 @@ TEST_F(ExtractFilterExprVisitorTest, TestCanBePushSomeAnd) {
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanBePushSomeOr) {
     // $$.player.name OR $$.player.name
-    ExtractFilterExprVisitor visitor;
-    auto dstExpr = new DestPropertyExpression(new std::string("player"), new std::string("name"));
-    auto expr = pool_.add(orExpr(dstExpr, constantExpr(true)));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto dstExpr = DestPropertyExpression::make(pool_.get(), "player", "name");
+    auto expr = orExpr(dstExpr, constantExpr(true));
     expr->accept(&visitor);
     ASSERT_FALSE(visitor.ok());
     ASSERT(std::move(visitor).remainedExpr() == nullptr);
@@ -103,11 +99,11 @@ TEST_F(ExtractFilterExprVisitorTest, TestCanBePushSomeOr) {
 
 TEST_F(ExtractFilterExprVisitorTest, TestCanBePushSomeAndOr) {
     // $$.player.name AND (true OR $^.player.name)
-    ExtractFilterExprVisitor visitor;
-    auto dstExpr = new DestPropertyExpression(new std::string("player"), new std::string("name"));
-    auto srcExpr = new SourcePropertyExpression(new std::string("player"), new std::string("name"));
+    ExtractFilterExprVisitor visitor(pool_.get());
+    auto dstExpr = DestPropertyExpression::make(pool_.get(), "player", "name");
+    auto srcExpr = SourcePropertyExpression::make(pool_.get(), "player", "name");
     auto rExpr = orExpr(srcExpr, constantExpr(true));
-    auto expr = pool_.add(andExpr(dstExpr, rExpr));
+    auto expr = andExpr(dstExpr, rExpr);
     expr->accept(&visitor);
     ASSERT_TRUE(visitor.ok());
     auto rmexpr = std::move(visitor).remainedExpr();

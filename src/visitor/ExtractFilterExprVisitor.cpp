@@ -103,7 +103,7 @@ void ExtractFilterExprVisitor::visit(LogicalExpression *expr) {
     std::vector<Expression*> remainedOperands;
     for (auto i = 0u; i < operands.size(); i++) {
         if (!flags[i]) {
-            remainedOperands.emplace_back(operands[i]);
+            remainedOperands.emplace_back(operands[i]->clone());
             expr->setOperand(i, ConstantExpression::make(pool_, true));
         }
     }

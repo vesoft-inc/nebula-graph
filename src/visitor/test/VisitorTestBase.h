@@ -11,6 +11,8 @@
 
 #include "common/expression/ExprVisitor.h"
 
+using Type = nebula::Value::Type;
+
 namespace nebula {
 namespace graph {
 
