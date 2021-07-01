@@ -151,9 +151,11 @@ folly::Future<Status> ShowTagIndexesExecutor::execute() {
                 if (bySchema.empty()) {
                     row.values.emplace_back(i.second.first);
                 }
-                std::string colsStr;
-                folly::join(", ", i.second.second, colsStr);
-                row.values.emplace_back(std::move(colsStr));
+                List list;
+                for (const auto& c : i.second.second) {
+                    list.values.emplace_back(c);
+                }
+                row.values.emplace_back(std::move(list));
                 dataSet.rows.emplace_back(std::move(row));
             }
             return finish(ResultBuilder()
