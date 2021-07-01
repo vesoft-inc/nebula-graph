@@ -1,4 +1,4 @@
-# Copyright (c) 2020 vesoft inc. All rights reserved.
+# Copyright (c) 2021 vesoft inc. All rights reserved.
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -12,7 +12,7 @@ Feature: Slow Query Test
       """
       GO 100000 STEPS FROM "Tim Duncan" OVER like
       """
-    Then an ExecutionError should be raised at runtime: N6nebula5graph14ExecutionErrorE: Execution had been killed
+    Then an ExecutionError should be raised at runtime: Execution had been killed
 
   Scenario: Show all queries and kill all slow queries
     When executing query:

@@ -16,40 +16,47 @@ folly::Future<Status> KillQueryExecutor::execute() {
 
     // TODO: permision check
 
+    QueriesMap toBeVerifiedQueries;
+    KillQueriesMap killQueries;
+    NG_RETURN_IF_ERROR(verifyTheQueriesByLocalCache(toBeVerifiedQueries, killQueries));
+
     folly::Promise<Status> pro;
-    auto result = pro.getFuture();
+    result = pro.getFuture();
     qctx()->getMetaClient()->listSessions().via(runner()).thenValue(
-        [pro = std::move(pro), this](StatusOr<meta::cpp2::ListSessionsResp> listResp) mutable {
+        [toBeVerifiedQueries = std::move(toBeVerifiedQueries),
+         killQueries = std::move(killQueries),
+         pro = std::move(pro),
+         this](StatusOr<meta::cpp2::ListSessionsResp> listResp) mutable {
             std::vector<meta::cpp2::Session> sessionsInMeta;
             if (listResp.ok()) {
                 sessionsInMeta = std::move(listResp.value()).get_sessions();
+            } else {
+                LOG(ERROR) << listResp.status();
             }
-            KillQueriesMap killQueries;
-            auto retStatus = buildKillQueries(sessionsInMeta, killQueries);
-            if (!retStatus.ok()) {
-                pro.setValue(retStatus);
+
+            auto status = verifyTheQueriesByMetaInfo(toBeVerifiedQueries, sessionsInMeta);
+            if (!status.ok()) {
+                pro.setValue(std::move(status));
                 return;
             }
 
+            killCurrentHostQueries(killQueries);
+
+            // upload all queries to be killed to meta.
             qctx()
                 ->getMetaClient()
                 ->killQuery(std::move(killQueries))
                 .via(runner())
                 .thenValue([pro = std::move(pro), this](auto&& resp) mutable {
                     SCOPED_TIMER(&execTime_);
-                    Status status = Status::OK();
-                    if (!resp.ok()) {
-                        status = Status::Error("Kill query failed.");
-                    }
-                    pro.setValue(std::move(status));
+                    pro.setValue(resp.status());
                 });
         });
     return result;
 }
 
-Status KillQueryExecutor::buildKillQueries(const std::vector<meta::cpp2::Session>& sessionsInMeta,
-                                           KillQueriesMap& killQueries) {
-    SCOPED_TIMER(&execTime_);
+Status KillQueryExecutor::verifyTheQueriesByLocalCache(QueriesMap& toBeVerifiedQueries,
+                                                       KillQueriesMap& killQueries) {
     auto* killQuery = asNode<KillQuery>(node());
     auto inputVar = killQuery->inputVar();
     auto iter = ectx_->getResult(inputVar).iter();
@@ -83,25 +90,54 @@ Status KillQueryExecutor::buildKillQueries(const std::vector<meta::cpp2::Session
                 return Status::Error("ExecutionPlanId[%ld] does not exist in current Session.",
                                      epId);
             }
-            session->markQueryKilled(epId);
             killQueries[session->id()].emplace(epId);
         } else {
             auto sessionPtr = sessionMgr->findSessionFromCache(sessionId);
             if (sessionPtr == nullptr) {
-                auto found = std::find_if(
-                    sessionsInMeta.begin(), sessionsInMeta.end(), [sessionId](auto& val) {
-                        return val.get_session_id() == sessionId;
-                    });
-                if (found == sessionsInMeta.end()) {
-                    return Status::Error("SessionId[%ld] does not exist", sessionId);
-                }
-                if (found->get_queries().find(epId) == found->get_queries().end()) {
-                    return Status::Error("ExecutionPlanId[%ld] does not exist.", epId);
-                }
+                toBeVerifiedQueries[sessionId].emplace(epId);
             } else if (!sessionPtr->findQuery(epId)) {
-                return Status::Error("ExecutionPlanId[%ld] does not exist.", epId);
+                return Status::Error("ExecutionPlanId[%ld] does not exist in Session[%ld].",
+                                     epId, sessionId);
             }
             killQueries[sessionId].emplace(epId);
+        }
+    }
+    return Status::OK();
+}
+
+void KillQueryExecutor::killCurrentHostQueries(const QueriesMap& killQueries) {
+    auto* session = qctx()->rctx()->session();
+    auto* sessionMgr = qctx_->rctx()->sessionMgr();
+    for (auto& s : killQueries) {
+        auto sessionId = s.first;
+        if (sessionId == session->id()) {
+            session->markQueryKilled(epId);
+        } else {
+            auto sessionPtr = sessionMgr->findSessionFromCache(sessionId);
+            if (sessionPtr != nullptr) {
+                sessionPtr->markQueryKilled(epId);
+            }
+        }
+    }
+}
+
+Status KillQueryExecutor::verifyTheQueriesByMetaInfo(
+    const QueriesMap& toBeVerifiedQueries,
+    const std::vector<meta::cpp2::Session>& sessionsInMeta) {
+    for (auto& s : toBeVerifiedQueries) {
+        auto sessionId = s.first;
+        auto found =
+            std::find_if(sessionsInMeta.begin(), sessionsInMeta.end(), [sesionId](auto& val) {
+                return val.get_session_id() == sessionId;
+            });
+        if (found == sessionsInMeta.end()) {
+            return Status::Error("SessionId[%ld] does not exist", sessionId);
+        }
+        for (auto& epId : s.second) {
+            if (found->get_queries().find(epId) == found->get_queries().end()) {
+                return Status::Error(
+                    "ExecutionPlanId[%ld] does not exist in Session[%ld].", epId, sessionId);
+            }
         }
     }
     return Status::OK();

@@ -569,7 +569,7 @@ folly::Future<Status> Executor::start(Status status) const {
 }
 
 folly::Future<Status> Executor::error(Status status) const {
-    return folly::makeFuture<Status>(ExecutionError(std::move(status))).via(runner());
+    return folly::makeFuture<Status>(std::move(status)).via(runner());
 }
 
 void Executor::drop() {
