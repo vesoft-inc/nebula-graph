@@ -557,14 +557,9 @@ Status OptimizerUtils::boundValue(Expression::Kind kind,
 
 namespace {
 
-// {2, 1, 0} >
-// {2, 1} >
-// {2, 0, 1} >
-// {2, 0} >
-// {2} >
-// {1, 2} >
-// {1, 1} >
-// {1}
+// IndexScore is used to find the optimal index. The larger the score, the better the index.
+// When it is a score sequence, the length of the sequence should also be considered, such as:
+// {2, 1, 0} > {2, 1} > {2, 0, 1} > {2, 0} > {2} > {1, 2} > {1, 1} > {1}
 enum class IndexScore : uint8_t {
     kNotEqual = 0,
     kRange = 1,
