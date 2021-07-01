@@ -54,6 +54,7 @@ GraphSessionManager::findSessionFromMetad(SessionID id, folly::Executor* runner)
                     "Session `%ld' not found: %s", id, resp.status().toString().c_str());
         }
         auto session = resp.value().get_session();
+        session.queries_ref()->clear();
         auto spaceName = session.get_space_name();
         SpaceInfo spaceInfo;
         if (!spaceName.empty()) {

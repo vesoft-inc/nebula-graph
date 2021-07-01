@@ -20,13 +20,13 @@ folly::Future<Status> KillQueryExecutor::execute() {
     QueriesMap killQueries;
     NG_RETURN_IF_ERROR(verifyTheQueriesByLocalCache(toBeVerifiedQueries, killQueries));
 
-    folly::Promise<Status> pro;
-    auto result = pro.getFuture();
-    qctx()->getMetaClient()->listSessions().via(runner()).thenValue(
-        [toBeVerifiedQueries = std::move(toBeVerifiedQueries),
-         killQueries = std::move(killQueries),
-         pro = std::move(pro),
-         this](StatusOr<meta::cpp2::ListSessionsResp> listResp) mutable {
+    return qctx()
+        ->getMetaClient()
+        ->listSessions()
+        .via(runner())
+        .thenValue([toBeVerifiedQueries = std::move(toBeVerifiedQueries),
+                    killQueries = std::move(killQueries),
+                    this](StatusOr<meta::cpp2::ListSessionsResp> listResp) mutable {
             std::vector<meta::cpp2::Session> sessionsInMeta;
             if (listResp.ok()) {
                 sessionsInMeta = std::move(listResp.value()).get_sessions();
@@ -36,27 +36,20 @@ folly::Future<Status> KillQueryExecutor::execute() {
 
             auto status = verifyTheQueriesByMetaInfo(toBeVerifiedQueries, sessionsInMeta);
             if (!status.ok()) {
-                pro.setValue(std::move(status));
-                return;
+                return folly::makeFuture<StatusOr<meta::cpp2::ExecResp>>(status);
             }
 
             killCurrentHostQueries(killQueries);
 
             // upload all queries to be killed to meta.
-            qctx()
-                ->getMetaClient()
-                ->killQuery(std::move(killQueries))
-                .via(runner())
-                .thenValue([pro = std::move(pro), this](auto&& resp) mutable {
-                    SCOPED_TIMER(&execTime_);
-                    auto respStatus = Status::OK();
-                    if (!resp.ok()) {
-                        respStatus = resp.status();
-                    }
-                    pro.setValue(std::move(respStatus));
-                });
+            return qctx()->getMetaClient()->killQuery(std::move(killQueries));
+        })
+        .thenValue([](auto&& resp) {
+            if (!resp.ok()) {
+                return resp.status();
+            }
+            return Status::OK();
         });
-    return result;
 }
 
 Status KillQueryExecutor::verifyTheQueriesByLocalCache(QueriesMap& toBeVerifiedQueries,
