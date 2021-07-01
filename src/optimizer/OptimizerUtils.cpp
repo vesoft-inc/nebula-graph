@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "common/base/Status.h"
+#include "common/datatypes/Value.h"
 #include "common/expression/ConstantExpression.h"
 #include "common/expression/Expression.h"
 #include "common/expression/LogicalExpression.h"
@@ -688,18 +689,53 @@ StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const
 bool getIndexColumnHintInExpr(const ColumnDef& field,
                               const LogicalExpression* expr,
                               ScoredColumnHint* hint,
-                              Expression** which) {
+                              std::vector<Expression*> *operands) {
+    std::vector<ScoredColumnHint> hints;
     for (auto& operand : expr->operands()) {
         if (!operand->isRelExpr()) continue;
         auto relExpr = static_cast<const RelationalExpression*>(operand);
         auto status = selectRelExprIndex(field, relExpr);
         if (status.ok()) {
-            *hint = std::move(status).value();
-            *which = operand;
-            return true;
+            hints.emplace_back(std::move(status).value());
+            operands->emplace_back(operand);
         }
     }
-    return false;
+
+    if (hints.empty()) return false;
+
+    if (hints.size() == 1) {
+        *hint = hints.front();
+    } else {
+        Value begin, end;
+        for (auto& h : hints) {
+            if (h.score != IndexScore::kRange) {
+                return false;
+            }
+            if (h.hint.begin_value_ref().is_set()) {
+                const auto& value = h.hint.get_begin_value();
+                if (begin == Value() || begin < value) {
+                    begin = value;
+                }
+            }
+            if (h.hint.end_value_ref().is_set()) {
+                const auto& value = h.hint.get_end_value();
+                if (end == Value() || end > value) {
+                    end = value;
+                }
+            }
+        }
+        *hint = ScoredColumnHint();
+        hint->hint.set_column_name(field.get_name());
+        hint->hint.set_scan_type(storage::cpp2::ScanType::RANGE);
+        hint->hint.set_begin_value(std::move(begin));
+        hint->hint.set_end_value(std::move(end));
+        hint->score = IndexScore::kRange;
+        auto lExpr = LogicalExpression::makeAnd(expr->getObjPool());
+        lExpr->setOperands(*operands);
+        hint->expr = lExpr;
+    }
+
+    return true;
 }
 
 Expression* cloneUnusedExpr(const LogicalExpression* expr,
@@ -729,12 +765,12 @@ StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
     std::vector<Expression*> usedOperands;
     for (auto& field : index.get_fields()) {
         ScoredColumnHint hint;
-        Expression* operand = nullptr;
-        if (!getIndexColumnHintInExpr(field, expr, &hint, &operand)) {
+        std::vector<Expression*> operands;
+        if (!getIndexColumnHintInExpr(field, expr, &hint, &operands)) {
             break;
         }
         result.hints.emplace_back(std::move(hint));
-        usedOperands.emplace_back(operand);
+        usedOperands.insert(usedOperands.end(), operands.begin(), operands.end());
     }
     if (result.hints.empty()) {
         return Status::Error("There is not index to use.");

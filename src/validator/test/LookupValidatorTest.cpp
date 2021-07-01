@@ -24,7 +24,7 @@ TEST_F(LookupValidatorTest, InputOutput) {
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
-                                    PlanNode::Kind::kIndexScan,
+                                    PlanNode::Kind::kTagIndexPrefixScan,
                                     PlanNode::Kind::kStart,
                                 }));
     }

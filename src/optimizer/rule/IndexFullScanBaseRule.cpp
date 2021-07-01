@@ -25,10 +25,16 @@ namespace nebula {
 namespace opt {
 
 bool IndexFullScanBaseRule::match(OptContext* ctx, const MatchedResult& matched) const {
-    UNUSED(ctx);
+    if (!OptRule::match(ctx, matched)) {
+        return false;
+    }
     auto scan = static_cast<const IndexScan*>(matched.planNode());
-    const auto& ictx = scan->queryContext();
-    return ictx.empty();
+    for (auto& ictx : scan->queryContext()) {
+        if (ictx.index_id_ref().is_set()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 StatusOr<TransformResult> IndexFullScanBaseRule::transform(OptContext* ctx,

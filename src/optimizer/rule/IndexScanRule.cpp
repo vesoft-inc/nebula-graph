@@ -42,7 +42,13 @@ bool IndexScanRule::match(OptContext* ctx, const MatchedResult& matched) const {
         return false;
     }
     auto scan = static_cast<const IndexScan*>(matched.planNode());
-    return scan->queryContext().empty();
+    // Has been optimized, skip this rule
+    for (auto& ictx : scan->queryContext()) {
+        if (ictx.index_id_ref().is_set()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 StatusOr<OptRule::TransformResult> IndexScanRule::transform(OptContext* ctx,

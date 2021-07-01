@@ -48,6 +48,10 @@ def init_parser():
                         dest='address',
                         default='',
                         help='Address of the Nebula')
+    opt_parser.add_option('--debug',
+                        dest='debug',
+                        default=True,
+                        help='Print verbose debug logs')
     return opt_parser
 
 
@@ -61,7 +65,7 @@ def start_nebula(nb, configs):
     else:
         nb.install()
         address = "localhost"
-        ports = nb.start(multi_graphd=configs.multi_graphd)
+        ports = nb.start(debug_log=configs.debug, multi_graphd=configs.multi_graphd)
 
     # Load csv data
     pool = get_conn_pool("localhost", ports[0])

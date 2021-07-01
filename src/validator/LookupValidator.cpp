@@ -22,6 +22,11 @@ using std::unique_ptr;
 namespace nebula {
 namespace graph {
 
+static constexpr char kSrcVID[] = "SrcVID";
+static constexpr char kDstVID[] = "DstVID";
+static constexpr char kRanking[] = "Ranking";
+static constexpr char kVertexID[] = "VertexID";
+
 LookupValidator::LookupValidator(Sentence* sentence, QueryContext* context)
     : Validator(sentence, context) {}
 
@@ -61,6 +66,14 @@ Status LookupValidator::prepareFrom() {
 }
 
 Status LookupValidator::prepareYield() {
+    if (lookupCtx_->isEdge) {
+        outputs_.emplace_back(kSrcVID, vidType_);
+        outputs_.emplace_back(kDstVID, vidType_);
+        outputs_.emplace_back(kRanking, Value::Type::INT);
+    } else {
+        outputs_.emplace_back(kVertexID, vidType_);
+    }
+
     auto yieldClause = sentence()->yieldClause();
     if (yieldClause == nullptr) {
         return Status::OK();
@@ -74,7 +87,7 @@ Status LookupValidator::prepareYield() {
     for (auto col : yieldClause->columns()) {
         if (col->expr()->kind() != Expression::Kind::kLabelAttribute) {
             // TODO(yee): support more exprs, such as (player.age + 1) AS age
-            return Status::SemanticError("Yield clauses are not supported: %s",
+            return Status::SemanticError("Yield clauses are not supported: `%s'",
                                          col->toString().c_str());
         }
         auto la = static_cast<LabelAttributeExpression*>(col->expr());
@@ -89,8 +102,9 @@ Status LookupValidator::prepareYield() {
         auto ret = schemaProvider->getFieldType(colName);
         if (ret == meta::cpp2::PropertyType::UNKNOWN) {
             return Status::SemanticError(
-                "Column %s not found in schema %s", colName.c_str(), from.c_str());
+                "Column `%s' not found in schema `%s'", colName.c_str(), from.c_str());
         }
+        outputs_.emplace_back(col->name(), SchemaUtil::propTypeToValueType(ret));
     }
     return Status::OK();
 }

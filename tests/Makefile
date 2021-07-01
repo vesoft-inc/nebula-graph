@@ -13,6 +13,7 @@ PY_VERSION = $(shell python3 --version | cut -f2 -d' ' | cut -f2 -d'.')
 RM_DIR ?= true
 TEST_DIR ?= $(CURR_DIR)
 BUILD_DIR ?= $(CURR_DIR)/../build
+DEBUG ?= true
 J ?= 10
 
 install-deps:
@@ -47,18 +48,20 @@ check:
 
 up:
 	@mkdir -p $(CURR_DIR)/.pytest
-	PYTHONPATH=$$PYTHONPATH:$(CURR_DIR)/.. $(CURR_DIR)/nebula-test-run.py --cmd=start --rm_dir=$(RM_DIR) --build_dir=$(BUILD_DIR) --multi_graphd=true
+	PYTHONPATH=$$PYTHONPATH:$(CURR_DIR)/.. $(CURR_DIR)/nebula-test-run.py --cmd=start --rm_dir=$(RM_DIR) --build_dir=$(BUILD_DIR) --debug=$(DEBUG) --multi_graphd=true
 
 down:
 	PYTHONPATH=$$PYTHONPATH:$(CURR_DIR)/.. $(CURR_DIR)/nebula-test-run.py --cmd=stop --rm_dir=$(RM_DIR)
 
 test:
-	cd $(CURR_DIR) && python3 -m pytest -n$(J) --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" -k "not tck" $(TEST_DIR) \
-	&& python3 -m pytest --rm_dir=$(RM_DIR) -m "not skip" -k "not tck" job/test_session.py
+	cd $(CURR_DIR) && python3 -m pytest -n$(J) --dist=loadfile -m "not skip" -k "not tck" $(TEST_DIR) \
+	&& python3 -m pytest -m "not skip" -k "not tck" job/test_session.py
 
 tck:
-	cd $(CURR_DIR) && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/steps/test_tck.py && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/steps/test_kill_slow_query_via_same_service.py && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/steps/test_kill_slow_query_via_different_service.py
+	cd $(CURR_DIR) && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) -m "not skip" $(CURR_DIR)/tck/steps/test_tck.py && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) -m "not skip" $(CURR_DIR)/tck/steps/test_kill_slow_query_via_same_service.py && python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n$(J) -m "not skip" $(CURR_DIR)/tck/steps/test_kill_slow_query_via_different_service.py
 
+fail:
+	cd $(CURR_DIR) && python3 -m pytest --last-failed --gherkin-terminal-reporter --gherkin-terminal-reporter-expanded -m "not skip" $(CURR_DIR)/tck/
 
 fail:
 	cd $(CURR_DIR) && python3 -m pytest --last-failed --gherkin-terminal-reporter --gherkin-terminal-reporter-expanded --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/steps/test_tck.py

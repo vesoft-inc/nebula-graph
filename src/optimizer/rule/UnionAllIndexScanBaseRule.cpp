@@ -30,25 +30,29 @@ namespace nebula {
 namespace opt {
 
 bool UnionAllIndexScanBaseRule::match(OptContext* ctx, const MatchedResult& matched) const {
-    UNUSED(ctx);
+    if (!OptRule::match(ctx, matched)) {
+        return false;
+    }
     auto filter = static_cast<const Filter*>(matched.planNode());
     auto scan = static_cast<const IndexScan*>(matched.planNode({0, 0}));
     auto condition = filter->condition();
-    if (condition->isLogicalExpr() && condition->kind() == Expression::Kind::kLogicalOr) {
-        for (auto operand : static_cast<const LogicalExpression*>(condition)->operands()) {
-            if (!operand->isRelExpr()) {
-                return false;
-            }
-        }
-        for (auto& ictx : scan->queryContext()) {
-            if (ictx.column_hints_ref().is_set()) {
-                return false;
-            }
-        }
-        return true;
+    if (!condition->isLogicalExpr() || condition->kind() != Expression::Kind::kLogicalOr) {
+        return false;
     }
 
-    return false;
+    for (auto operand : static_cast<const LogicalExpression*>(condition)->operands()) {
+        if (!operand->isRelExpr()) {
+            return false;
+        }
+    }
+
+    for (auto& ictx : scan->queryContext()) {
+        if (ictx.column_hints_ref().is_set()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 StatusOr<TransformResult> UnionAllIndexScanBaseRule::transform(OptContext* ctx,
