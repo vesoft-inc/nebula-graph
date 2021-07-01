@@ -9,11 +9,13 @@
 #include "common/expression/LabelAttributeExpression.h"
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
+#include "optimizer/OptRule.h"
 #include "optimizer/OptimizerUtils.h"
 #include "planner/plan/PlanNode.h"
 #include "planner/plan/Query.h"
 #include "util/IndexUtil.h"
 
+using nebula::graph::IndexScan;
 using nebula::graph::IndexUtil;
 using nebula::graph::IndexScan;
 using nebula::graph::OptimizerUtils;
@@ -36,19 +38,11 @@ const Pattern& IndexScanRule::pattern() const {
 }
 
 bool IndexScanRule::match(OptContext* ctx, const MatchedResult& matched) const {
-    UNUSED(ctx);
-    auto idxScan = static_cast<IndexScan*>(matched.node->node());
-    auto ictxs = idxScan->queryContext();
-    if (!ictxs) {
-        return true;
+    if (!OptRule::match(ctx, matched)) {
+        return false;
     }
-    // Has been optimized, skip this rule
-    for (auto& ictx : *ictxs) {
-        if (ictx.index_id_ref().is_set() && ictx.column_hints_ref().is_set()) {
-            return false;
-        }
-    }
-    return true;
+    auto scan = static_cast<const IndexScan*>(matched.planNode());
+    return scan->queryContext().empty();
 }
 
 StatusOr<OptRule::TransformResult> IndexScanRule::transform(OptContext* ctx,
