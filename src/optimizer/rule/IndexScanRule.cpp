@@ -232,11 +232,11 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
     }
 
     if (isRangeScan) {
-        if (begin == Value()) {
+        if (begin.empty()) {
             begin = OptimizerUtils::boundValue(col, BVO::MIN, Value());
             CHECK_BOUND_VALUE(begin, col.get_name());
         }
-        if (end == Value()) {
+        if (end.empty()) {
             end = OptimizerUtils::boundValue(col, BVO::MAX, Value());
             CHECK_BOUND_VALUE(end, col.get_name());
         }

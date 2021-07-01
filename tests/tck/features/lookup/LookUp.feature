@@ -40,7 +40,8 @@ Feature: LookUpTest_Vid_String
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col1 == true
       """
-    Then a ExecutionError should be raised at runtime:
+    Then the result should be, in any order:
+      | VertexID |
     Then drop the used space
 
   Scenario: LookupTest EdgeIndexHint
@@ -599,12 +600,12 @@ Feature: LookUpTest_Vid_String
       """
       LOOKUP ON t1 WHERE t1.c4 > 1
       """
-    Then a ExecutionError should be raised at runtime: IndexNotFound: No valid index found
+    Then the execution should be successful
     When executing query:
       """
       LOOKUP ON t1 WHERE t1.c2 > 1 AND t1.c3 > 1
       """
-    Then a ExecutionError should be raised at runtime: IndexNotFound: No valid index found
+    Then the execution should be successful
     When executing query:
       """
       LOOKUP ON t1 WHERE t1.c2 > 1 AND t1.c1 != 1

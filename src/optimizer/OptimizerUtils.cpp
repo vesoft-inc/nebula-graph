@@ -506,7 +506,7 @@ Status OptimizerUtils::boundValue(Expression::Kind kind,
                 return Status::Error("Get bound value error. field : %s", col.get_name().c_str());
             }
             // where c <= 1 and c <= 2 , 1 should be valid.
-            if (end == Value()) {
+            if (end.empty()) {
                 end = v;
             } else {
                 end = v < end ? v : end;
@@ -515,7 +515,7 @@ Status OptimizerUtils::boundValue(Expression::Kind kind,
         }
         case Expression::Kind::kRelGE: {
             // where c >= 1 and c >= 2 , 2 should be valid.
-            if (begin == Value()) {
+            if (begin.empty()) {
                 begin = val;
             } else {
                 begin = val < begin ? begin : val;
@@ -524,7 +524,7 @@ Status OptimizerUtils::boundValue(Expression::Kind kind,
         }
         case Expression::Kind::kRelLT: {
             // c < 5 and c < 6 , 5 should be valid.
-            if (end == Value()) {
+            if (end.empty()) {
                 end = val;
             } else {
                 end = val < end ? val : end;
@@ -540,7 +540,7 @@ Status OptimizerUtils::boundValue(Expression::Kind kind,
                 return Status::Error("Get bound value error. field : %s", col.get_name().c_str());
             }
             // where c > 1 and c > 2 , 2 should be valid.
-            if (begin == Value()) {
+            if (begin.empty()) {
                 begin = v;
             } else {
                 begin = v < begin ? begin : v;
@@ -598,9 +598,9 @@ struct IndexResult {
 };
 
 Status checkValue(const ColumnDef& field, BVO bvo, Value* value) {
-    if (*value == Value()) {
+    if (value->empty()) {
         *value = OptimizerUtils::boundValue(field, bvo, Value());
-        if (*value == Value::kNullBadType) {
+        if (value->isBadNull()) {
             return Status::Error("Get bound value error. field : %s", field.get_name().c_str());
         }
     }
@@ -689,7 +689,7 @@ StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const
 bool getIndexColumnHintInExpr(const ColumnDef& field,
                               const LogicalExpression* expr,
                               ScoredColumnHint* hint,
-                              std::vector<Expression*> *operands) {
+                              std::vector<Expression*>* operands) {
     std::vector<ScoredColumnHint> hints;
     for (auto& operand : expr->operands()) {
         if (!operand->isRelExpr()) continue;
@@ -713,16 +713,19 @@ bool getIndexColumnHintInExpr(const ColumnDef& field,
             }
             if (h.hint.begin_value_ref().is_set()) {
                 const auto& value = h.hint.get_begin_value();
-                if (begin == Value() || begin < value) {
+                if (begin.empty() || begin < value) {
                     begin = value;
                 }
             }
             if (h.hint.end_value_ref().is_set()) {
                 const auto& value = h.hint.get_end_value();
-                if (end == Value() || end > value) {
+                if (end.empty() || end > value) {
                     end = value;
                 }
             }
+        }
+        if (begin > end) {
+            return false;
         }
         *hint = ScoredColumnHint();
         hint->hint.set_column_name(field.get_name());
