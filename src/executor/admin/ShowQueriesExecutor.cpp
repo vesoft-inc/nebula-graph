@@ -85,7 +85,7 @@ void ShowQueriesExecutor::addQueries(const meta::cpp2::Session& session, DataSet
         row.values.emplace_back(session.get_user_name());
         row.values.emplace_back(query.second.get_graph_addr().toString());
         auto dateTime =
-            time::TimeUtils::unixSecondsToDateTime(query.second.get_start_time() / 1000000);
+            time::TimeConversion::unixSecondsToDateTime(query.second.get_start_time() / 1000000);
         dateTime.microsec = query.second.get_start_time() % 1000000;
         row.values.emplace_back(std::move(dateTime));
         row.values.emplace_back(query.second.get_duration());

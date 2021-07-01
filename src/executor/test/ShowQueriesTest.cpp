@@ -61,7 +61,7 @@ TEST_F(ShowQueriesTest, TestAddQueryAndTopN) {
         row.emplace_back("root");
         row.emplace_back("\"127.0.0.1\":9669");
         auto dateTime =
-            time::TimeUtils::unixSecondsToDateTime(123 / 1000000);
+            time::TimeConversion::unixSecondsToDateTime(123 / 1000000);
         dateTime.microsec = 123;
         row.emplace_back(std::move(dateTime));
         row.emplace_back(100);
@@ -76,7 +76,7 @@ TEST_F(ShowQueriesTest, TestAddQueryAndTopN) {
         row.emplace_back("root");
         row.emplace_back("\"127.0.0.1\":9669");
         auto dateTime =
-            time::TimeUtils::unixSecondsToDateTime(123 / 1000000);
+            time::TimeConversion::unixSecondsToDateTime(123 / 1000000);
         dateTime.microsec = 123;
         row.emplace_back(std::move(dateTime));
         row.emplace_back(200);

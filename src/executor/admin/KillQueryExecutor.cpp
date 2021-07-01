@@ -17,11 +17,11 @@ folly::Future<Status> KillQueryExecutor::execute() {
     // TODO: permision check
 
     QueriesMap toBeVerifiedQueries;
-    KillQueriesMap killQueries;
+    QueriesMap killQueries;
     NG_RETURN_IF_ERROR(verifyTheQueriesByLocalCache(toBeVerifiedQueries, killQueries));
 
     folly::Promise<Status> pro;
-    result = pro.getFuture();
+    auto result = pro.getFuture();
     qctx()->getMetaClient()->listSessions().via(runner()).thenValue(
         [toBeVerifiedQueries = std::move(toBeVerifiedQueries),
          killQueries = std::move(killQueries),
@@ -49,14 +49,18 @@ folly::Future<Status> KillQueryExecutor::execute() {
                 .via(runner())
                 .thenValue([pro = std::move(pro), this](auto&& resp) mutable {
                     SCOPED_TIMER(&execTime_);
-                    pro.setValue(resp.status());
+                    auto respStatus = Status::OK();
+                    if (!resp.ok()) {
+                        respStatus = resp.status();
+                    }
+                    pro.setValue(std::move(respStatus));
                 });
         });
     return result;
 }
 
 Status KillQueryExecutor::verifyTheQueriesByLocalCache(QueriesMap& toBeVerifiedQueries,
-                                                       KillQueriesMap& killQueries) {
+                                                       QueriesMap& killQueries) {
     auto* killQuery = asNode<KillQuery>(node());
     auto inputVar = killQuery->inputVar();
     auto iter = ectx_->getResult(inputVar).iter();
@@ -110,12 +114,14 @@ void KillQueryExecutor::killCurrentHostQueries(const QueriesMap& killQueries) {
     auto* sessionMgr = qctx_->rctx()->sessionMgr();
     for (auto& s : killQueries) {
         auto sessionId = s.first;
-        if (sessionId == session->id()) {
-            session->markQueryKilled(epId);
-        } else {
-            auto sessionPtr = sessionMgr->findSessionFromCache(sessionId);
-            if (sessionPtr != nullptr) {
-                sessionPtr->markQueryKilled(epId);
+        for (auto& epId : s.second) {
+            if (sessionId == session->id()) {
+                session->markQueryKilled(epId);
+            } else {
+                auto sessionPtr = sessionMgr->findSessionFromCache(sessionId);
+                if (sessionPtr != nullptr) {
+                    sessionPtr->markQueryKilled(epId);
+                }
             }
         }
     }
@@ -127,7 +133,7 @@ Status KillQueryExecutor::verifyTheQueriesByMetaInfo(
     for (auto& s : toBeVerifiedQueries) {
         auto sessionId = s.first;
         auto found =
-            std::find_if(sessionsInMeta.begin(), sessionsInMeta.end(), [sesionId](auto& val) {
+            std::find_if(sessionsInMeta.begin(), sessionsInMeta.end(), [sessionId](auto& val) {
                 return val.get_session_id() == sessionId;
             });
         if (found == sessionsInMeta.end()) {
