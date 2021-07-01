@@ -6,4 +6,4 @@
 from pytest_bdd import scenarios
 
 
-scenarios('slowquery')
+scenarios('slowquery/KillSlowQueryViaDiffrentService.feature')
