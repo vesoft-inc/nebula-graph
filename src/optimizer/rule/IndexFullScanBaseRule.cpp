@@ -36,7 +36,8 @@ StatusOr<TransformResult> IndexFullScanBaseRule::transform(OptContext* ctx,
     auto scan = static_cast<const IndexScan*>(matched.planNode());
 
     auto metaClient = ctx->qctx()->getMetaClient();
-    auto status = metaClient->getTagIndexesFromCache(scan->space());
+    auto status = scan->isEdge() ? metaClient->getEdgeIndexesFromCache(scan->space())
+                                 : metaClient->getTagIndexesFromCache(scan->space());
     NG_RETURN_IF_ERROR(status);
     auto indexItems = std::move(status).value();
 
