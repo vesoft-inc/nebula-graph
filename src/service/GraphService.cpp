@@ -15,7 +15,7 @@
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"
 #include "stats/StatsDef.h"
-#include "common/time/TimeUtils.h"
+#include "common/time/TimezoneInfo.h"
 
 namespace nebula {
 namespace graph {
@@ -66,14 +66,14 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
     // check username and password failed
     if (!auth(username, password)) {
         ctx->resp().errorCode = ErrorCode::E_BAD_USERNAME_PASSWORD;
-        ctx->resp().errorMsg.reset(new std::string(getErrorStr(ctx->resp().errorCode)));
+        ctx->resp().errorMsg.reset(new std::string("Bad username/password"));
         ctx->finish();
         return future;
     }
 
     if (!sessionManager_->isOutOfConnections()) {
         ctx->resp().errorCode = ErrorCode::E_TOO_MANY_CONNECTIONS;
-        ctx->resp().errorMsg.reset(new std::string(getErrorStr(ctx->resp().errorCode)));
+        ctx->resp().errorMsg.reset(new std::string("Too many connections in the cluster"));
         ctx->finish();
         return future;
     }
@@ -98,9 +98,9 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
         ctx->setSession(sessionPtr);
         ctx->resp().sessionId.reset(new int64_t(ctx->session()->id()));
         ctx->resp().timeZoneOffsetSeconds.reset(
-            new int32_t(time::TimeUtils::getGlobalTimezone().utcOffsetSecs()));
+            new int32_t(time::Timezone::getGlobalTimezone().utcOffsetSecs()));
         ctx->resp().timeZoneName.reset(
-            new std::string(time::TimeUtils::getGlobalTimezone().stdZoneName()));
+            new std::string(time::Timezone::getGlobalTimezone().stdZoneName()));
         return ctx->finish();
     };
 
@@ -148,49 +148,6 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     };
     sessionManager_->findSession(sessionId, getThreadManager()).thenValue(std::move(cb));
     return future;
-}
-
-
-const char* GraphService::getErrorStr(ErrorCode result) {
-    switch (result) {
-        case ErrorCode::SUCCEEDED:
-            return "Succeeded";
-        /**********************
-         * Server side errors
-         **********************/
-        case ErrorCode::E_BAD_USERNAME_PASSWORD:
-            return "Bad username/password";
-        case ErrorCode::E_SESSION_INVALID:
-            return "The session is invalid";
-        case ErrorCode::E_SESSION_TIMEOUT:
-            return "The session timed out";
-        case ErrorCode::E_SYNTAX_ERROR:
-            return "Syntax error";
-        case ErrorCode::E_SEMANTIC_ERROR:
-            return "Semantic error";
-        case ErrorCode::E_STATEMENT_EMPTY:
-            return "Statement empty";
-        case ErrorCode::E_EXECUTION_ERROR:
-            return "Execution error";
-        case ErrorCode::E_RPC_FAILURE:
-            return "RPC failure";
-        case ErrorCode::E_DISCONNECTED:
-            return "Disconnected";
-        case ErrorCode::E_FAIL_TO_CONNECT:
-            return "Fail to connect";
-        case ErrorCode::E_BAD_PERMISSION:
-            return "Bad permission";
-        case ErrorCode::E_USER_NOT_FOUND:
-            return "User not found";
-        case ErrorCode::E_TOO_MANY_CONNECTIONS:
-            return "Too many connections in the cluster";
-        case ErrorCode::E_PARTIAL_SUCCEEDED:
-            return "Partial results";
-    }
-    /**********************
-     * Unknown error
-     **********************/
-    return "Unknown error";
 }
 
 bool GraphService::auth(const std::string& username, const std::string& password) {

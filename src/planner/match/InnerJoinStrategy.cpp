@@ -22,10 +22,10 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
     Expression* buildExpr = nullptr;
     if (leftPos_ == JoinPos::kStart) {
         auto& leftKey = left->colNames().front();
-        buildExpr = MatchSolver::getStartVidInPath(leftKey);
+        buildExpr = MatchSolver::getStartVidInPath(qctx_, leftKey);
     } else {
         auto& leftKey = left->colNames().back();
-        buildExpr = MatchSolver::getEndVidInPath(leftKey);
+        buildExpr = MatchSolver::getEndVidInPath(qctx_, leftKey);
     }
     std::vector<Expression*> buildExprs{buildExpr};
     if (dstNodeId_ != nullptr) {
@@ -36,20 +36,20 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
     Expression* probeExpr = nullptr;
     if (rightPos_ == JoinPos::kStart) {
         auto& rightKey = right->colNames().front();
-        probeExpr = MatchSolver::getStartVidInPath(rightKey);
+        probeExpr = MatchSolver::getStartVidInPath(qctx_, rightKey);
         probeExprs.emplace_back(probeExpr);
         if (dstNodeId_ != nullptr) {
             auto& dstKey = right->colNames().back();
-            auto dstIdExpr = MatchSolver::getEndVidInPath(dstKey);
+            auto dstIdExpr = MatchSolver::getEndVidInPath(qctx_, dstKey);
             probeExprs.emplace_back(dstIdExpr);
         }
     } else {
         auto& rightKey = right->colNames().back();
-        probeExpr = MatchSolver::getEndVidInPath(rightKey);
+        probeExpr = MatchSolver::getEndVidInPath(qctx_, rightKey);
         probeExprs.emplace_back(probeExpr);
         if (dstNodeId_ != nullptr) {
             auto& dstKey = right->colNames().front();
-            auto dstIdExpr = MatchSolver::getStartVidInPath(dstKey);
+            auto dstIdExpr = MatchSolver::getStartVidInPath(qctx_, dstKey);
             probeExprs.emplace_back(dstIdExpr);
         }
     }
@@ -58,12 +58,12 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
         probeExprs.emplace_back(eje.second);
     }
 
-    for (const auto &expr : buildExprs) {
-        qctx_->objPool()->add(expr);
-    }
-    for (const auto &expr : probeExprs) {
-        qctx_->objPool()->add(expr);
-    }
+    // for (const auto &expr : buildExprs) {
+        // qctx_->objPool()->add(expr);
+    // }
+    // for (const auto &expr : probeExprs) {
+        // qctx_->objPool()->add(expr);
+    // }
     auto join = InnerJoin::make(qctx_,
                                const_cast<PlanNode*>(right),
                                {left->outputVar(), 0},

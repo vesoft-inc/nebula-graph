@@ -64,11 +64,16 @@ private:
                                    size_t startIndex,
                                    SubPlan& plan);
 
-    YieldColumn* buildVertexColumn(const std::string& colName, const std::string& alias) const;
+    YieldColumn* buildVertexColumn(MatchClauseContext* matchClauseCtx,
+                                   const std::string& colName,
+                                   const std::string& alias) const;
 
-    YieldColumn* buildEdgeColumn(const std::string& colName, EdgeInfo& edge) const;
+    YieldColumn* buildEdgeColumn(MatchClauseContext* matchClauseCtx,
+                                 const std::string& colName,
+                                 EdgeInfo& edge) const;
 
-    YieldColumn* buildPathColumn(const std::string& alias,
+    YieldColumn* buildPathColumn(MatchClauseContext* matchClauseCtx,
+                                 const std::string& alias,
                                  size_t startIndex,
                                  const std::vector<std::string> colNames,
                                  size_t nodeInfoSize) const;
@@ -80,20 +85,23 @@ private:
                               const std::string &alias,
                               const PlanNode *input,
                               const std::string &colName) {
-        fillNodeId(matchCtx->leftExpandFilledNodeId, alias, input, colName);
+        fillNodeId(matchCtx->qctx->objPool(),
+                   matchCtx->leftExpandFilledNodeId, alias, input, colName);
     }
 
     void rightExpandFillNodeId(MatchClauseContext *matchCtx,
                                const std::string &alias,
                                const PlanNode *input,
                                const std::string &colName) {
-        fillNodeId(matchCtx->rightExpandFilledNodeId, alias, input, colName);
+        fillNodeId(matchCtx->qctx->objPool(),
+                   matchCtx->rightExpandFilledNodeId, alias, input, colName);
     }
 
     using FillNodeId = std::unordered_map<std::string,
                                           std::pair<const PlanNode*,
-                                                    std::unique_ptr<Expression>>>;
-    void fillNodeId(FillNodeId &filledNodeId,
+                                                    Expression*>>;
+    void fillNodeId(ObjectPool *pool,
+                    FillNodeId &filledNodeId,
                     const std::string &alias,
                     const PlanNode *input,
                     const std::string &colName);
@@ -121,7 +129,7 @@ private:
                               const std::string &midNodeAlias);
 
 private:
-    std::unique_ptr<Expression> initialExpr_;
+    Expression* initialExpr_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

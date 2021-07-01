@@ -20,8 +20,8 @@ namespace graph {
  */
 class Expand final {
 public:
-    Expand(MatchClauseContext* matchCtx, std::unique_ptr<Expression> initialExpr)
-        : matchCtx_(matchCtx), initialExpr_(std::move(initialExpr)) {}
+    Expand(MatchClauseContext* matchCtx, Expression* initialExpr)
+        : matchCtx_(matchCtx), initialExpr_(initialExpr) {}
 
     Expand* reversely() {
         reversely_ = true;
@@ -83,13 +83,13 @@ private:
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
 
     void extractAndDedupVidDstColumns(QueryContext* qctx,
-                                      Expression* initialExpr,
+                                      Expression** initialExpr,
                                       PlanNode* dep,
                                       const std::string& inputVar,
                                       SubPlan& plan,
                                       const std::string &dstNodeAlias);
 
-    Expression* initialExprOrExpandDstExpr(Expression* initialExpr,
+    Expression* initialExprOrExpandDstExpr(Expression** initialExpr,
                                            const std::string& inputVar,
                                            const std::string &dstNodeAlias);
 
@@ -100,7 +100,7 @@ private:
         DCHECK(find != matchCtx_->leftExpandFilledNodeId.end());
         DCHECK(find != matchCtx_->rightExpandFilledNodeId.end());
         CHECK_EQ(inputVar, find->second.first->outputVar());
-        return find->second.second->clone().release();
+        return find->second.second->clone();
     }
 
     bool expandInto(const std::string &dstNodeAlias) {
@@ -114,7 +114,7 @@ private:
     }
 
     MatchClauseContext*                 matchCtx_;
-    std::unique_ptr<Expression>         initialExpr_;
+    Expression*                         initialExpr_{nullptr};
     bool                                reversely_{false};
     PlanNode*                           dependency_{nullptr};
     std::string                         inputVar_;
