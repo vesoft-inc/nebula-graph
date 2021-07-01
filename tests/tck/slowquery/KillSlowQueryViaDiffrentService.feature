@@ -31,8 +31,8 @@ Feature: Slow Query Test
       SHOW ALL QUERIES
       """
     Then the result should be, in order:
-      | SessionID | ExecutionPlanID | User   | Host  | StartTime | DurationInUSec | Status    | Query                                            |
-      | /\d+/     | /\d+/           | "root" | /.*/ | /.*/     | /\d+/          | "RUNNING" | "GO 100000 STEPS FROM \"Tim Duncan\" OVER like" |
+      | SessionID | ExecutionPlanID | User   | Host | StartTime | DurationInUSec | Status    | Query                                           |
+      | /\d+/     | /\d+/           | "root" | /.*/ | /.*/      | /\d+/          | "RUNNING" | "GO 100000 STEPS FROM \"Tim Duncan\" OVER like" |
     When executing query via graph 1:
       """
       SHOW ALL QUERIES
