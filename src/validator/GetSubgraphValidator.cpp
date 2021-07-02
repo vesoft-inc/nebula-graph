@@ -188,6 +188,9 @@ Status GetSubgraphValidator::toPlan() {
     dc->setColNames({"_vertices", "_edges"});
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;
+
+    outputs_.emplace_back("_vertices", Value::Type::VERTEX);
+    outputs_.emplace_back("_edges", Value::Type::EDGE);
     return Status::OK();
 }
 }   // namespace graph
