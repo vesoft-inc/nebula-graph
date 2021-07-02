@@ -47,7 +47,9 @@ const Pattern& PushFilterDownTagIndexScanRule::pattern() const {
 }
 
 bool PushFilterDownTagIndexScanRule::match(OptContext* ctx, const MatchedResult& matched) const {
-    UNUSED(ctx);
+    if (!OptRule::match(ctx, matched)) {
+        return false;
+    }
     auto filter = static_cast<const Filter*>(matched.planNode());
     auto scan = static_cast<const TagIndexFullScan*>(matched.planNode({0, 0}));
     for (auto& ictx : scan->queryContext()) {
