@@ -7,7 +7,9 @@
 #include "optimizer/OptimizerUtils.h"
 
 #include <algorithm>
+#include <iterator>
 #include <memory>
+#include <unordered_set>
 
 #include "common/base/Status.h"
 #include "common/datatypes/Value.h"
@@ -568,13 +570,13 @@ enum class IndexScore : uint8_t {
 
 struct ScoredColumnHint {
     storage::cpp2::IndexColumnHint hint;
-    const Expression* expr;
     IndexScore score;
 };
 
 struct IndexResult {
     const meta::cpp2::IndexItem* index;
-    Expression* unusedExpr{nullptr};
+    // expressions not used in all `ScoredColumnHint'
+    std::vector<const Expression*> unusedExprs;
     std::vector<ScoredColumnHint> hints;
 
     bool operator<(const IndexResult& rhs) const {
@@ -664,7 +666,6 @@ StatusOr<ScoredColumnHint> selectRelExprIndex(const ColumnDef& field,
             return Status::Error("Invalid expression kind");
         }
     }
-    hint.expr = expr;
     return hint;
 }
 
@@ -679,6 +680,27 @@ StatusOr<IndexResult> selectRelExprIndex(const RelationalExpression* expr, const
     result.hints.emplace_back(std::move(status).value());
     result.index = &index;
     return result;
+}
+
+bool mergeRangeColumnHints(const std::vector<ScoredColumnHint>& hints, Value* begin, Value* end) {
+    for (auto& h : hints) {
+        if (h.score != IndexScore::kRange) {
+            return false;
+        }
+        if (h.hint.begin_value_ref().is_set()) {
+            const auto& value = h.hint.get_begin_value();
+            if (begin->empty() || *begin < value) {
+                *begin = value;
+            }
+        }
+        if (h.hint.end_value_ref().is_set()) {
+            const auto& value = h.hint.get_end_value();
+            if (end->empty() || *end > value) {
+                *end = value;
+            }
+        }
+    }
+    return !(*begin > *end);
 }
 
 bool getIndexColumnHintInExpr(const ColumnDef& field,
@@ -702,55 +724,32 @@ bool getIndexColumnHintInExpr(const ColumnDef& field,
         *hint = hints.front();
     } else {
         Value begin, end;
-        for (auto& h : hints) {
-            if (h.score != IndexScore::kRange) {
-                return false;
-            }
-            if (h.hint.begin_value_ref().is_set()) {
-                const auto& value = h.hint.get_begin_value();
-                if (begin.empty() || begin < value) {
-                    begin = value;
-                }
-            }
-            if (h.hint.end_value_ref().is_set()) {
-                const auto& value = h.hint.get_end_value();
-                if (end.empty() || end > value) {
-                    end = value;
-                }
-            }
-        }
-        if (begin > end) {
+        if (!mergeRangeColumnHints(hints, &begin, &end)) {
             return false;
         }
-        *hint = ScoredColumnHint();
-        hint->hint.set_column_name(field.get_name());
-        hint->hint.set_scan_type(storage::cpp2::ScanType::RANGE);
-        hint->hint.set_begin_value(std::move(begin));
-        hint->hint.set_end_value(std::move(end));
-        hint->score = IndexScore::kRange;
-        auto lExpr = LogicalExpression::makeAnd(expr->getObjPool());
-        lExpr->setOperands(*operands);
-        hint->expr = lExpr;
+        ScoredColumnHint h;
+        h.hint.set_column_name(field.get_name());
+        h.hint.set_scan_type(storage::cpp2::ScanType::RANGE);
+        h.hint.set_begin_value(std::move(begin));
+        h.hint.set_end_value(std::move(end));
+        h.score = IndexScore::kRange;
+        *hint = std::move(h);
     }
 
     return true;
 }
 
-Expression* cloneUnusedExpr(const LogicalExpression* expr,
-                            const std::vector<Expression*>& usedOperands) {
-    std::vector<Expression*> unusedOperands;
+std::vector<const Expression*> collectUnusedExpr(
+    const LogicalExpression* expr,
+    const std::unordered_set<const Expression*>& usedOperands) {
+    std::vector<const Expression*> unusedOperands;
     for (auto& operand : expr->operands()) {
         auto iter = std::find(usedOperands.begin(), usedOperands.end(), operand);
         if (iter == usedOperands.end()) {
             unusedOperands.emplace_back(operand);
         }
     }
-    if (unusedOperands.empty()) {
-        return nullptr;
-    }
-    auto logExpr = LogicalExpression::makeKind(expr->getObjPool(), expr->kind());
-    logExpr->setOperands(std::move(unusedOperands));
-    return logExpr;
+    return unusedOperands;
 }
 
 StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
@@ -760,7 +759,7 @@ StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
     }
     IndexResult result;
     result.hints.reserve(index.get_fields().size());
-    std::vector<Expression*> usedOperands;
+    std::unordered_set<const Expression*> usedOperands;
     for (auto& field : index.get_fields()) {
         ScoredColumnHint hint;
         std::vector<Expression*> operands;
@@ -768,12 +767,14 @@ StatusOr<IndexResult> selectLogicalExprIndex(const LogicalExpression* expr,
             break;
         }
         result.hints.emplace_back(std::move(hint));
-        usedOperands.insert(usedOperands.end(), operands.begin(), operands.end());
+        for (auto op : operands) {
+            usedOperands.insert(op);
+        }
     }
     if (result.hints.empty()) {
         return Status::Error("There is not index to use.");
     }
-    result.unusedExpr = cloneUnusedExpr(expr, usedOperands);
+    result.unusedExprs = collectUnusedExpr(expr, usedOperands);
     result.index = &index;
     return result;
 }
@@ -808,6 +809,26 @@ void OptimizerUtils::eraseInvalidIndexItems(
     }
 }
 
+// Find optimal index according to filter expression and all valid indexes.
+//
+// For relational condition expression:
+//   1. iterate all indexes
+//   2. select the best column hint for each index
+//     2.1. generate column hint according to the first field of index
+//
+// For logical condition expression(only logical `AND' expression):
+//   1. same steps as above 1, 2
+//   2. for multiple columns combined index:
+//     * iterate each field of index
+//     * iterate each operand expression of filter condition
+//     * collect all column hints generated by operand expression for each index field
+//     * process collected column hints, for example, merge the begin and end values of range scan
+//   3. sort all index results generated by each index
+//   4. select the largest score index result
+//   5. process the selected index result:
+//     * find the first not prefix column hint and ignore all followed hints except first range hint
+//     * check whether filter conditions are used, if not, place the unused expression parts into
+//       column hint filter
 bool OptimizerUtils::findOptimalIndex(const Expression* condition,
                                       const std::vector<std::shared_ptr<IndexItem>>& indexItems,
                                       bool* isPrefixScan,
@@ -855,7 +876,7 @@ bool OptimizerUtils::findOptimalIndex(const Expression* condition,
         }
         break;
     }
-    if (iter != index.hints.end() || index.unusedExpr) {
+    if (iter != index.hints.end() || !index.unusedExprs.empty()) {
         ictx->set_filter(condition->encode());
     }
     ictx->set_index_id(index.index->get_index_id());
