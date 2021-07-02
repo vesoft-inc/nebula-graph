@@ -423,6 +423,46 @@ Feature: Basic match
       """
     Then a SyntaxError should be raised at runtime: syntax error near `)'
 
+  Scenario: Disabled input
+    When executing query:
+      """
+      YIELD ['Tim Duncan'] as id | MATCH (v:player{name:"Tim Duncan"})-[e:like]->(v1) WHERE id(v) IN $-.id RETURN *
+      """
+    Then a SemanticError should be raised at runtime: Can't output to match sentence.
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})-[e:like]->(v1) RETURN $-.id, v.name
+      """
+    Then a SemanticError should be raised at runtime: Match sentence don't allow input/variable expression.
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})-[e:like]->(v1) WHERE id(v) IN $-.id RETURN *
+      """
+    Then a SemanticError should be raised at runtime: Match sentence don't allow input/variable expression.
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})-[e:like]->(v1) WITH v, $-.id as id RETURN id, v.name
+      """
+    Then a SemanticError should be raised at runtime: Match sentence don't allow input/variable expression.
+    When executing query:
+      """
+      $a = YIELD ['Tim Duncan'] as id;
+      MATCH (v:player{name:"Tim Duncan"})-[e:like]->(v1) WHERE id(v) IN $a.id RETURN *
+      """
+    Then a SemanticError should be raised at runtime: Match sentence don't allow input/variable expression.
+    When executing query:
+      """
+      $a = YIELD ['Tim Duncan'] as id;
+      MATCH (v:player{name:"Tim Duncan"})-[e:like]->(v1) RETURN $a.id, v.name
+      """
+    Then a SemanticError should be raised at runtime: Match sentence don't allow input/variable expression.
+    When executing query:
+      """
+      $a = YIELD ['Tim Duncan'] as id;
+      MATCH (v:player{name:"Tim Duncan"})-[e:like]->(v1) WITH v, $a.id as id RETURN id, v.name
+      """
+    Then a SemanticError should be raised at runtime: Match sentence don't allow input/variable expression.
+
   Scenario: Unimplemented features
     When executing query:
       """

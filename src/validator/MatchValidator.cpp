@@ -279,7 +279,11 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
 }
 
 Status MatchValidator::validateFilter(const Expression *filter,
-                                      WhereClauseContext &whereClauseCtx) const {
+                                      WhereClauseContext &whereClauseCtx) {
+    NG_RETURN_IF_ERROR(deduceProps(filter, exprProps_));
+    if (!exprProps_.inputProps().empty() || !userDefinedVarNameList_.empty()) {
+        return Status::SemanticError("Match sentence don't allow input/variable expression.");
+    }
     auto pool = whereClauseCtx.qctx->objPool();
     auto transformRes =  ExpressionUtils::filterTransform(filter, pool);
     NG_RETURN_IF_ERROR(transformRes);
@@ -303,7 +307,7 @@ Status MatchValidator::validateFilter(const Expression *filter,
 
 Status MatchValidator::validateReturn(MatchReturn *ret,
                                       const CypherClauseContextBase *cypherClauseCtx,
-                                      ReturnClauseContext &retClauseCtx) const {
+                                      ReturnClauseContext &retClauseCtx) {
     auto kind = cypherClauseCtx->kind;
     if (kind != CypherClauseKind::kMatch && kind != CypherClauseKind::kUnwind &&
         kind != CypherClauseKind::kWith) {
@@ -373,6 +377,10 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
             ExpressionUtils::hasAny(col->expr(), {Expression::Kind::kAggregate})) {
             retClauseCtx.yield->hasAgg_ = true;
         }
+        NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
+        if (!exprProps_.inputProps().empty() || !userDefinedVarNameList_.empty()) {
+            return Status::SemanticError("Match sentence don't allow input/variable expression.");
+        }
         exprs.push_back(col->expr());
     }
     NG_RETURN_IF_ERROR(validateAliases(exprs, retClauseCtx.yield->aliasesUsed));
@@ -434,11 +442,15 @@ Status MatchValidator::validateStepRange(const MatchStepRange *range) const {
 }
 
 Status MatchValidator::validateWith(const WithClause *with,
-                                    WithClauseContext &withClauseCtx) const {
+                                    WithClauseContext &withClauseCtx) {
     // Check all referencing expressions are valid
     std::vector<const Expression *> exprs;
     exprs.reserve(with->columns()->size());
     for (auto *col : with->columns()->columns()) {
+        NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
+        if (!exprProps_.inputProps().empty() || !userDefinedVarNameList_.empty()) {
+            return Status::SemanticError("Match sentence don't allow input/variable expression.");
+        }
         if (col->alias().empty()) {
             if (col->expr()->kind() == Expression::Kind::kLabel) {
                 col->setAlias(col->toString());
@@ -475,12 +487,17 @@ Status MatchValidator::validateWith(const WithClause *with,
 }
 
 Status MatchValidator::validateUnwind(const UnwindClause *unwindClause,
-                                      UnwindClauseContext &unwindCtx) const {
+                                      UnwindClauseContext &unwindCtx) {
     if (unwindClause->alias().empty()) {
         return Status::SemanticError("Expression in UNWIND must be aliased (use AS)");
     }
     unwindCtx.alias = unwindClause->alias();
     unwindCtx.unwindExpr = unwindClause->expr()->clone();
+
+    NG_RETURN_IF_ERROR(deduceProps(unwindCtx.unwindExpr, exprProps_));
+    if (!exprProps_.inputProps().empty() || !userDefinedVarNameList_.empty()) {
+        return Status::SemanticError("Match sentence don't allow input/variable expression.");
+    }
 
     auto labelExprs = ExpressionUtils::collectAll(unwindCtx.unwindExpr, {Expression::Kind::kLabel});
     for (auto *labelExpr : labelExprs) {

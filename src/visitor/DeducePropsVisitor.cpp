@@ -184,11 +184,15 @@ void DeducePropsVisitor::visit(UUIDExpression *expr) {
 }
 
 void DeducePropsVisitor::visit(VariableExpression *expr) {
-    UNUSED(expr);
+    if (expr->var()[0] != '_') {
+        userDefinedVarNameList_->emplace(expr->var());
+    }
 }
 
 void DeducePropsVisitor::visit(VersionedVariableExpression *expr) {
-    reportError(expr);
+    if (expr->var()[0] != '_') {
+        userDefinedVarNameList_->emplace(expr->var());
+    }
 }
 
 void DeducePropsVisitor::visit(LabelExpression *expr) {
