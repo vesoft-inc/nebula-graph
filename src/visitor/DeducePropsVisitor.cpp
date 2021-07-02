@@ -191,7 +191,10 @@ void DeducePropsVisitor::visit(VariableExpression *expr) {
 }
 
 void DeducePropsVisitor::visit(VersionedVariableExpression *expr) {
-    userDefinedVarNameList_->emplace(expr->var());
+    if (expr->var()[0] != '_') {
+        // user defined var
+        userDefinedVarNameList_->emplace(expr->var());
+    }
 }
 
 void DeducePropsVisitor::visit(LabelExpression *expr) {
