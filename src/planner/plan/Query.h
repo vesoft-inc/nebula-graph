@@ -514,7 +514,7 @@ protected:
               PlanNode* input,
               GraphSpaceID space,
               std::vector<IndexQueryContext>&& contexts,
-              std::vector<std::string> returnCols,
+              std::vector<std::string>&& returnCols,
               bool isEdge,
               int32_t schemaId,
               bool isEmptyResultSet,

@@ -11,7 +11,6 @@
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
-#include "common/thrift/ThriftTypes.h"
 #include "parser/TraverseSentences.h"
 #include "planner/plan/Query.h"
 #include "validator/Validator.h"

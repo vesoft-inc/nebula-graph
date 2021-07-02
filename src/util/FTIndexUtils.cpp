@@ -104,7 +104,7 @@ StatusOr<Expression*> FTIndexUtils::rewriteTSFilter(
         rels.emplace_back(RelationalExpression::makeEQ(pool, propExpr, constExpr));
     }
     if (rels.size() == 1) {
-        return std::move(rels[0]);
+        return rels.front();
     }
     return ExpressionUtils::pushOrs(pool, rels);
 }
