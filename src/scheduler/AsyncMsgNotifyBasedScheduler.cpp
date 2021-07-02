@@ -119,7 +119,8 @@ void AsyncMsgNotifyBasedScheduler::runSelect(std::vector<folly::Future<Status>>&
                 .thenTry(
                     [select, pros = std::move(pros), this](auto&& selectTry) mutable {
                         if (selectTry.hasException()) {
-                            return notifyError(pros, Status::Error(selectTry.exception().what()));
+                            return notifyError(pros, Status::Error(
+                                                        selectTry.exception().what()));
                         }
                         auto selectStatus = std::move(selectTry).value();
                         if (!selectStatus.ok()) {
@@ -143,7 +144,8 @@ void AsyncMsgNotifyBasedScheduler::runSelect(std::vector<folly::Future<Status>>&
                             .thenTry([pros = std::move(pros), this](auto&& bodyTry) mutable {
                                 if (bodyTry.hasException()) {
                                     return notifyError(pros,
-                                                       Status::Error(bodyTry.exception().what()));
+                                                       Status::Error(
+                                                           bodyTry.exception().what()));
                                 }
                                 auto bodyStatus = std::move(bodyTry).value();
                                 if (!bodyStatus.ok()) {

@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "common/base/StatusOr.h"
+#include "common/base/Base.h"
 
 namespace nebula {
 namespace graph {
@@ -33,7 +34,7 @@ public:
 
 private:
     StatusOr<OptGroup *> prepare(OptContext *ctx, graph::PlanNode *root);
-    Status doExploration(OptGroup *rootGroup);
+    Status doExploration(OptContext *octx, OptGroup *rootGroup);
 
     OptGroup *convertToGroup(OptContext *ctx,
                              graph::PlanNode *node,
@@ -42,6 +43,8 @@ private:
                             const graph::PlanNode *node,
                             OptGroupNode *gnode,
                             std::unordered_map<int64_t, OptGroup *> *visited);
+
+    static constexpr int8_t kMaxIterationRound = 5;
 
     std::vector<const RuleSet *> ruleSets_;
 };
