@@ -148,7 +148,7 @@ jobs:
           make RM_DIR=false DEBUG=false J=${{ steps.cmake.outputs.j }} tck
           make down
         working-directory: tests/
-        timeout-minutes: 20
+        timeout-minutes: 25
       - name: Sanitizer
         if: ${{ always() }}
         run: |
