@@ -24,11 +24,6 @@
 namespace nebula {
 namespace graph {
 
-static constexpr char kSrcVID[] = "SrcVID";
-static constexpr char kDstVID[] = "DstVID";
-static constexpr char kRanking[] = "Ranking";
-static constexpr char kVertexID[] = "VertexID";
-
 static std::tuple<const char*, const char*> kEdgeKeys[3] = {
     {kSrcVID, kSrc},
     {kDstVID, kDst},

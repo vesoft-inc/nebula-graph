@@ -22,11 +22,6 @@ using std::unique_ptr;
 namespace nebula {
 namespace graph {
 
-static constexpr char kSrcVID[] = "SrcVID";
-static constexpr char kDstVID[] = "DstVID";
-static constexpr char kRanking[] = "Ranking";
-static constexpr char kVertexID[] = "VertexID";
-
 LookupValidator::LookupValidator(Sentence* sentence, QueryContext* context)
     : Validator(sentence, context) {}
 
