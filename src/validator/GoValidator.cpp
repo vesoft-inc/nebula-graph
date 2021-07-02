@@ -25,6 +25,7 @@ Status GoValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateOver(goSentence->overClause(), goCtx_->over));
     NG_RETURN_IF_ERROR(validateWhere(goSentence->whereClause()));
     NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
+    NG_RETURN_IF_ERROR(validateTruncate(goSentence->truncateClause()));
 
     const auto& exprProps = goCtx_->exprProps;
     if (!exprProps.inputProps().empty() && goCtx_->from.fromType != kPipe) {
@@ -55,9 +56,9 @@ Status GoValidator::validateWhere(WhereClause* where) {
         return Status::SemanticError("`%s', not support aggregate function in where sentence.",
                                      expr->toString().c_str());
     }
-    where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(expr));
     auto pool = qctx()->objPool();
-    auto foldRes = ExpressionUtils::foldConstantExpr(where->filter(), pool);
+    where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, expr));
+    auto foldRes = ExpressionUtils::foldConstantExpr(pool, where->filter());
     NG_RETURN_IF_ERROR(foldRes);
 
     auto filter = foldRes.value();
@@ -77,19 +78,59 @@ Status GoValidator::validateWhere(WhereClause* where) {
     return Status::OK();
 }
 
+Status GoValidator::validateTruncate(TruncateClause* truncate) {
+    if (truncate == nullptr) {
+        return Status::OK();
+    }
+    goCtx_->random = truncate->isSample();
+    auto* tExpr = truncate->truncate();
+    if (tExpr->kind() != Expression::Kind::kList) {
+        return Status::SemanticError("`%s' type must be LIST", tExpr->toString().c_str());
+    }
+    const auto& steps = goCtx_->steps;
+    // lenght of list must be equal to N step
+    uint32_t totalSteps = steps.isMToN() ? steps.nSteps() : steps.steps();
+    if (static_cast<const ListExpression*>(tExpr)->size() != totalSteps) {
+        return Status::SemanticError(
+            "`%s' length must be equal to %d", tExpr->toString().c_str(), totalSteps);
+    }
+    // check if value of list is non-integer
+    auto existNonInteger = [](const Expression* expr) -> bool {
+        if (expr->kind() != Expression::Kind::kConstant &&
+            expr->kind() != Expression::Kind::kList) {
+            return true;
+        }
+        if (expr->kind() == Expression::Kind::kConstant) {
+            auto& val = static_cast<const ConstantExpression*>(expr)->value();
+            if (!val.isInt()) {
+                return true;
+            }
+        }
+        return false;
+    };
+    FindVisitor visitor(existNonInteger);
+    tExpr->accept(&visitor);
+    auto res = visitor.results();
+    if (res.size() == 1) {
+        return Status::SemanticError("`%s' must be INT", res.front()->toString().c_str());
+    }
+    return Status::SemanticError("not implement it");
+}
+
 Status GoValidator::validateYield(YieldClause* yield) {
     if (yield == nullptr) {
         return Status::SemanticError("Yield clause nullptr.");
     }
     goCtx_->distinct = yield->isDistinct();
     const auto& over = goCtx_->over;
+    auto* pool = qctx_->objPool();
 
     auto cols = yield->columns();
     if (cols.empty() && over.isOverAll) {
         DCHECK(!over.allEdges.empty());
         auto* newCols = qctx_->objPool()->add(new YieldColumns());
         for (const auto& e : over.allEdges) {
-            auto* col = new YieldColumn(new EdgeDstIdExpression(e));
+            auto* col = new YieldColumn(EdgeDstIdExpression::make(pool, e));
             newCols->addColumn(col);
             outputs_.emplace_back(col->name(), vidType_);
             NG_RETURN_IF_ERROR(deduceProps(col->expr(), goCtx_->exprProps));
@@ -100,7 +141,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
     }
 
     for (auto col : cols) {
-        col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));
+        col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, col->expr()));
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
 
         auto* colExpr = col->expr();
@@ -141,7 +182,7 @@ Expression* GoValidator::rewrite2VarProp(const Expression* expr) {
     auto rewriter = [this](const Expression* e) -> Expression* {
         auto iter = propExprColMap_.find(e->toString());
         DCHECK(iter != propExprColMap_.end());
-        return new VariablePropertyExpression("", iter->second->alias());
+        return VariablePropertyExpression::make(qctx_->objPool(), "", iter->second->alias());
     };
 
     return RewriteVisitor::transform(expr, matcher, rewriter);
@@ -176,8 +217,7 @@ Status GoValidator::buildColumns() {
     if (filter != nullptr) {
         extractPropExprs(filter);
         auto newFilter = filter->clone();
-        goCtx_->filter = rewrite2VarProp(newFilter.get());
-        pool->add(goCtx_->filter);
+        goCtx_->filter = rewrite2VarProp(newFilter);
     }
 
     auto* newYieldExpr = pool->add(new YieldColumns());

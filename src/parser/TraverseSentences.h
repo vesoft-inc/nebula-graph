@@ -15,24 +15,17 @@ namespace nebula {
 
 class GoSentence final : public Sentence {
 public:
-    GoSentence() {
+    GoSentence(StepClause* step,
+               FromClause* from,
+               OverClause* over,
+               WhereClause* where,
+               TruncateClause* truncate) {
         kind_ = Kind::kGo;
-    }
-
-    void setStepClause(StepClause *clause) {
-        stepClause_.reset(clause);
-    }
-
-    void setFromClause(FromClause *clause) {
-        fromClause_.reset(clause);
-    }
-
-    void setOverClause(OverClause *clause) {
-        overClause_.reset(clause);
-    }
-
-    void setWhereClause(WhereClause *clause) {
-        whereClause_.reset(clause);
+        stepClause_.reset(step);
+        fromClause_.reset(from);
+        overClause_.reset(over);
+        whereClause_.reset(where);
+        truncateClause_.reset(truncate);
     }
 
     void setYieldClause(YieldClause *clause) {
@@ -67,6 +60,14 @@ public:
         return yieldClause_.get();
     }
 
+    const TruncateClause* truncateClause() const {
+        return truncateClause_.get();
+    }
+
+    TruncateClause* truncateClause() {
+        return truncateClause_.get();
+    }
+
     std::string toString() const override;
 
 private:
@@ -75,6 +76,7 @@ private:
     std::unique_ptr<OverClause>                 overClause_;
     std::unique_ptr<WhereClause>                whereClause_;
     std::unique_ptr<YieldClause>                yieldClause_;
+    std::unique_ptr<TruncateClause>             truncateClause_;
 };
 
 
@@ -224,22 +226,19 @@ private:
 
 class OrderFactor final {
 public:
-    enum OrderType : uint8_t {
-        ASCEND,
-        DESCEND
-    };
+    enum OrderType : uint8_t { ASCEND, DESCEND };
 
-    OrderFactor(Expression *expr, OrderType op) {
-        expr_.reset(expr);
+    OrderFactor(Expression* expr, OrderType op) {
+        expr_ = expr;
         orderType_ = op;
     }
 
     Expression* expr() {
-        return expr_.get();
+        return expr_;
     }
 
-    void setExpr(Expression *expr) {
-        expr_.reset(expr);
+    void setExpr(Expression* expr) {
+        expr_ = expr;
     }
 
     OrderType orderType() {
@@ -249,8 +248,8 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 expr_;
-    OrderType                                   orderType_;
+    Expression* expr_{nullptr};
+    OrderType orderType_;
 };
 
 class OrderFactors final {
