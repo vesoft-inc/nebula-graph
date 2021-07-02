@@ -829,6 +829,10 @@ void OptimizerUtils::eraseInvalidIndexItems(
 //     * find the first not prefix column hint and ignore all followed hints except first range hint
 //     * check whether filter conditions are used, if not, place the unused expression parts into
 //       column hint filter
+//
+// For logical `OR' condition expression, use above steps to generate different `IndexQueryContext'
+// for each operand of filter condition, nebula storage will union all results of multiple index
+// contexts
 bool OptimizerUtils::findOptimalIndex(const Expression* condition,
                                       const std::vector<std::shared_ptr<IndexItem>>& indexItems,
                                       bool* isPrefixScan,
