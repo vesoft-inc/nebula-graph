@@ -15,7 +15,7 @@
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"
 #include "stats/StatsDef.h"
-#include "common/time/TimeUtils.h"
+#include "common/time/TimezoneInfo.h"
 
 namespace nebula {
 namespace graph {
@@ -46,7 +46,11 @@ Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecuto
         LOG(WARNING) << "Failed to synchronously wait for meta service ready";
     }
 
-    sessionManager_ = std::make_unique<SessionManager>(metaClient_.get(), hostAddr);
+    sessionManager_ = std::make_unique<GraphSessionManager>(metaClient_.get(), hostAddr);
+    auto initSessionMgrStatus = sessionManager_->init();
+    if (!initSessionMgrStatus.ok()) {
+        LOG(WARNING) << "Init sessin manager failed: " << initSessionMgrStatus.toString();
+    }
     queryEngine_ = std::make_unique<QueryEngine>();
 
     myAddr_ = hostAddr;
@@ -98,9 +102,9 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
         ctx->setSession(sessionPtr);
         ctx->resp().sessionId.reset(new int64_t(ctx->session()->id()));
         ctx->resp().timeZoneOffsetSeconds.reset(
-            new int32_t(time::TimeUtils::getGlobalTimezone().utcOffsetSecs()));
+            new int32_t(time::Timezone::getGlobalTimezone().utcOffsetSecs()));
         ctx->resp().timeZoneName.reset(
-            new std::string(time::TimeUtils::getGlobalTimezone().stdZoneName()));
+            new std::string(time::Timezone::getGlobalTimezone().stdZoneName()));
         return ctx->finish();
     };
 
@@ -121,6 +125,7 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     auto ctx = std::make_unique<RequestContext<ExecutionResponse>>();
     ctx->setQuery(query);
     ctx->setRunner(getThreadManager());
+    ctx->setSessionMgr(sessionManager_.get());
     auto future = ctx->future();
     stats::StatsManager::addValue(kNumQueries);
     auto cb = [this, sessionId, ctx = std::move(ctx)]
