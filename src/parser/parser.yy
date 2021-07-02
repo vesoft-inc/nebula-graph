@@ -145,13 +145,14 @@ static constexpr size_t kCommentLengthLimit = 256;
     nebula::TextSearchArgument             *fuzzy_text_search_argument;
     nebula::meta::cpp2::FTClient           *text_search_client_item;
     nebula::TSClientList                   *text_search_client_list;
+    nebula::QueryUniqueIdentifier          *query_unique_identifier;
 }
 
 /* destructors */
 %destructor {} <sentences>
 // Expression related memory will be managed by object pool
-%destructor {} <expr> <argument_list> <case_list> <expression_list> <map_item_list> 
-%destructor {} <text_search_argument> <base_text_search_argument> <fuzzy_text_search_argument> 
+%destructor {} <expr> <argument_list> <case_list> <expression_list> <map_item_list>
+%destructor {} <text_search_argument> <base_text_search_argument> <fuzzy_text_search_argument>
 %destructor {} <boolval> <intval> <doubleval> <type> <config_module> <integer_list> <list_host_type>
 %destructor { delete $$; } <*>
 
@@ -196,6 +197,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %token KW_ANY KW_SINGLE KW_NONE
 %token KW_REDUCE
 %token KW_SESSIONS KW_SESSION
+%token KW_KILL KW_QUERY KW_QUERIES KW_TOP
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -236,6 +238,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <expr> compound_expression
 %type <expr> text_search_expression
 %type <expr> constant_expression
+%type <expr> query_unique_identifier_value
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -332,6 +335,8 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <index_field> index_field
 %type <index_field_list> index_field_list opt_index_field_list
 
+%type <query_unique_identifier> query_unique_identifier
+
 %type <sentence> maintain_sentence
 %type <sentence> create_space_sentence describe_space_sentence drop_space_sentence
 %type <sentence> create_tag_sentence create_edge_sentence
@@ -341,7 +346,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <sentence> create_tag_index_sentence create_edge_index_sentence create_fulltext_index_sentence
 %type <sentence> drop_tag_index_sentence drop_edge_index_sentence drop_fulltext_index_sentence
 %type <sentence> describe_tag_index_sentence describe_edge_index_sentence
-%type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence
+%type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence rebuild_fulltext_index_sentence
 %type <sentence> add_group_sentence drop_group_sentence desc_group_sentence
 %type <sentence> add_zone_into_group_sentence drop_zone_from_group_sentence
 %type <sentence> add_zone_sentence drop_zone_sentence desc_zone_sentence
@@ -351,6 +356,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 
 %type <sentence> admin_job_sentence
 %type <sentence> create_user_sentence alter_user_sentence drop_user_sentence change_password_sentence
+%type <sentence> show_queries_sentence kill_query_sentence
 %type <sentence> show_sentence
 
 %type <sentence> mutate_sentence
@@ -512,6 +518,10 @@ unreserved_keyword
     | KW_SESSION            { $$ = new std::string("session"); }
     | KW_SESSIONS           { $$ = new std::string("sessions"); }
     | KW_SAMPLE             { $$ = new std::string("sample"); }
+    | KW_QUERIES            { $$ = new std::string("queries"); }
+    | KW_QUERY              { $$ = new std::string("query"); }
+    | KW_KILL               { $$ = new std::string("kill"); }
+    | KW_TOP                { $$ = new std::string("top"); }
     ;
 
 expression
@@ -2434,6 +2444,11 @@ rebuild_edge_index_sentence
     }
     ;
 
+rebuild_fulltext_index_sentence
+    : KW_REBUILD KW_FULLTEXT KW_INDEX {
+        $$ = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                  meta::cpp2::AdminCmd::REBUILD_FULLTEXT_INDEX);
+    }
 add_group_sentence
     : KW_ADD KW_GROUP name_label zone_name_list{
         $$ = new AddGroupSentence($3, $4);
@@ -2514,6 +2529,8 @@ traverse_sentence
     | get_subgraph_sentence { $$ = $1; }
     | delete_vertex_sentence { $$ = $1; }
     | delete_edge_sentence { $$ = $1; }
+    | show_queries_sentence { $$ = $1; }
+    | kill_query_sentence { $$ = $1; }
     ;
 
 piped_sentence
@@ -2848,6 +2865,15 @@ job_concurrency
     }
     | legal_integer {
         $$ = $1;
+    }
+    ;
+
+show_queries_sentence
+    : KW_SHOW KW_QUERIES {
+        $$ = new ShowQueriesSentence();
+    }
+    | KW_SHOW KW_ALL KW_QUERIES {
+        $$ = new ShowQueriesSentence(true);
     }
     ;
 
@@ -3287,6 +3313,34 @@ list_listener_sentence
     }
     ;
 
+kill_query_sentence
+    : KW_KILL KW_QUERY L_PAREN query_unique_identifier R_PAREN {
+        $$ = new KillQuerySentence($4);
+    }
+
+query_unique_identifier_value
+    : legal_integer {
+        $$ = ConstantExpression::make(qctx->objPool(), $1);
+    }
+    | input_prop_expression {
+        $$ = $1;
+    }
+    ;
+
+query_unique_identifier
+    : KW_PLAN ASSIGN query_unique_identifier_value {
+        $$ = new QueryUniqueIdentifier($3, ConstantExpression::make(qctx->objPool(), Value(-1)));
+    }
+    | KW_SESSION ASSIGN query_unique_identifier_value COMMA KW_PLAN ASSIGN query_unique_identifier_value {
+        $$ = new QueryUniqueIdentifier($7, $3);
+        $$->setSession();
+    }
+    | KW_PLAN ASSIGN query_unique_identifier_value COMMA KW_SESSION ASSIGN query_unique_identifier_value {
+        $$ = new QueryUniqueIdentifier($3, $7);
+        $$->setSession();
+    }
+    ;
+
 mutate_sentence
     : insert_vertex_sentence { $$ = $1; }
     | insert_edge_sentence { $$ = $1; }
@@ -3319,6 +3373,7 @@ maintain_sentence
     | describe_edge_index_sentence { $$ = $1; }
     | rebuild_tag_index_sentence { $$ = $1; }
     | rebuild_edge_index_sentence { $$ = $1; }
+    | rebuild_fulltext_index_sentence { $$ = $1; }
     | add_group_sentence { $$ = $1; }
     | drop_group_sentence { $$ = $1; }
     | desc_group_sentence { $$ = $1; }
