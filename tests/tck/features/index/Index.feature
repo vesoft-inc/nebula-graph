@@ -125,9 +125,17 @@ Feature: IndexTest_Vid_String
       Show TAG INDEXES;
       """
     Then the result should be, in any order:
-      | Index Name           | By Tag  | Columns         |
-      | "disorder_tag_index" | "tag_1" | ["col3", col2"] |
-      | "single_tag_index"   | "tag_1" | ["col2"]        |
+      | Index Name           | By Tag  | Columns          |
+      | "disorder_tag_index" | "tag_1" | ["col3", "col2"] |
+      | "single_tag_index"   | "tag_1" | ["col2"]         |
+    When executing query:
+      """
+      Show TAG INDEXES BY tag_1;
+      """
+    Then the result should be, in any order:
+      | Index Name           | Columns          |
+      | "disorder_tag_index" | ["col3", "col2"] |
+      | "single_tag_index"   | ["col2"]         |
     When executing query:
       """
       DESCRIBE TAG INDEX multi_tag_index;
@@ -268,6 +276,14 @@ Feature: IndexTest_Vid_String
       | Index Name              | By Edge  | Columns          |
       | "disorder_edge_1_index" | "edge_1" | ["col3", "col2"] |
       | "single_edge_index"     | "edge_1" | ["col2"]         |
+    When executing query:
+      """
+      SHOW EDGE INDEXES BY edge_1
+      """
+    Then the result should be, in any order:
+      | Index Name              | Columns          |
+      | "disorder_edge_1_index" | ["col3", "col2"] |
+      | "single_edge_index"     | ["col2"]         |
     When executing query:
       """
       DESCRIBE EDGE INDEX multi_edge_1_index;
