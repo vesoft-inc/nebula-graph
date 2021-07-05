@@ -111,7 +111,7 @@ Status GetSubgraphValidator::validateWhere(WhereClause* where) {
     if (where == nullptr) {
         return Status::OK();
     }
-
+    auto* pool = qctx_->objPool();
     filter_ = where->filter();
     if (ExpressionUtils::findAny(filter_,
                                  {Expression::Kind::kAggregate,
@@ -124,7 +124,8 @@ Status GetSubgraphValidator::validateWhere(WhereClause* where) {
     if (ExpressionUtils::findAny(filter_, {Expression::Kind::kDstProperty})) {
         dstFilter_ = true;
     }
-    where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(filter_));
+
+    where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, filter_));
     filter_ = where->filter();
     auto typeStatus = deduceExprType(filter_);
     NG_RETURN_IF_ERROR(typeStatus);
@@ -290,7 +291,7 @@ Status GetSubgraphValidator::toPlan() {
         std::unique_ptr<std::vector<nebula::storage::cpp2::Expr>> exprs;
         auto vertexProps = buildVertexProp();
         NG_RETURN_IF_ERROR(vertexProps);
-        auto* src = qctx_->objPool()->makeAndAdd<VariablePropertyExpression>("*", kVid);
+        auto* src = VariablePropertyExpression::make(qctx_->objPool(), "*", kVid);
         auto* gv = GetVertices::make(
             qctx_, loop, space.id, src, std::move(vertexProps).value(), std::move(exprs));
         gv->setInputVar(subgraph->outputVar());
@@ -311,9 +312,6 @@ Status GetSubgraphValidator::toPlan() {
     dc->setColNames({"vertices", "edges"});
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;
-
-    outputs_.emplace_back(kVertices, Value::Type::VERTEX);
-    outputs_.emplace_back(kEdges, Value::Type::EDGE);
     return Status::OK();
 }
 
