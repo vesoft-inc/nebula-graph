@@ -67,7 +67,7 @@ class TestConfigs(NebulaTestSuite):
             ['GRAPH', 'accept_partial_success', 'bool', 'MUTABLE', False],
             ['GRAPH', 'system_memory_high_watermark_ratio', 'float', 'MUTABLE', 0.95],
             ['GRAPH', 'session_idle_timeout_secs', 'int', 'MUTABLE', 0],
-            ['GRAPH', 'session_reclaim_interval_secs', 'int', 'MUTABLE', 10],
+            ['GRAPH', 'session_reclaim_interval_secs', 'int', 'MUTABLE', 2],
             ['GRAPH', 'max_allowed_connections', 'int', 'MUTABLE', 9223372036854775807],
             ['GRAPH', 'disable_octal_escape_char', 'bool', 'MUTABLE', False],
         ]
@@ -94,18 +94,27 @@ class TestConfigs(NebulaTestSuite):
         # update rocksdb
         resp = self.client.execute('''
                                    UPDATE CONFIGS storage:rocksdb_column_family_options={
-                                   max_bytes_for_level_base=1024,
-                                   write_buffer_size=1024,
-                                   max_write_buffer_number=4}
+                                   max_bytes_for_level_base="1024",
+                                   write_buffer_size="1024",
+                                   max_write_buffer_number="4"}
                                    ''')
         self.check_resp_succeeded(resp)
 
         # get result
         resp = self.client.execute('GET CONFIGS storage:rocksdb_column_family_options')
         self.check_resp_succeeded(resp)
-        value = {"max_bytes_for_level_base": 1024, "write_buffer_size": 1024, "max_write_buffer_number": 4}
+        value = {"max_bytes_for_level_base": "1024", "write_buffer_size": "1024", "max_write_buffer_number": "4"}
         expected_result = [['STORAGE', 'rocksdb_column_family_options', 'map', 'MUTABLE', value]]
         self.check_result(resp, expected_result)
+
+        # restore
+        resp = self.client.execute('''
+                                   UPDATE CONFIGS storage:rocksdb_column_family_options={
+                                   max_bytes_for_level_base="268435456",
+                                   write_buffer_size="67108864",
+                                   max_write_buffer_number="4"}
+                                   ''')
+        self.check_resp_succeeded(resp)
 
     @pytest.mark.skip("The change of minloglevel will infulence the whole test.")
     def test_update_configs(self):

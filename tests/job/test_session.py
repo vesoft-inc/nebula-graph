@@ -47,7 +47,7 @@ class TestSession(NebulaTestSuite):
 
     @classmethod
     def cleanup(self):
-        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 10')
+        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 2')
         self.check_resp_succeeded(resp)
         time.sleep(3)
 
@@ -151,7 +151,13 @@ class TestSession(NebulaTestSuite):
 
         resp = conn1.execute(session_id, 'CREATE SPACE IF NOT EXISTS aSpace(partition_num=1, vid_type=FIXED_STRING(8));USE aSpace;')
         self.check_resp_succeeded(ResultSet(resp, 0))
+        # time::WallClock::fastNowInMicroSec() is not syncronous in different process,
+        # so we sleep 3 seconds here and charge session
         time.sleep(3)
+        resp = conn1.execute(session_id, 'USE aSpace;')
+        self.check_resp_succeeded(ResultSet(resp, 0))
+        time.sleep(3)
+        # We actually not allowed share sessions, this only for testing the scenario of transfer sessions.
         resp = conn1.execute(session_id, 'CREATE TAG IF NOT EXISTS a();')
         self.check_resp_succeeded(ResultSet(resp, 0))
         resp = conn2.execute(session_id, 'CREATE TAG IF NOT EXISTS b();')
@@ -216,4 +222,3 @@ class TestSession(NebulaTestSuite):
         resp = conn.execute(session_id, 'SHOW HOSTS')
         assert resp.error_code == ttypes.ErrorCode.E_SESSION_INVALID, resp.error_msg
         assert resp.error_msg.find(b'Session not existed!') > 0
-

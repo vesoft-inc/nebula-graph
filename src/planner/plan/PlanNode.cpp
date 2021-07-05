@@ -44,6 +44,18 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "GetEdges";
         case Kind::kIndexScan:
             return "IndexScan";
+        case Kind::kTagIndexFullScan:
+            return "TagIndexFullScan";
+        case Kind::kTagIndexRangeScan:
+            return "TagIndexRangeScan";
+        case Kind::kTagIndexPrefixScan:
+            return "TagIndexPrefixScan";
+        case Kind::kEdgeIndexFullScan:
+            return "EdgeIndexFullScan";
+        case Kind::kEdgeIndexRangeScan:
+            return "EdgeIndexRangeScan";
+        case Kind::kEdgeIndexPrefixScan:
+            return "EdgeIndexPrefixScan";
         case Kind::kFilter:
             return "Filter";
         case Kind::kUnion:
@@ -272,6 +284,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowSessions";
         case Kind::kUpdateSession:
             return "UpdateSession";
+        case Kind::kShowQueries:
+            return "ShowQueries";
+        case Kind::kKillQuery:
+            return "KillQuery";
             // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
