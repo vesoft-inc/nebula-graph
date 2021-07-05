@@ -162,6 +162,9 @@ public:
         kIngest,
         kShowSessions,
         kUpdateSession,
+
+        kShowQueries,
+        kKillQuery,
     };
 
     bool isQueryNode() const {
@@ -216,6 +219,10 @@ public:
 
     void setColNames(std::vector<std::string> cols) {
         outputVarPtr(0)->colNames = std::move(cols);
+    }
+
+    const auto& dependencies() const {
+        return dependencies_;
     }
 
     const PlanNode* dep(size_t index = 0) const {

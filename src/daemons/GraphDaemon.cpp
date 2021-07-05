@@ -18,7 +18,6 @@
 #include "service/GraphService.h"
 #include "service/GraphFlags.h"
 #include "common/webservice/WebService.h"
-#include "common/time/TimeUtils.h"
 #include "common/time/TimezoneInfo.h"
 #include "stats/StatsDef.h"
 
@@ -106,7 +105,7 @@ int main(int argc, char *argv[]) {
 
     // Initialize the global timezone, it's only used for datetime type compute
     // won't affect the process timezone.
-    status = nebula::time::TimeUtils::initializeGlobalTimezone();
+    status = nebula::time::Timezone::initializeGlobalTimezone();
     if (!status.ok()) {
         LOG(ERROR) << status;
         return EXIT_FAILURE;
