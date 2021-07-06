@@ -29,44 +29,46 @@ public:
     folly::Future<Status> schedule() override;
 
 private:
+    using Notifier = folly::Promise<Status>;
+    using Receiver = folly::Future<Status>;
     folly::Future<Status> doSchedule(Executor* root) const;
 
     /**
-     *  futures: current executor will be triggered when all the futures are notified.
+     *  receivers: current executor will be triggered when all the futures are notified.
      *  exe: current executor
      *  runner: a thread-pool
-     *  promises: the promises will be set a value which triggers the other executors
+     *  notifiers: the promises will be set a value which triggers the other executors
      *            if current executor is done working.
      */
-    void scheduleExecutor(std::vector<folly::Future<Status>>&& futures,
+    void scheduleExecutor(std::vector<Receiver>&& receivers,
                           Executor* exe,
                           folly::Executor* runner,
-                          std::vector<folly::Promise<Status>>&& promises) const;
+                          std::vector<Notifier>&& notifiers) const;
 
-    void runSelect(std::vector<folly::Future<Status>>&& futures,
+    void runSelect(std::vector<Receiver>&& receivers,
                    SelectExecutor* select,
                    folly::Executor* runner,
-                   std::vector<folly::Promise<Status>>&& promises) const;
+                   std::vector<Notifier>&& notifiers) const;
 
-    void runExecutor(std::vector<folly::Future<Status>>&& futures,
+    void runExecutor(std::vector<Receiver>&& receivers,
                      Executor* exe,
                      folly::Executor* runner,
-                     std::vector<folly::Promise<Status>>&& promises) const;
+                     std::vector<Notifier>&& notifiers) const;
 
     void runLeafExecutor(Executor* exe,
                          folly::Executor* runner,
-                         std::vector<folly::Promise<Status>>&& promises) const;
+                         std::vector<Notifier>&& notifiers) const;
 
-    void runLoop(std::vector<folly::Future<Status>>&& futures,
+    void runLoop(std::vector<Receiver>&& receivers,
                  LoopExecutor* loop,
                  folly::Executor* runner,
-                 std::vector<folly::Promise<Status>>&& promises) const;
+                 std::vector<Notifier>&& notifiers) const;
 
     Status checkStatus(std::vector<Status>&& status) const;
 
-    void notifyOK(std::vector<folly::Promise<Status>>& promises) const;
+    void notifyOK(std::vector<Notifier>& notifiers) const;
 
-    void notifyError(std::vector<folly::Promise<Status>>& promises, Status status) const;
+    void notifyError(std::vector<Notifier>& notifiers, Status status) const;
 
     folly::Future<Status> execute(Executor *executor) const;
 
