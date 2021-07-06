@@ -98,12 +98,14 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
         List vertices, edges;
         auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
         auto originVertices = gnIter->getVertices();
+        vertices.reserve(originVertices.values.size());
         for (auto& v : originVertices.values) {
             if (v.isVertex() && uniqueVids.emplace(v.getVertex().vid).second) {
                 vertices.emplace_back(std::move(v));
             }
         }
         auto originEdges = gnIter->getEdges();
+        edges.values.reserve(originEdges.values.size());
         for (auto& edge : originEdges.values) {
             if (edge.isEdge()) {
                 const auto& e = edge.getEdge();
