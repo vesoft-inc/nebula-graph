@@ -21,6 +21,7 @@
 #include "parser/SequentialSentences.h"
 #include "service/RequestContext.h"
 #include "util/IdGenerator.h"
+#include "util/AsyncDropper.h"
 
 namespace nebula {
 namespace graph {
@@ -137,6 +138,10 @@ public:
         return killed_.load();
     }
 
+    AsyncDropper* dropper() const {
+        return dropper_.get();
+    }
+
 private:
     void init();
 
@@ -157,6 +162,10 @@ private:
     std::unique_ptr<SymbolTable>                            symTable_;
 
     std::atomic<bool>                                       killed_{false};
+
+    // async release
+    folly::Executor                                        *executor_{nullptr};
+    std::unique_ptr<AsyncDropper>                           dropper_;
 };
 
 }   // namespace graph

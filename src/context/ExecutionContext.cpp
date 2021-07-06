@@ -87,5 +87,27 @@ const std::vector<Result>& ExecutionContext::getHistory(const std::string& name)
     }
 }
 
+std::size_t ExecutionContext::size(const std::string& name) const {
+    auto find = valueMap_.find(name);
+    std::size_t s = 0;
+    if (find != valueMap_.end()) {
+        for (const auto& v : find->second) {
+            s += v.size();
+        }
+        return s;
+    } else {
+        return s;
+    }
+}
+
+std::vector<Result> ExecutionContext::moveAllResults(const std::string& name) {
+    auto it = valueMap_.find(name);
+    if (it != valueMap_.end()) {
+        return std::move(it->second);
+    } else {
+        return {};
+    }
+}
+
 }   // namespace graph
 }   // namespace nebula
