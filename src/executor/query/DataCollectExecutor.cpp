@@ -6,6 +6,7 @@
 
 #include "executor/query/DataCollectExecutor.h"
 
+#include "context/Iterator.h"
 #include "planner/plan/Query.h"
 #include "util/ScopedTimer.h"
 
@@ -62,11 +63,9 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
 }
 
 Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
-    DataSet ds;
-    ds.colNames = std::move(colNames_);
-    // the subgraph not need duplicate vertices or edges, so dedup here directly
-    std::unordered_set<Value> uniqueVids;
-    std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdges;
+    size_t numVertices = 0, numEdges = 0;
+    std::vector<std::unique_ptr<Iterator>> iters;
+    iters.reserve(vars.size());
     for (auto i = vars.begin(); i != vars.end(); ++i) {
         const auto& hist = ectx_->getHistory(*i);
         for (auto j = hist.begin(); j != hist.end(); ++j) {
@@ -79,32 +78,44 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                 msg << "Iterator should be kind of GetNeighborIter, but was: " << iter->kind();
                 return Status::Error(msg.str());
             }
-            List vertices;
-            List edges;
             auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-            auto originVertices = gnIter->getVertices();
-            for (auto& v : originVertices.values) {
-                if (!v.isVertex()) {
-                    continue;
-                }
-                if (uniqueVids.emplace(v.getVertex().vid).second) {
-                    vertices.emplace_back(std::move(v));
-                }
+            numVertices += gnIter->numRows();
+            numEdges += gnIter->size();
+            iters.emplace_back(std::move(iter));
+        }
+    }
+
+    DataSet ds;
+    ds.colNames = std::move(colNames_);
+    // the subgraph not need duplicate vertices or edges, so dedup here directly
+    std::unordered_set<Value> uniqueVids;
+    std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdges;
+
+    uniqueVids.reserve(numVertices);
+    uniqueEdges.reserve(numEdges);
+
+    for (auto& iter : iters) {
+        List vertices, edges;
+        auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
+        auto originVertices = gnIter->getVertices();
+        for (auto& v : originVertices.values) {
+            if (v.isVertex() && uniqueVids.emplace(v.getVertex().vid).second) {
+                vertices.emplace_back(std::move(v));
             }
-            auto originEdges = gnIter->getEdges();
-            for (auto& edge : originEdges.values) {
-                if (!edge.isEdge()) {
-                    continue;
-                }
+        }
+        auto originEdges = gnIter->getEdges();
+        for (auto& edge : originEdges.values) {
+            if (edge.isEdge()) {
                 const auto& e = edge.getEdge();
                 auto edgeKey = std::make_tuple(e.src, e.type, e.ranking, e.dst);
                 if (uniqueEdges.emplace(std::move(edgeKey)).second) {
                     edges.emplace_back(std::move(edge));
                 }
             }
-            ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
         }
+        ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
     }
+
     result_.setDataSet(std::move(ds));
     return Status::OK();
 }

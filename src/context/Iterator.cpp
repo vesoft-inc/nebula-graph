@@ -262,6 +262,33 @@ void GetNeighborsIter::erase() {
     next();
 }
 
+size_t GetNeighborsIter::size() const {
+    size_t sz = 0;
+    if (noEdge_) {
+        for (auto& dsidx : dsIndices_) {
+            sz += dsidx.ds->size();
+        }
+        return sz;
+    }
+
+    for (auto& dsidx : dsIndices_) {
+        for (auto& row : dsidx.ds->rows) {
+            for (auto& eidx : dsidx.edgePropsMap) {
+                sz += row[eidx.second.colIdx].getList().size();
+            }
+        }
+    }
+    return sz;
+}
+
+size_t GetNeighborsIter::numRows() const {
+    size_t sz = 0;
+    for (auto& dsidx : dsIndices_) {
+        sz += dsidx.ds->size();
+    }
+    return sz;
+}
+
 const Value& GetNeighborsIter::getColumn(const std::string& col) const {
     if (!valid()) {
         return Value::kNullValue;
