@@ -48,3 +48,17 @@ nebula_add_test(
         ${THRIFT_LIBRARIES}
         ${PROXYGEN_LIBRARIES}
 )
+
+nebula_add_executable(
+    NAME
+        async_dropper_bm
+    SOURCES
+        AsyncDropperBenchmark.cpp
+    OBJECTS
+        $<TARGET_OBJECTS:common_datatypes_obj>
+        $<TARGET_OBJECTS:common_base_obj>
+        $<TARGET_OBJECTS:common_fs_obj>
+    LIBRARIES
+        follybenchmark
+        boost_regex
+)
