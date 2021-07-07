@@ -14,7 +14,7 @@
 namespace nebula {
 namespace graph {
 
-class DeduceVertexEdgePropsVisitorTest : public ValidatorTestBase {};
+class DeduceVertexEdgePropsVisitorTest : public VisitorTestBase {};
 
 TEST_F(DeduceVertexEdgePropsVisitorTest, Basic) {
     std::unordered_map<std::string, AliasType> aliases{{"v", AliasType::kNode},
