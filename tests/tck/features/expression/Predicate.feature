@@ -161,8 +161,8 @@ Feature: Predicate
       WITH {a : NULL, b : 1, c : false} AS m RETURN exists(m.a)
       """
     Then the result should be, in any order:
-      | exists(m.a)  |
-      | false        |
+      | exists(m.a) |
+      | false       |
 
   Scenario: exists with dynamic map in variable length MATCH
     Given a graph with space named "nba"
