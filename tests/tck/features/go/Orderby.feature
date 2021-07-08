@@ -22,7 +22,7 @@ Feature: Orderby Sentence
       """
       ORDER BY $-.xx
       """
-    Then a SyntaxError should be raised at runtime:
+    Then a SemanticError should be raised at runtime: `$-.xx', not exist prop `xx'
 
   Scenario: Empty Input
     When executing query:
