@@ -45,6 +45,7 @@ private:
     bool                                        withProp_{false};
     Expression*                                 filter_{nullptr};
     bool                                        dstFilter_{false};
+    bool                                        onlyVertices_{false};
 };
 
 }  // namespace graph

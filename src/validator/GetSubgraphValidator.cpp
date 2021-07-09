@@ -23,6 +23,7 @@ namespace graph {
 Status GetSubgraphValidator::validateImpl() {
     auto* gsSentence = static_cast<GetSubgraphSentence*>(sentence_);
     withProp_ = gsSentence->withProp();
+    onlyVertices_ = gsSentence->onlyVertices();
 
     NG_RETURN_IF_ERROR(validateStep(gsSentence->step(), steps_));
     NG_RETURN_IF_ERROR(validateStarts(gsSentence->from(), from_));
@@ -309,7 +310,12 @@ Status GetSubgraphValidator::toPlan() {
         // edgefilter
         dc->setInputVars({dep->outputVar(), subgraph->outputVar()});
     }
-    dc->setColNames({"vertices", "edges"});
+    if (onlyVertices_) {
+        dc->setColNames({"vertices"});
+    } else {
+        dc->setColNames({"vertices", "edges"});
+    }
+    dc->setOnlyVertices();
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;
     return Status::OK();

@@ -969,6 +969,10 @@ public:
         }
     }
 
+    void setOnlyVertices() {
+        onlyVertices_ = true;
+    }
+
     DCKind kind() const {
         return kind_;
     }
@@ -989,6 +993,10 @@ public:
         return distinct_;
     }
 
+    bool onlyVertices() const {
+        return onlyVertices_;
+    }
+
     PlanNode* clone() const override;
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
@@ -1004,6 +1012,7 @@ private:
     // using for m to n steps
     StepClause      step_;
     bool            distinct_{false};
+    bool            onlyVertices_{false};
 };
 
 class Join : public SingleDependencyNode {

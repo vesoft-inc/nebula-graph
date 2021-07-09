@@ -591,7 +591,8 @@ public:
                         InBoundClause* in,
                         OutBoundClause* out,
                         BothInOutClause* both,
-                        WhereClause* where) {
+                        WhereClause* where,
+                        bool onlyVertices) {
         kind_ = Kind::kGetSubgraph;
         withProp_ = withProp;
         step_.reset(step);
@@ -600,6 +601,7 @@ public:
         out_.reset(out);
         both_.reset(both);
         where_.reset(where);
+        onlyVertices_ = onlyVertices;
     }
 
     StepClause* step() const {
@@ -630,16 +632,21 @@ public:
         return where_.get();
     }
 
+    bool onlyVertices() const {
+        return onlyVertices_;
+    }
+
     std::string toString() const override;
 
 private:
-    bool                                withProp_;
+    bool                                withProp_{false};
     std::unique_ptr<StepClause>         step_;
     std::unique_ptr<FromClause>         from_;
     std::unique_ptr<InBoundClause>      in_;
     std::unique_ptr<OutBoundClause>     out_;
     std::unique_ptr<BothInOutClause>    both_;
     std::unique_ptr<WhereClause>        where_;
+    bool                                onlyVertices_{false};
 };
 }   // namespace nebula
 #endif  // PARSER_TRAVERSESENTENCES_H_
