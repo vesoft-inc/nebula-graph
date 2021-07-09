@@ -146,6 +146,7 @@ static constexpr size_t kCommentLengthLimit = 256;
     nebula::meta::cpp2::FTClient           *text_search_client_item;
     nebula::TSClientList                   *text_search_client_list;
     nebula::QueryUniqueIdentifier          *query_unique_identifier;
+    std::string                            *subgraph_yield_clause;
 }
 
 /* destructors */
@@ -198,6 +199,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %token KW_REDUCE
 %token KW_SESSIONS KW_SESSION
 %token KW_KILL KW_QUERY KW_QUERIES KW_TOP
+%token KW_VERTICES
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -336,6 +338,8 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <index_field_list> index_field_list opt_index_field_list
 
 %type <query_unique_identifier> query_unique_identifier
+
+%type <subgraph_yield_clause> subgraph_yield_clause
 
 %type <sentence> maintain_sentence
 %type <sentence> create_space_sentence describe_space_sentence drop_space_sentence
@@ -522,6 +526,7 @@ unreserved_keyword
     | KW_QUERY              { $$ = new std::string("query"); }
     | KW_KILL               { $$ = new std::string("kill"); }
     | KW_TOP                { $$ = new std::string("top"); }
+    | KW_VERTICES           { $$ = new std::string("vertices"); }
     ;
 
 expression
@@ -2023,9 +2028,15 @@ both_in_out_clause
     | KW_BOTH over_edges { $$ = new BothInOutClause($2, BoundClause::BOTH); }
 
 get_subgraph_sentence
-    : KW_GET KW_SUBGRAPH opt_with_properites step_clause from_clause in_bound_clause out_bound_clause both_in_out_clause where_clause {
-        $$ = new GetSubgraphSentence($3, $4, $5, $6, $7, $8, $9);
+    : KW_GET KW_SUBGRAPH opt_with_properites step_clause from_clause in_bound_clause out_bound_clause both_in_out_clause where_clause subgraph_yield_clause {
+        $$ = new GetSubgraphSentence($3, $4, $5, $6, $7, $8, $9, $10 != nullptr);
+        delete $10;
     }
+
+subgraph_yield_clause
+    : %empty { $$ = nullptr; }
+    | KW_YIELD KW_VERTICES { $$ = new std::string("vertices"); }
+    ;
 
 use_sentence
     : KW_USE name_label { $$ = new UseSentence($2); }

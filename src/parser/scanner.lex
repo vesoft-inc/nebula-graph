@@ -144,6 +144,7 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "PROFILE"                   { return TokenType::KW_PROFILE; }
 "FORMAT"                    { return TokenType::KW_FORMAT; }
 "CASE"                      { return TokenType::KW_CASE; }
+"VERTICES"                  { return TokenType::KW_VERTICES; }
 
  /**
   * TODO(dutor) Manage the dynamic allocated objects with an object pool,

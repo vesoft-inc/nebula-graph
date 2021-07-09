@@ -21,7 +21,7 @@ public:
 private:
     folly::Future<Status> doCollect();
 
-    Status collectSubgraph(const std::vector<std::string>& vars);
+    Status collectSubgraph(const std::vector<std::string>& vars, bool onlyVertices);
 
     Status rowBasedMove(const std::vector<std::string>& vars);
 

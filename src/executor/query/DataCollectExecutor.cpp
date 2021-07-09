@@ -26,7 +26,7 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
     auto vars = dc->vars();
     switch (dc->kind()) {
         case DataCollect::DCKind::kSubgraph: {
-            NG_RETURN_IF_ERROR(collectSubgraph(vars));
+            NG_RETURN_IF_ERROR(collectSubgraph(vars, dc->onlyVertices()));
             break;
         }
         case DataCollect::DCKind::kRowBasedMove: {
@@ -61,7 +61,8 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
     return finish(builder.finish());
 }
 
-Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
+Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars,
+                                            bool onlyVertices) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
     {
@@ -72,13 +73,15 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
             auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
             auto vertices = gnIter->getVertices();
             List edges;
-            edges.reserve(vertices.size() * 2);
-            for (; gnIter->valid(); gnIter->next()) {
-                auto type = gnIter->getEdgeProp("*", kType);
-                if (type < 0) {
-                    continue;
+            if (!onlyVertices) {
+                edges.reserve(vertices.size() * 2);
+                for (; gnIter->valid(); gnIter->next()) {
+                    auto type = gnIter->getEdgeProp("*", kType);
+                    if (type < 0) {
+                        continue;
+                    }
+                    edges.values.emplace_back(gnIter->getEdge());
                 }
-                edges.values.emplace_back(gnIter->getEdge());
             }
             ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
         }
