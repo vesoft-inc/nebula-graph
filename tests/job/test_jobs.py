@@ -84,7 +84,7 @@ class TestJobs(NebulaTestSuite):
         # Executin error becuase the job is finished
         self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
         
-        # This is skkiped becuase it is hard to simulate the situation
+        # This is skipped becuase it is hard to simulate the situation
         # resp = self.client.execute('RECOVER JOB;')
         # self.check_resp_succeeded(resp)
         # expect_col_names = ['Recovered job num']
