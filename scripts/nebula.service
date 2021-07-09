@@ -216,6 +216,11 @@ function status_daemon {
 
     [[ -f ${config} ]] || ERROR_AND_EXIT "${config} not found"
 
+    if [[ ${VERBOSE} -ne 0 ]]; then
+        local daemon_version=$(daemon_version ${INSTALL_ROOT}/bin/${daemon_name})
+        daemon_name="${daemon_name} version ${daemon_version}"
+    fi
+
     local pid_file=$(get_pid_file_from_config ${config})
     if is_process_running ${pid_file}; then
         local port=$(get_port_from_config ${config})
