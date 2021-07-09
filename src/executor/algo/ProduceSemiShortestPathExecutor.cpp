@@ -123,7 +123,8 @@ void ProduceSemiShortestPathExecutor::dstInHistory(const Edge& edge,
                 //  (dst, startVid)'s path not in history
                 auto newCost = srcPath.second.cost_ + weight;
                 std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
-                currentCostPathMap[dst].emplace(srcPath.first, CostPaths(newCost, std::move(newPaths)));
+                currentCostPathMap[dst].emplace(srcPath.first,
+                                                CostPaths(newCost, std::move(newPaths)));
             } else {
                 //  (dst, startVid)'s path in history, compare cost
                 auto newCost = srcPath.second.cost_ + weight;
@@ -133,7 +134,8 @@ void ProduceSemiShortestPathExecutor::dstInHistory(const Edge& edge,
                 } else if (newCost < historyCost) {
                     // update (dst, startVid)'s path
                     std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
-                    currentCostPathMap[dst].emplace(srcPath.first, CostPaths(newCost, std::move(newPaths)));
+                    currentCostPathMap[dst].emplace(srcPath.first,
+                                                    CostPaths(newCost, std::move(newPaths)));
                 } else {
                     std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
                     // if same path in history, remove it
@@ -141,7 +143,8 @@ void ProduceSemiShortestPathExecutor::dstInHistory(const Edge& edge,
                     if (newPaths.empty()) {
                         continue;
                     }
-                    currentCostPathMap[dst].emplace(srcPath.first, CostPaths(newCost, std::move(newPaths)));
+                    currentCostPathMap[dst].emplace(srcPath.first,
+                                                    CostPaths(newCost, std::move(newPaths)));
                 }
             }
         }
