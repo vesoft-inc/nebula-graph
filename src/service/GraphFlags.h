@@ -47,5 +47,6 @@ DECLARE_int64(max_allowed_connections);
 
 DECLARE_string(local_ip);
 
-DECLARE_uint32(subgraph_dedup_batch);
+DECLARE_uint32(subgraph_min_dedup_batch);
+DECLARE_uint32(subgraph_max_job);
 #endif   // GRAPH_GRAPHFLAGS_H_

@@ -101,9 +101,12 @@ folly::Future<Status> DataCollectExecutor::dedupByMultiJobs(
 	auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
 	vertices_ = gnIter->getVertices();
     std::vector<folly::Future<std::vector<Value>>> vFutures;
-	for (size_t j = 0; j < vertices_.values.size();) {
+    auto vBatchSize =
+        std::max(static_cast<size_t>(FLAGS_subgraph_min_dedup_batch),
+                 static_cast<size_t>(vertices_.values.size() / FLAGS_subgraph_max_job));
+    for (size_t j = 0; j < vertices_.values.size();) {
 		auto lower = j;
-		auto upper = j + FLAGS_subgraph_dedup_batch;
+		auto upper = j + vBatchSize;
 		if (upper >= vertices_.size()) {
 			upper = vertices_.size();
 		}
@@ -140,9 +143,11 @@ folly::Future<Status> DataCollectExecutor::dedupByMultiJobs(
 
 	edges_ = gnIter->getEdges();
     std::vector<folly::Future<std::vector<Value>>> eFutures;
-	for (size_t j = 0; j < edges_.size();) {
+    auto eBatchSize = std::max(static_cast<size_t>(FLAGS_subgraph_min_dedup_batch),
+                               static_cast<size_t>(edges_.values.size() / FLAGS_subgraph_max_job));
+    for (size_t j = 0; j < edges_.size();) {
 		auto lower = j;
-		auto upper = j + FLAGS_subgraph_dedup_batch;
+		auto upper = j + eBatchSize;
 		if (upper >= edges_.size()) {
 			upper = edges_.size();
 		}
@@ -174,7 +179,7 @@ folly::Future<Status> DataCollectExecutor::dedupByMultiJobs(
                             std::make_move_iterator(es.begin()),
                             std::make_move_iterator(es.end()));
                 }
-                VLOG(1) << "collect es: " << resultEdges;
+                VLOG(1) << "collect es size: " << edges.size() << " result: " << resultEdges;
                 ds_.rows.back().values[1].setList(std::move(resultEdges));
                 return Status::OK();
             });

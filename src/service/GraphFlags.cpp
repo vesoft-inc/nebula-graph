@@ -63,4 +63,5 @@ DEFINE_bool(disable_octal_escape_char, false, "Octal escape character will be di
                                          " in next version to ensure compatibility with cypher.");
 DEFINE_bool(match_clause_with_props, true, "Whether to get props in match clause, default true");
 
-DEFINE_uint32(subgraph_dedup_batch, 1000, "");
+DEFINE_uint32(subgraph_min_dedup_batch, 1000, "");
+DEFINE_uint32(subgraph_max_job, 100, "");
