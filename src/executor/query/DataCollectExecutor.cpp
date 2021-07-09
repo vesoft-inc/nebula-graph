@@ -64,39 +64,21 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
 Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
-    // the subgraph not need duplicate vertices or edges, so dedup here directly
-    std::unordered_set<Value> uniqueVids;
-    std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdges;
     {
         // getNeighbor
         const auto& hist = ectx_->getHistory(vars[0]);
         for (auto j = hist.begin(); j != hist.end(); ++j) {
-            // if (i == vars.begin() && j == hist.end() - 1) {
-            //     continue;
-            // }
             auto iter = (*j).iter();
-            List vertices;
-            List edges;
             auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-            auto originVertices = gnIter->getVertices();
-            for (auto& v : originVertices.values) {
-                if (!v.isVertex()) {
+            auto vertices = gnIter->getVertices();
+            List edges;
+            edges.reserve(vertices.size() * 2);
+            for (; gnIter->valid(); gnIter->next()) {
+                auto type = gnIter->getEdgeProp("*", kType);
+                if (type < 0) {
                     continue;
                 }
-                if (uniqueVids.emplace(v.getVertex().vid).second) {
-                    vertices.emplace_back(std::move(v));
-                }
-            }
-            auto originEdges = gnIter->getEdges();
-            for (auto& edge : originEdges.values) {
-                if (!edge.isEdge()) {
-                    continue;
-                }
-                const auto& e = edge.getEdge();
-                auto edgeKey = std::make_tuple(e.src, e.type, e.ranking, e.dst);
-                if (uniqueEdges.emplace(std::move(edgeKey)).second) {
-                    edges.emplace_back(std::move(edge));
-                }
+                edges.values.emplace_back(gnIter->getEdge());
             }
             ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
         }
