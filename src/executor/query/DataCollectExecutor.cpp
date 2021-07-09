@@ -8,6 +8,7 @@
 
 #include "planner/plan/Query.h"
 #include "util/ScopedTimer.h"
+#include "common/datatypes/List.h"
 
 namespace nebula {
 namespace graph {
@@ -26,8 +27,7 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
     auto vars = dc->vars();
     switch (dc->kind()) {
         case DataCollect::DCKind::kSubgraph: {
-            NG_RETURN_IF_ERROR(collectSubgraph(vars));
-            break;
+            return collectSubgraph(vars);
         }
         case DataCollect::DCKind::kRowBasedMove: {
             NG_RETURN_IF_ERROR(rowBasedMove(vars));
@@ -61,62 +61,136 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
     return finish(builder.finish());
 }
 
-Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
-    DataSet ds;
-    ds.colNames = std::move(colNames_);
-    // the subgraph not need duplicate vertices or edges, so dedup here directly
-    std::unordered_set<Value> uniqueVids;
-    std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdges;
-    {
-        // getNeighbor
-        const auto& hist = ectx_->getHistory(vars[0]);
-        for (auto j = hist.begin(); j != hist.end(); ++j) {
-            // if (i == vars.begin() && j == hist.end() - 1) {
-            //     continue;
-            // }
-            auto iter = (*j).iter();
-            List vertices;
-            List edges;
-            auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-            auto originVertices = gnIter->getVertices();
-            for (auto& v : originVertices.values) {
-                if (!v.isVertex()) {
-                    continue;
-                }
-                if (uniqueVids.emplace(v.getVertex().vid).second) {
+folly::Future<Status> DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
+    ds_.colNames = std::move(colNames_);
+
+    const auto& hist = ectx_->getHistory(vars[0]);
+    ds_.rows.reserve(hist.size());
+    return std::move(dedupByMultiJobs(hist.begin(), hist.end()))
+        .via(runner())
+        .thenValue([vars = vars, this] (auto&& status) {
+            if (!status.ok()) {
+                return status;
+            }
+            if (vars.size() < 2) {
+                return Status::OK();
+            }
+            // latestVersion subgraph->outputVar() OR filter->outputVar()
+            const auto& res = ectx_->getResult(vars[1]);
+            auto iter = res.iter();
+            if (iter->isPropIter()) {
+                auto* pIter = static_cast<PropIter*>(iter.get());
+                List vertices = pIter->getVertices();
+                List edges;
+                ds_.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
+            }
+            result_.setDataSet(std::move(ds_));
+            ResultBuilder builder;
+            builder.value(Value(std::move(result_))).iter(Iterator::Kind::kSequential);
+            return finish(builder.finish());
+        });
+}
+
+folly::Future<Status> DataCollectExecutor::dedupByMultiJobs(
+    std::vector<Result>::const_iterator i,
+    std::vector<Result>::const_iterator end) {
+    Row row;
+    row.values.resize(2);
+    ds_.rows.emplace_back(std::move(row));
+	auto iter = (*i).iter();
+	auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
+	vertices_ = gnIter->getVertices();
+    std::vector<folly::Future<std::vector<Value>>> vFutures;
+	for (size_t j = 0; j < vertices_.values.size();) {
+		auto lower = j;
+		auto upper = j + FLAGS_subgraph_dedup_batch;
+		if (upper >= vertices_.size()) {
+			upper = vertices_.size();
+		}
+		auto dedupVertices = [lower, upper, this] (auto&& r) {
+            UNUSED(r);
+            std::vector<Value> vertices;
+            vertices.reserve(upper - lower);
+			for (auto k = lower; k < upper; ++k) {
+				auto& v = vertices_.values[k];
+				if (!v.isVertex()) {
+					continue;
+				}
+				if (uniqueVids_.emplace(v.getVertex().vid, 0).second) {
                     vertices.emplace_back(std::move(v));
                 }
-            }
-            auto originEdges = gnIter->getEdges();
-            for (auto& edge : originEdges.values) {
+			}
+            return vertices;
+		};
+		auto f = folly::makeFuture().via(runner()).then(dedupVertices);
+		vFutures.emplace_back(std::move(f));
+		j = upper;
+	}
+    auto vF = folly::collect(vFutures).via(runner()).thenValue([this] (auto&& vertices) {
+                List resultVertices;
+                for (auto& vs : vertices) {
+                    resultVertices.values.insert(resultVertices.values.end(),
+                                           std::make_move_iterator(vs.begin()),
+                                           std::make_move_iterator(vs.end()));
+                }
+                VLOG(1) << "collect vs:" << resultVertices;
+                ds_.rows.back().values[0].setList(std::move(resultVertices));
+                return Status::OK();
+            });
+
+	edges_ = gnIter->getEdges();
+    std::vector<folly::Future<std::vector<Value>>> eFutures;
+	for (size_t j = 0; j < edges_.size();) {
+		auto lower = j;
+		auto upper = j + FLAGS_subgraph_dedup_batch;
+		if (upper >= edges_.size()) {
+			upper = edges_.size();
+		}
+		auto dedupEdges = [lower, upper, this] (auto&& r) {
+            UNUSED(r);
+            std::vector<Value> edges;
+            edges.reserve(upper - lower);
+            for (auto k = lower; k < upper; ++k) {
+                auto& edge = edges_.values[k];
                 if (!edge.isEdge()) {
                     continue;
                 }
                 const auto& e = edge.getEdge();
                 auto edgeKey = std::make_tuple(e.src, e.type, e.ranking, e.dst);
-                if (uniqueEdges.emplace(std::move(edgeKey)).second) {
+                if (uniqueEdges_.emplace(std::move(edgeKey), 0).second) {
                     edges.emplace_back(std::move(edge));
                 }
             }
-            ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
+            return edges;
+		};
+		auto f = folly::makeFuture().via(runner()).then(dedupEdges);
+		eFutures.emplace_back(std::move(f));
+		j = upper;
+	}
+    auto eF = folly::collect(eFutures).via(runner()).thenValue([this] (auto&& edges) mutable {
+                List resultEdges;
+                for (auto& es : edges) {
+                    resultEdges.values.insert(resultEdges.values.end(),
+                            std::make_move_iterator(es.begin()),
+                            std::make_move_iterator(es.end()));
+                }
+                VLOG(1) << "collect es: " << resultEdges;
+                ds_.rows.back().values[1].setList(std::move(resultEdges));
+                return Status::OK();
+            });
+
+    std::vector<folly::Future<Status>> futures;
+    futures.emplace_back(std::move(vF));
+    futures.emplace_back(std::move(eF));
+    return folly::collect(futures).via(runner()).thenValue([i, end, this] (auto&& s) mutable {
+        UNUSED(s);
+        if (!(++i < end)) {
+            return Status::OK();
+        } else {
+            dedupByMultiJobs(i, end);
         }
-    }
-    do {
-        if (vars.size() < 2) {
-            break;
-        }
-        // latestVersion subgraph->outputVar() OR filter->outputVar()
-        const auto& res = ectx_->getResult(vars[1]);
-        auto iter = res.iter();
-        if (iter->isPropIter()) {
-            auto* pIter = static_cast<PropIter*>(iter.get());
-            List vertices = pIter->getVertices();
-            List edges;
-            ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
-        }
-    } while (0);
-    result_.setDataSet(std::move(ds));
-    return Status::OK();
+        return Status::OK();
+    });
 }
 
 Status DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {

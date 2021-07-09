@@ -7,7 +7,9 @@
 #ifndef EXECUTOR_QUERY_DATACOLLECTEXECUTOR_H_
 #define EXECUTOR_QUERY_DATACOLLECTEXECUTOR_H_
 
+#include <folly/concurrency/ConcurrentHashMap.h>
 #include "executor/Executor.h"
+#include "service/GraphFlags.h"
 
 namespace nebula {
 namespace graph {
@@ -21,7 +23,10 @@ public:
 private:
     folly::Future<Status> doCollect();
 
-    Status collectSubgraph(const std::vector<std::string>& vars);
+    folly::Future<Status> collectSubgraph(const std::vector<std::string>& vars);
+
+    folly::Future<Status> dedupByMultiJobs(std::vector<Result>::const_iterator i,
+                                           std::vector<Result>::const_iterator end);
 
     Status rowBasedMove(const std::vector<std::string>& vars);
 
@@ -37,6 +42,12 @@ private:
 
     std::vector<std::string>    colNames_;
     Value                       result_;
+
+	folly::ConcurrentHashMap<Value, int8_t> uniqueVids_;
+	folly::ConcurrentHashMap<std::tuple<Value, EdgeType, EdgeRanking, Value>, int8_t> uniqueEdges_;
+	List	vertices_;
+	List 	edges_;
+    DataSet ds_;
 };
 }  // namespace graph
 }  // namespace nebula
