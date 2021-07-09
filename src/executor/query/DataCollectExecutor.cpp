@@ -68,7 +68,7 @@ folly::Future<Status> DataCollectExecutor::collectSubgraph(const std::vector<std
     ds_.rows.reserve(hist.size());
     return std::move(dedupByMultiJobs(hist.begin(), hist.end()))
         .via(runner())
-        .thenValue([vars = vars, this] (auto&& status) {
+        .thenValue([vars = vars, this](auto&& status) {
             if (!status.ok()) {
                 return status;
             }
@@ -97,61 +97,61 @@ folly::Future<Status> DataCollectExecutor::dedupByMultiJobs(
     Row row;
     row.values.resize(2);
     ds_.rows.emplace_back(std::move(row));
-	auto iter = (*i).iter();
-	auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-	vertices_ = gnIter->getVertices();
+    auto iter = (*i).iter();
+    auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
+    vertices_ = gnIter->getVertices();
     std::vector<folly::Future<std::vector<Value>>> vFutures;
     auto vBatchSize =
         std::max(static_cast<size_t>(FLAGS_subgraph_min_dedup_batch),
                  static_cast<size_t>(vertices_.values.size() / FLAGS_subgraph_max_job));
     for (size_t j = 0; j < vertices_.values.size();) {
-		auto lower = j;
-		auto upper = j + vBatchSize;
-		if (upper >= vertices_.size()) {
-			upper = vertices_.size();
-		}
-		auto dedupVertices = [lower, upper, this] (auto&& r) {
+        auto lower = j;
+        auto upper = j + vBatchSize;
+        if (upper >= vertices_.size()) {
+            upper = vertices_.size();
+        }
+        auto dedupVertices = [lower, upper, this](auto&& r) {
             UNUSED(r);
             std::vector<Value> vertices;
             vertices.reserve(upper - lower);
-			for (auto k = lower; k < upper; ++k) {
-				auto& v = vertices_.values[k];
-				if (!v.isVertex()) {
-					continue;
-				}
-				if (uniqueVids_.emplace(v.getVertex().vid, 0).second) {
+            for (auto k = lower; k < upper; ++k) {
+                auto& v = vertices_.values[k];
+                if (!v.isVertex()) {
+                    continue;
+                }
+                if (uniqueVids_.emplace(v.getVertex().vid, 0).second) {
                     vertices.emplace_back(std::move(v));
                 }
-			}
+            }
             return vertices;
-		};
-		auto f = folly::makeFuture().via(runner()).then(dedupVertices);
-		vFutures.emplace_back(std::move(f));
-		j = upper;
-	}
-    auto vF = folly::collect(vFutures).via(runner()).thenValue([this] (auto&& vertices) {
-                List resultVertices;
-                for (auto& vs : vertices) {
-                    resultVertices.values.insert(resultVertices.values.end(),
-                                           std::make_move_iterator(vs.begin()),
-                                           std::make_move_iterator(vs.end()));
-                }
-                VLOG(1) << "collect vs:" << resultVertices;
-                ds_.rows.back().values[0].setList(std::move(resultVertices));
-                return Status::OK();
-            });
+        };
+        auto f = folly::makeFuture().via(runner()).then(dedupVertices);
+        vFutures.emplace_back(std::move(f));
+        j = upper;
+    }
+    auto vF = folly::collect(vFutures).via(runner()).thenValue([this](auto&& vertices) {
+        List resultVertices;
+        for (auto& vs : vertices) {
+            resultVertices.values.insert(resultVertices.values.end(),
+                                         std::make_move_iterator(vs.begin()),
+                                         std::make_move_iterator(vs.end()));
+        }
+        VLOG(1) << "collect vs:" << resultVertices;
+        ds_.rows.back().values[0].setList(std::move(resultVertices));
+        return Status::OK();
+    });
 
-	edges_ = gnIter->getEdges();
+    edges_ = gnIter->getEdges();
     std::vector<folly::Future<std::vector<Value>>> eFutures;
     auto eBatchSize = std::max(static_cast<size_t>(FLAGS_subgraph_min_dedup_batch),
                                static_cast<size_t>(edges_.values.size() / FLAGS_subgraph_max_job));
     for (size_t j = 0; j < edges_.size();) {
-		auto lower = j;
-		auto upper = j + eBatchSize;
-		if (upper >= edges_.size()) {
-			upper = edges_.size();
-		}
-		auto dedupEdges = [lower, upper, this] (auto&& r) {
+        auto lower = j;
+        auto upper = j + eBatchSize;
+        if (upper >= edges_.size()) {
+            upper = edges_.size();
+        }
+        auto dedupEdges = [lower, upper, this](auto&& r) {
             UNUSED(r);
             std::vector<Value> edges;
             edges.reserve(upper - lower);
@@ -167,34 +167,33 @@ folly::Future<Status> DataCollectExecutor::dedupByMultiJobs(
                 }
             }
             return edges;
-		};
-		auto f = folly::makeFuture().via(runner()).then(dedupEdges);
-		eFutures.emplace_back(std::move(f));
-		j = upper;
-	}
-    auto eF = folly::collect(eFutures).via(runner()).thenValue([this] (auto&& edges) mutable {
-                List resultEdges;
-                for (auto& es : edges) {
-                    resultEdges.values.insert(resultEdges.values.end(),
-                            std::make_move_iterator(es.begin()),
-                            std::make_move_iterator(es.end()));
-                }
-                VLOG(1) << "collect es size: " << edges.size() << " result: " << resultEdges;
-                ds_.rows.back().values[1].setList(std::move(resultEdges));
-                return Status::OK();
-            });
+        };
+        auto f = folly::makeFuture().via(runner()).then(dedupEdges);
+        eFutures.emplace_back(std::move(f));
+        j = upper;
+    }
+    auto eF = folly::collect(eFutures).via(runner()).thenValue([this](auto&& edges) mutable {
+        List resultEdges;
+        for (auto& es : edges) {
+            resultEdges.values.insert(resultEdges.values.end(),
+                                      std::make_move_iterator(es.begin()),
+                                      std::make_move_iterator(es.end()));
+        }
+        VLOG(1) << "collect es size: " << edges.size() << " result: " << resultEdges;
+        ds_.rows.back().values[1].setList(std::move(resultEdges));
+        return Status::OK();
+    });
 
     std::vector<folly::Future<Status>> futures;
     futures.emplace_back(std::move(vF));
     futures.emplace_back(std::move(eF));
-    return folly::collect(futures).via(runner()).thenValue([i, end, this] (auto&& s) mutable {
+    return folly::collect(futures).via(runner()).thenValue([i, end, this](auto&& s) mutable {
         UNUSED(s);
         if (!(++i < end)) {
-            return Status::OK();
+            return folly::makeFuture<Status>(Status::OK());
         } else {
-            dedupByMultiJobs(i, end);
+            return dedupByMultiJobs(i, end);
         }
-        return Status::OK();
     });
 }
 
