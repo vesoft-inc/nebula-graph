@@ -165,6 +165,18 @@ Feature: Orderby Sentence
       | "Spurs"    |
       | "Hornets"  |
 
+  Scenario: not supported
+    When executing query:
+      """
+      $var=go from "Tony Parker" over like yield like._dst as dst; order by $var.dst
+      """
+    Then a SemanticError should be raised at runtime: Order by with invalid expression `$var.dst'
+    When executing query:
+      """
+      ORDER BY 1
+      """
+    Then a SemanticError should be raised at runtime: Order by with invalid expression `1'
+
   Scenario: Duplicate columns
     When executing query:
       """

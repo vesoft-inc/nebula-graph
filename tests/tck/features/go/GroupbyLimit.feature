@@ -236,6 +236,11 @@ Feature: Groupby & limit Sentence
       | "Grizzlies" | 34     |
       | "Raptors"   | 34     |
       | "Lakers"    | 40     |
+    When executing query:
+      """
+      GROUP BY 1 YIELD 1
+      """
+    Then a SemanticError should be raised at runtime:
 
   Scenario: Groupby with all agg functions
     When executing query:
@@ -346,6 +351,18 @@ Feature: Groupby & limit Sentence
       | name              | sum | count |
       | "Dwyane Wade"     | 1.5 | 1     |
       | "Carmelo Anthony" | 1.5 | 1     |
+
+  @skip
+  Scenario: Groupby after $var
+    When executing query:
+      """
+      $var = GO FROM "Tony Parker" OVER like YIELD like._dst AS dst; GROUP BY $var.dst YIELD $var.dst AS id, COUNT(*) AS count
+      """
+    Then the result should be, in order, with relax comparison:
+      | id                  | count |
+      | "LaMarcus Aldridge" | 1     |
+      | "Manu Ginobili"     | 1     |
+      | "Tim Duncan"        | 1     |
 
   Scenario: Empty input
     When executing query:
