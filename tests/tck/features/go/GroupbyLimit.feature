@@ -132,30 +132,6 @@ Feature: Groupby & limit Sentence
       """
     Then the result should be, in any order, with relax comparison:
       | name |
-    When executing query:
-      """
-      $var = GO FROM "Danny Green" OVER serve; LIMIT 1
-      """
-    Then a SyntaxError should be raised at runtime:
-    When executing query:
-      """
-      $var = LIMIT 2, 3
-      """
-    Then a SyntaxError should be raised at runtime:
-    When executing query:
-      """
-      GO FROM "Tony Parker" over like YIELD like._dst AS dst | LIMIT 3
-      """
-    Then the result should be, in any order:
-      | dst                 |
-      | "LaMarcus Aldridge" |
-      | "Manu Ginobili"     |
-      | "Tim Duncan"        |
-    When executing query:
-      """
-      $var = GO FROM "Tony Parker" over like YIELD like._dst AS dst | LIMIT 3; LIMIT 1
-      """
-    Then a SyntaxError should be raised at runtime:
 
   Scenario: OFFSET 0
     When executing query:
