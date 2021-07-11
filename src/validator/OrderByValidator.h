@@ -25,6 +25,7 @@ private:
 
 private:
     std::vector<std::pair<size_t, OrderFactor::OrderType>>     colOrderTypes_;
+    std::string userDefinedVarName_;
 };
 }  // namespace graph
 }  // namespace nebula
