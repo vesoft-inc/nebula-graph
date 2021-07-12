@@ -48,7 +48,7 @@ folly::Future<Status> SubgraphExecutor::execute() {
         }
     }
 
-    VLOG(1) << "Next step vid is : " << ds;
+    VLOG(2) << "Next step vid is : " << ds;
     return finish(ResultBuilder().value(Value(std::move(ds))).iter(Iterator::Kind::kProp).finish());
 }
 

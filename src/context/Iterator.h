@@ -340,6 +340,7 @@ private:
 
     boost::dynamic_bitset<>              bitset_;
     int64_t                              bitIdx_{-1};
+    bool                                 hadErase_{false};
 };
 
 class SequentialIter : public Iterator {
