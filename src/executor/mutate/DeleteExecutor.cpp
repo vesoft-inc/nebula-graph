@@ -58,6 +58,9 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
     if (vertices.empty()) {
         return Status::OK();
     }
+    std::sort(vertices.begin(), vertices.end());
+    vertices.erase(unique(vertices.begin(), vertices.end()), vertices.end());
+
     auto spaceId = spaceInfo.id;
     time::Duration deleteVertTime;
     return qctx()->getStorageClient()->deleteVertices(spaceId, std::move(vertices))
@@ -147,6 +150,20 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
         VLOG(2) << "Empty edgeKeys";
         return Status::OK();
     }
+
+    std::sort(edgeKeys.begin(), edgeKeys.end(), [] (const auto& a, const auto& b) {
+        if (a.src_ref() != b.src_ref()) {
+            return a.src_ref() < b.src_ref();
+        }
+        if (a.dst_ref() != b.dst_ref()) {
+            return a.dst_ref() < b.dst_ref();
+        }
+        if (a.ranking_ref() != b.ranking_ref()) {
+            return a.ranking_ref() < b.ranking_ref();
+        }
+        return a.edge_type_ref() < b.edge_type_ref();
+    });
+    edgeKeys.erase(unique(edgeKeys.begin(), edgeKeys.end()), edgeKeys.end());
 
     auto spaceId = spaceInfo.id;
     time::Duration deleteEdgeTime;
