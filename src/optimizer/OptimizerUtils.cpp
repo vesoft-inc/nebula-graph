@@ -711,7 +711,7 @@ bool mergeRangeColumnHints(const ColumnDef& field,
                 auto status = OptimizerUtils::boundValue(ExprKind::kRelGE, value, field, b, e);
                 if (!status.ok()) return false;
                 if (begin->empty() || *begin < b) {
-                    *begin = value;
+                    *begin = b;
                 }
                 status = OptimizerUtils::boundValue(ExprKind::kRelLE, value, field, b, e);
                 if (!status.ok()) return false;
