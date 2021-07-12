@@ -813,7 +813,7 @@ bool OptimizerUtils::findOptimalIndex(const Expression* condition,
                                       const std::vector<std::shared_ptr<IndexItem>>& indexItems,
                                       bool* isPrefixScan,
                                       IndexQueryContext* ictx) {
-    // Return directly if there is not valid index to use.
+    // Return directly if there is no valid index to use.
     if (indexItems.empty()) {
         return false;
     }
@@ -856,6 +856,7 @@ bool OptimizerUtils::findOptimalIndex(const Expression* condition,
         }
         break;
     }
+    // The filter can always be pushed down for lookup query
     if (iter != index.hints.end() || !index.unusedExprs.empty()) {
         ictx->set_filter(condition->encode());
     }
