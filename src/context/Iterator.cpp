@@ -274,7 +274,11 @@ size_t GetNeighborsIter::size() const {
     for (auto& dsidx : dsIndices_) {
         for (auto& row : dsidx.ds->rows) {
             for (auto& eidx : dsidx.edgePropsMap) {
-                sz += row[eidx.second.colIdx].getList().size();
+                DCHECK_LT(eidx.second.colIdx, row.size());
+                const auto& col = row[eidx.second.colIdx];
+                if (col.isList()) {
+                    sz += col.getList().size();
+                }
             }
         }
     }
