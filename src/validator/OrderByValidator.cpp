@@ -49,7 +49,7 @@ Status OrderByValidator::validateImpl() {
     } else if (!exprProps_.varProps().empty()) {
         if (!userDefinedVarNameList_.empty()) {
             if (userDefinedVarNameList_.size() != 1) {
-                return Status::SemanticError("Multiple user defined vars not supported yet.");
+                return Status::SemanticError("Multiple user defined vars are not supported yet.");
             }
             userDefinedVarName_ = *userDefinedVarNameList_.begin();
             outputs_ = vctx_->getVar(userDefinedVarName_);
