@@ -590,7 +590,8 @@ public:
                         FromClause* from,
                         InBoundClause* in,
                         OutBoundClause* out,
-                        BothInOutClause* both) {
+                        BothInOutClause* both,
+                        WhereClause* where) {
         kind_ = Kind::kGetSubgraph;
         withProp_ = withProp;
         step_.reset(step);
@@ -598,6 +599,7 @@ public:
         in_.reset(in);
         out_.reset(out);
         both_.reset(both);
+        where_.reset(where);
     }
 
     StepClause* step() const {
@@ -624,6 +626,10 @@ public:
         return both_.get();
     }
 
+    WhereClause* where() const {
+        return where_.get();
+    }
+
     std::string toString() const override;
 
 private:
@@ -633,6 +639,7 @@ private:
     std::unique_ptr<InBoundClause>      in_;
     std::unique_ptr<OutBoundClause>     out_;
     std::unique_ptr<BothInOutClause>    both_;
+    std::unique_ptr<WhereClause>        where_;
 };
 }   // namespace nebula
 #endif  // PARSER_TRAVERSESENTENCES_H_

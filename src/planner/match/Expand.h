@@ -72,6 +72,7 @@ private:
     }
 
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
+    std::unique_ptr<std::vector<storage::cpp2::VertexProp>> genVertexProps();
 
     MatchClauseContext*                 matchCtx_;
     Expression*                         initialExpr_{nullptr};

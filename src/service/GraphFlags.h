@@ -39,6 +39,7 @@ DECLARE_string(cloud_http_url);
 DECLARE_uint32(max_allowed_statements);
 DECLARE_double(system_memory_high_watermark_ratio);
 
+DECLARE_bool(match_clause_with_props);
 // optimizer
 DECLARE_bool(enable_optimizer);
 
