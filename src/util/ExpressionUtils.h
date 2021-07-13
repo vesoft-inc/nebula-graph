@@ -147,6 +147,14 @@ public:
 
     // var == value
     static Expression* equalCondition(ObjectPool* pool, const std::string& var, const Value& value);
+
+    // input property, variable property, variable, versioned variable
+    static inline bool hasInputVar(const Expression* expr) {
+        return hasAny(expr, {Expression::Kind::kInputProperty,
+                             Expression::Kind::kVarProperty,
+                             Expression::Kind::kVar,
+                             Expression::Kind::kVersionedVar});
+    }
 };
 
 }   // namespace graph

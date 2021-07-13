@@ -29,20 +29,20 @@ private:
 
     Status validatePath(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
 
-    Status validateFilter(const Expression *filter, WhereClauseContext &whereClauseCtx) const;
+    Status validateFilter(const Expression *filter, WhereClauseContext &whereClauseCtx);
 
     Status validateReturn(MatchReturn *ret,
                           const CypherClauseContextBase *cypherClauseCtx,
-                          ReturnClauseContext &retClauseCtx) const;
+                          ReturnClauseContext &retClauseCtx);
 
     Status validateAliases(const std::vector<const Expression *> &exprs,
                            const std::unordered_map<std::string, AliasType> *aliases) const;
 
     Status validateStepRange(const MatchStepRange *range) const;
 
-    Status validateWith(const WithClause *with, WithClauseContext &withClauseCtx) const;
+    Status validateWith(const WithClause *with, WithClauseContext &withClauseCtx);
 
-    Status validateUnwind(const UnwindClause *unwind, UnwindClauseContext &unwindClauseCtx) const;
+    Status validateUnwind(const UnwindClause *unwind, UnwindClauseContext &unwindClauseCtx);
 
     Status validatePagination(const Expression *skipExpr,
                               const Expression *limitExpr,
@@ -92,6 +92,7 @@ private:
 
 private:
     std::unique_ptr<MatchAstContext>            matchCtx_;
+    ExpressionProps                             exprProps_;
 };
 
 }   // namespace graph
