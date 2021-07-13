@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXECUTOR_ADMIN_STOPBALANCEEXECUTOR_H_
-#define EXECUTOR_ADMIN_STOPBALANCEEXECUTOR_H_
+#ifndef EXECUTOR_ADMIN_SHOWDATABALANCEEXECUTOR_H_
+#define EXECUTOR_ADMIN_SHOWDATABALANCEEXECUTOR_H_
 
 #include "executor/Executor.h"
 #include "context/QueryContext.h"
@@ -13,18 +13,18 @@
 namespace nebula {
 namespace graph {
 
-class StopBalanceExecutor final : public Executor {
+class ShowDataBalanceExecutor final : public Executor {
 public:
-    StopBalanceExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("StopBalanceExecutor", node, qctx) {}
+    ShowDataBalanceExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("ShowDataBalanceExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 
 private:
-    folly::Future<Status> stopBalance();
+    folly::Future<Status> showDataBalance();
 };
 
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // EXECUTOR_ADMIN_STOPBALANCEEXECUTOR_H_
+#endif  // EXECUTOR_ADMIN_SHOWDATABALANCEEXECUTOR_H_

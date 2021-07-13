@@ -1797,36 +1797,6 @@ TEST_F(ParserTest, BalanceOperation) {
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
-    {
-        std::string query = "BALANCE DATA";
-        auto result = parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        std::string query = "BALANCE DATA 1234567890";
-        auto result = parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        std::string query = "BALANCE DATA STOP";
-        auto result = parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        std::string query = "BALANCE DATA REMOVE 192.168.0.1:50000,192.168.0.1:50001";
-        auto result = parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        std::string query = "BALANCE DATA REMOVE 192.168.0.1:50000,\"localhost\":50001";
-        auto result = parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        std::string query = "BALANCE DATA RESET PLAN";
-        auto result = parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
 }
 
 TEST_F(ParserTest, CrashByFuzzer) {
@@ -2813,12 +2783,17 @@ TEST_F(ParserTest, JobTest) {
         ASSERT_TRUE(result.ok()) << query << ":" << result.status();
         ASSERT_EQ(result.value()->toString(), expectedStr);
     };
+
     checkTest("SUBMIT JOB COMPACT", "SUBMIT JOB COMPACT");
-    checkTest("SUBMIT JOB COMPACT 111", "SUBMIT JOB COMPACT 111");
+    checkTest("SUBMIT JOB COMPACT 10", "SUBMIT JOB COMPACT 10");
     checkTest("SUBMIT JOB FLUSH", "SUBMIT JOB FLUSH");
-    checkTest("SUBMIT JOB FLUSH 111", "SUBMIT JOB FLUSH 111");
+    checkTest("SUBMIT JOB FLUSH 10", "SUBMIT JOB FLUSH 10");
     checkTest("SUBMIT JOB STATS", "SUBMIT JOB STATS");
-    checkTest("SUBMIT JOB STATS 111", "SUBMIT JOB STATS 111");
+    checkTest("SUBMIT JOB STATS 10", "SUBMIT JOB STATS 10");
+    checkTest("SUBMIT JOB DATA BALANCE", "SUBMIT JOB DATA BALANCE");
+    checkTest("SUBMIT JOB DATA BALANCE REMOVE 127.0.0.1:5000",
+              "SUBMIT JOB DATA BALANCE REMOVE 127.0.0.1:5000");
+
     checkTest("SHOW JOBS", "SHOW JOBS");
     checkTest("SHOW JOB 111", "SHOW JOB 111");
     checkTest("STOP JOB 111", "STOP JOB 111");
@@ -2828,9 +2803,9 @@ TEST_F(ParserTest, JobTest) {
     checkTest("REBUILD TAG INDEX", "REBUILD TAG INDEX ");
     checkTest("REBUILD EDGE INDEX", "REBUILD EDGE INDEX ");
     checkTest("REBUILD TAG INDEX name_index, age_index",
-            "REBUILD TAG INDEX name_index,age_index");
+              "REBUILD TAG INDEX name_index,age_index");
     checkTest("REBUILD EDGE INDEX name_index, age_index",
-            "REBUILD EDGE INDEX name_index,age_index");
+              "REBUILD EDGE INDEX name_index,age_index");
 }
 
 TEST_F(ParserTest, ShowAndKillQueryTest) {

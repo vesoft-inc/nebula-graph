@@ -12,7 +12,7 @@ namespace graph {
 /**
  * Read space : kUse, kDescribeSpace
  * Write space : kCreateSpace, kDropSpace, kCreateSnapshot, kDropSnapshot
- *               kBalance, kAdmin, kConfig, kIngest, kDownload
+ *               kAdmin, kConfig, kIngest, kDownload
  * Read schema : kDescribeTag, kDescribeEdge,
  *               kDescribeTagIndex, kDescribeEdgeIndex
  * Write schema : kCreateTag, kAlterTag, kCreateEdge,
@@ -68,13 +68,13 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
         case Sentence::Kind::kListZones:
         case Sentence::Kind::kAddHostIntoZone:
         case Sentence::Kind::kDropHostFromZone:
-        case Sentence::Kind::kBalance:
         case Sentence::Kind::kAdminJob:
         case Sentence::Kind::kShowConfigs:
         case Sentence::Kind::kSetConfig:
         case Sentence::Kind::kGetConfig:
         case Sentence::Kind::kIngest:
         case Sentence::Kind::kDownload:
+        case Sentence::Kind::kBalanceLeader:
         case Sentence::Kind::kSignOutTSService:
         case Sentence::Kind::kSignInTSService: {
             return PermissionManager::canWriteSpace(session);
@@ -143,6 +143,7 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
         case Sentence::Kind::kShowTags:
         case Sentence::Kind::kShowEdges:
         case Sentence::Kind::kShowStats:
+        case Sentence::Kind::kShowDataBalance:
         case Sentence::Kind::kShowTagIndexes:
         case Sentence::Kind::kShowEdgeIndexes:
         case Sentence::Kind::kShowTagIndexStatus:

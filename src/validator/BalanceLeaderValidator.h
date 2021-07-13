@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_BALANCEVALIDATOR_H_
-#define VALIDATOR_BALANCEVALIDATOR_H_
+#ifndef VALIDATOR_BALANCELEADERVALIDATOR_H_
+#define VALIDATOR_BALANCELEADERVALIDATOR_H_
 
 #include "validator/Validator.h"
 #include "parser/AdminSentences.h"
@@ -13,9 +13,9 @@
 namespace nebula {
 namespace graph {
 
-class BalanceValidator final : public Validator {
+class BalanceLeaderValidator final : public Validator {
 public:
-    BalanceValidator(Sentence* sentence, QueryContext* context)
+    BalanceLeaderValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
         setNoSpaceRequired();
     }
@@ -31,4 +31,4 @@ private:
 }  // namespace graph
 }  // namespace nebula
 
-#endif  // VALIDATOR_BALANCEVALIDATOR_H_
+#endif  // VALIDATOR_BALANCELEADERVALIDATOR_H_

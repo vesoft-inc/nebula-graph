@@ -475,6 +475,17 @@ Status ShowStatusValidator::toPlan() {
     return Status::OK();
 }
 
+Status ShowDataBalanceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowDataBalanceValidator::toPlan() {
+    auto *node = ShowDataBalance::make(qctx_, nullptr, jobId_);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
 Status ShowTSClientsValidator::validateImpl() {
     return Status::OK();
 }

@@ -165,34 +165,8 @@ std::string GetConfigSentence::toString() const {
     return std::string("GET CONFIGS ") + configItem_->toString();
 }
 
-std::string BalanceSentence::toString() const {
-    switch (subType_) {
-        case SubType::kUnknown:
-            return "Unknown";
-        case SubType::kLeader:
-            return "BALANCE LEADER";
-        case SubType::kData: {
-            if (hostDel_ == nullptr) {
-                return "BALANCE DATA";
-            } else {
-                std::stringstream ss;
-                ss << "BALANCE DATA REMOVE ";
-                ss << hostDel_->toString();
-                return ss.str();
-            }
-        }
-        case SubType::kDataStop:
-            return "BALANCE DATA STOP";
-        case SubType::kDataReset:
-            return "BALANCE DATA RESET PLAN";
-        case SubType::kShowBalancePlan: {
-            std::stringstream ss;
-            ss << "BALANCE DATA " << balanceId_;
-            return ss.str();
-        }
-    }
-    DLOG(FATAL) << "Type illegal";
-    return "Unknown";
+std::string BalanceLeaderSentence::toString() const {
+    return "Balance Leader";
 }
 
 std::string HostList::toString() const {
@@ -282,6 +256,9 @@ std::string AdminJobSentence::toString() const {
                 case meta::cpp2::AdminCmd::INGEST:
                     return "INGEST";
                 case meta::cpp2::AdminCmd::DATA_BALANCE:
+                    return paras_.empty() ? "SUBMIT JOB DATA BALANCE"
+                        : folly::stringPrintf("SUBMIT JOB DATA BALANCE REMOVE %s",
+                                               paras_[0].c_str());
                 case meta::cpp2::AdminCmd::UNKNOWN:
                     return folly::stringPrintf("Unsupported AdminCmd: %s",
                             apache::thrift::util::enumNameSafe(cmd_).c_str());
@@ -326,6 +303,10 @@ void AdminJobSentence::addPara(const NameLabelList& paras) {
 
 std::string ShowStatsSentence::toString() const {
     return folly::stringPrintf("SHOW STATS");
+}
+
+std::string ShowDataBalanceSentence::toString() const {
+    return folly::stringPrintf("SHOW DATA BALANCE");
 }
 
 std::string ShowTSClientsSentence::toString() const {

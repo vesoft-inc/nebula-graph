@@ -30,11 +30,11 @@ folly::Future<Status> SubmitJobExecutor::execute() {
         .via(runner())
         .thenValue([jobOp, this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
             SCOPED_TIMER(&execTime_);
-
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status().toString();
                 return std::move(resp).status();
             }
+
             switch (jobOp) {
                 case meta::cpp2::AdminJobOp::ADD: {
                     nebula::DataSet v({"New Job Id"});

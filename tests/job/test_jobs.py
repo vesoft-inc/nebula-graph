@@ -90,3 +90,31 @@ class TestJobs(NebulaTestSuite):
         self.check_column_names(resp, expect_col_names)
         expect_values = [[0]]
         self.check_result(resp, expect_values)
+
+    def test_balance_job(self):
+        resp = self.client.execute('CREATE SPACE space_for_balance(partition_num=9, replica_factor=3);'
+                                   'USE space_for_balance;')
+        self.check_resp_succeeded(resp)
+
+        resp = self.client.execute('SUBMIT JOB DATA BALANCE;')
+        self.check_resp_succeeded(resp)
+        expect_col_names = ['New Job Id']
+        self.check_column_names(resp, expect_col_names)
+        expect_values = [[re.compile(r'\d+')]]
+        self.check_result(resp, expect_values, is_regex=True)
+
+        time.sleep(3)
+        resp = self.client.execute('SHOW JOBS;')
+        self.check_resp_succeeded(resp)
+        expect_col_names = ['Job Id', 'Command', 'Status', 'Start Time', 'Stop Time']
+        self.check_column_names(resp, expect_col_names)
+        expect_values = [[re.compile(r'\d+'), re.compile(r'DATA_BALANCE'), re.compile(r'\S+'), re.compile(r'\d+'), re.compile(r'\d+')]]
+        self.search_result(resp, expect_values, is_regex=True)
+
+        job_id = resp.row_values(0)[0].as_int()
+        resp = self.client.execute('SHOW JOB {};'.format(job_id))
+        self.check_resp_succeeded(resp)
+        expect_col_names = ['Job Id(TaskId)', 'Command(Dest)', 'Status', 'Start Time', 'Stop Time']
+        self.check_column_names(resp, expect_col_names)
+        expect_values = [[re.compile(r'\d+'), re.compile(r'DATA_BALANCE'), re.compile(r'\S+'), re.compile(r'\d+'), re.compile(r'\d+')]]
+        self.search_result(resp, expect_values, is_regex=True)

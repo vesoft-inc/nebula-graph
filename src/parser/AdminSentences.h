@@ -497,53 +497,13 @@ public:
     std::string toString() const override;
 };
 
-class BalanceSentence final : public Sentence {
+class BalanceLeaderSentence final : public Sentence {
 public:
-    enum class SubType : uint32_t {
-        kUnknown,
-        kLeader,
-        kData,
-        kDataStop,
-        kDataReset,
-        kShowBalancePlan,
-    };
-
-    // TODO: add more subtype for balance
-    explicit BalanceSentence(SubType subType) {
-        kind_ = Kind::kBalance;
-        subType_ = std::move(subType);
-    }
-
-    explicit BalanceSentence(int64_t id) {
-        kind_ = Kind::kBalance;
-        subType_ = SubType::kShowBalancePlan;
-        balanceId_ = id;
-    }
-
-    BalanceSentence(SubType subType, HostList *hostDel) {
-        kind_ = Kind::kBalance;
-        subType_ = std::move(subType);
-        hostDel_.reset(hostDel);
+    BalanceLeaderSentence() {
+        kind_ = Kind::kBalanceLeader;
     }
 
     std::string toString() const override;
-
-    SubType subType() const {
-        return subType_;
-    }
-
-    int64_t balanceId() const {
-        return balanceId_;
-    }
-
-    HostList* hostDel() const {
-        return hostDel_.get();
-    }
-
-private:
-    SubType                         subType_{SubType::kUnknown};
-    int64_t                         balanceId_{0};
-    std::unique_ptr<HostList>       hostDel_;
 };
 
 class CreateSnapshotSentence final : public Sentence {
@@ -646,6 +606,15 @@ class ShowStatsSentence final : public Sentence {
 public:
     ShowStatsSentence() {
         kind_ = Kind::kShowStats;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowDataBalanceSentence final : public Sentence {
+public:
+    ShowDataBalanceSentence() {
+        kind_ = Kind::kShowDataBalance;
     }
 
     std::string toString() const override;
