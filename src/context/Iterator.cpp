@@ -357,6 +357,10 @@ Value GetNeighborsIter::getVertex() const {
         Tag tag;
         tag.name = tagProp.first;
         for (size_t i = 0; i < propList.size(); ++i) {
+            if (tagPropNameList[i][0] == '_') {
+                // ignore the special property, e.g. `_tag`
+                continue;
+            }
             tag.props.emplace(tagPropNameList[i], propList[i]);
         }
         vertex.tags.emplace_back(std::move(tag));

@@ -29,7 +29,8 @@ StatusOr<SubPlan> MatchPlanner::transform(AstContext* astCtx) {
     for (auto& clauseCtx : matchCtx->clauses) {
         switch (clauseCtx->kind) {
             case CypherClauseKind::kMatch: {
-                auto subplan = std::make_unique<MatchClausePlanner>()->transform(clauseCtx.get());
+                auto subplan = std::make_unique<MatchClausePlanner>(matchCtx->propsUsed)
+                    ->transform(clauseCtx.get());
                 NG_RETURN_IF_ERROR(subplan);
                 subplans.emplace_back(std::move(subplan).value());
                 break;

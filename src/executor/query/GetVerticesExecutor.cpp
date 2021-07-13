@@ -46,7 +46,8 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                    gv->dedup(),
                    gv->orderBy(),
                    gv->limit(),
-                   gv->filter())
+                   gv->filter(),
+                   gv->realVid())
         .via(runner())
         .ensure([this, getPropsTime]() {
             SCOPED_TIMER(&execTime_);

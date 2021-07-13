@@ -101,6 +101,7 @@ std::unique_ptr<PlanNodeDescription> GetVertices::explain() const {
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("props", props_ ? folly::toJson(util::toJson(*props_)) : "", desc.get());
     addDescription("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "", desc.get());
+    addDescription("realVid", util::toJson(realVid_), desc.get());
     return desc;
 }
 
@@ -126,6 +127,7 @@ void GetVertices::cloneMembers(const GetVertices& gv) {
         auto exprsPtr = std::make_unique<decltype(exprs)>(std::move(exprs));
         setExprs(std::move(exprsPtr));
     }
+    realVid_ = gv.realVid();
 }
 
 

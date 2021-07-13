@@ -5,6 +5,7 @@
  */
 
 #include "planner/match/MatchSolver.h"
+#include <vector>
 
 #include "common/expression/UnaryExpression.h"
 #include "context/ast/AstContext.h"
@@ -266,27 +267,31 @@ PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
     return filter;
 }
 
-Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
+Status MatchSolver::appendFetchVertexPlan(const NodeInfo& node,
                                           const SpaceInfo& space,
                                           QueryContext* qctx,
                                           Expression** initialExpr,
-                                          SubPlan& plan) {
+                                          SubPlan& plan,
+                                          const MatchClauseContext *matchClauseCtx,
+                                          const VertexEdgeProps &propsUsed) {
     return appendFetchVertexPlan(
-        nodeFilter, space, qctx, initialExpr, plan.root->outputVar(), plan);
+        node, space, qctx, initialExpr, plan.root->outputVar(), plan, matchClauseCtx, propsUsed);
 }
 
-Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
+Status MatchSolver::appendFetchVertexPlan(const NodeInfo& node,
                                           const SpaceInfo& space,
                                           QueryContext* qctx,
                                           Expression** initialExpr,
                                           std::string inputVar,
-                                          SubPlan& plan) {
+                                          SubPlan& plan,
+                                          const MatchClauseContext *matchClauseCtx,
+                                          const VertexEdgeProps &propsUsed) {
     auto* pool = qctx->objPool();
     // [Project && Dedup]
     extractAndDedupVidColumn(qctx, initialExpr, plan.root, inputVar, plan);
     auto srcExpr = InputPropertyExpression::make(pool, kVid);
     // [Get vertices]
-    auto props = SchemaUtil::getAllVertexProp(qctx, space, true);
+    auto props = genVertexProps(matchClauseCtx, propsUsed, node);
     NG_RETURN_IF_ERROR(props);
     auto gv = GetVertices::make(qctx,
                                 plan.root,
@@ -294,10 +299,11 @@ Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
                                 srcExpr,
                                 std::move(props).value(),
                                 {});
+    gv->setRealVid(true);
 
     PlanNode* root = gv;
-    if (nodeFilter != nullptr) {
-        auto* newFilter = MatchSolver::rewriteLabel2Vertex(qctx, nodeFilter);
+    if (node.filter != nullptr) {
+        auto* newFilter = MatchSolver::rewriteLabel2Vertex(qctx, node.filter);
         root = Filter::make(qctx, root, newFilter);
     }
 
@@ -309,6 +315,56 @@ Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
     plan.root = Project::make(qctx, root, columns);
     plan.root->setColNames({kPathStr});
     return Status::OK();
+}
+
+/*static*/ StatusOr<std::unique_ptr<std::vector<storage::cpp2::VertexProp>>>
+MatchSolver::genVertexProps(const MatchClauseContext *matchClauseCtx,
+                            const VertexEdgeProps &propsUsed,
+                            const NodeInfo &node) {
+    if (matchClauseCtx->pathAlias != nullptr &&
+        propsUsed.paths().find(*matchClauseCtx->pathAlias) != propsUsed.paths().end()) {
+        auto props = SchemaUtil::getAllVertexProp(matchClauseCtx->qctx,
+                                                  matchClauseCtx->space,
+                                                  true);
+        NG_RETURN_IF_ERROR(props);
+        return std::move(props).value();
+    }
+    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    auto find = propsUsed.vertexProps().find(node.alias);
+    if (find != propsUsed.vertexProps().end()) {
+        if (std::holds_alternative<VertexEdgeProps::AllProps>(find->second)) {
+            auto props = SchemaUtil::getAllVertexProp(matchClauseCtx->qctx,
+                                                      matchClauseCtx->space,
+                                                      true);
+            NG_RETURN_IF_ERROR(props);
+            return std::move(props).value();
+        } else {
+            std::unordered_map<TagID, std::vector<std::string>> tagProps;
+            for (const auto& prop : std::get<std::set<std::string>>(find->second)) {
+                auto tagIdsResult = matchClauseCtx->qctx->schemaMng()->getVertexPropertyTagId(
+                    matchClauseCtx->space.id,
+                    prop);
+                NG_RETURN_IF_ERROR(tagIdsResult);
+                auto tagIds = std::move(tagIdsResult).value();
+                for (auto tagId : tagIds) {
+                    tagProps[tagId].emplace_back(prop);
+                }
+            }
+            auto findVertexLabels = propsUsed.vertexLabels().find(node.alias);
+            if (findVertexLabels != propsUsed.vertexLabels().end()) {
+                for (const auto &label : findVertexLabels->second) {
+                    tagProps.emplace(label, std::vector<std::string>{nebula::kTag});
+                }
+            }
+            for (auto &tagProp : tagProps) {
+                storage::cpp2::VertexProp vProp;
+                vProp.set_tag(tagProp.first);
+                vProp.set_props(std::move(tagProp.second));
+                vertexProps->emplace_back(std::move(vProp));
+            }
+        }
+    }
+    return vertexProps;
 }
 
 }   // namespace graph
