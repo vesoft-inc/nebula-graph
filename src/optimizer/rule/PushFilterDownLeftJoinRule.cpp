@@ -32,6 +32,7 @@ const Pattern& PushFilterDownLeftJoinRule::pattern() const {
 }
 
 StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
+    // TODO: Need a refactor after the join refactored
     OptContext* octx,
     const MatchedResult& matched) const {
     auto* filterGroupNode = matched.node;
@@ -45,9 +46,9 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
     auto* oldLeftJoinNode = static_cast<graph::LeftJoin*>(leftJoinNode);
     const auto* condition = static_cast<graph::Filter*>(oldFilterNode)->condition();
     DCHECK(condition);
-    const std::pair<std::string, int64_t>& leftVar = oldLeftJoinNode->leftVar();
+    const std::string& leftVar = oldLeftJoinNode->leftInputVar();
     auto symTable = octx->qctx()->symTable();
-    std::vector<std::string> leftVarColNames = symTable->getVar(leftVar.first)->colNames;
+    std::vector<std::string> leftVarColNames = symTable->getVar(leftVar)->colNames;
 
     // split the `condition` based on whether the varPropExpr comes from the left child
     auto picker = [&leftVarColNames](const Expression* e) -> bool {
@@ -82,8 +83,8 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
     auto* newLeftFilterNode = graph::Filter::make(
         octx->qctx(),
         const_cast<graph::PlanNode*>(oldLeftJoinNode->dep()),
-        graph::ExpressionUtils::rewriteInnerVar(filterPicked, leftVar.first));
-    newLeftFilterNode->setInputVar(leftVar.first);
+        graph::ExpressionUtils::rewriteInnerVar(filterPicked, leftVar));
+    newLeftFilterNode->setInputVar(leftVar);
     newLeftFilterNode->setColNames(leftVarColNames);
     auto newFilterGroup = OptGroup::create(octx);
     auto newFilterGroupNode = newFilterGroup->makeGroupNode(newLeftFilterNode);

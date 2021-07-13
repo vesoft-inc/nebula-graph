@@ -37,9 +37,8 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
     }
 
     auto join = InnerJoin::make(qctx_,
-                               const_cast<PlanNode*>(right),
-                               {left->outputVar(), 0},
-                               {right->outputVar(), 0},
+                               {const_cast<PlanNode*>(left), ExecutionContext::kLatestVersion},
+                               {const_cast<PlanNode*>(right), ExecutionContext::kLatestVersion},
                                {buildExpr},
                                {probeExpr});
     std::vector<std::string> colNames = left->colNames();

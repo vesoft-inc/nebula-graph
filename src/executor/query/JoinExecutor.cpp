@@ -15,18 +15,18 @@ namespace graph {
 
 Status JoinExecutor::checkInputDataSets() {
     auto* join = asNode<Join>(node());
-    lhsIter_ = ectx_->getVersionedResult(join->leftVar().first, join->leftVar().second).iter();
+    lhsIter_ = ectx_->getVersionedResult(join->leftInputVar(), join->leftVarVersion()).iter();
     DCHECK(!!lhsIter_);
-    VLOG(1) << "lhs: " << join->leftVar().first << " " << lhsIter_->size();
+    VLOG(1) << "lhs: " << join->leftInputVar() << " " << lhsIter_->size();
     if (lhsIter_->isGetNeighborsIter() || lhsIter_->isDefaultIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter_->kind();
         return Status::Error(ss.str());
     }
     rhsIter_ =
-        ectx_->getVersionedResult(join->rightVar().first, join->rightVar().second).iter();
+        ectx_->getVersionedResult(join->rightInputVar(), join->rightVarVersion()).iter();
     DCHECK(!!rhsIter_);
-    VLOG(1) << "rhs: " << join->rightVar().first << " " << rhsIter_->size();
+    VLOG(1) << "rhs: " << join->rightInputVar() << " " << rhsIter_->size();
     if (rhsIter_->isGetNeighborsIter() || rhsIter_->isDefaultIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << rhsIter_->kind();

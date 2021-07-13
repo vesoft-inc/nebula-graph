@@ -25,7 +25,7 @@ Status LeftJoinExecutor::close() {
 
 folly::Future<Status> LeftJoinExecutor::join() {
     auto* join = asNode<Join>(node());
-    auto& rhsResult = ectx_->getVersionedResult(join->rightVar().first, join->rightVar().second);
+    auto& rhsResult = ectx_->getVersionedResult(join->rightInputVar(), join->rightVarVersion());
     rightColSize_ = rhsResult.valuePtr()->getDataSet().colNames.size();
 
     auto& hashKeys = join->hashKeys();

@@ -187,9 +187,8 @@ PlanNode* GoPlanner::trackStartVid(PlanNode* left, PlanNode* right) {
         VariablePropertyExpression::make(pool, right->outputVar(), goCtx_->srcVidColName);
 
     auto* join = InnerJoin::make(qctx,
-                                 right,
-                                 {left->outputVar(), ExecutionContext::kLatestVersion},
-                                 {right->outputVar(), ExecutionContext::kLatestVersion},
+                                 {left, ExecutionContext::kLatestVersion},
+                                 {right, ExecutionContext::kLatestVersion},
                                  {hashKey},
                                  {probeKey});
     std::vector<std::string> colNames = left->colNames();
@@ -213,9 +212,19 @@ PlanNode* GoPlanner::trackStartVid(PlanNode* left, PlanNode* right) {
 }
 
 /*
+ * connecting the edges and dst vertices
  * output ColNames {srcProps, edgeProps, kVid, "JOIN_DST_VID", "DST_VID", dstProps}
+ *        Join
+ *          |
+ *      ----------
+ *     |          |
+ *    Left      Project
+ *                |
+ *              GetVertices 
+ *                |
+ *               Dep
  */
-PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
+PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep, PlanNode* left) {
     auto qctx = goCtx_->qctx;
     auto* pool = qctx->objPool();
 
@@ -241,9 +250,8 @@ PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
     auto* hashKey = dstExpr->clone();
     auto* probeKey = ColumnExpression::make(pool, LAST_COL_INDEX);
     auto* join = LeftJoin::make(qctx,
-                                project,
-                                {dep->outputVar(), ExecutionContext::kLatestVersion},
-                                {project->outputVar(), ExecutionContext::kLatestVersion},
+                                {left, ExecutionContext::kLatestVersion},
+                                {project, ExecutionContext::kLatestVersion},
                                 {hashKey},
                                 {probeKey});
 
@@ -257,26 +265,28 @@ PlanNode* GoPlanner::buildJoinDstPlan(PlanNode* dep) {
     return join;
 }
 
-PlanNode* GoPlanner::buildJoinInputPlan(PlanNode* dep) {
+PlanNode* GoPlanner::buildJoinInputPlan(PlanNode* left) {
     auto qctx = goCtx_->qctx;
     const auto& from = goCtx_->from;
     const auto& steps = goCtx_->steps;
     auto* pool = qctx->objPool();
 
     const auto& vidName = (!steps.isMToN() && steps.steps() == 1) ? kVid : from.runtimeVidName;
-    auto* hashKey = VariablePropertyExpression::make(pool, dep->outputVar(), vidName);
+    auto* hashKey = VariablePropertyExpression::make(pool, left->outputVar(), vidName);
     auto* probeKey = from.originalSrc;
     std::string probeName = from.fromType == kPipe ? goCtx_->inputVarName : from.userDefinedVarName;
-
-    auto* join = InnerJoin::make(qctx,
-                                 dep,
-                                 {dep->outputVar(), ExecutionContext::kLatestVersion},
-                                 {probeName, ExecutionContext::kLatestVersion},
-                                 {hashKey},
-                                 {probeKey});
-    std::vector<std::string> colNames = dep->colNames();
     auto* varPtr = qctx->symTable()->getVar(probeName);
     DCHECK(varPtr != nullptr);
+
+    auto pass = PassThroughNode::make(qctx, nullptr);
+    pass->setOutputVar(probeName);
+    pass->setColNames(varPtr->colNames);
+    auto* join = InnerJoin::make(qctx,
+                                 {left, ExecutionContext::kLatestVersion},
+                                 {pass, ExecutionContext::kLatestVersion},
+                                 {hashKey},
+                                 {probeKey});
+    std::vector<std::string> colNames = left->colNames();
     colNames.insert(colNames.end(), varPtr->colNames.begin(), varPtr->colNames.end());
     join->setColNames(std::move(colNames));
 
@@ -300,9 +310,8 @@ PlanNode* GoPlanner::lastStepJoinInput(PlanNode* left, PlanNode* right) {
                                                      : ExecutionContext::kLatestVersion;
 
     auto* join = InnerJoin::make(qctx,
-                                 right,
-                                 {left->outputVar(), leftVersion},
-                                 {right->outputVar(), ExecutionContext::kLatestVersion},
+                                 {left, leftVersion},
+                                 {right, ExecutionContext::kLatestVersion},
                                  {hashKey},
                                  {probeKey});
 
@@ -319,7 +328,7 @@ PlanNode* GoPlanner::buildLastStepJoinPlan(PlanNode* gn, PlanNode* join) {
     }
 
     auto* dep = extractSrcEdgePropsFromGN(gn, gn->outputVar());
-    dep = goCtx_->joinDst ? buildJoinDstPlan(dep) : dep;
+    dep = goCtx_->joinDst ? buildJoinDstPlan(dep, dep) : dep;
     dep = goCtx_->joinInput ? lastStepJoinInput(join, dep) : dep;
     dep = goCtx_->joinInput ? buildJoinInputPlan(dep) : dep;
 
@@ -349,13 +358,16 @@ PlanNode* GoPlanner::lastStep(PlanNode* dep, PlanNode* join) {
     return root;
 }
 
+/**
+ *  Connecting the dst vertices or input if needed.
+ */
 PlanNode* GoPlanner::buildOneStepJoinPlan(PlanNode* gn) {
     if (!goCtx_->joinInput && !goCtx_->joinDst) {
         return gn;
     }
 
     auto* dep = extractSrcEdgePropsFromGN(gn, gn->outputVar());
-    dep = goCtx_->joinDst ? buildJoinDstPlan(dep) : dep;
+    dep = goCtx_->joinDst ? buildJoinDstPlan(dep, dep) : dep;
     dep = goCtx_->joinInput ? buildJoinInputPlan(dep) : dep;
 
     return dep;
@@ -402,7 +414,11 @@ SubPlan GoPlanner::nStepsPlan(SubPlan& startVidPlan) {
     if (goCtx_->joinInput) {
         auto* joinLeft = extractVidFromRuntimeInput(startVidPlan.root);
         auto* joinRight = extractSrcDstFromGN(getDst, gn->outputVar());
-        loopBody = trackStartVid(joinLeft, joinRight);
+
+        auto pass = PassThroughNode::make(qctx, nullptr);
+        pass->setOutputVar(joinLeft->outputVar());
+        pass->setColNames(joinLeft->colNames());
+        loopBody = trackStartVid(pass, joinRight);
         loopDep = joinLeft;
     }
 
@@ -437,14 +453,18 @@ SubPlan GoPlanner::mToNStepsPlan(SubPlan& startVidPlan) {
     if (joinInput) {
         auto* joinLeft = extractVidFromRuntimeInput(startVidPlan.root);
         auto* joinRight = extractSrcDstFromGN(getDst, gn->outputVar());
-        trackVid = trackStartVid(joinLeft, joinRight);
+
+        auto pass = PassThroughNode::make(qctx, nullptr);
+        pass->setOutputVar(joinLeft->outputVar());
+        pass->setColNames(joinLeft->colNames());
+        trackVid = trackStartVid(pass, joinRight);
         loopBody = trackVid;
         loopDep = joinLeft;
     }
 
     if (joinInput || joinDst) {
         loopBody = extractSrcEdgePropsFromGN(loopBody, gn->outputVar());
-        loopBody = joinDst ? buildJoinDstPlan(loopBody) : loopBody;
+        loopBody = joinDst ? buildJoinDstPlan(loopBody, loopBody) : loopBody;
         loopBody = joinInput ? lastStepJoinInput(trackVid, loopBody) : loopBody;
         loopBody = joinInput ? buildJoinInputPlan(loopBody) : loopBody;
     }
