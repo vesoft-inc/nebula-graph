@@ -367,15 +367,14 @@ Value GetNeighborsIter::getVertex() const {
 List GetNeighborsIter::getVertices() {
     List vertices;
     vertices.values.reserve(size());
-    valid_ = true;
-    colIdx_ = -2;
-    for (currentDs_ = dsIndices_.begin(); currentDs_ < dsIndices_.end(); ++currentDs_) {
-        rowsUpperBound_ = currentDs_->ds->rows.end();
-        for (currentRow_ = currentDs_->ds->rows.begin();
-            currentRow_ < currentDs_->ds->rows.end(); ++currentRow_) {
-            vertices.values.emplace_back(getVertex());
-            VLOG(1) << "vertex: " << getVertex() << " size: " << vertices.size();
+    auto currRowTmp = currentRow_;
+    vertices.values.emplace_back(getVertex());
+    for (; valid(); next()) {
+        if (currRowTmp == currentRow_) {
+            continue;
         }
+        vertices.values.emplace_back(getVertex());
+        currRowTmp = currentRow_;
     }
     reset();
     return vertices;
