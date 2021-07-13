@@ -263,14 +263,11 @@ void GetNeighborsIter::erase() {
 }
 
 size_t GetNeighborsIter::size() const {
-    size_t sz = 0;
     if (noEdge_) {
-        for (auto& dsidx : dsIndices_) {
-            sz += dsidx.ds->size();
-        }
-        return sz;
+        return numRows();
     }
 
+    size_t sz = 0;
     for (auto& dsidx : dsIndices_) {
         for (auto& row : dsidx.ds->rows) {
             for (auto& eidx : dsidx.edgePropsMap) {
