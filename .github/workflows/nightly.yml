@@ -27,13 +27,15 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: package
-        run: ./package/package.sh
+        run: ./package/package.sh -f all
       - name: output some vars
         id: vars
         env:
           SHA_EXT: sha256sum.txt
         run: |
           filename=$(find pkg-build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
+          sha256sum $filename > $filename.$SHA_EXT
+          filename=$(find pkg-build/cpack_output -type f \( -iname \*.sh \))
           sha256sum $filename > $filename.$SHA_EXT
           subdir=$(date -u +%Y.%m.%d)
           echo "::set-output name=subdir::$subdir"

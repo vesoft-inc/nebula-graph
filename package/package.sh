@@ -7,8 +7,11 @@
 #   -n: Package to one or multi packages, `ON` means one package, `OFF` means multi packages, default value is `ON`
 #   -s: Whether to strip the package, default value is `FALSE`
 #   -g: Whether build storage, default is ON
+#   -b: The branch of nebula-common and nebula-storage
+#   -t: The build type, values `Debug, Release, RelWithDebInfo, MinSizeRel`, default value is Release
+#   -f: Whether to package to tar file or rpm/deb file, default is `auto`, it means package to rpm/deb, `tar` means package to tar, `all` means package to tar and  rpm/deb
 #
-# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF>
+# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF> -t <Debug/Release/RelWithDebInfo/MinSizeRel> -f <auto/tar/all>
 #
 
 set -e
@@ -17,9 +20,10 @@ version=""
 build_storage=ON
 package_one=ON
 strip_enable="FALSE"
-usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF>"
+usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH> -g <ON/OFF> -t <Debug/Release/RelWithDebInfo/MinSizeRel> -f <auto/tar>"
 project_dir="$(cd "$(dirname "$0")" && pwd)/.."
 build_dir=${project_dir}/pkg-build
+package_dir=${build_dir}/package/
 modules_dir=${project_dir}/modules
 storage_dir=${modules_dir}/storage
 storage_build_dir=${build_dir}/modules/storage
@@ -28,8 +32,11 @@ static_sanitizer="OFF"
 build_type="Release"
 branch="master"
 jobs=$(nproc)
+jobs=20
+package_type="auto"
+install_dir="/usr/local/nebula"
 
-while getopts v:n:s:b:d:t:g: opt;
+while getopts v:n:s:b:d:t:g:f: opt;
 do
     case $opt in
         v)
@@ -57,6 +64,9 @@ do
         g)
             build_storage=$OPTARG
             ;;
+        f)
+            package_type=$OPTARG
+            ;;
         ?)
             echo "Invalid option, use default arguments"
             ;;
@@ -81,7 +91,24 @@ if [[ $strip_enable != TRUE ]] && [[ $strip_enable != FALSE ]]; then
     exit 1
 fi
 
-echo "current version is [ $version ], strip enable is [$strip_enable], enablesanitizer is [$enablesanitizer], static_sanitizer is [$static_sanitizer]"
+if [[ $package_type != "auto" ]] && [[ $package_type != "tar" ]] && [[ $package_type != "all" ]]; then
+    echo "package type[$package_type] is wrong, should be [auto/tar/all]. exit"
+    echo ${usage}
+    exit -1
+fi
+
+echo ">>>>>>>> option <<<<<<<<
+version          : [$version]
+strip_enable     : [$strip_enable]
+enablesanitizer  : [$enablesanitizer]
+static_sanitizer : [$static_sanitizer]
+build_type       : [$build_type]
+branch           : [$branch]
+package_one      : [$package_one]
+build_storage    : [$build_storage]
+package_type   : [$package_type]
+>>>>>>>> option <<<<<<<<"
+
 
 function _build_storage {
     if [[ ! -d ${storage_dir} && ! -L ${storage_dir} ]]; then
@@ -91,11 +118,11 @@ function _build_storage {
     pushd ${storage_build_dir}
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
-          -DENABLE_ASAN=${san} \
-          -DENABLE_UBSAN=${san} \
-          -DENABLE_STATIC_ASAN=${ssan} \
-          -DENABLE_STATIC_UBSAN=${ssan} \
-          -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+          -DENABLE_ASAN=${enablesanitizer} \
+          -DENABLE_UBSAN=${enablesanitizer} \
+          -DENABLE_STATIC_ASAN=${static_sanitizer} \
+          -DENABLE_STATIC_UBSAN=${static_sanitizer} \
+          -DCMAKE_INSTALL_PREFIX=${install_dir} \
           -DNEBULA_COMMON_REPO_TAG=${branch} \
           -DENABLE_TESTING=OFF \
           -DENABLE_PACK_ONE=${package_one} \
@@ -113,11 +140,11 @@ function _build_graph {
     pushd ${build_dir}
     cmake -DCMAKE_BUILD_TYPE=${build_type} \
           -DNEBULA_BUILD_VERSION=${version} \
-          -DENABLE_ASAN=${san} \
-          -DENABLE_UBSAN=${san} \
-          -DENABLE_STATIC_ASAN=${ssan} \
-          -DENABLE_STATIC_UBSAN=${ssan} \
-          -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+          -DENABLE_ASAN=${enablesanitizer} \
+          -DENABLE_UBSAN=${enablesanitizer} \
+          -DENABLE_STATIC_ASAN=${static_sanitizer} \
+          -DENABLE_STATIC_UBSAN=${static_sanitizer} \
+          -DCMAKE_INSTALL_PREFIX=${install_dir} \
           -DNEBULA_COMMON_REPO_TAG=${branch} \
           -DENABLE_TESTING=OFF \
           -DENABLE_BUILD_STORAGE=OFF \
@@ -134,12 +161,6 @@ function _build_graph {
 
 # args: <version>
 function build {
-    version=$1
-    san=$2
-    ssan=$3
-    build_type=$4
-    branch=$5
-
     rm -rf ${build_dir} && mkdir -p ${build_dir}
 
     if [[ "$build_storage" == "ON" ]]; then
@@ -149,47 +170,74 @@ function build {
     _build_graph
 }
 
-# args: <strip_enable>
-function package {
-    # The package CMakeLists.txt in ${project_dir}/package/build
-    package_dir=${build_dir}/package/
-    if [[ -d $package_dir ]]; then
-        rm -rf ${package_dir:?}/*
-    else
-        mkdir ${package_dir}
+function package_cmake {
+    package_to_tar="OFF"
+    if [[ $package_type == "tar" ]] || [[ $package_type == "all" ]]; then
+        package_to_tar="ON"
     fi
-    pushd ${package_dir}
     cmake \
         -DNEBULA_BUILD_VERSION=${version} \
         -DENABLE_PACK_ONE=${package_one} \
-        -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+        -DCMAKE_INSTALL_PREFIX=${install_dir} \
         -DENABLE_PACKAGE_STORAGE=${build_storage} \
         -DNEBULA_STORAGE_SOURCE_DIR=${storage_dir} \
         -DNEBULA_STORAGE_BINARY_DIR=${storage_build_dir} \
+        -DNEBULA_TARGET_FILE_DIR=${package_dir} \
+        -DENABLE_TO_PACKAGE_SH=${package_to_tar} \
         ${project_dir}/package/
+}
 
-    strip_enable=$1
-
+function package {
+    package_cmake
     args=""
     [[ $strip_enable == TRUE ]] && args="-D CPACK_STRIP_FILES=TRUE -D CPACK_RPM_SPEC_MORE_DEFINE="
 
     if ! ( cpack --verbose $args ); then
         echo ">>> package nebula failed <<<"
         exit 1
-    else
-        # rename package file
-        outputDir=$build_dir/cpack_output
-        mkdir -p ${outputDir}
-        for pkg_name in $(ls ./*nebula*-${version}*); do
-            mv ${pkg_name} ${outputDir}/
-            echo "####### taget package file is ${outputDir}/${pkg_name}"
-        done
     fi
-
-    popd
 }
 
+function package_tar {
+    install_dir=${build_dir}/install
+    package_cmake
+    pushd ${package_dir}
+        make install -j$(nproc)
+    popd
+    if ! ( make package-tar ); then
+        echo ">>> package nebula to sh failed <<<"
+        exit 1
+    fi
+}
+
+function move_file {
+    # rename package file
+    outputDir=$build_dir/cpack_output
+    mkdir -p ${outputDir}
+    for pkg_name in $(ls ./*nebula*-${version}*); do
+        mv ${pkg_name} ${outputDir}/
+        echo "####### taget package file is ${outputDir}/${pkg_name}"
+    done
+}
 
 # The main
-build $version $enablesanitizer $static_sanitizer $build_type $branch
-package $strip_enable
+build
+
+# The package CMakeLists.txt in ${project_dir}/package/build
+if [[ -d $package_dir ]]; then
+    rm -rf ${package_dir:?}/*
+else
+    mkdir ${package_dir}
+fi
+
+pushd ${package_dir}
+if [[ "$package_type" == "tar" ]]; then
+    package_tar
+elif [[ "$package_type" == "auto" ]]; then
+    package
+else
+    package
+    package_tar
+fi
+move_file
+popd
