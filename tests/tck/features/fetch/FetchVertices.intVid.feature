@@ -275,6 +275,15 @@ Feature: Fetch Int Vid Vertices
       | "Manu Ginobili"     |
       | "Tim Duncan"        |
 
+  Scenario: Fetch prop on not attached tag
+    When executing query:
+      """
+      FETCH PROP ON team hash('Tim Duncan') yield team.name
+      """
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | VertexID     | team.name |
+      | 'Tim Duncan' | EMPTY     |
+
   Scenario: Typical errors
     # not support get src property
     When executing query:
