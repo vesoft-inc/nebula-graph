@@ -556,6 +556,7 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         if (!ok()) return;
     }
 
+    std::unordered_set<Value::Type> types;
     for (const auto &whenThen : expr->cases()) {
         whenThen.when->accept(this);
         if (!ok()) return;
@@ -567,10 +568,14 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         }
         whenThen.then->accept(this);
         if (!ok()) return;
+        types.emplace(type_);
     }
 
-    // Will not deduce the actual value type returned by case expression.
-    type_ = Value::Type::__EMPTY__;
+    if (types.size() == 1) {
+        type_ = *types.begin();
+    } else {
+        type_ = Value::Type::__EMPTY__;
+    }
 }
 
 void DeduceTypeVisitor::visit(PredicateExpression *expr) {
@@ -675,8 +680,9 @@ void DeduceTypeVisitor::visit(SubscriptRangeExpression *expr) {
         if (!ok()) {
             return;
         }
-        if (type_ != Value::Type::INT) {
+        if (type_ != Value::Type::INT && type_ != Value::Type::NULLVALUE) {
             status_ = Status::SemanticError("Expect integer type for subscript range bound.");
+            return;
         }
     }
 
@@ -685,8 +691,9 @@ void DeduceTypeVisitor::visit(SubscriptRangeExpression *expr) {
         if (!ok()) {
             return;
         }
-        if (type_ != Value::Type::INT) {
+        if (type_ != Value::Type::INT && type_ != Value::Type::NULLVALUE) {
             status_ = Status::SemanticError("Expect integer type for subscript range bound.");
+            return;
         }
     }
     type_ = Value::Type::LIST;

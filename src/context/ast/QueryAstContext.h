@@ -82,6 +82,8 @@ struct GoContext final : AstContext {
     Expression*                 filter{nullptr};
     YieldColumns*               yieldExpr;
     bool                        distinct{false};
+    // true: sample, false: limit
+    bool                        random{false};
     std::vector<std::string>    colNames;
 
     std::string                 vidsVar;
@@ -102,6 +104,16 @@ struct GoContext final : AstContext {
 
     // store the result of the previous sentence
     std::string                 inputVarName;
+};
+
+struct LookupContext final : public AstContext {
+    bool isEdge{false};
+    bool dedup{false};
+    bool isEmptyResultSet{false};
+    int32_t schemaId{-1};
+    int32_t limit{-1};
+    Expression* filter{nullptr};
+    // order by
 };
 
 }  // namespace graph

@@ -75,11 +75,10 @@ def job_id(resp):
 def wait_tag_or_edge_indexes_ready(sess, schema: str = "TAG"):
     resp = resp_ok(sess, f"SHOW {schema} INDEXES")
     jobs = []
-    for key in resp.keys():
-        for val in resp.column_values(key):
-            job = val.as_string()
-            resp = resp_ok(sess, f"REBUILD {schema} INDEX {job}", True)
-            jobs.append(job_id(resp))
+    for val in resp.column_values("Index Name"):
+        job = val.as_string()
+        resp = resp_ok(sess, f"REBUILD {schema} INDEX {job}", True)
+        jobs.append(job_id(resp))
     wait_all_jobs_finished(sess, jobs)
 
 
@@ -456,3 +455,12 @@ def check_plan(plan, graph_spaces):
         rows[i] = row
     differ = PlanDiffer(resp.plan_desc(), expect)
     assert differ.diff(), differ.err_msg()
+
+@when(parse("executing query via graph {index:d}:\n{query}"))
+def executing_query(query, index, graph_spaces, session_from_first_conn_pool, session_from_second_conn_pool, request):
+    assert index < 2, "There exists only 0,1 graph: {}".format(index)
+    ngql = combine_query(query)
+    if index == 0:
+        exec_query(request, ngql, session_from_first_conn_pool, graph_spaces)
+    else:
+        exec_query(request, ngql, session_from_second_conn_pool, graph_spaces)

@@ -135,16 +135,13 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
     getVertex->setInputVar(inputVar);
 
     auto var = vctx_->anonVarGen()->getVar();
-    auto* column = new VertexExpression();
-    auto* func = new AggregateExpression("COLLECT", column, false);
-    qctx_->objPool()->add(func);
-    auto* collectVertex =
-        Aggregate::make(qctx_,
-                        getVertex,
-                        {},
-                        {func});
-    collectVertex->setColNames({"_vertices"});
+    auto* pool = qctx_->objPool();
+    auto* column = VertexExpression::make(pool);
+    auto* func = AggregateExpression::make(pool, "COLLECT", column, false);
 
+    auto* collectVertex = Aggregate::make(qctx_, getVertex, {}, {func});
+    collectVertex->setColNames({kVertices});
+    outputs_.emplace_back(kVertices, Value::Type::VERTEX);
     root_ = collectVertex;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : getVertex;
     return Status::OK();
@@ -183,15 +180,17 @@ Status GetSubgraphValidator::toPlan() {
     subgraph->setColNames({nebula::kVid});
 
     auto* loopCondition = buildExpandCondition(gn->outputVar(), steps_.steps() + 1);
-    qctx_->objPool()->add(loopCondition);
     auto* loop = Loop::make(qctx_, loopDep, subgraph, loopCondition);
 
     auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kSubgraph);
     dc->addDep(loop);
     dc->setInputVars({gn->outputVar(), oneMoreStepOutput});
-    dc->setColNames({"_vertices", "_edges"});
+    dc->setColNames({kVertices, kEdges});
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;
+
+    outputs_.emplace_back(kVertices, Value::Type::VERTEX);
+    outputs_.emplace_back(kEdges, Value::Type::EDGE);
     return Status::OK();
 }
 }   // namespace graph

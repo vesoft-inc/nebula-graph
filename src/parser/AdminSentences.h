@@ -325,16 +325,16 @@ public:
         return spaceName_.get();
     }
 
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
     void setOpts(SpaceOptList* spaceOpts) {
         spaceOpts_.reset(spaceOpts);
     }
 
     void setGroupName(std::string* name) {
         groupName_.reset(name);
-    }
-
-    const std::string* groupName() const {
-        return groupName_.get();
     }
 
     const SpaceOptList* spaceOpts() const {
@@ -419,7 +419,7 @@ public:
     ConfigRowItem(meta::cpp2::ConfigModule module, std::string* name, Expression* value) {
         module_ = module;
         name_.reset(name);
-        value_.reset(value);
+        value_ = value;
     }
 
     ConfigRowItem(meta::cpp2::ConfigModule module, std::string* name) {
@@ -442,7 +442,7 @@ public:
     }
 
     Expression* getValue() const {
-        return value_.get();
+        return value_;
     }
 
     const UpdateList* getUpdateItems() const {
@@ -454,7 +454,7 @@ public:
 private:
     meta::cpp2::ConfigModule        module_;
     std::unique_ptr<std::string>    name_;
-    std::unique_ptr<Expression>     value_;
+    Expression*                     value_{nullptr};
     std::unique_ptr<UpdateList>     updateItems_;
 };
 
@@ -731,6 +731,75 @@ public:
 private:
     SessionID   sessionId_{0};
     bool        setSeesionId_{false};
+};
+
+class ShowQueriesSentence final : public Sentence {
+public:
+    explicit ShowQueriesSentence(bool isAll = false) {
+        kind_ = Kind::kShowQueries;
+        isAll_ = isAll;
+    }
+
+    bool isAll() const {
+        return isAll_;
+    }
+
+    std::string toString() const override;
+
+private:
+    bool isAll_{false};
+};
+
+class QueryUniqueIdentifier final {
+public:
+    explicit QueryUniqueIdentifier(Expression* epId, Expression* sessionId)
+        : epId_(epId), sessionId_(sessionId) {}
+
+    Expression* sessionId() const {
+        return sessionId_;
+    }
+
+    Expression* epId() const {
+        return epId_;
+    }
+
+    void setSession() {
+        isSetSession_ = true;
+    }
+
+    bool isSetSession() const {
+        return isSetSession_;
+    }
+
+private:
+    Expression* epId_{nullptr};
+    Expression* sessionId_{nullptr};
+    bool        isSetSession_{false};
+};
+
+class KillQuerySentence final : public Sentence {
+public:
+    explicit KillQuerySentence(QueryUniqueIdentifier* identifier) {
+        kind_ = Kind::kKillQuery;
+        identifier_.reset(identifier);
+    }
+
+    Expression* sessionId() const {
+        return identifier_->sessionId();
+    }
+
+    Expression* epId() const {
+        return identifier_->epId();
+    }
+
+    std::string toString() const override;
+
+private:
+    bool isSetSession() const {
+        return identifier_->isSetSession();
+    }
+
+    std::unique_ptr<QueryUniqueIdentifier> identifier_;
 };
 }   // namespace nebula
 

@@ -61,19 +61,14 @@ public:
         vidList_.emplace_back(expr);
     }
 
-    std::vector<Expression*> vidList() const {
-        std::vector<Expression*> result;
-        result.reserve(vidList_.size());
-        for (auto &expr : vidList_) {
-            result.push_back(expr.get());
-        }
-        return result;
+    const std::vector<Expression*> &vidList() const {
+        return vidList_;
     }
 
     std::string toString() const;
 
 private:
-    std::vector<std::unique_ptr<Expression>>    vidList_;
+    std::vector<Expression*>    vidList_;
 };
 
 
@@ -84,7 +79,7 @@ public:
     }
 
     explicit VerticesClause(Expression *ref) {
-        ref_.reset(ref);
+        ref_ = ref;
     }
 
     auto vidList() const {
@@ -96,14 +91,14 @@ public:
     }
 
     auto ref() const {
-        return ref_.get();
+        return ref_;
     }
 
     std::string toString() const;
 
 protected:
-    std::unique_ptr<VertexIDList>               vidList_;
-    std::unique_ptr<Expression>                 ref_;
+    std::unique_ptr<VertexIDList> vidList_;
+    Expression *ref_{nullptr};
 };
 
 class FromClause final : public VerticesClause {
@@ -198,28 +193,54 @@ private:
     bool                                          isOverAll_{false};
 };
 
-class WhereClause {
+class TruncateClause {
 public:
-    explicit WhereClause(Expression *filter) {
-        filter_.reset(filter);
+    TruncateClause(Expression* expr, bool isSample) {
+        truncate_ = expr;
+        isSample_ = isSample;
     }
 
-    Expression* filter() const {
-        return filter_.get();
+    Expression* truncate() const {
+        return truncate_;
     }
 
-    void setFilter(Expression* expr) {
-        filter_.reset(expr);
+    std::unique_ptr<TruncateClause> clone() const {
+        return std::make_unique<TruncateClause>(truncate_->clone(), isSample_);
     }
 
-    std::unique_ptr<WhereClause> clone() const {
-        return std::make_unique<WhereClause>(filter_->clone().release());
+    bool isSample() const {
+        return isSample_;
     }
 
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 filter_;
+    bool isSample_{false};
+    Expression* truncate_{nullptr};
+};
+
+class WhereClause {
+public:
+    explicit WhereClause(Expression *filter) {
+        filter_ = filter;
+    }
+
+    Expression* filter() const {
+        return filter_;
+    }
+
+    void setFilter(Expression* expr) {
+        filter_ = expr;
+    }
+
+    std::unique_ptr<WhereClause> clone() const {
+        return std::make_unique<WhereClause>(filter_->clone());
+    }
+
+    std::string toString() const;
+
+private:
+    Expression*                 filter_{nullptr};
 };
 
 class WhenClause : public WhereClause {
@@ -232,20 +253,20 @@ public:
 class YieldColumn final {
 public:
     explicit YieldColumn(Expression *expr, const std::string &alias = "") {
-        expr_.reset(expr);
+        expr_ = expr;
         alias_ = alias;
     }
 
     std::unique_ptr<YieldColumn> clone() const {
-        return std::make_unique<YieldColumn>(expr_->clone().release(), alias_);
+        return std::make_unique<YieldColumn>(expr_->clone(), alias_);
     }
 
     void setExpr(Expression* expr) {
-        expr_.reset(expr);
+        expr_ = expr;
     }
 
     Expression* expr() const {
-        return expr_.get();
+        return expr_;
     }
 
     void setAlias(const std::string& alias) {
@@ -263,7 +284,7 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression> expr_;
+    Expression* expr_{nullptr};
     std::string alias_;
 };
 
