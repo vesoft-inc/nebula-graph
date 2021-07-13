@@ -33,10 +33,18 @@ std::string GoSentence::toString() const {
         buf += " ";
         buf += yieldClause_->toString();
     }
-
+    if (truncateClause_ != nullptr) {
+        buf += " ";
+        buf += truncateClause_->toString();
+    }
     return buf;
 }
 
+LookupSentence::LookupSentence(std::string *from, WhereClause *where, YieldClause *yield)
+    : Sentence(Kind::kLookup),
+      from_(DCHECK_NOTNULL(from)),
+      whereClause_(where),
+      yieldClause_(yield) {}
 
 std::string LookupSentence::toString() const {
     std::string buf;

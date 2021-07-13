@@ -13,7 +13,7 @@ from tests.common.nebula_test_suite import NebulaTestSuite
 class TestUsers(NebulaTestSuite):
     @classmethod
     def prepare(self):
-        query = 'CREATE SPACE user_space(partition_num=1, replica_factor=1)'
+        query = 'CREATE SPACE user_space(partition_num=1, replica_factor=1, vid_type=FIXED_STRING(8))'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
         time.sleep(self.delay)
@@ -37,7 +37,15 @@ class TestUsers(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
     def test_create_users(self):
+        query = 'DROP USER IF EXISTS user1'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
         query = 'CREATE USER user1 WITH PASSWORD "pwd1"'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP USER IF EXISTS user2'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 

@@ -17,7 +17,7 @@ Status FindPathValidator::validateImpl() {
     pathCtx_ = getContext<PathContext>();
     pathCtx_->isShortest = fpSentence->isShortest();
     pathCtx_->noLoop = fpSentence->noLoop();
-    pathCtx_->withProp = fpSentence->withProperites();
+    pathCtx_->withProp = fpSentence->withProp();
     pathCtx_->inputVarName = inputVarName_;
 
     NG_RETURN_IF_ERROR(validateStarts(fpSentence->from(), pathCtx_->from));
@@ -45,7 +45,8 @@ Status FindPathValidator::validateWhere(WhereClause* where) {
         return Status::SemanticError("Not support `%s' in where sentence.",
                                      expr->toString().c_str());
     }
-    where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(expr));
+    auto* pool = qctx_->objPool();
+    where->setFilter(ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, expr));
     auto filter = where->filter();
 
     auto typeStatus = deduceExprType(filter);

@@ -15,24 +15,17 @@ namespace nebula {
 
 class GoSentence final : public Sentence {
 public:
-    GoSentence() {
+    GoSentence(StepClause* step,
+               FromClause* from,
+               OverClause* over,
+               WhereClause* where,
+               TruncateClause* truncate) {
         kind_ = Kind::kGo;
-    }
-
-    void setStepClause(StepClause *clause) {
-        stepClause_.reset(clause);
-    }
-
-    void setFromClause(FromClause *clause) {
-        fromClause_.reset(clause);
-    }
-
-    void setOverClause(OverClause *clause) {
-        overClause_.reset(clause);
-    }
-
-    void setWhereClause(WhereClause *clause) {
-        whereClause_.reset(clause);
+        stepClause_.reset(step);
+        fromClause_.reset(from);
+        overClause_.reset(over);
+        whereClause_.reset(where);
+        truncateClause_.reset(truncate);
     }
 
     void setYieldClause(YieldClause *clause) {
@@ -67,6 +60,14 @@ public:
         return yieldClause_.get();
     }
 
+    const TruncateClause* truncateClause() const {
+        return truncateClause_.get();
+    }
+
+    TruncateClause* truncateClause() {
+        return truncateClause_.get();
+    }
+
     std::string toString() const override;
 
 private:
@@ -75,30 +76,20 @@ private:
     std::unique_ptr<OverClause>                 overClause_;
     std::unique_ptr<WhereClause>                whereClause_;
     std::unique_ptr<YieldClause>                yieldClause_;
+    std::unique_ptr<TruncateClause>             truncateClause_;
 };
 
 
 class LookupSentence final : public Sentence {
 public:
-    explicit LookupSentence(std::string *from) {
-        from_.reset(from);
-        kind_ = Kind::kLookup;
-    }
+    LookupSentence(std::string* from, WhereClause* where, YieldClause* yield);
 
-    const std::string* from() const {
-        return from_.get();
-    }
-
-    void setWhereClause(WhereClause *whereClause) {
-        whereClause_.reset(whereClause);
+    const std::string& from() const {
+        return *from_;
     }
 
     const WhereClause* whereClause() const {
         return whereClause_.get();
-    }
-
-    void setYieldClause(YieldClause *clause) {
-        yieldClause_.reset(clause);
     }
 
     const YieldClause* yieldClause() const {
@@ -224,22 +215,19 @@ private:
 
 class OrderFactor final {
 public:
-    enum OrderType : uint8_t {
-        ASCEND,
-        DESCEND
-    };
+    enum OrderType : uint8_t { ASCEND, DESCEND };
 
-    OrderFactor(Expression *expr, OrderType op) {
-        expr_.reset(expr);
+    OrderFactor(Expression* expr, OrderType op) {
+        expr_ = expr;
         orderType_ = op;
     }
 
     Expression* expr() {
-        return expr_.get();
+        return expr_;
     }
 
-    void setExpr(Expression *expr) {
-        expr_.reset(expr);
+    void setExpr(Expression* expr) {
+        expr_ = expr;
     }
 
     OrderType orderType() {
@@ -249,8 +237,8 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 expr_;
-    OrderType                                   orderType_;
+    Expression* expr_{nullptr};
+    OrderType orderType_;
 };
 
 class OrderFactors final {
@@ -423,10 +411,10 @@ private:
 
 class FindPathSentence final : public Sentence {
 public:
-    FindPathSentence(bool isShortest, bool withProperites, bool noLoop) {
+    FindPathSentence(bool isShortest, bool withProp, bool noLoop) {
         kind_ = Kind::kFindPath;
         isShortest_ = isShortest;
-        withProperites_ = withProperites;
+        withProp_ = withProp;
         noLoop_ = noLoop;
     }
 
@@ -474,8 +462,8 @@ public:
         return isShortest_;
     }
 
-    bool withProperites() const {
-        return withProperites_;
+    bool withProp() const {
+        return withProp_;
     }
 
     bool noLoop() const {
@@ -486,7 +474,7 @@ public:
 
 private:
     bool                            isShortest_;
-    bool                            withProperites_;
+    bool                            withProp_;
     bool                            noLoop_;
     std::unique_ptr<FromClause>     from_;
     std::unique_ptr<ToClause>       to_;
@@ -597,12 +585,14 @@ private:
 
 class GetSubgraphSentence final : public Sentence {
 public:
-    GetSubgraphSentence(StepClause* step,
+    GetSubgraphSentence(bool withProp,
+                        StepClause* step,
                         FromClause* from,
                         InBoundClause* in,
                         OutBoundClause* out,
                         BothInOutClause* both) {
         kind_ = Kind::kGetSubgraph;
+        withProp_ = withProp;
         step_.reset(step);
         from_.reset(from);
         in_.reset(in);
@@ -612,6 +602,10 @@ public:
 
     StepClause* step() const {
         return step_.get();
+    }
+
+    bool withProp() const {
+        return withProp_;
     }
 
     FromClause* from() const {
@@ -633,6 +627,7 @@ public:
     std::string toString() const override;
 
 private:
+    bool                                withProp_;
     std::unique_ptr<StepClause>         step_;
     std::unique_ptr<FromClause>         from_;
     std::unique_ptr<InBoundClause>      in_;

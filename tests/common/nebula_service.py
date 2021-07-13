@@ -71,9 +71,9 @@ class NebulaService(object):
         ]
         if name == 'graphd':
             params.append('--local_config=false')
-            params.append('--enable_optimizer=true')
             params.append('--enable_authorize=true')
             params.append('--system_memory_high_watermark_ratio=0.95')
+            params.append('--session_reclaim_interval_secs=2')
         if name == 'storaged':
             params.append('--local_config=false')
             params.append('--raft_heartbeat_interval_secs=30')
@@ -205,10 +205,13 @@ class NebulaService(object):
 
         self._collect_pids()
 
-        return graph_ports[0]
+        return graph_ports
 
     def _collect_pids(self):
         for pf in glob.glob(self.work_dir + '/pids/*.pid'):
+            with open(pf) as f:
+                self.pids[f.name] = int(f.readline())
+        for pf in glob.glob(self.work_dir + '/pids1/*.pid'):
             with open(pf) as f:
                 self.pids[f.name] = int(f.readline())
 

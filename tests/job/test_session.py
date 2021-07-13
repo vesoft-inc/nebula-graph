@@ -15,6 +15,8 @@ from nebula2.fbthrift.transport import TSocket
 from nebula2.fbthrift.transport import TTransport
 from nebula2.fbthrift.protocol import TBinaryProtocol
 
+
+from nebula2.gclient.net import Connection
 from nebula2.graph import GraphService
 from nebula2.common import ttypes
 from nebula2.data.ResultSet import ResultSet
@@ -23,12 +25,6 @@ from tests.common.nebula_test_suite import NebulaTestSuite
 class TestSession(NebulaTestSuite):
     @classmethod
     def prepare(self):
-        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 5')
-        self.check_resp_succeeded(resp)
-
-        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 1')
-        self.check_resp_succeeded(resp)
-
         resp = self.execute('CREATE USER IF NOT EXISTS session_user WITH PASSWORD "123456"')
         self.check_resp_succeeded(resp)
 
@@ -36,17 +32,27 @@ class TestSession(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
+        resp = self.execute('SHOW HOSTS GRAPH')
+        self.check_resp_succeeded(resp)
+        assert not resp.is_empty()
+        assert resp.row_size() == 2
+        self.addr_host1 = resp.row_values(0)[0].as_string()
+        self.addr_port1 = resp.row_values(0)[1].as_int()
+        self.addr_host2 = resp.row_values(1)[0].as_string()
+        self.addr_port2 = resp.row_values(1)[1].as_int()
+
+        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 1')
+        self.check_resp_succeeded(resp)
         time.sleep(3)
 
     @classmethod
     def cleanup(self):
-        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 0')
+        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 2')
         self.check_resp_succeeded(resp)
-        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 10')
-        self.check_resp_succeeded(resp)
-        resp = self.execute('UPDATE CONFIGS graph:max_allowed_connections = {}'.format(sys.maxsize))
-        self.check_resp_succeeded(resp)
-        resp = self.execute('DROP USER session_user')
+        time.sleep(3)
+
+        session = self.client_pool.get_session('root', 'nebula')
+        resp = session.execute('DROP USER session_user')
         self.check_resp_succeeded(resp)
 
     def test_sessions(self):
@@ -110,14 +116,19 @@ class TestSession(NebulaTestSuite):
         assert resp.rows()[2].values[1].get_sVal() == b'nba'
 
         # 5: test expired session
-        time.sleep(3)
-        resp = self.execute('SHOW SPACES;')
+        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 5')
         self.check_resp_succeeded(resp)
         time.sleep(3)
-        resp = self.execute('SHOW SESSION {}'.format(session_id))
-        time.sleep(3)
+        # to wait for session expires
+        for i in range(3):
+            resp = self.execute('SHOW SPACES;')
+            self.check_resp_succeeded(resp)
+            time.sleep(3)
         resp = self.execute('SHOW SESSION {}'.format(session_id))
         self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
+        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 0')
+        self.check_resp_succeeded(resp)
+        time.sleep(3)
 
     def test_the_same_id_to_different_graphd(self):
         def get_connection(ip, port):
@@ -131,25 +142,22 @@ class TestSession(NebulaTestSuite):
                 assert False, 'Create connection to {}:{} failed'.format(ip, port)
             return connection
 
-        resp = self.execute('SHOW HOSTS GRAPH')
-        self.check_resp_succeeded(resp)
-        assert not resp.is_empty()
-        assert resp.row_size() == 2
-        addr_host1 = resp.row_values(0)[0].as_string()
-        addr_port1 = resp.row_values(0)[1].as_int()
-        addr_host2 = resp.row_values(1)[0].as_string()
-        addr_port2 = resp.row_values(1)[1].as_int()
-
-        conn1 = get_connection(addr_host1, addr_port1)
-        conn2 = get_connection(addr_host2, addr_port2)
+        conn1 = get_connection(self.addr_host1, self.addr_port1)
+        conn2 = get_connection(self.addr_host2, self.addr_port2)
 
         resp = conn1.authenticate('root', 'nebula')
         assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
         session_id = resp.session_id
 
-        resp = conn1.execute(session_id, 'CREATE SPACE IF NOT EXISTS aSpace(partition_num=1);USE aSpace;')
+        resp = conn1.execute(session_id, 'CREATE SPACE IF NOT EXISTS aSpace(partition_num=1, vid_type=FIXED_STRING(8));USE aSpace;')
+        self.check_resp_succeeded(ResultSet(resp, 0))
+        # time::WallClock::fastNowInMicroSec() is not syncronous in different process,
+        # so we sleep 3 seconds here and charge session
+        time.sleep(3)
+        resp = conn1.execute(session_id, 'USE aSpace;')
         self.check_resp_succeeded(ResultSet(resp, 0))
         time.sleep(3)
+        # We actually not allowed share sessions, this only for testing the scenario of transfer sessions.
         resp = conn1.execute(session_id, 'CREATE TAG IF NOT EXISTS a();')
         self.check_resp_succeeded(ResultSet(resp, 0))
         resp = conn2.execute(session_id, 'CREATE TAG IF NOT EXISTS b();')
@@ -166,7 +174,7 @@ class TestSession(NebulaTestSuite):
         with concurrent.futures.ThreadPoolExecutor(3) as executor:
             for i in range(0, 3):
                 future = executor.submit(do_test,
-                                         get_connection(addr_host2, addr_port2),
+                                         get_connection(self.addr_host2, self.addr_port2),
                                          session_id,
                                          i)
                 test_jobs.append(future)
@@ -200,3 +208,17 @@ class TestSession(NebulaTestSuite):
         time.sleep(3)
 
 
+    def test_signout_and_execute(self):
+        try:
+            conn = Connection()
+            conn.open(self.addr_host1, self.addr_port1, 3000)
+            auth_result = conn.authenticate(self.user, self.password)
+            session_id = auth_result.get_session_id()
+            conn.signout(session_id)
+        except Exception as e:
+            assert False, e.message
+
+        time.sleep(2)
+        resp = conn.execute(session_id, 'SHOW HOSTS')
+        assert resp.error_code == ttypes.ErrorCode.E_SESSION_INVALID, resp.error_msg
+        assert resp.error_msg.find(b'Session not existed!') > 0
