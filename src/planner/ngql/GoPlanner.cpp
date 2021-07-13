@@ -278,7 +278,7 @@ PlanNode* GoPlanner::buildJoinInputPlan(PlanNode* left) {
     auto* varPtr = qctx->symTable()->getVar(probeName);
     DCHECK(varPtr != nullptr);
 
-    auto pass = PassThroughNode::make(qctx, nullptr);
+    auto pass = PassThroughNode::make(qctx, StartNode::make(qctx));
     pass->setOutputVar(probeName);
     pass->setColNames(varPtr->colNames);
     auto* join = InnerJoin::make(qctx,
@@ -329,7 +329,14 @@ PlanNode* GoPlanner::buildLastStepJoinPlan(PlanNode* gn, PlanNode* join) {
 
     auto* dep = extractSrcEdgePropsFromGN(gn, gn->outputVar());
     dep = goCtx_->joinDst ? buildJoinDstPlan(dep, dep) : dep;
-    dep = goCtx_->joinInput ? lastStepJoinInput(join, dep) : dep;
+
+    PlanNode* left;
+    if (goCtx_->joinInput && join != nullptr) {
+        left = PassThroughNode::make(goCtx_->qctx, StartNode::make(goCtx_->qctx));
+        left->setOutputVar(join->outputVar());
+        left->setColNames(join->colNames());
+    }
+    dep = goCtx_->joinInput ? lastStepJoinInput(left, dep) : dep;
     dep = goCtx_->joinInput ? buildJoinInputPlan(dep) : dep;
 
     return dep;
@@ -415,7 +422,7 @@ SubPlan GoPlanner::nStepsPlan(SubPlan& startVidPlan) {
         auto* joinLeft = extractVidFromRuntimeInput(startVidPlan.root);
         auto* joinRight = extractSrcDstFromGN(getDst, gn->outputVar());
 
-        auto pass = PassThroughNode::make(qctx, nullptr);
+        auto pass = PassThroughNode::make(qctx, StartNode::make(qctx));
         pass->setOutputVar(joinLeft->outputVar());
         pass->setColNames(joinLeft->colNames());
         loopBody = trackStartVid(pass, joinRight);
@@ -454,7 +461,7 @@ SubPlan GoPlanner::mToNStepsPlan(SubPlan& startVidPlan) {
         auto* joinLeft = extractVidFromRuntimeInput(startVidPlan.root);
         auto* joinRight = extractSrcDstFromGN(getDst, gn->outputVar());
 
-        auto pass = PassThroughNode::make(qctx, nullptr);
+        auto pass = PassThroughNode::make(qctx, StartNode::make(qctx));
         pass->setOutputVar(joinLeft->outputVar());
         pass->setColNames(joinLeft->colNames());
         trackVid = trackStartVid(pass, joinRight);
