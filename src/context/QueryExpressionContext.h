@@ -7,6 +7,7 @@
 #ifndef CONTEXT_QUERYEXPRESSIONCONTEXT_H_
 #define CONTEXT_QUERYEXPRESSIONCONTEXT_H_
 
+#include <bits/c++config.h>
 #include "common/context/ExpressionContext.h"
 
 #include "context/ExecutionContext.h"
@@ -32,6 +33,9 @@ public:
     const Value& getVarProp(const std::string& var,
                             const std::string& prop) const override;
 
+    StatusOr<std::size_t> getVarPropColIndex(const std::string& var,
+                                             const std::string& prop) const override;
+
     // Get the specified property from the tag, such as tag.prop_name
     Value getTagProp(const std::string& tag,
                      const std::string& prop) const override;
@@ -51,8 +55,10 @@ public:
     // Get the specified property from the input, such as $-.prop_name
     const Value& getInputProp(const std::string& prop) const override;
 
+    StatusOr<std::size_t> getInputPropColIndex(const std::string& prop) const;
+
     // Get the value by column index
-    Value getColumn(int32_t index) const override;
+    const Value& getColumn(int32_t index) const override;
 
     // Get Vertex
     Value getVertex() const override;

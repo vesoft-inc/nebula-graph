@@ -111,6 +111,8 @@ public:
 
     virtual const Value& getColumn(int32_t index) const = 0;
 
+    virtual StatusOr<std::size_t> getColumnIndex(const std::string& col) const = 0;
+
     template <typename Iter>
     const Value& getColumnByIndex(int32_t index, Iter iter) const {
         int32_t size = static_cast<int32_t>(iter->size());
@@ -195,6 +197,11 @@ public:
         return Value::kEmpty;
     }
 
+    StatusOr<std::size_t> getColumnIndex(const std::string&) const override {
+        DLOG(ERROR) << "This method should not be invoked";
+        return Status::Error("This method should not be invoked");
+    }
+
     const Row* row() const override {
         DLOG(FATAL) << "This method should not be invoked";
         return nullptr;
@@ -247,6 +254,8 @@ public:
     const Value& getColumn(const std::string& col) const override;
 
     const Value& getColumn(int32_t index) const override;
+
+    StatusOr<std::size_t> getColumnIndex(const std::string& col) const override;
 
     const Value& getTagProp(const std::string& tag,
                             const std::string& prop) const override;
@@ -405,6 +414,8 @@ public:
 
     const Value& getColumn(int32_t index) const override;
 
+    StatusOr<std::size_t> getColumnIndex(const std::string& col) const override;
+
 protected:
     const Row* row() const override {
         return &*iter_;
@@ -444,6 +455,8 @@ public:
     const Value& getColumn(const std::string& col) const override;
 
     const Value& getColumn(int32_t index) const override;
+
+    StatusOr<std::size_t> getColumnIndex(const std::string& col) const override;
 
     Value getVertex() const override;
 
