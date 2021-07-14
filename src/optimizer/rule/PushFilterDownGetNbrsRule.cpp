@@ -17,8 +17,11 @@
 #include "planner/plan/PlanNode.h"
 #include "planner/plan/Query.h"
 #include "visitor/ExtractFilterExprVisitor.h"
+#include "visitor/FindVisitor.h"
 
+using nebula::Expression;
 using nebula::graph::Filter;
+using nebula::graph::FindVisitor;
 using nebula::graph::GetNeighbors;
 using nebula::graph::PlanNode;
 using nebula::graph::QueryContext;
@@ -30,14 +33,37 @@ std::unique_ptr<OptRule> PushFilterDownGetNbrsRule::kInstance =
     std::unique_ptr<PushFilterDownGetNbrsRule>(new PushFilterDownGetNbrsRule());
 
 PushFilterDownGetNbrsRule::PushFilterDownGetNbrsRule() {
-    // There is a problem with the push-down of the storage layer filtering
-    // RuleSet::QueryRules().addRule(this);
+    RuleSet::QueryRules().addRule(this);
 }
 
 const Pattern &PushFilterDownGetNbrsRule::pattern() const {
-    static Pattern pattern = Pattern::create(
-        graph::PlanNode::Kind::kFilter, {Pattern::create(graph::PlanNode::Kind::kGetNeighbors)});
+    static Pattern pattern =
+        Pattern::create(PlanNode::Kind::kFilter, {Pattern::create(PlanNode::Kind::kGetNeighbors)});
     return pattern;
+}
+
+bool PushFilterDownGetNbrsRule::match(OptContext *ctx, const MatchedResult &matched) const {
+    if (!OptRule::match(ctx, matched)) {
+        return false;
+    }
+    auto filter = static_cast<const Filter *>(matched.planNode());
+    auto condition = filter->condition();
+    // TODO(yee): only support filter with edge related expression now. we will rewrite this rule
+    // after finishing storage refactoring
+    FindVisitor visitor([](Expression *expr) {
+        switch (expr->kind()) {
+            case Expression::Kind::kEdgeProperty:
+            case Expression::Kind::kEdgeSrc:
+            case Expression::Kind::kEdgeType:
+            case Expression::Kind::kEdgeRank:
+            case Expression::Kind::kEdgeDst:
+                return true;
+            default:
+                return false;
+        }
+    });
+    condition->accept(&visitor);
+    return visitor.found();
 }
 
 StatusOr<OptRule::TransformResult> PushFilterDownGetNbrsRule::transform(
