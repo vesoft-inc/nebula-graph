@@ -49,6 +49,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
     const std::string& leftVar = oldLeftJoinNode->leftInputVar();
     auto symTable = octx->qctx()->symTable();
     std::vector<std::string> leftVarColNames = symTable->getVar(leftVar)->colNames;
+    auto rightDepGroupNode = leftJoinGroupNode->dependencies()[1];
 
     // split the `condition` based on whether the varPropExpr comes from the left child
     auto picker = [&leftVarColNames](const Expression* e) -> bool {
@@ -88,9 +89,8 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
     newLeftFilterNode->setColNames(leftVarColNames);
     auto newFilterGroup = OptGroup::create(octx);
     auto newFilterGroupNode = newFilterGroup->makeGroupNode(newLeftFilterNode);
-    for (auto dep : leftJoinGroupNode->dependencies()) {
-        newFilterGroupNode->dependsOn(dep);
-    }
+    DCHECK_EQ(leftJoinGroupNode->dependencies().size(), 2);
+    newFilterGroupNode->dependsOn(leftJoinGroupNode->dependencies()[0]);
     auto newLeftFilterOutputVar = newLeftFilterNode->outputVar();
 
     // produce new LeftJoin node
@@ -116,14 +116,14 @@ StatusOr<OptRule::TransformResult> PushFilterDownLeftJoinRule::transform(
         auto newLeftJoinGroup = OptGroup::create(octx);
         auto newLeftJoinGroupNode = newLeftJoinGroup->makeGroupNode(newLeftJoinNode);
         newAboveFilterGroupNode->setDeps({newLeftJoinGroup});
-        newLeftJoinGroupNode->setDeps({newFilterGroup});
+        newLeftJoinGroupNode->setDeps({newFilterGroup, rightDepGroupNode});
         result.newGroupNodes.emplace_back(newAboveFilterGroupNode);
     } else {
         newLeftJoinNode->setOutputVar(oldFilterNode->outputVar());
         newLeftJoinNode->setColNames(oldLeftJoinNode->colNames());
         auto newLeftJoinGroupNode =
             OptGroupNode::create(octx, newLeftJoinNode, filterGroupNode->group());
-        newLeftJoinGroupNode->setDeps({newFilterGroup});
+        newLeftJoinGroupNode->setDeps({newFilterGroup, rightDepGroupNode});
         result.newGroupNodes.emplace_back(newLeftJoinGroupNode);
     }
     return result;

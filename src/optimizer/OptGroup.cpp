@@ -203,7 +203,8 @@ const PlanNode *OptGroupNode::getPlan() const {
         auto loop = static_cast<Loop *>(node_);
         loop->setBody(const_cast<PlanNode *>(bodies_[0]->getPlan()));
     }
-    DCHECK_EQ(node_->numDeps(), dependencies_.size());
+    DCHECK_EQ(node_->numDeps(), dependencies_.size())
+        << " node kind: " << node_->kind() << " node output: " << node_->outputVar();
     for (size_t i = 0; i < node_->numDeps(); ++i) {
         node_->setDep(i, dependencies_[i]->getPlan());
     }
