@@ -9,7 +9,6 @@
 
 #include "common/datatypes/Value.h"
 #include "context/Result.h"
-#include <folly/Synchronized.h>
 
 namespace nebula {
 namespace graph {

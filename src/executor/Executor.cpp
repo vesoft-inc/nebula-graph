@@ -545,8 +545,12 @@ Status Executor::open() {
 
     bool skipStatsCollection = true;
     bool isBigQuery = false;
-    nebula::time::Duration d;
-    uint64_t current_time_ms = d.elapsedInMSec();
+
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t current_time_ms = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    // nebula::time::Duration d;
+    // uint64_t current_time_ms = d.elapsedInMSec();
     // ensure StartNode is always the first plan node
     if (node_->kind() == PlanNode::Kind::kStart) {
         ectx_->setQueryStartTime(current_time_ms);
