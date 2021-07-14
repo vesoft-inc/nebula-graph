@@ -1,11 +1,10 @@
-@aiee
-Feature: Lookup full index scan
+Feature: Lookup tag index full scan
 
   Background:
     Given an empty graph
     And load "nba" csv data to a new space
 
-  Scenario: with relational RegExp filterp[1]
+  Scenario: Tag with relational RegExp filter[1]
     When executing query:
       """
       LOOKUP ON team where team.name =~ "\\d+\\w+"
@@ -21,9 +20,9 @@ Feature: Lookup full index scan
       | VertexID |
       | "Heat"   |
 
-  # make fmt will delete '\' in the operator info and causes tests fail
+  # skip because `make fmt` will delete '\' in the operator info and causes tests fail
   @skip
-  Scenario: with relational RegExp filter[2]
+  Scenario: Tag with relational RegExp filter[2]
     When profiling query:
       """
       LOOKUP ON team where team.name =~ "\\d+\\w+"
@@ -51,7 +50,7 @@ Feature: Lookup full index scan
       | 4  | TagIndexFullScan | 0            |                                            |
       | 0  | Start            |              |                                            |
 
-  Scenario: with relational NE filter
+  Scenario: Tag with relational NE filter
     When profiling query:
       """
       LOOKUP ON team WHERE team.name != "Hornets" AND team.name != "Jazz"
