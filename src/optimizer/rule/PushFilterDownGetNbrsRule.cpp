@@ -17,11 +17,9 @@
 #include "planner/plan/PlanNode.h"
 #include "planner/plan/Query.h"
 #include "visitor/ExtractFilterExprVisitor.h"
-#include "visitor/FindVisitor.h"
 
 using nebula::Expression;
 using nebula::graph::Filter;
-using nebula::graph::FindVisitor;
 using nebula::graph::GetNeighbors;
 using nebula::graph::PlanNode;
 using nebula::graph::QueryContext;
