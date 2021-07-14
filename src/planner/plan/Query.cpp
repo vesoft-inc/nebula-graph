@@ -515,8 +515,6 @@ std::unique_ptr<PlanNodeDescription> Join::explain() const {
 void Join::cloneMembers(const Join& j) {
     BinaryInputNode::cloneMembers(j);
 
-    // TODO:
-
     std::vector<Expression*> hKeys;
     for (auto* item : j.hashKeys()) {
         hKeys.emplace_back(item->clone());
@@ -529,7 +527,6 @@ void Join::cloneMembers(const Join& j) {
     }
     probeKeys_ = std::move(pKeys);
 }
-
 
 Join::Join(QueryContext* qctx,
            Kind kind,
@@ -544,7 +541,6 @@ Join::Join(QueryContext* qctx,
     inputVarVersion_.emplace_back(right.second);
 }
 
-
 std::unique_ptr<PlanNodeDescription> LeftJoin::explain() const {
     auto desc = Join::explain();
     addDescription("kind", "LeftJoin", desc.get());
@@ -552,20 +548,19 @@ std::unique_ptr<PlanNodeDescription> LeftJoin::explain() const {
 }
 
 PlanNode* LeftJoin::clone() const {
-    // TODO
-    /*
-    auto* newLeftJoin = LeftJoin::make(qctx_, nullptr, leftVar_, rightVar_);
+    auto* newLeftJoin =
+        LeftJoin::make(qctx_,
+                       std::make_pair(const_cast<PlanNode*>(dep(0)), leftVarVersion()),
+                       std::make_pair(const_cast<PlanNode*>(dep(1)), rightVarVersion()),
+                       {},
+                       {});
     newLeftJoin->cloneMembers(*this);
     return newLeftJoin;
-    */
-   return nullptr;
 }
 
-void LeftJoin::cloneMembers(const LeftJoin &l) {
-    // TODO
+void LeftJoin::cloneMembers(const LeftJoin& l) {
     Join::cloneMembers(l);
 }
-
 
 std::unique_ptr<PlanNodeDescription> InnerJoin::explain() const {
     auto desc = Join::explain();
@@ -574,20 +569,19 @@ std::unique_ptr<PlanNodeDescription> InnerJoin::explain() const {
 }
 
 PlanNode* InnerJoin::clone() const {
-    // TODO
-    /*
-    auto* newInnerJoin = InnerJoin::make(qctx_, nullptr, leftVar_, rightVar_);
+    auto* newInnerJoin =
+        InnerJoin::make(qctx_,
+                        std::make_pair(const_cast<PlanNode*>(dep(0)), leftVarVersion()),
+                        std::make_pair(const_cast<PlanNode*>(dep(1)), rightVarVersion()),
+                        {},
+                        {});
     newInnerJoin->cloneMembers(*this);
     return newInnerJoin;
-    */
-   return nullptr;
 }
 
-void InnerJoin::cloneMembers(const InnerJoin &l) {
-    // TODO
+void InnerJoin::cloneMembers(const InnerJoin& l) {
     Join::cloneMembers(l);
 }
-
 
 std::unique_ptr<PlanNodeDescription> Assign::explain() const {
     auto desc = SingleDependencyNode::explain();
