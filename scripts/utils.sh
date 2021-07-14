@@ -152,6 +152,6 @@ function env_check {
 # Get the daemon Git commit version information
 function daemon_version {
     local version=$(${1} --version | head -n 1)
-    echo ${version} | sed 's/.*\(Git: [[:alnum:]]*\).*/\1/g'
+    echo ${version} | sed 's/.*Git: \([[:alnum:]]*\).*/\1/g'
 }
 
