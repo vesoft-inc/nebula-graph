@@ -278,12 +278,12 @@ PlanNode* GoPlanner::buildJoinInputPlan(PlanNode* left) {
     auto* varPtr = qctx->symTable()->getVar(probeName);
     DCHECK(varPtr != nullptr);
 
-    auto pass = PassThroughNode::make(qctx, StartNode::make(qctx));
-    pass->setOutputVar(probeName);
-    pass->setColNames(varPtr->colNames);
+    auto right = StartNode::make(qctx);
+    right->setOutputVar(probeName);
+    right->setColNames(varPtr->colNames);
     auto* join = InnerJoin::make(qctx,
                                  {left, ExecutionContext::kLatestVersion},
-                                 {pass, ExecutionContext::kLatestVersion},
+                                 {right, ExecutionContext::kLatestVersion},
                                  {hashKey},
                                  {probeKey});
     std::vector<std::string> colNames = left->colNames();
@@ -332,7 +332,7 @@ PlanNode* GoPlanner::buildLastStepJoinPlan(PlanNode* gn, PlanNode* join) {
 
     PlanNode* left;
     if (goCtx_->joinInput && join != nullptr) {
-        left = PassThroughNode::make(goCtx_->qctx, StartNode::make(goCtx_->qctx));
+        left = StartNode::make(goCtx_->qctx);
         left->setOutputVar(join->outputVar());
         left->setColNames(join->colNames());
     }
@@ -422,10 +422,10 @@ SubPlan GoPlanner::nStepsPlan(SubPlan& startVidPlan) {
         auto* joinLeft = extractVidFromRuntimeInput(startVidPlan.root);
         auto* joinRight = extractSrcDstFromGN(getDst, gn->outputVar());
 
-        auto pass = PassThroughNode::make(qctx, StartNode::make(qctx));
-        pass->setOutputVar(joinLeft->outputVar());
-        pass->setColNames(joinLeft->colNames());
-        loopBody = trackStartVid(pass, joinRight);
+        auto left = StartNode::make(qctx);
+        left->setOutputVar(joinLeft->outputVar());
+        left->setColNames(joinLeft->colNames());
+        loopBody = trackStartVid(left, joinRight);
         loopDep = joinLeft;
     }
 
@@ -461,10 +461,10 @@ SubPlan GoPlanner::mToNStepsPlan(SubPlan& startVidPlan) {
         auto* joinLeft = extractVidFromRuntimeInput(startVidPlan.root);
         auto* joinRight = extractSrcDstFromGN(getDst, gn->outputVar());
 
-        auto pass = PassThroughNode::make(qctx, StartNode::make(qctx));
-        pass->setOutputVar(joinLeft->outputVar());
-        pass->setColNames(joinLeft->colNames());
-        trackVid = trackStartVid(pass, joinRight);
+        auto left = StartNode::make(qctx);
+        left->setOutputVar(joinLeft->outputVar());
+        left->setColNames(joinLeft->colNames());
+        trackVid = trackStartVid(left, joinRight);
         loopBody = trackVid;
         loopDep = joinLeft;
     }
