@@ -46,6 +46,13 @@ bool PushFilterDownGetNbrsRule::match(OptContext *ctx, const MatchedResult &matc
     if (!OptRule::match(ctx, matched)) {
         return false;
     }
+    auto gn = static_cast<const GetNeighbors *>(matched.planNode({0, 0}));
+    auto edgeProps = gn->edgeProps();
+    if (edgeProps != nullptr && !edgeProps->empty()) {
+        // if fetching props of edge in GetNeighbors, let it go and do more checks in transform
+        return true;
+    }
+
     auto filter = static_cast<const Filter *>(matched.planNode());
     auto condition = filter->condition();
     // TODO(yee): only support filter with edge related expression now. we will rewrite this rule
