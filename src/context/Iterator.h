@@ -240,9 +240,8 @@ public:
         DCHECK(false);
     }
 
-    size_t size() const override {
-        return 0;
-    }
+    size_t size() const override;
+    size_t numRows() const;
 
     const Value& getColumn(const std::string& col) const override;
 
