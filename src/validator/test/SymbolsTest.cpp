@@ -50,7 +50,16 @@ TEST_F(SymbolsTest, Variables) {
         auto qctx = std::move(status).value();
         EXPECT_NE(qctx, nullptr);
         auto* symTable = qctx->symTable();
-
+        {
+            auto varName = "__Start_22";
+            auto* variable = symTable->getVar(varName);
+            EXPECT_NE(variable, nullptr);
+            EXPECT_EQ(variable->name, varName);
+            EXPECT_EQ(variable->type, Value::Type::DATASET);
+            EXPECT_TRUE(variable->colNames.empty());
+            EXPECT_TRUE(checkNodes(variable->readBy, {}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {}));
+        }
         {
             auto varName = "__Start_0";
             auto* variable = symTable->getVar(varName);
@@ -78,8 +87,8 @@ TEST_F(SymbolsTest, Variables) {
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames, std::vector<std::string>({"id"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {3, 9, 20}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {2}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {3, 9, 23}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {2, 22}));
         }
         {
             auto varName = "__Project_3";
@@ -98,7 +107,7 @@ TEST_F(SymbolsTest, Variables) {
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames, std::vector<std::string>({"_vid"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {17, 6}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {18, 6}));
             EXPECT_TRUE(checkNodes(variable->writtenBy, {8, 4}));
         }
         {
@@ -118,8 +127,8 @@ TEST_F(SymbolsTest, Variables) {
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames, std::vector<std::string>({"id", "__COL_1"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {13, 16, 19}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {10, 15}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {14, 17, 21}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {10, 13, 16, 20}));
         }
         {
             auto varName = "__Start_5";
@@ -168,91 +177,102 @@ TEST_F(SymbolsTest, Variables) {
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames, std::vector<std::string>({"__COL_2", "TRACK_DST_VID"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {13}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {14}));
             EXPECT_TRUE(checkNodes(variable->writtenBy, {12}));
         }
         {
-            auto varName = "__InnerJoin_13";
+            auto varName = "__InnerJoin_14";
             auto* variable = symTable->getVar(varName);
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames,
                       std::vector<std::string>({"id", "__COL_1", "__COL_2", "TRACK_DST_VID"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {14}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {13}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {15}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {14}));
         }
         {
-            auto varName = "__Project_14";
+            auto varName = "__Project_15";
             auto* variable = symTable->getVar(varName);
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames, std::vector<std::string>({"id", "__COL_1"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {15}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {14}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {16}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {15}));
         }
         {
-            auto varName = "__Loop_16";
+            auto varName = "__Loop_17";
             auto* variable = symTable->getVar(varName);
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames, std::vector<std::string>({}));
             EXPECT_TRUE(checkNodes(variable->readBy, {}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {16}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {17}));
         }
         {
-            auto varName = "__GetNeighbors_17";
+            auto varName = "__GetNeighbors_18";
             auto* variable = symTable->getVar(varName);
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_TRUE(variable->colNames.empty());
-            EXPECT_TRUE(checkNodes(variable->readBy, {18}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {17}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {19}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {18}));
         }
         {
-            auto varName = "__Project_18";
+            auto varName = "__Project_19";
             auto* variable = symTable->getVar(varName);
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames, std::vector<std::string>({"__COL_0", "_vid"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {19}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {18}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {21}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {19}));
         }
         {
-            auto varName = "__InnerJoin_19";
+            auto varName = "__Start_20";
+            auto* variable = symTable->getVar(varName);
+            EXPECT_NE(variable, nullptr);
+            EXPECT_EQ(variable->name, varName);
+            EXPECT_EQ(variable->type, Value::Type::DATASET);
+            EXPECT_TRUE(variable->colNames.empty());
+            EXPECT_TRUE(checkNodes(variable->readBy, {}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {}));
+        }
+        {
+            auto varName = "__InnerJoin_21";
             auto* variable = symTable->getVar(varName);
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames,
                       std::vector<std::string>({"id", "__COL_1", "__COL_0", "_vid"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {20}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {19}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {23}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {21}));
         }
+
         {
-            auto varName = "__InnerJoin_20";
+            auto varName = "__InnerJoin_23";
             auto* variable = symTable->getVar(varName);
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames,
                       std::vector<std::string>({"id", "__COL_1", "__COL_0", "_vid", "id"}));
-            EXPECT_TRUE(checkNodes(variable->readBy, {21}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {20}));
+            EXPECT_TRUE(checkNodes(variable->readBy, {24}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {23}));
         }
         {
-            auto varName = "__Project_21";
+            auto varName = "__Project_24";
             auto* variable = symTable->getVar(varName);
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames, std::vector<std::string>({"like._dst"}));
             EXPECT_TRUE(checkNodes(variable->readBy, {}));
-            EXPECT_TRUE(checkNodes(variable->writtenBy, {21}));
+            EXPECT_TRUE(checkNodes(variable->writtenBy, {24}));
         }
     }
 }

@@ -75,9 +75,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             PK::kProject,
             PK::kLeftJoin,
             PK::kProject,
-            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kGetVertices,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -103,9 +103,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             PK::kProject,
             PK::kLeftJoin,
             PK::kProject,
-            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kGetVertices,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -126,9 +126,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             PK::kProject,
             PK::kLeftJoin,
             PK::kProject,
-            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kGetVertices,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -150,9 +150,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             PK::kProject,
             PK::kLeftJoin,
             PK::kProject,
-            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kGetVertices,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -174,9 +174,9 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             PK::kProject,
             PK::kLeftJoin,
             PK::kProject,
-            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kGetVertices,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -209,9 +209,9 @@ TEST_F(GroupByValidatorTest, VariableTest) {
             PK::kProject,
             PK::kLeftJoin,
             PK::kProject,
-            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kGetVertices,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -233,9 +233,9 @@ TEST_F(GroupByValidatorTest, VariableTest) {
             PK::kProject,
             PK::kLeftJoin,
             PK::kProject,
-            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kGetVertices,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
