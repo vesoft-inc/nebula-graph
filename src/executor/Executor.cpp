@@ -587,6 +587,7 @@ void Executor::drop() {
                 // Make sure drop happened-after count de-increment
                 CHECK_EQ(inputVar->userCount.load(std::memory_order_acquire), 0);
                 ectx_->dropResult(inputVar->name);
+                VLOG(1) << "Drop variable " << node()->outputVar();
             }
         }
     }
@@ -597,6 +598,8 @@ Status Executor::finish(Result &&result) {
         node()->outputVarPtr()->userCount.load(std::memory_order_relaxed) != 0) {
         numRows_ = result.size();
         ectx_->setResult(node()->outputVar(), std::move(result));
+    } else {
+        VLOG(1) << "Drop variable " << node()->outputVar();
     }
     if (FLAGS_enable_lifetime_optimize) {
         drop();
