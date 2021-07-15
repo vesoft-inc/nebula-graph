@@ -80,6 +80,54 @@ private:
 
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
 
+    // @param input, the plan generate a path of current expand
+    void leftExpandFillNodeId(MatchClauseContext *matchCtx,
+                              const std::string &alias,
+                              const PlanNode *input,
+                              const std::string &colName) {
+        fillNodeId(matchCtx->qctx->objPool(),
+                   matchCtx->leftExpandFilledNodeId, alias, input, colName);
+    }
+
+    void rightExpandFillNodeId(MatchClauseContext *matchCtx,
+                               const std::string &alias,
+                               const PlanNode *input,
+                               const std::string &colName) {
+        fillNodeId(matchCtx->qctx->objPool(),
+                   matchCtx->rightExpandFilledNodeId, alias, input, colName);
+    }
+
+    using FillNodeId = std::unordered_map<std::string,
+                                          std::pair<const PlanNode*,
+                                                    Expression*>>;
+    void fillNodeId(ObjectPool *pool,
+                    FillNodeId &filledNodeId,
+                    const std::string &alias,
+                    const PlanNode *input,
+                    const std::string &colName);
+
+    Expression* leftExpandPreviousNodeId(const MatchClauseContext* matchClauseCtx,
+                                         const std::string &dstNodeAlias,
+                                         const std::string &inputVar) {
+        return previousNodeId(matchClauseCtx->leftExpandFilledNodeId, dstNodeAlias, inputVar);
+    }
+
+    Expression* rightExpandPreviousNodeId(const MatchClauseContext* matchClauseCtx,
+                                          const std::string &dstNodeAlias,
+                                          const std::string &inputVar) {
+        return previousNodeId(matchClauseCtx->rightExpandFilledNodeId, dstNodeAlias, inputVar);
+    }
+
+    Expression* previousNodeId(const FillNodeId &filledNodeId,
+                               const std::string &dstNodeAlias,
+                               const std::string &inputVar);
+
+    std::vector<std::pair<Expression*, Expression*>>
+    leftRightExpandJoinNodeId(const MatchClauseContext* matchClauseCtx,
+                              const PlanNode *left,
+                              const PlanNode *right,
+                              const std::string &midNodeAlias);
+
 private:
     Expression* initialExpr_{nullptr};
 };

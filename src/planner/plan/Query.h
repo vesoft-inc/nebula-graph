@@ -149,6 +149,14 @@ public:
         return src_;
     }
 
+    Expression* dst() const {
+        return dst_;
+    }
+
+    void setDst(Expression *dst) {
+        dst_ = dst;
+    }
+
     storage::cpp2::EdgeDirection edgeDirection() const {
         return edgeDirection_;
     }
@@ -223,6 +231,7 @@ private:
     void cloneMembers(const GetNeighbors&);
 
     Expression*                              src_{nullptr};
+    Expression*                                  dst_{nullptr};
     std::vector<EdgeType>                    edgeTypes_;
     storage::cpp2::EdgeDirection             edgeDirection_{Direction::OUT_EDGE};
     std::unique_ptr<std::vector<VertexProp>> vertexProps_;

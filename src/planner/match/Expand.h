@@ -38,20 +38,29 @@ public:
         return this;
     }
 
+    Expand* colNumber(std::size_t i) {
+        colName_ = folly::stringPrintf("%s_%lu", kPathStr, i);
+        return this;
+    }
+
     Status doExpand(const NodeInfo& node,
                     const EdgeInfo& edge,
+                    const NodeInfo& dstNode,
                     SubPlan* plan);
 
 private:
     Status expandSteps(const NodeInfo& node,
                        const EdgeInfo& edge,
+                       const NodeInfo& dstNode,
                        SubPlan* plan);
 
     Status expandStep(const EdgeInfo& edge,
                       PlanNode* dep,
                       const std::string& inputVar,
                       const Expression* nodeFilter,
-                      SubPlan* plan);
+                      SubPlan* plan,
+                      const NodeInfo& dstNode,
+                      bool withDst = false);
 
     Status collectData(const PlanNode* joinLeft,
                        const PlanNode* joinRight,
@@ -73,11 +82,43 @@ private:
 
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
 
+    void extractAndDedupVidDstColumns(QueryContext* qctx,
+                                      Expression** initialExpr,
+                                      PlanNode* dep,
+                                      const std::string& inputVar,
+                                      SubPlan& plan,
+                                      const std::string &dstNodeAlias);
+
+    Expression* initialExprOrExpandDstExpr(Expression** initialExpr,
+                                           const std::string& inputVar,
+                                           const std::string &dstNodeAlias);
+
+    Expression* expandDstExpr(const std::string &inputVar, const std::string &dstNodeAlias) {
+        auto find = reversely_ ?
+                    matchCtx_->leftExpandFilledNodeId.find(dstNodeAlias) :
+                    matchCtx_->rightExpandFilledNodeId.find(dstNodeAlias);
+        DCHECK(find != matchCtx_->leftExpandFilledNodeId.end());
+        DCHECK(find != matchCtx_->rightExpandFilledNodeId.end());
+        CHECK_EQ(inputVar, find->second.first->outputVar());
+        return find->second.second->clone();
+    }
+
+    bool expandInto(const std::string &dstNodeAlias) {
+        if (reversely_) {
+            return matchCtx_->leftExpandFilledNodeId.find(dstNodeAlias) !=
+                   matchCtx_->leftExpandFilledNodeId.end();
+        } else {
+            return matchCtx_->rightExpandFilledNodeId.find(dstNodeAlias) !=
+                   matchCtx_->rightExpandFilledNodeId.end();
+        }
+    }
+
     MatchClauseContext*                 matchCtx_;
     Expression*                         initialExpr_{nullptr};
     bool                                reversely_{false};
     PlanNode*                           dependency_{nullptr};
     std::string                         inputVar_;
+    std::string                         colName_;
 };
 }   // namespace graph
 }   // namespace nebula

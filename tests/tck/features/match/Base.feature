@@ -455,6 +455,80 @@ Feature: Basic match
       | [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]                             |
       | [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]                                |
 
+  Scenario: Redefined node alias
+    When executing query:
+      """
+      match (v:player)-[:like]->(v) return v.name AS name
+      """
+    Then the result should be, in any order:
+      | name |
+    When executing query:
+      """
+      match (v)-[:serve]->(t)<-[:serve]-(v) return t.name, v.name
+      """
+    Then the result should be, in any order:
+      | t.name      | v.name            |
+      | "Mavericks" | "Jason Kidd"      |
+      | "Mavericks" | "Jason Kidd"      |
+      | "Spurs"     | "Marco Belinelli" |
+      | "Spurs"     | "Marco Belinelli" |
+      | "Heat"      | "Dwyane Wade"     |
+      | "Heat"      | "Dwyane Wade"     |
+      | "Suns"      | "Steve Nash"      |
+      | "Suns"      | "Steve Nash"      |
+      | "Hornets"   | "Marco Belinelli" |
+      | "Hornets"   | "Marco Belinelli" |
+      | "Cavaliers" | "LeBron James"    |
+      | "Cavaliers" | "LeBron James"    |
+    When executing query:
+      """
+      match (v)-[]->(t)<-[]-(v:player) return v.name, t.name
+      """
+    Then the result should be, in any order:
+      | v.name            | t.name              |
+      | "LeBron James"    | "Cavaliers"         |
+      | "LeBron James"    | "Cavaliers"         |
+      | "Marco Belinelli" | "Hornets"           |
+      | "Marco Belinelli" | "Spurs"             |
+      | "Marco Belinelli" | "Hornets"           |
+      | "Marco Belinelli" | "Spurs"             |
+      | "Tony Parker"     | "Tim Duncan"        |
+      | "Tony Parker"     | "LaMarcus Aldridge" |
+      | "Tony Parker"     | "Manu Ginobili"     |
+      | "Tony Parker"     | "LaMarcus Aldridge" |
+      | "Tony Parker"     | "Manu Ginobili"     |
+      | "Tony Parker"     | "Tim Duncan"        |
+      | "Tim Duncan"      | "Manu Ginobili"     |
+      | "Tim Duncan"      | "Tony Parker"       |
+      | "Tim Duncan"      | "Manu Ginobili"     |
+      | "Tim Duncan"      | "Tony Parker"       |
+      | "Manu Ginobili"   | "Tim Duncan"        |
+      | "Manu Ginobili"   | "Tim Duncan"        |
+      | "Dwyane Wade"     | "Heat"              |
+      | "Dwyane Wade"     | "Heat"              |
+      | "Steve Nash"      | "Suns"              |
+      | "Steve Nash"      | "Suns"              |
+      | "Jason Kidd"      | "Mavericks"         |
+      | "Jason Kidd"      | "Mavericks"         |
+    When executing query:
+      """
+      match (v)-[]->(t)<-[:serve]-(v) return t.name, v.name
+      """
+    Then the result should be, in any order:
+      | t.name      | v.name            |
+      | "Mavericks" | "Jason Kidd"      |
+      | "Mavericks" | "Jason Kidd"      |
+      | "Spurs"     | "Marco Belinelli" |
+      | "Spurs"     | "Marco Belinelli" |
+      | "Heat"      | "Dwyane Wade"     |
+      | "Heat"      | "Dwyane Wade"     |
+      | "Suns"      | "Steve Nash"      |
+      | "Suns"      | "Steve Nash"      |
+      | "Hornets"   | "Marco Belinelli" |
+      | "Hornets"   | "Marco Belinelli" |
+      | "Cavaliers" | "LeBron James"    |
+      | "Cavaliers" | "LeBron James"    |
+
   Scenario: No return
     When executing query:
       """
@@ -466,6 +540,13 @@ Feature: Basic match
       MATCH (v:player) where v.name return v
       """
     Then a ExecutionError should be raised at runtime: Internal Error: Wrong type result, the type should be NULL,EMPTY or BOOL
+
+  Scenario: Redefined edge alias
+    When executing query:
+      """
+      MATCH (v:player{name:"abc"})-[e:like]->(v1)-[e:like]->(v2) RETURN *
+      """
+    Then a SemanticError should be raised at runtime: `e': Redefined alias
 
   Scenario: Unimplemented features
     When executing query:
@@ -505,3 +586,8 @@ Feature: Basic match
       MATCH (p)-[:serve*0..3]->(t) RETURN p
       """
     Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (p)-[:serve*0..3]->(t) RETURN p
+    When executing query:
+      """
+      match (v)-[:serve]->(t)<-[:serve*0..1]-(v) return t.name, v.name
+      """
+    Then a SemanticError should be raised at runtime: Vairable expand to resolved node is not supported.

@@ -5,6 +5,7 @@
  */
 
 #include "planner/match/Expand.h"
+#include <memory>
 
 #include "planner/plan/Logic.h"
 #include "planner/plan/Query.h"
@@ -84,19 +85,26 @@ static Expression* buildPathExpr(ObjectPool* pool) {
     return expr;
 }
 
-Status Expand::doExpand(const NodeInfo& node, const EdgeInfo& edge, SubPlan* plan) {
-    NG_RETURN_IF_ERROR(expandSteps(node, edge, plan));
+Status Expand::doExpand(const NodeInfo& node,
+                        const EdgeInfo& edge,
+                        const NodeInfo &dstNode,
+                        SubPlan* plan) {
+    NG_RETURN_IF_ERROR(expandSteps(node, edge, dstNode, plan));
     NG_RETURN_IF_ERROR(filterDatasetByPathLength(edge, plan->root, plan));
     return Status::OK();
 }
 
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project2->
 // DataJoin->Project3->[Filter]->Passthrough->Loop->UnionAllVer
-Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* plan) {
+Status Expand::expandSteps(const NodeInfo& node,
+                           const EdgeInfo& edge,
+                           const NodeInfo &dstNode,
+                           SubPlan* plan) {
     SubPlan subplan;
     int64_t startIndex = 0;
     auto minHop = edge.range ? edge.range->min() : 1;
     auto maxHop = edge.range ? edge.range->max() : 1;
+    bool willExpandInto = expandInto(dstNode.alias);
 
     // Build first step
     // In the case of 0 step, src node is the dst node, return the vertex directly
@@ -110,10 +118,12 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
                                                               &initialExpr_,
                                                               inputVar_,
                                                               subplan));
+        subplan.root->setColNames({colName_});
     } else {   // Case 1 to n steps
         startIndex = 1;
         // Expand first step from src
-        NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, &subplan));
+        NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter,
+                                     &subplan, dstNode, willExpandInto));
     }
     // No need to further expand if maxHop is the start Index
     if (maxHop == startIndex) {
@@ -124,6 +134,10 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
     PlanNode* firstStep = subplan.root;
 
     // Build Start node from first step
+    if (willExpandInto) {
+        return Status::SemanticError("Vairable expand to resolved node is not supported.");
+    }
+
     SubPlan loopBodyPlan;
     PlanNode* startNode = StartNode::make(matchCtx_->qctx);
     startNode->setOutputVar(firstStep->outputVar());
@@ -136,7 +150,9 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
                                   startNode,                // dep
                                   startNode->outputVar(),   // inputVar
                                   nullptr,
-                                  &loopBodyPlan));
+                                  &loopBodyPlan,
+                                  dstNode,
+                                  false));
 
     NG_RETURN_IF_ERROR(collectData(startNode,           // left join node
                                    loopBodyPlan.root,   // right join node
@@ -154,7 +170,7 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
     // Unionize the results of each expansion which are stored in the firstStep node
     auto uResNode = UnionAllVersionVar::make(matchCtx_->qctx, loop);
     uResNode->setInputVar(firstStep->outputVar());
-    uResNode->setColNames({kPathStr});
+    uResNode->setColNames({colName_});
 
     subplan.root = uResNode;
     plan->root = subplan.root;
@@ -166,13 +182,26 @@ Status Expand::expandStep(const EdgeInfo& edge,
                           PlanNode* dep,
                           const std::string& inputVar,
                           const Expression* nodeFilter,
-                          SubPlan* plan) {
+                          SubPlan* plan,
+                          const NodeInfo& dstNode,
+                          bool withDst) {
     auto qctx = matchCtx_->qctx;
     auto* pool = qctx->objPool();
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
     curr.root = dep;
-    MatchSolver::extractAndDedupVidColumn(qctx, &initialExpr_, dep, inputVar, curr);
+    if (withDst) {
+        // _vid|_dst
+        extractAndDedupVidDstColumns(qctx,
+                                     &initialExpr_,
+                                     dep,
+                                     inputVar,
+                                     curr,
+                                     dstNode.alias);
+    } else {
+        // _vid
+        MatchSolver::extractAndDedupVidColumn(qctx, &initialExpr_, dep, inputVar, curr);
+    }
     // [GetNeighbors]
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = InputPropertyExpression::make(pool, kVid);
@@ -180,6 +209,10 @@ Status Expand::expandStep(const EdgeInfo& edge,
     gn->setVertexProps(genVertexProps());
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
+    if (withDst) {
+        auto dstExpr = InputPropertyExpression::make(pool, kDst);
+        gn->setDst(dstExpr);
+    }
 
     PlanNode* root = gn;
     if (nodeFilter != nullptr) {
@@ -197,10 +230,10 @@ Status Expand::expandStep(const EdgeInfo& edge,
     }
 
     auto listColumns = saveObject(new YieldColumns);
-    listColumns->addColumn(new YieldColumn(buildPathExpr(pool), kPathStr));
+    listColumns->addColumn(new YieldColumn(buildPathExpr(pool), colName_));
     // [Project]
     root = Project::make(qctx, root, listColumns);
-    root->setColNames({kPathStr});
+    root->setColNames({colName_});
 
     plan->root = root;
     plan->tail = curr.tail;
@@ -225,9 +258,9 @@ Status Expand::collectData(const PlanNode* joinLeft,
     columns->addColumn(new YieldColumn(listExpr));
     // [Project]
     auto project = Project::make(qctx, join, columns);
-    project->setColNames({kPathStr});
+    project->setColNames({colName_});
     // [Filter]
-    auto filter = MatchSolver::filtPathHasSameEdge(project, kPathStr, qctx);
+    auto filter = MatchSolver::filtPathHasSameEdge(project, colName_, qctx);
     // Update start node
     filter->setOutputVar((*passThrough)->outputVar());
     plan->root = filter;
@@ -241,8 +274,8 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, 
     // Filter rows whose edges number less than min hop
     auto args = ArgumentList::make(pool);
     // Expr: length(relationships(p)) >= minHop
-    auto pathExpr = InputPropertyExpression::make(pool, kPathStr);
-    args->addArgument(pathExpr);
+    auto pathExpr = InputPropertyExpression::make(pool, colName_);
+    args->addArgument(std::move(pathExpr));
     auto edgeExpr = FunctionCallExpression::make(pool, "length", args);
     auto minHop = edge.range == nullptr ? 1 : edge.range->min();
     auto minHopExpr = ConstantExpression::make(pool, minHop);
@@ -271,6 +304,46 @@ Expression* Expand::buildExpandCondition(const std::string& lastStepResult,
     auto neZero = ExpressionUtils::neZeroCondition(pool, lastStepResult);
     auto* existValCondition = LogicalExpression::makeOr(pool, eqEmpty, neZero);
     return LogicalExpression::makeAnd(pool, stepCondition, existValCondition);
+}
+
+void Expand::extractAndDedupVidDstColumns(QueryContext* qctx,
+                                          Expression** initialExpr,
+                                          PlanNode* dep,
+                                          const std::string& inputVar,
+                                          SubPlan& plan,
+                                          const std::string &dstNodeAlias) {
+    auto columns = qctx->objPool()->add(new YieldColumns);
+    auto* var = qctx->symTable()->getVar(inputVar);
+    Expression* vidExpr = MatchSolver::initialExprOrEdgeDstExpr(qctx,
+                                                                initialExpr,
+                                                                var->colNames.back());
+    Expression* dstExpr = initialExprOrExpandDstExpr(initialExpr, inputVar, dstNodeAlias);
+    columns->addColumn(new YieldColumn(vidExpr));
+    if (vidExpr == dstExpr) {
+        columns->addColumn(new YieldColumn(dstExpr->clone()));
+    } else {
+        columns->addColumn(new YieldColumn(dstExpr));
+    }
+    auto project = Project::make(qctx, dep, columns);
+    project->setInputVar(inputVar);
+    project->setColNames({kVid, kDst});
+    auto dedup = Dedup::make(qctx, project);
+    dedup->setColNames({kVid, kDst});
+    if (initialExpr) {
+        *initialExpr = nullptr;
+    }
+
+    plan.root = dedup;
+}
+
+Expression* Expand::initialExprOrExpandDstExpr(Expression** initialExpr,
+                                               const std::string& inputVar,
+                                               const std::string &dstNodeAlias) {
+    if (initialExpr != nullptr && *initialExpr != nullptr) {
+        return *initialExpr;
+    } else {
+        return expandDstExpr(inputVar, dstNodeAlias);
+    }
 }
 
 }   // namespace graph
