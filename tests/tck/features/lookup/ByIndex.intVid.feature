@@ -528,7 +528,7 @@ Feature: Lookup by index itself in integer vid
     When executing query:
       """
       LOOKUP ON player WHERE player.age < 40
-      YIELD player.age AS Age, player.name AS Name | order by Age DESC, Name| limit 10
+      YIELD player.age AS Age, player.name AS Name | order by $-.Age DESC, $-.Name| limit 10
       """
     Then the result should be, in order, with relax comparison, and the columns 0 should be hashed:
       | VertexID            | Age | Name                |
@@ -545,7 +545,7 @@ Feature: Lookup by index itself in integer vid
     When executing query:
       """
       LOOKUP ON player WHERE player.age <= 40
-      YIELD player.age AS Age, player.name AS Name | order by Age DESC, Name| limit 10
+      YIELD player.age AS Age, player.name AS Name | order by $-.Age DESC, $-.Name| limit 10
       """
     Then the result should be, in order, with relax comparison, and the columns 0 should be hashed:
       | VertexID            | Age | Name                |

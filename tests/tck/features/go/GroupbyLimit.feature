@@ -212,6 +212,11 @@ Feature: Groupby & limit Sentence
       | "Grizzlies" | 34     |
       | "Raptors"   | 34     |
       | "Lakers"    | 40     |
+    When executing query:
+      """
+      GROUP BY 1 YIELD 1
+      """
+    Then a SemanticError should be raised at runtime:
 
   Scenario: Groupby with all agg functions
     When executing query:
