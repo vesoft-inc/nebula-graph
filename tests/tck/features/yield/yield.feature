@@ -432,13 +432,12 @@ Feature: Yield Sentence
     Then the result should be, in any order, with relax comparison:
       | 1 |
       | 1 |
-      | 1 |
-      | 1 |
     When executing query:
       """
       GO FROM "Nobody" OVER like | YIELD 1
       """
     Then the result should be, in any order, with relax comparison:
+      | 1 |
       | 1 |
     When executing query:
       """

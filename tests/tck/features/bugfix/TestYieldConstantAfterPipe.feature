@@ -15,24 +15,12 @@ Feature: Test yield constant after pipe
     Then the result should be, in any order:
       | a |
       | 1 |
-      | 1 |
-      | 1 |
-      | 1 |
-      | 1 |
-      | 1 |
-      | 1 |
     When executing query:
       """
       GO FROM "Tim Duncan" OVER * | YIELD 1 AS a WHERE true;
       """
     Then the result should be, in any order:
       | a |
-      | 1 |
-      | 1 |
-      | 1 |
-      | 1 |
-      | 1 |
-      | 1 |
       | 1 |
     When executing query:
       """

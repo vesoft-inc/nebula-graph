@@ -51,15 +51,19 @@ Status YieldValidator::validateImpl() {
     }
 
     if (!groupByValidator_ && exprProps_.inputProps().empty()
-        && exprProps_.varProps().empty() && inputVarName_.empty()) {
+        && exprProps_.varProps().empty() && userDefinedVarNameList_.empty()) {
         // generate constant expression result into querycontext
         genConstantExprValues();
     }
 
-    if (!exprProps_.varProps().empty() && !userDefinedVarNameList_.empty()) {
-        // TODO: Support Multiple userDefinedVars
+    if (!userDefinedVarNameList_.empty()) {
+        // Now disable yield multiple user defined input for that means implicit dataset join
+        // As the inner variable take care don't make it a dataset
         if (userDefinedVarNameList_.size() != 1) {
             return Status::SemanticError("Multiple user defined vars not supported yet.");
+        }
+        if (!exprProps_.inputProps().empty()) {
+            return Status::SemanticError("Multiple inputs not supported yet.");
         }
         userDefinedVarName_ = *userDefinedVarNameList_.begin();
     }
