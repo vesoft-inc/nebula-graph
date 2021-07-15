@@ -21,11 +21,9 @@
 #include "executor/admin/CharsetExecutor.h"
 #include "executor/admin/ConfigExecutor.h"
 #include "executor/admin/CreateUserExecutor.h"
-#include "executor/admin/DownloadExecutor.h"
 #include "executor/admin/DropUserExecutor.h"
 #include "executor/admin/GrantRoleExecutor.h"
 #include "executor/admin/GroupExecutor.h"
-#include "executor/admin/IngestExecutor.h"
 #include "executor/admin/ListRolesExecutor.h"
 #include "executor/admin/ListUserRolesExecutor.h"
 #include "executor/admin/ListUsersExecutor.h"
@@ -492,12 +490,6 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kSignOutTSService: {
             return pool->add(new SignOutTSServiceExecutor(node, qctx));
-        }
-        case PlanNode::Kind::kDownload: {
-            return pool->add(new DownloadExecutor(node, qctx));
-        }
-        case PlanNode::Kind::kIngest: {
-            return pool->add(new IngestExecutor(node, qctx));
         }
         case PlanNode::Kind::kShowSessions:  {
             return pool->add(new ShowSessionsExecutor(node, qctx));

@@ -265,6 +265,12 @@ std::string AdminJobSentence::toString() const {
                 case meta::cpp2::AdminCmd::FLUSH:
                     return paras_.empty() ? "SUBMIT JOB FLUSH"
                         : folly::stringPrintf("SUBMIT JOB FLUSH %s", paras_[0].c_str());
+                case meta::cpp2::AdminCmd::DOWNLOAD:
+                    return paras_.empty() ? "SUBMIT JOB DOWNLOAD HDFS"
+                        : folly::stringPrintf("SUBMIT JOB DOWNLOAD HDFS %s", paras_[0].c_str());
+                case meta::cpp2::AdminCmd::INGEST:
+                    return paras_.empty() ? "SUBMIT JOB INGEST"
+                        : folly::stringPrintf("SUBMIT JOB INGEST %s", paras_[0].c_str());
                 case meta::cpp2::AdminCmd::REBUILD_TAG_INDEX:
                     return folly::stringPrintf("REBUILD TAG INDEX %s",
                             folly::join(",", paras_).c_str());
@@ -276,12 +282,10 @@ std::string AdminJobSentence::toString() const {
                 case meta::cpp2::AdminCmd::STATS:
                     return paras_.empty() ? "SUBMIT JOB STATS"
                         : folly::stringPrintf("SUBMIT JOB STATS %s", paras_[0].c_str());
-                case meta::cpp2::AdminCmd::DOWNLOAD:
-                    return paras_.empty() ? "DOWNLOAD HDFS "
-                        : folly::stringPrintf("DOWNLOAD HDFS %s", paras_[0].c_str());
-                case meta::cpp2::AdminCmd::INGEST:
-                    return "INGEST";
                 case meta::cpp2::AdminCmd::DATA_BALANCE:
+                    return paras_.empty() ? "SUBMIT JOB DATA BALANCE"
+                        : folly::stringPrintf("SUBMIT JOB DATA BALANCE REMOVE %s",
+                                               paras_[0].c_str());
                 case meta::cpp2::AdminCmd::UNKNOWN:
                     return folly::stringPrintf("Unsupported AdminCmd: %s",
                             apache::thrift::util::enumNameSafe(cmd_).c_str());

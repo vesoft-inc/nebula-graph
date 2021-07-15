@@ -89,7 +89,7 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
             LOG(ERROR) << "Create session for userName: " << user
                        << ", ip: " << cIp << " failed: " << ret.status();
             ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            ctx->resp().errorMsg.reset(new std::string(ret.status().toString()));
+            ctx->resp().errorMsg.reset(new std::string("Create session failed."));
             return ctx->finish();
         }
         auto sessionPtr = std::move(ret).value();
@@ -141,18 +141,16 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
             LOG(ERROR) << "Get session for sessionId: " << sessionId
                         << " failed: " << ret.status();
             ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            ctx->resp().errorMsg.reset(new std::string(
-                folly::stringPrintf("Get sessionId[%ld] failed: %s",
-                                    sessionId,
-                                    ret.status().toString().c_str())));
+            ctx->resp().errorMsg.reset(
+                new std::string("SessionId[%ld] does not exist", sessionId));
             return ctx->finish();
         }
         auto sessionPtr = std::move(ret).value();
         if (sessionPtr == nullptr) {
             LOG(ERROR) << "Get session for sessionId: " << sessionId << " is nullptr";
             ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            ctx->resp().errorMsg.reset(new std::string(
-                folly::stringPrintf("SessionId[%ld] does not exist", sessionId)));
+            ctx->resp().errorMsg.reset(
+                new std::string("SessionId[%ld] does not exist", sessionId));
             return ctx->finish();
         }
         ctx->setSession(std::move(sessionPtr));
