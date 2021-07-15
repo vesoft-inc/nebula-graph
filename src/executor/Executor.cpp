@@ -582,7 +582,11 @@ void Executor::drop() {
     for (const auto &inputVar : node()->inputVars()) {
         if (inputVar != nullptr) {
             if (inputVar->lastUser.value() == node()->id()) {
+                if (ectx_->size(inputVar->name) > 1024) {
+                    qctx_->dropper()->drop(ectx_->moveAllResults(inputVar->name));
+                } else {
                     ectx_->dropResult(inputVar->name);
+                }
             }
         }
     }

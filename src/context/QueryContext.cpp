@@ -20,7 +20,8 @@ QueryContext::QueryContext(RequestContextPtr rctx,
       im_(DCHECK_NOTNULL(im)),
       storageClient_(DCHECK_NOTNULL(storage)),
       metaClient_(DCHECK_NOTNULL(metaClient)),
-      charsetInfo_(DCHECK_NOTNULL(charsetInfo)) {
+      charsetInfo_(DCHECK_NOTNULL(charsetInfo)),
+      executor_(rctx_->runner()) {
     init();
 }
 
@@ -35,6 +36,8 @@ void QueryContext::init() {
     idGen_ = std::make_unique<IdGenerator>(0);
     symTable_ = std::make_unique<SymbolTable>(objPool_.get());
     vctx_ = std::make_unique<ValidateContext>(std::make_unique<AnonVarGenerator>(symTable_.get()));
+
+    dropper_ = std::make_unique<AsyncDropper>(executor_);
 }
 
 }   // namespace graph

@@ -14,6 +14,7 @@ namespace nebula {
 namespace graph {
 
 class QueryInstance;
+class Executor;
 
 /***************************************************************************
  *
@@ -71,9 +72,16 @@ public:
         return valueMap_.find(name) != valueMap_.end();
     }
 
+    // estimate the size of variable
+    // now just count all row size
+    std::size_t size(const std::string& name) const;
+
 private:
     friend class QueryInstance;
     Value moveValue(const std::string& name);
+
+    friend class Executor;
+    std::vector<Result> moveAllResults(const std::string& name);
 
     // name -> Value with multiple versions
     std::unordered_map<std::string, std::vector<Result>>     valueMap_;
