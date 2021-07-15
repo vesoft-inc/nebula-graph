@@ -50,10 +50,11 @@ Feature: Lookup tag index full scan
       | 4  | TagIndexFullScan | 0            |                                            |
       | 0  | Start            |              |                                            |
 
+  @skip
   Scenario: Tag with relational NE filter
     When profiling query:
       """
-      LOOKUP ON team WHERE team.name != "Hornets" AND team.name != "Jazz"
+      LOOKUP ON team WHERE team.name != "Hornets"
       """
     Then the result should be, in any order:
       | VertexID        |
@@ -66,8 +67,7 @@ Feature: Lookup tag index full scan
       | "Grizzlies"     |
       | "Hawks"         |
       | "Heat"          |
-      | "Wizards"       |
-      | "Warriors"      |
+      | "Jazz"          |
       | "Kings"         |
       | "Knicks"        |
       | "Lakers"        |
@@ -85,12 +85,14 @@ Feature: Lookup tag index full scan
       | "Thunders"      |
       | "Timberwolves"  |
       | "Trail Blazers" |
+      | "Warriors"      |
+      | "Wizards"       |
     And the execution plan should be:
-      | id | name             | dependencies | operator info                                                         |
-      | 3  | Project          | 2            |                                                                       |
-      | 2  | Filter           | 4            | {"condition": "((team.name!=\"Hornets\") AND (team.name!=\"Jazz\"))"} |
-      | 4  | TagIndexFullScan | 0            |                                                                       |
-      | 0  | Start            |              |                                                                       |
+      | id | name             | dependencies | operator info                             |
+      | 3  | Project          | 2            |                                           |
+      | 2  | Filter           | 4            | {"condition": "(team.name!=\"Hornets\")"} |
+      | 4  | TagIndexFullScan | 0            |                                           |
+      | 0  | Start            |              |                                           |
 
   Scenario: Tag with relational IN/NOT IN filter
     When profiling query:
