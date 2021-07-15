@@ -951,6 +951,9 @@ edge_prop_expression
         $$ = EdgeDstIdExpression::make(qctx->objPool(), *$1);
         delete $1;
     }
+    | STAR DOT DST_ID_PROP {
+        $$ = new EdgeDstIdExpression("*");
+    }
     | name_label DOT RANK_PROP {
         $$ = EdgeRankExpression::make(qctx->objPool(), *$1);
         delete $1;

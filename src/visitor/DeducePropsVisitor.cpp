@@ -220,6 +220,9 @@ void DeducePropsVisitor::visit(ColumnExpression *expr) {
 }
 
 void DeducePropsVisitor::visitEdgePropExpr(PropertyExpression *expr) {
+    if (expr->sym().compare("*") == 0) {
+        return;
+    }
     auto status = qctx_->schemaMng()->toEdgeType(space_, expr->sym());
     if (!status.ok()) {
         status_ = std::move(status).status();
