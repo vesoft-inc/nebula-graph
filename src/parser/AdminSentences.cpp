@@ -228,6 +228,9 @@ std::string AddListenerSentence::toString() const {
         case meta::cpp2::ListenerType::ELASTICSEARCH:
             buf += "ELASTICSEARCH ";
             break;
+        case meta::cpp2::ListenerType::KAFKA:
+            buf += "KAFKA ";
+            break;
         case meta::cpp2::ListenerType::UNKNOWN:
             LOG(FATAL) << "Unknown listener type.";
             break;
@@ -243,6 +246,9 @@ std::string RemoveListenerSentence::toString() const {
     switch (type_) {
         case meta::cpp2::ListenerType::ELASTICSEARCH:
             buf += "ELASTICSEARCH ";
+            break;
+        case meta::cpp2::ListenerType::KAFKA:
+            buf += "KAFKA ";
             break;
         case meta::cpp2::ListenerType::UNKNOWN:
             DLOG(FATAL) << "Unknown listener type.";
@@ -360,8 +366,40 @@ std::string SignInTextServiceSentence::toString() const {
     return buf;
 }
 
+std::string SignInStreamingServiceSentence::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    buf += "SIGN IN STREAMING SERVICE ";
+    for (auto &client : clients_->clients()) {
+        buf += "(";
+        buf += client.get_host().host;
+        buf += ":";
+        buf += std::to_string(client.get_host().port);
+        if (client.user_ref().has_value() && !(*client.user_ref()).empty()) {
+            buf += ", \"";
+            buf += *client.get_user();
+            buf += "\"";
+        }
+        if (client.pwd_ref().has_value() && !(*client.pwd_ref()).empty()) {
+            buf += ", \"";
+            buf += *client.get_pwd();
+            buf += "\"";
+        }
+        buf += ")";
+        buf += ",";
+    }
+    if (!buf.empty()) {
+        buf.resize(buf.size() - 1);
+    }
+    return buf;
+}
+
 std::string SignOutTextServiceSentence::toString() const {
     return "SIGN OUT TEXT SERVICE";
+}
+
+std::string SignOutStreamingServiceSentence::toString() const {
+    return "SIGN OUT STREAMING SERVICE";
 }
 
 std::string ShowSessionsSentence::toString() const {

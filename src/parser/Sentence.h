@@ -127,6 +127,8 @@ public:
         kShowListener,
         kSignInTSService,
         kSignOutTSService,
+        kSignInStreamingService,
+        kSignOutStreamingService,
         kCreateFTIndex,
         kDropFTIndex,
         kShowSessions,

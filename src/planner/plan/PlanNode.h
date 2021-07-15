@@ -167,6 +167,8 @@ public:
         kShowFTIndexes,
         kSignInTSService,
         kSignOutTSService,
+        kSignInStreamingService,
+        kSignOutStreamingService,
         kDownload,
         kIngest,
         kShowSessions,

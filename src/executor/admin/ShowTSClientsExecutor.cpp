@@ -20,9 +20,9 @@ folly::Future<Status> ShowTSClientsExecutor::execute() {
 }
 
 folly::Future<Status> ShowTSClientsExecutor::showTSClients() {
-return qctx()
+    return qctx()
         ->getMetaClient()
-        ->listFTClients()
+        ->listServiceClients(nebula::meta::cpp2::ServiceType::ELASTICSEARCH)
         .via(runner())
         .thenValue([this](auto &&resp) {
             if (!resp.ok()) {

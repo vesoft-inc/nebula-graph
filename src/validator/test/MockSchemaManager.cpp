@@ -171,7 +171,8 @@ StatusOr<std::vector<std::string>> MockSchemaManager::getAllEdge(GraphSpaceID) {
     return edgeNames;
 }
 
-StatusOr<std::vector<nebula::meta::cpp2::FTClient>> MockSchemaManager::getFTClients() {
+StatusOr<std::vector<nebula::meta::cpp2::ServiceClient>>
+MockSchemaManager::getServiceClients(nebula::meta::cpp2::ServiceType) {
     return Status::Error("Not implemented");
 }
 

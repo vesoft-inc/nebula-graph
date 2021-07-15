@@ -275,6 +275,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "SignInTSService";
         case Kind::kSignOutTSService:
             return "SignOutTSService";
+        case Kind::kSignInStreamingService:
+            return "kSignInStreamingService";
+        case Kind::kSignOutStreamingService:
+            return "kSignOutStreamingService";
         case Kind::kDownload:
             return "Download";
         case Kind::kIngest:

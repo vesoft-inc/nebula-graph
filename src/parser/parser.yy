@@ -143,8 +143,8 @@ static constexpr size_t kCommentLengthLimit = 256;
     nebula::TextSearchArgument             *text_search_argument;
     nebula::TextSearchArgument             *base_text_search_argument;
     nebula::TextSearchArgument             *fuzzy_text_search_argument;
-    nebula::meta::cpp2::FTClient           *text_search_client_item;
-    nebula::TSClientList                   *text_search_client_list;
+    nebula::meta::cpp2::ServiceClient      *service_client_item;
+    nebula::ServiceClients                 *service_client_list;
     nebula::QueryUniqueIdentifier          *query_unique_identifier;
 }
 
@@ -191,7 +191,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %token KW_UNWIND KW_SKIP KW_OPTIONAL
 %token KW_CASE KW_THEN KW_ELSE KW_END
 %token KW_GROUP KW_ZONE KW_GROUPS KW_ZONES KW_INTO
-%token KW_LISTENER KW_ELASTICSEARCH KW_FULLTEXT
+%token KW_LISTENER KW_ELASTICSEARCH KW_FULLTEXT KW_KAFKA KW_STREAMING
 %token KW_AUTO KW_FUZZY KW_PREFIX KW_REGEXP KW_WILDCARD
 %token KW_TEXT KW_SEARCH KW_CLIENTS KW_SIGN KW_SERVICE KW_TEXT_SEARCH
 %token KW_ANY KW_SINGLE KW_NONE
@@ -315,8 +315,8 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <text_search_argument> text_search_argument
 %type <base_text_search_argument> base_text_search_argument
 %type <fuzzy_text_search_argument> fuzzy_text_search_argument
-%type <text_search_client_item> text_search_client_item
-%type <text_search_client_list> text_search_client_list
+%type <service_client_item> service_client_item
+%type <service_client_list> service_client_list
 
 %type <intval> legal_integer unary_integer rank port job_concurrency
 
@@ -379,6 +379,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <explain_sentence> explain_sentence
 %type <sentences> sentences
 %type <sentence> sign_in_text_search_service_sentence sign_out_text_search_service_sentence
+%type <sentence> sign_in_streaming_service_sentence sign_out_streaming_service_sentence
 
 %type <boolval> opt_if_not_exists
 %type <boolval> opt_if_exists
@@ -498,6 +499,7 @@ unreserved_keyword
     | KW_ZONES              { $$ = new std::string("zones"); }
     | KW_LISTENER           { $$ = new std::string("listener"); }
     | KW_ELASTICSEARCH      { $$ = new std::string("elasticsearch"); }
+    | KW_KAFKA              { $$ = new std::string("kafka"); }
     | KW_FULLTEXT           { $$ = new std::string("fulltext"); }
     | KW_STATS              { $$ = new std::string("stats"); }
     | KW_STATUS             { $$ = new std::string("status"); }
@@ -522,6 +524,7 @@ unreserved_keyword
     | KW_QUERY              { $$ = new std::string("query"); }
     | KW_KILL               { $$ = new std::string("kill"); }
     | KW_TOP                { $$ = new std::string("top"); }
+    | KW_STREAMING          { $$ = new std::string("streaming"); }
     ;
 
 expression
@@ -1669,14 +1672,14 @@ match_limit
     ;
 
 
-text_search_client_item
+service_client_item
     : L_PAREN host_item R_PAREN {
-        $$ = new nebula::meta::cpp2::FTClient();
+        $$ = new nebula::meta::cpp2::ServiceClient();
         $$->set_host(*$2);
         delete $2;
     }
     | L_PAREN host_item COMMA STRING COMMA STRING R_PAREN {
-        $$ = new nebula::meta::cpp2::FTClient();
+        $$ = new nebula::meta::cpp2::ServiceClient();
         $$->set_host(*$2);
         $$->set_user(*$4);
         $$->set_pwd(*$6);
@@ -1686,29 +1689,41 @@ text_search_client_item
     }
     ;
 
-text_search_client_list
-    : text_search_client_item {
-        $$ = new TSClientList();
+service_client_list
+    : service_client_item {
+        $$ = new ServiceClients();
         $$->addClient($1);
     }
-    | text_search_client_list COMMA text_search_client_item {
+    | service_client_list COMMA service_client_item {
         $$ = $1;
         $$->addClient($3);
     }
-    | text_search_client_list COMMA {
+    | service_client_list COMMA {
         $$ = $1;
     }
     ;
 
 sign_in_text_search_service_sentence
-    : KW_SIGN KW_IN KW_TEXT KW_SERVICE text_search_client_list {
+    : KW_SIGN KW_IN KW_TEXT KW_SERVICE service_client_list {
         $$ = new SignInTextServiceSentence($5);
+    }
+    ;
+
+sign_in_streaming_service_sentence
+    : KW_SIGN KW_IN KW_STREAMING KW_SERVICE service_client_list {
+        $$ = new SignInStreamingServiceSentence($5);
     }
     ;
 
 sign_out_text_search_service_sentence
     : KW_SIGN KW_OUT KW_TEXT KW_SERVICE {
         $$ = new SignOutTextServiceSentence();
+    }
+    ;
+
+sign_out_streaming_service_sentence
+    : KW_SIGN KW_OUT KW_STREAMING KW_SERVICE {
+        $$ = new SignOutStreamingServiceSentence();
     }
     ;
 
@@ -3318,11 +3333,17 @@ add_listener_sentence
     : KW_ADD KW_LISTENER KW_ELASTICSEARCH host_list {
         $$ = new AddListenerSentence(meta::cpp2::ListenerType::ELASTICSEARCH, $4);
     }
+    | KW_ADD KW_LISTENER KW_KAFKA host_list {
+        $$ = new AddListenerSentence(meta::cpp2::ListenerType::KAFKA, $4);
+    }
     ;
 
 remove_listener_sentence
     : KW_REMOVE KW_LISTENER KW_ELASTICSEARCH {
         $$ = new RemoveListenerSentence(meta::cpp2::ListenerType::ELASTICSEARCH);
+    }
+    | KW_REMOVE KW_LISTENER KW_KAFKA {
+        $$ = new RemoveListenerSentence(meta::cpp2::ListenerType::KAFKA);
     }
     ;
 
@@ -3420,6 +3441,8 @@ maintain_sentence
     | drop_snapshot_sentence { $$ = $1; }
     | sign_in_text_search_service_sentence { $$ = $1; }
     | sign_out_text_search_service_sentence { $$ = $1; }
+    | sign_in_streaming_service_sentence { $$ = $1; }
+    | sign_out_streaming_service_sentence { $$ = $1; }
     ;
 
 sentence

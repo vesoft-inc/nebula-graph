@@ -39,6 +39,8 @@
 #include "executor/admin/ShowTSClientsExecutor.h"
 #include "executor/admin/SignInTSServiceExecutor.h"
 #include "executor/admin/SignOutTSServiceExecutor.h"
+#include "executor/admin/SignInStreamingServiceExecutor.h"
+#include "executor/admin/SignOutStreamingServiceExecutor.h"
 #include "executor/admin/SnapshotExecutor.h"
 #include "executor/admin/SpaceExecutor.h"
 #include "executor/admin/StopBalanceExecutor.h"
@@ -492,6 +494,12 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kSignOutTSService: {
             return pool->add(new SignOutTSServiceExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kSignInStreamingService: {
+            return pool->add(new SignInStreamingServiceExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kSignOutStreamingService: {
+            return pool->add(new SignOutStreamingServiceExecutor(node, qctx));
         }
         case PlanNode::Kind::kDownload: {
             return pool->add(new DownloadExecutor(node, qctx));

@@ -2744,7 +2744,7 @@ TEST_F(ParserTest, FullTextServiceTest) {
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
-        std::string query = "ADD LISTENER ELASTICSEARCH 127.0.0.1:12000, 127.0.0.1:12001";
+        std::string query = "ADD LISTENER ELASTICSEARCH 127.0.0.1:12000,127.0.0.1:12001";
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
@@ -2791,6 +2791,59 @@ TEST_F(ParserTest, FullTextServiceTest) {
     }
 }
 
+TEST_F(ParserTest, StreamingListenerTest) {
+    {
+        std::string query = "ADD LISTENER KAFKA 127.0.0.1:12000";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "ADD LISTENER KAFKA 127.0.0.1:12000,127.0.0.1:12001";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "REMOVE LISTENER KAFKA";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "SHOW LISTENER";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "SIGN IN STREAMING SERVICE (127.0.0.1:9200)";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "SIGN IN STREAMING SERVICE (127.0.0.1:9200),(127.0.0.1:9300)";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "SIGN IN STREAMING SERVICE (127.0.0.1:9200, \"user\", \"password\")";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "SIGN IN STREAMING SERVICE (127.0.0.1:9200, \"user\", \"password\"), "
+                            "(127.0.0.1:9200, \"user\", \"password\")";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "SIGN OUT STREAMING SERVICE";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "SIGN IN STREAMING SERVICE (127.0.0.1:9200, \"user\")";
+        auto result = parse(query);
+        ASSERT_FALSE(result.ok());
+    }
+}
 
 TEST_F(ParserTest, SessionTest) {
     {
@@ -2808,7 +2861,7 @@ TEST_F(ParserTest, SessionTest) {
 }
 
 TEST_F(ParserTest, JobTest) {
-    auto checkTest = [&, this] (const std::string& query, const std::string expectedStr) {
+    auto checkTest = [this] (const std::string& query, const std::string expectedStr) {
         auto result = parse(query);
         ASSERT_TRUE(result.ok()) << query << ":" << result.status();
         ASSERT_EQ(result.value()->toString(), expectedStr);

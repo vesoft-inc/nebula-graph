@@ -1285,25 +1285,51 @@ private:
 class SignInTSService final : public SingleDependencyNode {
 public:
     static SignInTSService* make(QueryContext* qctx,
-                                  PlanNode* input,
-                                  std::vector<meta::cpp2::FTClient> clients) {
+                                 PlanNode* input,
+                                 std::vector<meta::cpp2::ServiceClient> clients) {
         return qctx->objPool()->add(new SignInTSService(qctx, input, std::move(clients)));
     }
 
-    const std::vector<meta::cpp2::FTClient> &clients() const {
+    const std::vector<meta::cpp2::ServiceClient> &clients() const {
         return clients_;
     }
 
-    meta::cpp2::FTServiceType type() const {
-        return meta::cpp2::FTServiceType::ELASTICSEARCH;
+    meta::cpp2::ServiceType type() const {
+        return meta::cpp2::ServiceType::ELASTICSEARCH;
     }
 
 private:
-    SignInTSService(QueryContext* qctx, PlanNode* input, std::vector<meta::cpp2::FTClient> clients)
+    SignInTSService(QueryContext* qctx, PlanNode* input,
+                    std::vector<meta::cpp2::ServiceClient> clients)
         : SingleDependencyNode(qctx, Kind::kSignInTSService, input),
           clients_(std::move(clients)) {}
 
-    std::vector<meta::cpp2::FTClient> clients_;
+    std::vector<meta::cpp2::ServiceClient> clients_;
+};
+
+class SignInStreamingService final : public SingleDependencyNode {
+public:
+    static SignInStreamingService* make(QueryContext* qctx,
+                                        PlanNode* input,
+                                        std::vector<meta::cpp2::ServiceClient> clients) {
+        return qctx->objPool()->add(new SignInStreamingService(qctx, input, std::move(clients)));
+    }
+
+    const std::vector<meta::cpp2::ServiceClient> &clients() const {
+        return clients_;
+    }
+
+    meta::cpp2::ServiceType type() const {
+        return meta::cpp2::ServiceType::KAFKA;
+    }
+
+private:
+    SignInStreamingService(QueryContext* qctx, PlanNode* input,
+                           std::vector<meta::cpp2::ServiceClient> clients)
+        : SingleDependencyNode(qctx, Kind::kSignInStreamingService, input),
+          clients_(std::move(clients)) {}
+
+    std::vector<meta::cpp2::ServiceClient> clients_;
 };
 
 class SignOutTSService final : public SingleDependencyNode {
@@ -1316,6 +1342,18 @@ public:
 private:
     SignOutTSService(QueryContext* qctx, PlanNode* input)
         : SingleDependencyNode(qctx, Kind::kSignOutTSService, input) {}
+};
+
+class SignOutStreamingService final : public SingleDependencyNode {
+public:
+    static SignOutStreamingService* make(QueryContext* qctx,
+                                         PlanNode* input) {
+        return qctx->objPool()->add(new SignOutStreamingService(qctx, input));
+    }
+
+private:
+    SignOutStreamingService(QueryContext* qctx, PlanNode* input)
+        : SingleDependencyNode(qctx, Kind::kSignOutStreamingService, input) {}
 };
 
 class ShowSessions final : public SingleInputNode {

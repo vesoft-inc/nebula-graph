@@ -76,7 +76,9 @@ Status PermissionCheck::permissionCheck(ClientSession *session,
         case Sentence::Kind::kIngest:
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kSignOutTSService:
-        case Sentence::Kind::kSignInTSService: {
+        case Sentence::Kind::kSignInTSService:
+        case Sentence::Kind::kSignInStreamingService:
+        case Sentence::Kind::kSignOutStreamingService: {
             return PermissionManager::canWriteSpace(session);
         }
         case Sentence::Kind::kCreateTag:

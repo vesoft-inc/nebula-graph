@@ -492,7 +492,7 @@ Status SignInTSServiceValidator::validateImpl() {
 
 Status SignInTSServiceValidator::toPlan() {
     auto sentence = static_cast<SignInTextServiceSentence*>(sentence_);
-    std::vector<meta::cpp2::FTClient> clients;
+    std::vector<meta::cpp2::ServiceClient> clients;
     if (sentence->clients() != nullptr) {
         clients = sentence->clients()->clients();
     }
@@ -508,6 +508,33 @@ Status SignOutTSServiceValidator::validateImpl() {
 
 Status SignOutTSServiceValidator::toPlan() {
     auto *node = SignOutTSService::make(qctx_, nullptr);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status SignInStreamingServiceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status SignInStreamingServiceValidator::toPlan() {
+    auto sentence = static_cast<SignInStreamingServiceSentence*>(sentence_);
+    std::vector<meta::cpp2::ServiceClient> clients;
+    if (sentence->clients() != nullptr) {
+        clients = sentence->clients()->clients();
+    }
+    auto *node = SignInStreamingService::make(qctx_, nullptr, std::move(clients));
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status SignOutStreamingServiceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status SignOutStreamingServiceValidator::toPlan() {
+    auto *node = SignOutStreamingService::make(qctx_, nullptr);
     root_ = node;
     tail_ = root_;
     return Status::OK();

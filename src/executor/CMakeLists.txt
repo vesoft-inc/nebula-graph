@@ -71,6 +71,8 @@ nebula_add_library(
     admin/ShowTSClientsExecutor.cpp
     admin/SignInTSServiceExecutor.cpp
     admin/SignOutTSServiceExecutor.cpp
+    admin/SignInStreamingServiceExecutor.cpp
+    admin/SignOutStreamingServiceExecutor.cpp
     admin/SessionExecutor.cpp
     admin/ShowQueriesExecutor.cpp
     admin/KillQueryExecutor.cpp
