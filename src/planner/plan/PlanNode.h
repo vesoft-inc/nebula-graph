@@ -24,6 +24,8 @@ public:
     enum class Kind : uint8_t {
         kUnknown = 0,
 
+        // Note: put all Query-plan-node types before `kStart`
+        //       to ensure that `PlanNode::isQueryNode()` is correct
         // Query
         kGetNeighbors,
         kGetVertices,

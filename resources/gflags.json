@@ -14,7 +14,10 @@
         "session_idle_timeout_secs",
         "session_reclaim_interval_secs",
         "max_allowed_connections",
-        "disable_octal_escape_char"
+        "disable_octal_escape_char",
+        "memory_limit_graphd",
+        "memory_stats_collect_interval",
+        "big_query_threshold"
     ],
     "NESTED": [
         "rocksdb_db_options",
