@@ -50,7 +50,6 @@ Feature: Lookup tag index full scan
       | 4  | TagIndexFullScan | 0            |                                            |
       | 0  | Start            |              |                                            |
 
-  @skip
   Scenario: Tag with relational NE filter
     When profiling query:
       """

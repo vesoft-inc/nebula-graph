@@ -81,8 +81,6 @@ Feature: Lookup edge index full scan
       | 4  | EdgeIndexFullScan | 0            |                                                  |
       | 0  | Start             |              |                                                  |
 
-  # TODO: This query should trigger EdgeIndexFullScan instead of EdgeRangeScan
-  @skip
   Scenario: Edge with relational NE filter
     When profiling query:
       """
@@ -93,11 +91,11 @@ Feature: Lookup edge index full scan
       | "101"  | "102"  | 0       | "Red1"          |
       | "103"  | "101"  | 0       | "Blue"          |
     And the execution plan should be:
-      | id | name              | dependencies | operator info                                    |
-      | 3  | Project           | 2            |                                                  |
-      | 2  | Filter            | 4            | {"condition": "(edge_1.col1_str != \"Yellow\")"} |
-      | 4  | EdgeIndexFullScan | 0            |                                                  |
-      | 0  | Start             |              |                                                  |
+      | id | name              | dependencies | operator info                                  |
+      | 3  | Project           | 2            |                                                |
+      | 2  | Filter            | 4            | {"condition": "(edge_1.col1_str!=\"Yellow\")"} |
+      | 4  | EdgeIndexFullScan | 0            |                                                |
+      | 0  | Start             |              |                                                |
     When profiling query:
       """
       LOOKUP ON edge_1 WHERE edge_1.col2_int != 11 YIELD edge_1.col2_int
@@ -107,11 +105,11 @@ Feature: Lookup edge index full scan
       | "103"  | "101"  | 0       | 33              |
       | "102"  | "103"  | 0       | 22              |
     And the execution plan should be:
-      | id | name              | dependencies | operator info                            |
-      | 3  | Project           | 2            |                                          |
-      | 2  | Filter            | 4            | {"condition": "(edge_1.col1_str != 11)"} |
-      | 4  | EdgeIndexFullScan | 0            |                                          |
-      | 0  | Start             |              |                                          |
+      | id | name              | dependencies | operator info                          |
+      | 3  | Project           | 2            |                                        |
+      | 2  | Filter            | 4            | {"condition": "(edge_1.col2_int!=11)"} |
+      | 4  | EdgeIndexFullScan | 0            |                                        |
+      | 0  | Start             |              |                                        |
 
   Scenario: Edge with relational IN/NOT IN filter
     When profiling query:
