@@ -10,13 +10,17 @@ nebula_add_test(
         TestMain.cpp
         FoldConstantExprVisitorTest.cpp
         DeduceTypeVisitorTest.cpp
+        RewriteUnaryNotExprVisitorTest.cpp
+        RewriteRelExprVisitorTest.cpp
+        FilterTransformTest.cpp
+        ExtractFilterExprVisitorTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:mock_schema_obj>
         $<TARGET_OBJECTS:util_obj>
         $<TARGET_OBJECTS:validator_obj>
         $<TARGET_OBJECTS:expr_visitor_obj>
         $<TARGET_OBJECTS:planner_obj>
-        $<TARGET_OBJECTS:session_obj>
+        $<TARGET_OBJECTS:graph_session_obj>
         $<TARGET_OBJECTS:graph_flags_obj>
         $<TARGET_OBJECTS:parser_obj>
         $<TARGET_OBJECTS:idgenerator_obj>
@@ -51,10 +55,9 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_graph_obj>
         $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
         $<TARGET_OBJECTS:common_ws_common_obj>
+        $<TARGET_OBJECTS:common_version_obj>
     LIBRARIES
         gtest
         ${THRIFT_LIBRARIES}
-        wangle
-        proxygenhttpserver
-        proxygenlib
+        ${PROXYGEN_LIBRARIES}
 )

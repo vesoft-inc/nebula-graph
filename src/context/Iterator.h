@@ -7,8 +7,6 @@
 #ifndef CONTEXT_ITERATOR_H_
 #define CONTEXT_ITERATOR_H_
 
-#include <memory>
-
 #include <gtest/gtest_prod.h>
 
 #include <boost/dynamic_bitset.hpp>
@@ -41,7 +39,6 @@ public:
         kDefault,
         kGetNeighbors,
         kSequential,
-        kJoin,
         kProp,
     };
 
@@ -105,10 +102,6 @@ public:
         return kind_ == Kind::kSequential;
     }
 
-    bool isJoinIter() const {
-        return kind_ == Kind::kJoin;
-    }
-
     bool isPropIter() const {
         return kind_ == Kind::kProp;
     }
@@ -120,8 +113,8 @@ public:
 
     template <typename Iter>
     const Value& getColumnByIndex(int32_t index, Iter iter) const {
-        auto size = iter->size();
-        if (static_cast<size_t>(std::abs(index)) >= size) {
+        int32_t size = static_cast<int32_t>(iter->size());
+        if ((index > 0 && index >= size) || (index < 0 && -index > size)) {
             return Value::kNullBadType;
         }
         return iter->operator[]((size + index) % size);
@@ -272,9 +265,9 @@ public:
     // Its unique based on the GN interface dedup
     List getEdges();
 
+    // only return currentEdge, not currentRow, for test
     const Row* row() const override {
-        DCHECK(false);
-        return nullptr;
+        return currentEdge_;
     }
 
 private:

@@ -10,13 +10,13 @@
 #include "common/base/Base.h"
 #include "validator/TraversalValidator.h"
 #include "util/AnonVarGenerator.h"
-#include "planner/Query.h"
-#include "context/ast/QueryAstContext.h"
+#include "planner/plan/Query.h"
+#include "context/ast/CypherAstContext.h"
 
 namespace nebula {
 
 class MatchStepRange;
-
+class ObjectPool;
 namespace graph {
 class MatchValidator final : public TraversalValidator {
 public:
@@ -59,11 +59,8 @@ private:
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map,
                                         const std::string &label = "") const;
-    StatusOr<Expression*> makeSubFilterWithoutSave(const std::string &alias,
-                                                   const MapExpression *map,
-                                                   const std::string &label = "") const;
 
-    static Expression* andConnect(Expression *left, Expression *right);
+    static Expression* andConnect(ObjectPool* pool, Expression *left, Expression *right);
 
     template <typename T>
     T* saveObject(T *obj) const {
@@ -85,16 +82,13 @@ private:
 
     Status combineYieldColumns(YieldColumns *yieldColumns, YieldColumns *prevYieldColumns) const;
 
-    Status buildOutputs(const YieldColumns* yields);
+    StatusOr<AliasType> getAliasType(const std::unordered_map<std::string, AliasType> *aliasesUsed,
+                                     const std::string &name) const;
 
-    template <typename T>
-    std::unique_ptr<T> getContext() const {
-        auto ctx = std::make_unique<T>();
-        ctx->sentence = sentence_;
-        ctx->qctx = qctx_;
-        ctx->space = space_;
-        return ctx;
-    }
+    Status checkAlias(const Expression *refExpr,
+                      const std::unordered_map<std::string, AliasType> *aliasesUsed) const;
+
+    Status buildOutputs(const YieldColumns *yields);
 
 private:
     std::unique_ptr<MatchAstContext>            matchCtx_;

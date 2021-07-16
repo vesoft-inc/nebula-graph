@@ -6,80 +6,62 @@
 #ifndef _VALIDATOR_INDEXSCAN_VALIDATOR_H_
 #define _VALIDATOR_INDEXSCAN_VALIDATOR_H_
 
-#include <planner/Query.h>
+#include <memory>
+
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
 #include "parser/TraverseSentences.h"
+#include "planner/plan/Query.h"
 #include "validator/Validator.h"
 
 namespace nebula {
+
+namespace meta {
+class NebulaSchemaProvider;
+}   // namespace meta
+
 namespace graph {
+
+struct LookupContext;
 
 class LookupValidator final : public Validator {
 public:
-    LookupValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+    LookupValidator(Sentence* sentence, QueryContext* context);
+
+    AstContext* getAstContext() override;
 
 private:
     Status validateImpl() override;
 
-    Status toPlan() override;
-
     Status prepareFrom();
-
     Status prepareYield();
-
     Status prepareFilter();
 
-    StatusOr<std::string> rewriteTSFilter(Expression* expr);
-
-    StatusOr<std::vector<std::string>> textSearch(TextSearchExpression* expr);
-
-    bool needTextSearch(Expression* expr);
-
-    Status checkFilter(Expression* expr);
-
-    Status checkRelExpr(RelationalExpression* expr);
-
-    Status rewriteRelExpr(RelationalExpression* expr);
-
+    StatusOr<Expression*> checkFilter(Expression* expr);
+    StatusOr<Expression*> checkRelExpr(RelationalExpression* expr);
+    StatusOr<std::string> checkTSExpr(Expression* expr);
     StatusOr<Value> checkConstExpr(Expression* expr,
                                    const std::string& prop,
-                                   const Expression::Kind kind,
-                                   bool leftIsAE);
+                                   const Expression::Kind kind);
 
-    Status checkTSService();
+    StatusOr<Expression*> rewriteRelExpr(RelationalExpression* expr);
+    Expression* reverseRelKind(RelationalExpression* expr);
 
-    Status checkTSIndex();
-
-    const nebula::plugin::HttpClient& randomFTClient() const;
+    const LookupSentence* sentence() const;
+    int32_t schemaId() const;
+    GraphSpaceID spaceId() const;
 
 private:
-    static constexpr char kSrcVID[] = "SrcVID";
-    static constexpr char kDstVID[] = "DstVID";
-    static constexpr char kRanking[] = "Ranking";
+    Status getSchemaProvider(std::shared_ptr<const meta::NebulaSchemaProvider>* provider) const;
+    StatusOr<Expression*> genTsFilter(Expression* filter);
+    StatusOr<Expression*> handleLogicalExprOperands(LogicalExpression* lExpr);
 
-    static constexpr char kVertexID[] = "VertexID";
-
-    GraphSpaceID                      spaceId_{0};
-    IndexScan::IndexQueryCtx          contexts_{};
-    IndexScan::IndexReturnCols        returnCols_{};
-    bool                              isEdge_{false};
-    int32_t                           schemaId_;
-    bool                              isEmptyResultSet_{false};
-    bool                              textSearchReady_{false};
-    std::string                       from_;
-    std::vector<nebula::plugin::HttpClient> esClients_;
-    std::vector<std::string>          idxScanColNames_;
-    std::vector<std::string>          colNames_;
-    bool                              withProject_{false};
-    bool                              dedup_{false};
-    YieldColumns                     *newYieldColumns_{nullptr};
+    std::unique_ptr<LookupContext> lookupCtx_;
+    std::vector<nebula::plugin::HttpClient> tsClients_;
 };
 
 }   // namespace graph
 }   // namespace nebula
-
 
 #endif   // _VALIDATOR_INDEXSCAN_VALIDATOR_H_

@@ -5,7 +5,7 @@
  */
 
 #include "executor/admin/IngestExecutor.h"
-#include "planner/Admin.h"
+#include "planner/plan/Admin.h"
 #include "context/QueryContext.h"
 
 namespace nebula {
@@ -15,7 +15,7 @@ folly::Future<Status> IngestExecutor::execute() {
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->ingest(spaceId)
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .thenValue([this](StatusOr<bool> resp) {
             SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {

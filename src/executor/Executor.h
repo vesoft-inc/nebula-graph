@@ -7,7 +7,6 @@
 #ifndef EXECUTOR_EXECUTOR_H_
 #define EXECUTOR_EXECUTOR_H_
 
-#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -97,6 +96,8 @@ protected:
     folly::Future<Status> start(Status status = Status::OK()) const;
 
     folly::Executor *runner() const;
+
+    void drop();
 
     // Store the result of this executor to execution context
     Status finish(Result &&result);

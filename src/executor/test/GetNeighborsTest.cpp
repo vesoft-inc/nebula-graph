@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "context/QueryContext.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "executor/query/GetNeighborsExecutor.h"
 
 namespace nebula {
@@ -31,14 +31,17 @@ protected:
             qctx_->ectx()->setResult("input_gn", builder.finish());
         }
 
-        auto session = Session::create(0);
+        meta::cpp2::Session session;
+        session.set_session_id(0);
+        session.set_user_name("root");
+        auto clientSession = ClientSession::create(std::move(session), nullptr);
         SpaceInfo spaceInfo;
         spaceInfo.name = "test_space";
         spaceInfo.id = 1;
-        spaceInfo.spaceDesc.space_name = "test_space";
-        session->setSpace(std::move(spaceInfo));
+        spaceInfo.spaceDesc.set_space_name("test_space");
+        clientSession->setSpace(std::move(spaceInfo));
         auto rctx = std::make_unique<RequestContext<ExecutionResponse>>();
-        rctx->setSession(std::move(session));
+        rctx->setSession(std::move(clientSession));
         qctx_->setRCtx(std::move(rctx));
     }
 
@@ -54,7 +57,7 @@ TEST_F(GetNeighborsTest, BuildRequestDataSet) {
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
     auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
-    auto* vids = pool->add(new InputPropertyExpression(new std::string("id")));
+    auto* vids = InputPropertyExpression::make(pool, "id");
     auto* gn = GetNeighbors::make(
             qctx_.get(),
             nullptr,

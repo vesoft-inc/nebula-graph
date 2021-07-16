@@ -10,7 +10,7 @@
 
 #include "common/datatypes/DataSet.h"
 #include "context/ExecutionContext.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -65,6 +65,16 @@ std::unique_ptr<Iterator> SetExecutor::getLeftInputDataIter() const {
 std::unique_ptr<Iterator> SetExecutor::getRightInputDataIter() const {
     auto right = asNode<SetOp>(node())->rightInputVar();
     return ectx_->getResult(right).iter();
+}
+
+Result SetExecutor::getLeftInputData() const {
+    auto left = asNode<SetOp>(node())->leftInputVar();
+    return ectx_->getResult(left);
+}
+
+Result SetExecutor::getRightInputData() const {
+    auto right = asNode<SetOp>(node())->rightInputVar();
+    return ectx_->getResult(right);
 }
 
 }   // namespace graph

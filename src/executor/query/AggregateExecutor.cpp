@@ -10,8 +10,8 @@
 #include "common/expression/AggregateExpression.h"
 #include "context/QueryExpressionContext.h"
 #include "context/Result.h"
-#include "planner/PlanNode.h"
-#include "planner/Query.h"
+#include "planner/plan/PlanNode.h"
+#include "planner/plan/Query.h"
 #include "util/ScopedTimer.h"
 
 namespace nebula {
@@ -27,6 +27,32 @@ folly::Future<Status> AggregateExecutor::execute() {
     QueryExpressionContext ctx(ectx_);
 
     std::unordered_map<List, std::vector<std::unique_ptr<AggData>>, std::hash<nebula::List>> result;
+
+    // generate default result when input dataset is empty
+    if (UNLIKELY(!iter->valid())) {
+        List defaultValues;
+        bool allAggItems = true;
+        for (size_t i = 0; i < groupItems.size(); ++i) {
+            auto* item = groupItems[i];
+            if (UNLIKELY(item->kind() != Expression::Kind::kAggregate)) {
+                allAggItems = false;
+                break;
+            }
+            AggData aggData;
+            static_cast<AggregateExpression*>(item)->apply(&aggData, Value::kNullValue);
+            defaultValues.emplace_back(aggData.result());
+        }
+        if (allAggItems) {
+            List dummyKey;
+            std::vector<std::unique_ptr<AggData>> cols;
+            for (size_t i = 0; i < groupItems.size(); ++i) {
+                cols.emplace_back(new AggData());
+                cols[i]->setResult(defaultValues[i]);
+            }
+            result.emplace(std::make_pair(dummyKey, std::move(cols)));
+        }
+    }
+
     for (; iter->valid(); iter->next()) {
         List list;
         for (auto* key : groupKeys) {

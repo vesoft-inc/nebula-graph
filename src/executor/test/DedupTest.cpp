@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "context/QueryContext.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "executor/query/DedupExecutor.h"
 #include "executor/test/QueryTestBase.h"
 #include "executor/query/ProjectExecutor.h"
@@ -24,7 +24,7 @@ public:
 #define DEDUP_RESUTL_CHECK(inputName, outputName, sentence, expected)                              \
     do {                                                                                           \
         qctx_->symTable()->newVariable(outputName);                                                \
-        auto yieldSentence = getYieldSentence(sentence);                                           \
+        auto yieldSentence = getYieldSentence(sentence, qctx_.get());                              \
         auto* dedupNode = Dedup::make(qctx_.get(), nullptr);                                       \
         dedupNode->setInputVar(inputName);                                                         \
         dedupNode->setOutputVar(outputName);                                                       \

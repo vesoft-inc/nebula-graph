@@ -10,11 +10,11 @@
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
 #include "optimizer/OptRule.h"
-#include "planner/ExecutionPlan.h"
-#include "planner/Logic.h"
-#include "planner/PlanNode.h"
+#include "planner/plan/ExecutionPlan.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/PlanNode.h"
 
-using nebula::graph::BiInputNode;
+using nebula::graph::BinaryInputNode;
 using nebula::graph::Loop;
 using nebula::graph::PlanNode;
 using nebula::graph::QueryContext;
@@ -35,7 +35,7 @@ StatusOr<const PlanNode *> Optimizer::findBestPlan(QueryContext *qctx) {
     NG_RETURN_IF_ERROR(status);
     auto rootGroup = std::move(status).value();
 
-    NG_RETURN_IF_ERROR(doExploration(rootGroup));
+    NG_RETURN_IF_ERROR(doExploration(optCtx.get(), rootGroup));
     return rootGroup->getPlan();
 }
 
@@ -44,10 +44,16 @@ StatusOr<OptGroup *> Optimizer::prepare(OptContext *ctx, PlanNode *root) {
     return convertToGroup(ctx, root, &visited);
 }
 
-Status Optimizer::doExploration(OptGroup *rootGroup) {
-    for (auto ruleSet : ruleSets_) {
-        for (auto rule : ruleSet->rules()) {
-            NG_RETURN_IF_ERROR(rootGroup->exploreUntilMaxRound(rule));
+Status Optimizer::doExploration(OptContext *octx, OptGroup *rootGroup) {
+    int8_t appliedTimes = kMaxIterationRound;
+    while (octx->changed()) {
+        if (--appliedTimes < 0) break;
+        octx->setChanged(false);
+        for (auto ruleSet : ruleSets_) {
+            for (auto rule : ruleSet->rules()) {
+                NG_RETURN_IF_ERROR(rootGroup->exploreUntilMaxRound(rule));
+                rootGroup->setUnexplored(rule);
+            }
         }
     }
     return Status::OK();
@@ -64,48 +70,31 @@ OptGroup *Optimizer::convertToGroup(OptContext *ctx,
     auto group = OptGroup::create(ctx);
     auto groupNode = group->makeGroupNode(node);
 
-    switch (node->dependencies().size()) {
-        case 0: {
-            // Do nothing
-            break;
-        }
-        case 1: {
-            if (node->kind() == PlanNode::Kind::kSelect) {
-                auto select = static_cast<Select *>(node);
-                auto then = convertToGroup(ctx, const_cast<PlanNode *>(select->then()), visited);
-                groupNode->addBody(then);
-                auto otherNode = const_cast<PlanNode *>(select->otherwise());
-                auto otherwise = convertToGroup(ctx, otherNode, visited);
-                groupNode->addBody(otherwise);
-            } else if (node->kind() == PlanNode::Kind::kLoop) {
-                auto loop = static_cast<Loop *>(node);
-                auto body = convertToGroup(ctx, const_cast<PlanNode *>(loop->body()), visited);
-                groupNode->addBody(body);
-            }
-            auto dep = static_cast<SingleDependencyNode *>(node)->dep();
-            DCHECK(dep != nullptr);
-            auto depGroup = convertToGroup(ctx, const_cast<graph::PlanNode *>(dep), visited);
-            groupNode->dependsOn(depGroup);
-            break;
-        }
-        case 2: {
-            auto bNode = static_cast<BiInputNode *>(node);
-            auto leftNode = const_cast<graph::PlanNode *>(bNode->left());
-            auto leftGroup = convertToGroup(ctx, leftNode, visited);
-            groupNode->dependsOn(leftGroup);
-            auto rightNode = const_cast<graph::PlanNode *>(bNode->right());
-            auto rightGroup = convertToGroup(ctx, rightNode, visited);
-            groupNode->dependsOn(rightGroup);
-            break;
-        }
-        default: {
-            LOG(FATAL) << "Invalid number of plan node dependencies: "
-                       << node->dependencies().size();
-            break;
-        }
+    if (node->kind() == PlanNode::Kind::kSelect) {
+        auto select = static_cast<Select *>(node);
+        addBodyToGroupNode(ctx, select->then(), groupNode, visited);
+        addBodyToGroupNode(ctx, select->otherwise(), groupNode, visited);
+    } else if (node->kind() == PlanNode::Kind::kLoop) {
+        auto loop = static_cast<Loop *>(node);
+        addBodyToGroupNode(ctx, loop->body(), groupNode, visited);
     }
+
+    for (size_t i = 0; i < node->numDeps(); ++i) {
+        auto dep = const_cast<PlanNode *>(node->dep(i));
+        groupNode->dependsOn(convertToGroup(ctx, dep, visited));
+    }
+
     visited->emplace(node->id(), group);
     return group;
+}
+
+void Optimizer::addBodyToGroupNode(OptContext *ctx,
+                                   const PlanNode *node,
+                                   OptGroupNode *gnode,
+                                   std::unordered_map<int64_t, OptGroup *> *visited) {
+    auto n = const_cast<PlanNode *>(node);
+    auto body = convertToGroup(ctx, n, visited);
+    gnode->addBody(body);
 }
 
 }   // namespace opt

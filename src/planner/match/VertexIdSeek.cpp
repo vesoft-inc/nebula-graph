@@ -6,7 +6,7 @@
 
 #include "planner/match/VertexIdSeek.h"
 
-#include "planner/Logic.h"
+#include "planner/plan/Logic.h"
 #include "planner/match/MatchSolver.h"
 #include "visitor/VidExtractVisitor.h"
 #include "util/ExpressionUtils.h"
@@ -31,7 +31,7 @@ bool VertexIdSeek::matchNode(NodeContext *nodeCtx) {
         return false;
     }
 
-    if (node.alias == nullptr || node.anonymous) {
+    if (node.alias.empty() || node.anonymous) {
         // require one named node
         return false;
     }
@@ -44,7 +44,7 @@ bool VertexIdSeek::matchNode(NodeContext *nodeCtx) {
     }
     for (auto &nodeVid : vidResult.nodes) {
         if (nodeVid.second.kind == VidExtractVisitor::VidPattern::Vids::Kind::kIn) {
-            if (nodeVid.first == *node.alias) {
+            if (nodeVid.first == node.alias) {
                 nodeCtx->ids = std::move(nodeVid.second.vids);
                 return true;
             }
@@ -65,7 +65,8 @@ std::pair<std::string, Expression *> VertexIdSeek::listToAnnoVarVid(QueryContext
 
     qctx->ectx()->setResult(input, ResultBuilder().value(Value(std::move(vids))).finish());
 
-    auto *src = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
+    auto* pool = qctx->objPool();
+    auto *src = VariablePropertyExpression::make(pool, input, kVid);
     return std::pair<std::string, Expression *>(input, src);
 }
 
@@ -78,7 +79,8 @@ std::pair<std::string, Expression *> VertexIdSeek::constToAnnoVarVid(QueryContex
 
     qctx->ectx()->setResult(input, ResultBuilder().value(Value(std::move(vids))).finish());
 
-    auto *src = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
+    auto* pool = qctx->objPool();
+    auto *src = VariablePropertyExpression::make(pool, input, kVid);
     return std::pair<std::string, Expression *>(input, src);
 }
 
@@ -96,7 +98,7 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext *nodeCtx) {
     plan.root = passThrough;
     plan.tail = passThrough;
 
-    nodeCtx->initialExpr = std::unique_ptr<Expression>(vidsResult.second);
+    nodeCtx->initialExpr = vidsResult.second;
     return plan;
 }
 

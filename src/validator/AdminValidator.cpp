@@ -4,15 +4,18 @@
 * attached with Common Clause Condition 1.0, found in the LICENSES directory.
 */
 
+#include <thrift/lib/cpp/util/EnumUtils.h>
+
 #include "validator/AdminValidator.h"
 
 #include "common/base/Base.h"
 #include "common/charset/Charset.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "parser/MaintainSentences.h"
-#include "planner/Admin.h"
-#include "planner/Query.h"
+#include "planner/plan/Admin.h"
+#include "planner/plan/Query.h"
 #include "service/GraphFlags.h"
+#include "util/ExpressionUtils.h"
 #include "util/SchemaUtil.h"
 
 namespace nebula {
@@ -21,22 +24,29 @@ Status CreateSpaceValidator::validateImpl() {
     auto sentence = static_cast<CreateSpaceSentence*>(sentence_);
     ifNotExist_ = sentence->isIfNotExist();
     auto status = Status::OK();
-    spaceDesc_.space_name = std::move(*(sentence->spaceName()));
+    spaceDesc_.set_space_name(std::move(*(sentence->spaceName())));
+    if (sentence->groupName()) {
+        spaceDesc_.set_group_name(std::move(*(sentence->groupName())));
+    }
     StatusOr<std::string> retStatusOr;
     std::string result;
     auto* charsetInfo = qctx_->getCharsetInfo();
+    auto *spaceOpts = sentence->spaceOpts();
+    if (!spaceOpts || !spaceOpts->hasVidType()) {
+        return Status::SemanticError("space vid_type must be specified explicitly");
+    }
     for (auto &item : sentence->getOpts()) {
         switch (item->getOptType()) {
             case SpaceOptItem::PARTITION_NUM: {
-                spaceDesc_.partition_num = item->getPartitionNum();
-                if (spaceDesc_.partition_num <= 0) {
+                spaceDesc_.set_partition_num(item->getPartitionNum());
+                if (*spaceDesc_.partition_num_ref() <= 0) {
                     return Status::SemanticError("Partition_num value should be greater than zero");
                 }
                 break;
             }
             case SpaceOptItem::REPLICA_FACTOR: {
-                spaceDesc_.replica_factor = item->getReplicaFactor();
-                if (spaceDesc_.replica_factor <= 0) {
+                spaceDesc_.set_replica_factor(item->getReplicaFactor());
+                if (*spaceDesc_.replica_factor_ref() <= 0) {
                     return Status::SemanticError(
                         "Replica_factor value should be greater than zero");
                 }
@@ -48,23 +58,23 @@ Status CreateSpaceValidator::validateImpl() {
                     typeDef.type != meta::cpp2::PropertyType::FIXED_STRING) {
                     std::stringstream ss;
                     ss << "Only support FIXED_STRING or INT64 vid type, but was given "
-                       << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(typeDef.type);
+                       << apache::thrift::util::enumNameSafe(typeDef.type);
                     return Status::SemanticError(ss.str());
                 }
-                spaceDesc_.vid_type.set_type(typeDef.type);
+                spaceDesc_.vid_type_ref().value().set_type(typeDef.type);
 
                 if (typeDef.type == meta::cpp2::PropertyType::INT64) {
-                    spaceDesc_.vid_type.set_type_length(8);
+                    spaceDesc_.vid_type_ref().value().set_type_length(8);
                 } else {
-                    if (!typeDef.__isset.type_length) {
+                    if (!typeDef.type_length_ref().has_value()) {
                         return Status::SemanticError(
                             "type length is not set for fixed string type");
                     }
-                    if (*typeDef.get_type_length() <= 0) {
+                    if (*typeDef.type_length_ref() <= 0) {
                         return Status::SemanticError("Vid size should be a positive number: %d",
-                                                     *typeDef.get_type_length());
+                                                     *typeDef.type_length_ref());
                     }
-                    spaceDesc_.vid_type.set_type_length(*typeDef.get_type_length());
+                    spaceDesc_.vid_type_ref().value().set_type_length(*typeDef.type_length_ref());
                 }
                 break;
             }
@@ -72,14 +82,14 @@ Status CreateSpaceValidator::validateImpl() {
                 result = item->getCharset();
                 folly::toLowerAscii(result);
                 NG_RETURN_IF_ERROR(charsetInfo->isSupportCharset(result));
-                spaceDesc_.charset_name = std::move(result);
+                spaceDesc_.set_charset_name(std::move(result));
                 break;
             }
             case SpaceOptItem::COLLATE: {
                 result = item->getCollate();
                 folly::toLowerAscii(result);
                 NG_RETURN_IF_ERROR(charsetInfo->isSupportCollate(result));
-                spaceDesc_.collate_name = std::move(result);
+                spaceDesc_.set_collate_name(std::move(result));
                 break;
             }
             case SpaceOptItem::ATOMIC_EDGE: {
@@ -90,32 +100,41 @@ Status CreateSpaceValidator::validateImpl() {
                 } else {
                     spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::DEFAULT);
                 }
+                break;
             }
             case SpaceOptItem::GROUP_NAME: {
                 break;
             }
         }
     }
-
-    // if charset and collate are not specified, set default value
-    if (!spaceDesc_.charset_name.empty() && !spaceDesc_.collate_name.empty()) {
-        NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(spaceDesc_.charset_name,
-                    spaceDesc_.collate_name));
-    } else if (!spaceDesc_.charset_name.empty()) {
-        retStatusOr = charsetInfo->getDefaultCollationbyCharset(spaceDesc_.charset_name);
-        if (!retStatusOr.ok()) {
-            return retStatusOr.status();
-        }
-        spaceDesc_.collate_name = std::move(retStatusOr.value());
-    } else if (!spaceDesc_.collate_name.empty()) {
-        retStatusOr = charsetInfo->getCharsetbyCollation(spaceDesc_.collate_name);
-        if (!retStatusOr.ok()) {
-            return retStatusOr.status();
-        }
-        spaceDesc_.charset_name = std::move(retStatusOr.value());
+    // check comment
+    if (sentence->comment() != nullptr) {
+        spaceDesc_.set_comment(*sentence->comment());
     }
 
-    if (spaceDesc_.charset_name.empty() && spaceDesc_.collate_name.empty()) {
+    if (sentence->groupName() != nullptr && *sentence->groupName() == "default") {
+        return Status::SemanticError("Group default conflict");
+    }
+
+    // if charset and collate are not specified, set default value
+    if (!(*spaceDesc_.charset_name_ref()).empty() && !(*spaceDesc_.collate_name_ref()).empty()) {
+        NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(*spaceDesc_.charset_name_ref(),
+                    *spaceDesc_.collate_name_ref()));
+    } else if (!(*spaceDesc_.charset_name_ref()).empty()) {
+        retStatusOr = charsetInfo->getDefaultCollationbyCharset(*spaceDesc_.charset_name_ref());
+        if (!retStatusOr.ok()) {
+            return retStatusOr.status();
+        }
+        spaceDesc_.set_collate_name(std::move(retStatusOr.value()));
+    } else if (!(*spaceDesc_.collate_name_ref()).empty()) {
+        retStatusOr = charsetInfo->getCharsetbyCollation(*spaceDesc_.collate_name_ref());
+        if (!retStatusOr.ok()) {
+            return retStatusOr.status();
+        }
+        spaceDesc_.set_charset_name(std::move(retStatusOr.value()));
+    }
+
+    if ((*spaceDesc_.charset_name_ref()).empty() && (*spaceDesc_.collate_name_ref()).empty()) {
         std::string charsetName = FLAGS_default_charset;
         folly::toLowerAscii(charsetName);
         NG_RETURN_IF_ERROR(charsetInfo->isSupportCharset(charsetName));
@@ -124,15 +143,15 @@ Status CreateSpaceValidator::validateImpl() {
         folly::toLowerAscii(collateName);
         NG_RETURN_IF_ERROR(charsetInfo->isSupportCollate(collateName));
 
-        spaceDesc_.charset_name = std::move(charsetName);
-        spaceDesc_.collate_name = std::move(collateName);
+        spaceDesc_.set_charset_name(std::move(charsetName));
+        spaceDesc_.set_collate_name(std::move(collateName));
 
-        NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(spaceDesc_.charset_name,
-                    spaceDesc_.collate_name));
+        NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(*spaceDesc_.charset_name_ref(),
+                    *spaceDesc_.collate_name_ref()));
     }
 
     // add to validate context
-    vctx_->addSpace(spaceDesc_.space_name);
+    vctx_->addSpace(*spaceDesc_.space_name_ref());
     return status;
 }
 
@@ -235,8 +254,25 @@ Status ShowSnapshotsValidator::toPlan() {
 
 Status AddListenerValidator::validateImpl() {
     auto sentence = static_cast<AddListenerSentence*>(sentence_);
-    if (sentence->listeners()->hosts().empty()) {
+    auto hosts = sentence->listeners()->hosts();
+    if (hosts.empty()) {
         return Status::SemanticError("Listener hosts should not be empty");
+    }
+
+    // check the hosts, if the hosts the same with storage, return error
+    auto status = qctx_->getMetaClient()->getStorageHosts();
+    if (!status.ok()) {
+        return status.status();
+    }
+
+    auto storageHosts = std::move(status).value();
+    for (auto &host : hosts) {
+        auto iter = std::find(storageHosts.begin(), storageHosts.end(), host);
+        if (iter != storageHosts.end()) {
+            return Status::Error(
+                    "The listener host:%s couldn't on same with storage host info",
+                    host.toString().c_str());
+        }
     }
     return Status::OK();
 }
@@ -472,6 +508,74 @@ Status SignOutTSServiceValidator::validateImpl() {
 
 Status SignOutTSServiceValidator::toPlan() {
     auto *node = SignOutTSService::make(qctx_, nullptr);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowSessionsValidator::toPlan() {
+    auto sentence = static_cast<ShowSessionsSentence*>(sentence_);
+    auto *node = ShowSessions::make(
+            qctx_, nullptr, sentence->isSetSessionID(), sentence->getSessionID());
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowQueriesValidator::validateImpl() {
+    if (!inputs_.empty()) {
+        return Status::SemanticError("Show queries sentence do not support input");
+    }
+    outputs_.emplace_back("SessionID", Value::Type::INT);
+    outputs_.emplace_back("ExecutionPlanID", Value::Type::INT);
+    outputs_.emplace_back("User", Value::Type::STRING);
+    outputs_.emplace_back("Host", Value::Type::STRING);
+    outputs_.emplace_back("StartTime", Value::Type::DATETIME);
+    outputs_.emplace_back("DurationInUSec", Value::Type::INT);
+    outputs_.emplace_back("Status", Value::Type::STRING);
+    outputs_.emplace_back("Query", Value::Type::STRING);
+    return Status::OK();
+}
+
+Status ShowQueriesValidator::toPlan() {
+    auto sentence = static_cast<ShowQueriesSentence*>(sentence_);
+    auto *node = ShowQueries::make(qctx_, nullptr, sentence->isAll());
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status KillQueryValidator::validateImpl() {
+    auto sentence = static_cast<KillQuerySentence *>(sentence_);
+    auto *sessionExpr = sentence->sessionId();
+    auto *epIdExpr = sentence->epId();
+    auto sessionTypeStatus = deduceExprType(sessionExpr);
+    if (!sessionTypeStatus.ok()) {
+        return sessionTypeStatus.status();
+    }
+    if (sessionTypeStatus.value() != Value::Type::INT) {
+        std::stringstream ss;
+        ss << sessionExpr->toString() << ", Session ID must be an integer but was "
+           << sessionTypeStatus.value();
+        return Status::SemanticError(ss.str());
+    }
+    auto epIdStatus = deduceExprType(epIdExpr);
+    if (!epIdStatus.ok()) {
+        return epIdStatus.status();
+    }
+    if (epIdStatus.value() != Value::Type::INT) {
+        std::stringstream ss;
+        ss << epIdExpr->toString() << ", Session ID must be an integer but was "
+           << epIdStatus.value();
+        return Status::SemanticError(ss.str());
+    }
+
+    return Status::OK();
+}
+
+Status KillQueryValidator::toPlan() {
+    auto sentence = static_cast<KillQuerySentence*>(sentence_);
+    auto *node = KillQuery::make(qctx_, nullptr, sentence->sessionId(), sentence->epId());
     root_ = node;
     tail_ = root_;
     return Status::OK();

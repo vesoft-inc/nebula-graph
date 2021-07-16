@@ -23,6 +23,7 @@ DECLARE_string(local_ip);
 DECLARE_string(pid_file);
 DECLARE_bool(local_config);
 DECLARE_bool(accept_partial_success);
+DECLARE_bool(disable_octal_escape_char);
 
 DECLARE_bool(redirect_stdout);
 DECLARE_string(stdout_log_file);
@@ -36,8 +37,13 @@ DECLARE_bool(enable_authorize);
 DECLARE_string(auth_type);
 DECLARE_string(cloud_http_url);
 DECLARE_uint32(max_allowed_statements);
+DECLARE_double(system_memory_high_watermark_ratio);
 
 // optimizer
 DECLARE_bool(enable_optimizer);
+
+DECLARE_int64(max_allowed_connections);
+
+DECLARE_string(local_ip);
 
 #endif   // GRAPH_GRAPHFLAGS_H_

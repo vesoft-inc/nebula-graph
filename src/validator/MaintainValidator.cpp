@@ -9,13 +9,14 @@
 #include "common/expression/ConstantExpression.h"
 #include "parser/MaintainSentences.h"
 #include "service/GraphFlags.h"
-#include "planner/Admin.h"
-#include "planner/Maintain.h"
-#include "planner/Query.h"
+#include "planner/plan/Admin.h"
+#include "planner/plan/Maintain.h"
+#include "planner/plan/Query.h"
 #include "service/GraphFlags.h"
 #include "util/IndexUtil.h"
 #include "util/SchemaUtil.h"
 #include "util/ExpressionUtils.h"
+#include "util/FTIndexUtils.h"
 #include "validator/MaintainValidator.h"
 
 namespace nebula {
@@ -34,25 +35,31 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification *>
         auto type = spec->type();
         column.set_name(*spec->name());
         column.type.set_type(type);
-        column.set_nullable(spec->isNull());
         if (meta::cpp2::PropertyType::FIXED_STRING == type) {
             column.type.set_type_length(spec->typeLen());
         }
-
-        if (spec->isNull()) {
+        for (const auto &property : spec->properties()->properties()) {
+            if (property->isNullable()) {
+                column.set_nullable(property->nullable());
+            } else if (property->isDefaultValue()) {
+                if (!evaluableExpr(property->defaultValue())) {
+                    return Status::SemanticError("Wrong default value experssion `%s'",
+                                                 property->defaultValue()->toString().c_str());
+                }
+                auto *defaultValueExpr = property->defaultValue();
+                auto pool = qctx()->objPool();
+                // some expression is evaluable but not pure so only fold instead of eval here
+                auto foldRes = ExpressionUtils::foldConstantExpr(pool, defaultValueExpr);
+                NG_RETURN_IF_ERROR(foldRes);
+                column.set_default_value(foldRes.value()->encode());
+            } else if (property->isComment()) {
+                column.set_comment(*DCHECK_NOTNULL(property->comment()));
+            }
+        }
+        if (!column.nullable_ref().has_value()) {
             column.set_nullable(true);
         }
-
-        if (spec->hasDefaultValue()) {
-            if (!evaluableExpr(spec->getDefaultValue())) {
-                return Status::SemanticError("Wrong default value experssion `%s'",
-                                             spec->getDefaultValue()->toString().c_str());
-            }
-            auto defaultValueExpr = spec->getDefaultValue();
-            // some expression is evaluable but not pure so only fold instead of eval here
-            column.set_default_value(ExpressionUtils::foldConstantExpr(defaultValueExpr)->encode());
-        }
-        schema.columns.emplace_back(std::move(column));
+        schema.columns_ref().value().emplace_back(std::move(column));
     }
 
     return Status::OK();
@@ -72,7 +79,8 @@ Status CreateTagValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateColumns(sentence->columnSpecs(), schema_));
     NG_RETURN_IF_ERROR(SchemaUtil::validateProps(sentence->getSchemaProps(), schema_));
     // Save the schema in validateContext
-    auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
+    auto pool = qctx_->objPool();
+    auto schemaPro = SchemaUtil::generateSchemaProvider(pool, 0, schema_);
     vctx_->addSchema(name_, schemaPro);
     return Status::OK();
 }
@@ -100,7 +108,8 @@ Status CreateEdgeValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateColumns(sentence->columnSpecs(), schema_));
     NG_RETURN_IF_ERROR(SchemaUtil::validateProps(sentence->getSchemaProps(), schema_));
     // Save the schema in validateContext
-    auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
+    auto pool = qctx_->objPool();
+    auto schemaPro = SchemaUtil::generateSchemaProvider(pool, 0, schema_);
     vctx_->addSchema(name_, schemaPro);
     return Status::OK();
 }
@@ -152,7 +161,7 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem *> &sche
             for (auto &colName : colNames) {
                 meta::cpp2::ColumnDef column;
                 column.name = *colName;
-                schema.columns.emplace_back(std::move(column));
+                schema.columns_ref().value().emplace_back(std::move(column));
             }
         } else {
             const auto &specs = schemaOpt->columnSpecs();
@@ -180,6 +189,12 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem *> &sche
                 retStr = schemaProp->getTtlCol();
                 NG_RETURN_IF_ERROR(retStr);
                 schemaProp_.set_ttl_col(retStr.value());
+                break;
+            case SchemaPropItem::COMMENT:
+                // Check the legality of the column in meta
+                retStr = schemaProp->getComment();
+                NG_RETURN_IF_ERROR(retStr);
+                schemaProp_.set_comment(retStr.value());
                 break;
             default:
                 return Status::SemanticError("Property type not support");
@@ -311,7 +326,8 @@ Status CreateTagIndexValidator::toPlan() {
                                        *sentence->tagName(),
                                        *sentence->indexName(),
                                         sentence->fields(),
-                                        sentence->isIfNotExist());
+                                        sentence->isIfNotExist(),
+                                        sentence->comment());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -334,7 +350,8 @@ Status CreateEdgeIndexValidator::toPlan() {
                                         *sentence->edgeName(),
                                         *sentence->indexName(),
                                          sentence->fields(),
-                                         sentence->isIfNotExist());
+                                         sentence->isIfNotExist(),
+                                         sentence->comment());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -421,22 +438,26 @@ Status ShowCreateEdgeIndexValidator::toPlan() {
 }
 
 Status ShowTagIndexesValidator::validateImpl() {
+    auto sentence = static_cast<ShowTagIndexesSentence *>(sentence_);
+    name_ = *sentence->name();
     return Status::OK();
 }
 
 Status ShowTagIndexesValidator::toPlan() {
-    auto *doNode = ShowTagIndexes::make(qctx_, nullptr);
+    auto *doNode = ShowTagIndexes::make(qctx_, nullptr, name_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status ShowEdgeIndexesValidator::validateImpl() {
+    auto sentence = static_cast<ShowEdgeIndexesSentence *>(sentence_);
+    name_ = *sentence->name();
     return Status::OK();
 }
 
 Status ShowEdgeIndexesValidator::toPlan() {
-    auto *doNode = ShowEdgeIndexes::make(qctx_, nullptr);
+    auto *doNode = ShowEdgeIndexes::make(qctx_, nullptr, name_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -465,6 +486,10 @@ Status ShowEdgeIndexStatusValidator::toPlan() {
 }
 
 Status AddGroupValidator::validateImpl() {
+    auto sentence = static_cast<AddGroupSentence *>(sentence_);
+    if (*sentence->groupName() == "default") {
+        return Status::SemanticError("Group default conflict");
+    }
     return Status::OK();
 }
 
@@ -634,5 +659,72 @@ Status DropHostFromZoneValidator::toPlan() {
     return Status::OK();
 }
 
+Status CreateFTIndexValidator::validateImpl() {
+    auto sentence = static_cast<CreateFTIndexSentence*>(sentence_);
+    auto name = *sentence->indexName();
+    if (name.substr(0, sizeof(FULLTEXT_INDEX_NAME_PREFIX) - 1) != FULLTEXT_INDEX_NAME_PREFIX) {
+        return Status::SyntaxError("Index name must begin with \"%s\"", FULLTEXT_INDEX_NAME_PREFIX);
+    }
+    auto tsRet = FTIndexUtils::getTSClients(qctx_->getMetaClient());
+    NG_RETURN_IF_ERROR(tsRet);
+    auto tsIndex = FTIndexUtils::checkTSIndex(std::move(tsRet).value(), name);
+    NG_RETURN_IF_ERROR(tsIndex);
+    if (tsIndex.value()) {
+        return Status::Error("text search index exist : %s", name.c_str());
+    }
+    auto space = vctx_->whichSpace();
+    auto status = sentence->isEdge()
+                ? qctx_->schemaMng()->toEdgeType(space.id, *sentence->schemaName())
+                : qctx_->schemaMng()->toTagID(space.id, *sentence->schemaName());
+    NG_RETURN_IF_ERROR(status);
+    meta::cpp2::SchemaID id;
+    if (sentence->isEdge()) {
+        id.set_edge_type(status.value());
+    } else {
+        id.set_tag_id(status.value());
+    }
+    index_.set_space_id(space.id);
+    index_.set_depend_schema(std::move(id));
+    index_.set_fields(sentence->fields());
+    return Status::OK();
+}
+
+Status CreateFTIndexValidator::toPlan() {
+    auto sentence = static_cast<CreateFTIndexSentence*>(sentence_);
+    auto *doNode = CreateFTIndex::make(qctx_,
+                                       nullptr,
+                                       *sentence->indexName(),
+                                       index_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status DropFTIndexValidator::validateImpl() {
+    auto tsRet = FTIndexUtils::getTSClients(qctx_->getMetaClient());
+    NG_RETURN_IF_ERROR(tsRet);
+    return Status::OK();
+}
+
+Status DropFTIndexValidator::toPlan() {
+    auto sentence = static_cast<DropFTIndexSentence*>(sentence_);
+    auto *doNode = DropFTIndex::make(qctx_,
+                                     nullptr,
+                                     *sentence->name());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowFTIndexesValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowFTIndexesValidator::toPlan() {
+    auto *doNode = ShowFTIndexes::make(qctx_, nullptr);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
 }  // namespace graph
 }  // namespace nebula

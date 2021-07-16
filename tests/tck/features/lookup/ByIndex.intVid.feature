@@ -1,3 +1,7 @@
+# Copyright (c) 2021 vesoft inc. All rights reserved.
+#
+# This source code is licensed under Apache 2.0 License,
+# attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: Lookup by index itself in integer vid
 
   Background:
@@ -100,6 +104,16 @@ Feature: Lookup by index itself in integer vid
       LOOKUP ON team WHERE team.name CONTAINS 'Jazz' YIELD team.name AS Name
       """
     Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.age > 9223372036854775807+1
+      """
+    Then a ExecutionError should be raised at runtime: result of (9223372036854775807+1) cannot be represented as an integer
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.age > -9223372036854775808-1
+      """
+    Then a ExecutionError should be raised at runtime: result of (-9223372036854775808-1) cannot be represented as an integer
     And drop the used space
 
   Scenario: [2] edge index

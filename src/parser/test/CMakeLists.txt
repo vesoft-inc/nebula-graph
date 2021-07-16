@@ -31,7 +31,8 @@ set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:common_time_utils_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
     $<TARGET_OBJECTS:common_ws_common_obj>
-    $<TARGET_OBJECTS:session_obj>
+    $<TARGET_OBJECTS:common_version_obj>
+    $<TARGET_OBJECTS:graph_session_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
     $<TARGET_OBJECTS:util_obj>
@@ -47,28 +48,28 @@ nebula_add_test(
     NAME parser_test
     SOURCES ParserTest.cpp
     OBJECTS ${PARSER_TEST_LIBS}
-    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} proxygenlib
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} ${PROXYGEN_LIBRARIES}
 )
 
 nebula_add_test(
     NAME scanner_test
     SOURCES ScannerTest.cpp
     OBJECTS ${PARSER_TEST_LIBS}
-    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} proxygenlib
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} ${PROXYGEN_LIBRARIES}
 )
 
 nebula_add_executable(
     NAME parser_bm
     SOURCES ParserBenchmark.cpp
     OBJECTS ${PARSER_TEST_LIBS}
-    LIBRARIES follybenchmark boost_regex ${THRIFT_LIBRARIES} proxygenlib
+    LIBRARIES follybenchmark boost_regex ${THRIFT_LIBRARIES} ${PROXYGEN_LIBRARIES}
 )
 
 nebula_add_test(
     NAME expression_parsing_test
     SOURCES ExpressionParsingTest.cpp
     OBJECTS ${PARSER_TEST_LIBS}
-    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} proxygenlib
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} ${PROXYGEN_LIBRARIES}
 )
 
 if(ENABLE_FUZZ_TEST)

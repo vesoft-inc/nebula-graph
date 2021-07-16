@@ -132,7 +132,7 @@ def _value_to_string(value):
     elif value.getType() == CommonTtypes.Value.FVAL:
         return str(value.get_fVal())
     elif value.getType() == CommonTtypes.Value.SVAL:
-        return value.get_sVal().decode('utf-8')
+        return '"' + value.get_sVal().decode('utf-8') + '"'
     elif value.getType() == CommonTtypes.Value.DVAL:
         return date_to_string(value.get_dVal())
     elif value.getType() == CommonTtypes.Value.TVAL:
@@ -435,7 +435,7 @@ def load_csv_data(
 def get_conn_pool(host: str, port: int):
     config = Config()
     config.max_connection_pool_size = 20
-    config.timeout = 120000
+    config.timeout = 180000
     # init connection pool
     pool = ConnectionPool()
     if not pool.init([(host, port)], config):

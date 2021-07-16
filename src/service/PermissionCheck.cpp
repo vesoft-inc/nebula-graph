@@ -31,9 +31,10 @@ namespace graph {
  */
 
 // static
-Status PermissionCheck::permissionCheck(Session *session,
-                                      Sentence* sentence,
-                                      GraphSpaceID targetSpace) {
+Status PermissionCheck::permissionCheck(ClientSession *session,
+                                        Sentence* sentence,
+                                        ValidateContext *vctx,
+                                        GraphSpaceID targetSpace) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
@@ -86,11 +87,13 @@ Status PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kDropEdge:
         case Sentence::Kind::kCreateTagIndex:
         case Sentence::Kind::kCreateEdgeIndex:
+        case Sentence::Kind::kCreateFTIndex:
         case Sentence::Kind::kDropTagIndex:
         case Sentence::Kind::kDropEdgeIndex:
+        case Sentence::Kind::kDropFTIndex:
         case Sentence::Kind::kAddListener:
         case Sentence::Kind::kRemoveListener: {
-            return PermissionManager::canWriteSchema(session);
+            return PermissionManager::canWriteSchema(session, vctx);
         }
         case Sentence::Kind::kCreateUser:
         case Sentence::Kind::kDropUser:
@@ -113,7 +116,7 @@ Status PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kUpdateEdge :
         case Sentence::Kind::kDeleteVertices :
         case Sentence::Kind::kDeleteEdges : {
-            return PermissionManager::canWriteData(session);
+            return PermissionManager::canWriteData(session, vctx);
         }
         case Sentence::Kind::kDescribeTag:
         case Sentence::Kind::kDescribeEdge:
@@ -134,7 +137,7 @@ Status PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kLimit:
         case Sentence::Kind::kGroupBy:
         case Sentence::Kind::kReturn: {
-            return PermissionManager::canReadSchemaOrData(session);
+            return PermissionManager::canReadSchemaOrData(session, vctx);
         }
         case Sentence::Kind::kShowParts:
         case Sentence::Kind::kShowTags:
@@ -148,7 +151,8 @@ Status PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kShowCreateEdge:
         case Sentence::Kind::kShowCreateTagIndex:
         case Sentence::Kind::kShowCreateEdgeIndex:
-        case Sentence::Kind::kShowListener: {
+        case Sentence::Kind::kShowListener:
+        case Sentence::Kind::kShowFTIndexes: {
             /**
              * Above operations can get the space id via session,
              * so the permission same with canReadSchemaOrData.
@@ -180,7 +184,8 @@ Status PermissionCheck::permissionCheck(Session *session,
         }
         case Sentence::Kind::kShowUsers:
         case Sentence::Kind::kShowSnapshots:
-        case Sentence::Kind::kShowTSClients: {
+        case Sentence::Kind::kShowTSClients:
+        case Sentence::Kind::kShowSessions: {
             /**
              * Only GOD role can be show.
              */
@@ -198,6 +203,10 @@ Status PermissionCheck::permissionCheck(Session *session,
             return Status::OK();
         case Sentence::Kind::kSequential: {
             // No permission checking for sequential sentence.
+            return Status::OK();
+        }
+        case Sentence::Kind::kShowQueries:
+        case Sentence::Kind::kKillQuery: {
             return Status::OK();
         }
     }

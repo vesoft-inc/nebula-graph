@@ -29,6 +29,7 @@ SET(CONTEXT_TEST_LIBS
     $<TARGET_OBJECTS:common_graph_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
     $<TARGET_OBJECTS:common_ws_common_obj>
+    $<TARGET_OBJECTS:common_version_obj>
     $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:expr_visitor_obj>
@@ -36,7 +37,7 @@ SET(CONTEXT_TEST_LIBS
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
-    $<TARGET_OBJECTS:session_obj>
+    $<TARGET_OBJECTS:graph_session_obj>
     $<TARGET_OBJECTS:planner_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
 )
@@ -53,8 +54,7 @@ nebula_add_test(
         ${THRIFT_LIBRARIES}
         gtest
         wangle
-        proxygenhttpserver
-        proxygenlib
+        ${PROXYGEN_LIBRARIES}
 )
 
 nebula_add_executable(
@@ -69,6 +69,5 @@ nebula_add_executable(
         boost_regex
         ${THRIFT_LIBRARIES}
         wangle
-        proxygenhttpserver
-        proxygenlib
+        ${PROXYGEN_LIBRARIES}
 )

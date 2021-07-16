@@ -150,7 +150,7 @@ void VidExtractVisitor::visit(RelationalExpression *expr) {
             return;
         }
         const auto *fCallExpr = static_cast<const FunctionCallExpression *>(expr->left());
-        if (*fCallExpr->name() != "id" && fCallExpr->args()->numArgs() != 1 &&
+        if (fCallExpr->name() != "id" && fCallExpr->args()->numArgs() != 1 &&
             fCallExpr->args()->args().front()->kind() != Expression::Kind::kLabel) {
             vidPattern_ = VidPattern{};
             return;
@@ -179,7 +179,7 @@ void VidExtractVisitor::visit(RelationalExpression *expr) {
             return;
         }
         const auto *fCallExpr = static_cast<const FunctionCallExpression *>(expr->left());
-        if (*fCallExpr->name() != "id" && fCallExpr->args()->numArgs() != 1 &&
+        if (fCallExpr->name() != "id" && fCallExpr->args()->numArgs() != 1 &&
             fCallExpr->args()->args().front()->kind() != Expression::Kind::kLabel) {
             vidPattern_ = VidPattern{};
             return;
@@ -445,6 +445,11 @@ void VidExtractVisitor::visit(PredicateExpression *expr) {
 }
 
 void VidExtractVisitor::visit(ReduceExpression *expr) {
+    UNUSED(expr);
+    vidPattern_ = VidPattern{};
+}
+
+void VidExtractVisitor::visit(SubscriptRangeExpression *expr) {
     UNUSED(expr);
     vidPattern_ = VidPattern{};
 }

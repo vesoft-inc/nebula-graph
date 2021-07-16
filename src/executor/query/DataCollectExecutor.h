@@ -25,13 +25,15 @@ private:
 
     Status rowBasedMove(const std::vector<std::string>& vars);
 
-    Status collectMToN(const std::vector<std::string>& vars, StepClause::MToN* mToN, bool distinct);
+    Status collectMToN(const std::vector<std::string>& vars, const StepClause& mToN, bool distinct);
 
     Status collectBFSShortest(const std::vector<std::string>& vars);
 
     Status collectAllPaths(const std::vector<std::string>& vars);
 
     Status collectMultiplePairShortestPath(const std::vector<std::string>& vars);
+
+    Status collectPathProp(const std::vector<std::string>& vars);
 
     std::vector<std::string>    colNames_;
     Value                       result_;

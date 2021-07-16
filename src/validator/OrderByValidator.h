@@ -7,7 +7,6 @@
 #ifndef VALIDATOR_ORDERBYVALIDATOR_H_
 #define VALIDATOR_ORDERBYVALIDATOR_H_
 
-#include "common/base/Base.h"
 #include "validator/Validator.h"
 
 namespace nebula {
@@ -15,7 +14,9 @@ namespace graph {
 class OrderByValidator final : public Validator {
 public:
     OrderByValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
 
 private:
     Status validateImpl() override;

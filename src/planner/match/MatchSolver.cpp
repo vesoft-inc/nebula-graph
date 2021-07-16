@@ -6,67 +6,118 @@
 
 #include "planner/match/MatchSolver.h"
 
+#include "common/expression/UnaryExpression.h"
 #include "context/ast/AstContext.h"
-#include "context/ast/QueryAstContext.h"
-#include "util/ExpressionUtils.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
+#include "context/ast/CypherAstContext.h"
 #include "planner/Planner.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
+#include "util/ExpressionUtils.h"
+#include "util/SchemaUtil.h"
+#include "visitor/RewriteVisitor.h"
 
 namespace nebula {
 namespace graph {
-Expression* MatchSolver::rewrite(const LabelExpression* label) {
-    auto* expr = new VariablePropertyExpression(
-            new std::string(),
-            new std::string(*label->name()));
-    return expr;
+Expression* MatchSolver::rewriteLabel2Vertex(QueryContext* qctx, const Expression* expr) {
+    auto* pool = qctx->objPool();
+    auto matcher = [](const Expression* e) -> bool {
+        return e->kind() == Expression::Kind::kLabel ||
+               e->kind() == Expression::Kind::kLabelAttribute;
+    };
+    auto rewriter = [&, pool](const Expression* e) -> Expression* {
+        DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
+               e->kind() == Expression::Kind::kLabel);
+        if (e->kind() == Expression::Kind::kLabelAttribute) {
+            auto la = static_cast<const LabelAttributeExpression*>(e);
+            return AttributeExpression::make(
+                pool, VertexExpression::make(pool), la->right()->clone());
+        }
+        return VertexExpression::make(pool);
+    };
+
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
 }
 
-Expression* MatchSolver::rewrite(const LabelAttributeExpression *la) {
-    const auto &value = la->right()->value();
-    auto *expr = new AttributeExpression(
-            new VariablePropertyExpression(
-                new std::string(),
-                new std::string(*la->left()->name())),
-            new ConstantExpression(value));
-    return expr;
+Expression* MatchSolver::rewriteLabel2Edge(QueryContext* qctx, const Expression* expr) {
+    auto* pool = qctx->objPool();
+    auto matcher = [](const Expression* e) -> bool {
+        return e->kind() == Expression::Kind::kLabel ||
+               e->kind() == Expression::Kind::kLabelAttribute;
+    };
+    auto rewriter = [&pool](const Expression* e) -> Expression* {
+        DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
+               e->kind() == Expression::Kind::kLabel);
+        if (e->kind() == Expression::Kind::kLabelAttribute) {
+            auto la = static_cast<const LabelAttributeExpression*>(e);
+            return AttributeExpression::make(
+                pool, EdgeExpression::make(pool), la->right()->clone());
+        }
+        return EdgeExpression::make(pool);
+    };
+
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
 }
 
-Expression* MatchSolver::doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
+Expression* MatchSolver::rewriteLabel2VarProp(QueryContext* qctx, const Expression* expr) {
+    auto* pool = qctx->objPool();
+    auto matcher = [](const Expression* e) -> bool {
+        return e->kind() == Expression::Kind::kLabel ||
+               e->kind() == Expression::Kind::kLabelAttribute;
+    };
+    auto rewriter = [&pool](const Expression* e) -> Expression* {
+        DCHECK(e->kind() == Expression::Kind::kLabelAttribute ||
+               e->kind() == Expression::Kind::kLabel);
+        if (e->kind() == Expression::Kind::kLabelAttribute) {
+            auto* la = static_cast<const LabelAttributeExpression*>(e);
+            auto* var = VariablePropertyExpression::make(pool, "", la->left()->name());
+            return AttributeExpression::make(
+                pool, var, ConstantExpression::make(pool, la->right()->value()));
+        }
+        auto label = static_cast<const LabelExpression*>(e);
+        return VariablePropertyExpression::make(pool, "", label->name());
+    };
+
+    return RewriteVisitor::transform(expr, std::move(matcher), std::move(rewriter));
+}
+
+Expression* MatchSolver::doRewrite(QueryContext* qctx,
+                                   const std::unordered_map<std::string, AliasType>& aliases,
                                    const Expression* expr) {
-    if (expr->kind() != Expression::Kind::kLabel) {
-        return rewrite(static_cast<const LabelAttributeExpression*>(expr));
+    if (expr->kind() == Expression::Kind::kLabel) {
+        auto* labelExpr = static_cast<const LabelExpression*>(expr);
+        auto alias = aliases.find(labelExpr->name());
+        DCHECK(alias != aliases.end());
     }
 
-    auto* labelExpr = static_cast<const LabelExpression*>(expr);
-    auto alias = aliases.find(*labelExpr->name());
-    DCHECK(alias != aliases.end());
-    return rewrite(labelExpr);
+    return rewriteLabel2VarProp(qctx, expr);
 }
 
 Expression* MatchSolver::makeIndexFilter(const std::string& label,
                                          const MapExpression* map,
-                                         QueryContext* qctx) {
-    auto& items = map->items();
-    Expression* root = new RelationalExpression(
-        Expression::Kind::kRelEQ,
-        new TagPropertyExpression(new std::string(label), new std::string(*items[0].first)),
-        items[0].second->clone().release());
-    for (auto i = 1u; i < items.size(); i++) {
-        auto* left = root;
-        auto* right = new RelationalExpression(
-            Expression::Kind::kRelEQ,
-            new TagPropertyExpression(new std::string(label), new std::string(*items[i].first)),
-            items[i].second->clone().release());
-        root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, right);
+                                         QueryContext* qctx,
+                                         bool isEdgeProperties) {
+    auto makePropExpr = [=, &label](const std::string& prop) -> Expression* {
+        if (isEdgeProperties) {
+            return EdgePropertyExpression::make(qctx->objPool(), label, prop);
+        }
+        return TagPropertyExpression::make(qctx->objPool(), label, prop);
+    };
+
+    auto root = LogicalExpression::makeAnd(qctx->objPool());
+    std::vector<Expression*> operands;
+    operands.reserve(map->size());
+    for (const auto& item : map->items()) {
+        operands.emplace_back(RelationalExpression::makeEQ(
+            qctx->objPool(), makePropExpr(item.first), item.second->clone()));
     }
-    return qctx->objPool()->add(root);
+    root->setOperands(std::move(operands));
+    return root;
 }
 
 Expression* MatchSolver::makeIndexFilter(const std::string& label,
                                          const std::string& alias,
                                          Expression* filter,
-                                         QueryContext* qctx) {
+                                         QueryContext* qctx,
+                                         bool isEdgeProperties) {
     static const std::unordered_set<Expression::Kind> kinds = {
         Expression::Kind::kRelEQ,
         Expression::Kind::kRelLT,
@@ -83,12 +134,13 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
         auto* logic = static_cast<LogicalExpression*>(filter);
         ExpressionUtils::pullAnds(logic);
         for (auto& operand : logic->operands()) {
-            ands.emplace_back(operand.get());
+            ands.emplace_back(operand);
         }
     } else {
         return nullptr;
     }
 
+    auto* pool = qctx->objPool();
     std::vector<Expression*> relationals;
     for (auto* item : ands) {
         if (kinds.count(item->kind()) != 1) {
@@ -100,6 +152,7 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
         auto* right = binary->right();
         const LabelAttributeExpression* la = nullptr;
         const ConstantExpression* constant = nullptr;
+        // TODO(aiee) extract the logic that apllies to both match and lookup
         if (left->kind() == Expression::Kind::kLabelAttribute &&
             right->kind() == Expression::Kind::kConstant) {
             la = static_cast<const LabelAttributeExpression*>(left);
@@ -112,19 +165,21 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
             continue;
         }
 
-        if (*la->left()->name() != alias) {
+        if (la->left()->name() != alias) {
             continue;
         }
 
-        const auto &value = la->right()->value();
-        auto *tpExpr = new TagPropertyExpression(new std::string(label),
-                                                 new std::string(value.getStr()));
-        auto *newConstant = constant->clone().release();
+        const auto& value = la->right()->value();
+        auto* tpExpr = isEdgeProperties ? static_cast<Expression*>(EdgePropertyExpression::make(
+                                              pool, label, value.getStr()))
+                                        : static_cast<Expression*>(TagPropertyExpression::make(
+                                              pool, label, value.getStr()));
+        auto* newConstant = constant->clone();
         if (left->kind() == Expression::Kind::kLabelAttribute) {
-            auto* rel = new RelationalExpression(item->kind(), tpExpr, newConstant);
+            auto* rel = RelationalExpression::makeKind(pool, item->kind(), tpExpr, newConstant);
             relationals.emplace_back(rel);
         } else {
-            auto* rel = new RelationalExpression(item->kind(), newConstant, tpExpr);
+            auto* rel = RelationalExpression::makeKind(pool, item->kind(), newConstant, tpExpr);
             relationals.emplace_back(rel);
         }
     }
@@ -136,39 +191,23 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
     auto* root = relationals[0];
     for (auto i = 1u; i < relationals.size(); i++) {
         auto* left = root;
-        root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, relationals[i]);
+        root = LogicalExpression::makeAnd(qctx->objPool(), left, relationals[i]);
     }
 
-    return qctx->objPool()->add(root);
-}
-
-Status MatchSolver::buildFilter(const MatchClauseContext* mctx, SubPlan* plan) {
-    if (mctx->where->filter == nullptr) {
-        return Status::OK();
-    }
-    auto newFilter = mctx->where->filter->clone();
-    auto rewriter = [mctx](const Expression* expr) {
-        return MatchSolver::doRewrite(mctx->aliasesGenerated, expr);
-    };
-    RewriteMatchLabelVisitor visitor(std::move(rewriter));
-    newFilter->accept(&visitor);
-    auto cond = mctx->qctx->objPool()->add(newFilter.release());
-    auto input = plan->root;
-    auto *node = Filter::make(mctx->qctx, input, cond);
-    node->setInputVar(input->outputVar());
-    node->setColNames(input->colNames());
-    plan->root = node;
-    return Status::OK();
+    return root;
 }
 
 void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
-                                           Expression* initialExpr,
+                                           Expression** initialExpr,
                                            PlanNode* dep,
                                            const std::string& inputVar,
                                            SubPlan& plan) {
     auto columns = qctx->objPool()->add(new YieldColumns);
     auto* var = qctx->symTable()->getVar(inputVar);
-    Expression* vidExpr = initialExprOrEdgeDstExpr(initialExpr, var->colNames.back());
+    Expression* vidExpr = initialExprOrEdgeDstExpr(qctx, initialExpr, var->colNames.back());
+    if (initialExpr) {
+        *initialExpr = nullptr;
+    }
     columns->addColumn(new YieldColumn(vidExpr));
     auto project = Project::make(qctx, dep, columns);
     project->setInputVar(inputVar);
@@ -179,51 +218,50 @@ void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
     plan.root = dedup;
 }
 
-Expression* MatchSolver::initialExprOrEdgeDstExpr(Expression* initialExpr,
+Expression* MatchSolver::initialExprOrEdgeDstExpr(QueryContext* qctx,
+                                                  Expression** initialExpr,
                                                   const std::string& vidCol) {
-    if (initialExpr != nullptr) {
-        return initialExpr;
+    if (initialExpr != nullptr && *initialExpr != nullptr) {
+        return *initialExpr;
     } else {
-        return getEndVidInPath(vidCol);
+        return getEndVidInPath(qctx, vidCol);
     }
 }
 
-Expression* MatchSolver::getEndVidInPath(const std::string& colName) {
+Expression* MatchSolver::getEndVidInPath(QueryContext* qctx, const std::string& colName) {
+    auto* pool = qctx->objPool();
     // expr: __Project_2[-1] => path
-    auto columnExpr = ExpressionUtils::inputPropExpr(colName);
+    auto columnExpr = InputPropertyExpression::make(pool, colName);
     // expr: endNode(path) => vn
-    auto args = std::make_unique<ArgumentList>();
-    args->addArgument(std::move(columnExpr));
-    auto fn = std::make_unique<std::string>("endNode");
-    auto endNode = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    auto args = ArgumentList::make(pool);
+    args->addArgument(columnExpr);
+    auto endNode = FunctionCallExpression::make(pool, "endNode", args);
     // expr: en[_dst] => dst vid
-    auto vidExpr = std::make_unique<ConstantExpression>(kVid);
-    return new AttributeExpression(endNode.release(), vidExpr.release());
+    auto vidExpr = ConstantExpression::make(pool, kVid);
+    return AttributeExpression::make(pool, endNode, vidExpr);
 }
 
-Expression* MatchSolver::getStartVidInPath(const std::string& colName) {
+Expression* MatchSolver::getStartVidInPath(QueryContext *qctx, const std::string& colName) {
+    auto* pool = qctx->objPool();
     // expr: __Project_2[0] => path
-    auto columnExpr = ExpressionUtils::inputPropExpr(colName);
+    auto columnExpr = InputPropertyExpression::make(pool, colName);
     // expr: startNode(path) => v1
-    auto args = std::make_unique<ArgumentList>();
-    args->addArgument(std::move(columnExpr));
-    auto fn = std::make_unique<std::string>("startNode");
-    auto firstVertexExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    auto args = ArgumentList::make(pool);
+    args->addArgument(columnExpr);
+    auto firstVertexExpr = FunctionCallExpression::make(pool, "startNode", args);
     // expr: v1[_vid] => vid
-    return new AttributeExpression(firstVertexExpr.release(), new ConstantExpression(kVid));
+    return AttributeExpression::make(pool, firstVertexExpr, ConstantExpression::make(pool, kVid));
 }
 
 PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
                                            const std::string& column,
                                            QueryContext* qctx) {
-    auto args = std::make_unique<ArgumentList>();
-    args->addArgument(ExpressionUtils::inputPropExpr(column));
-    auto fn = std::make_unique<std::string>("hasSameEdgeInPath");
-    auto fnCall = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
-    auto falseConst = std::make_unique<ConstantExpression>(false);
-    auto cond = std::make_unique<RelationalExpression>(
-        Expression::Kind::kRelEQ, fnCall.release(), falseConst.release());
-    auto filter = Filter::make(qctx, input, qctx->objPool()->add(cond.release()));
+    auto* pool = qctx->objPool();
+    auto args = ArgumentList::make(pool);
+    args->addArgument(InputPropertyExpression::make(pool, column));
+    auto fnCall = FunctionCallExpression::make(pool, "hasSameEdgeInPath", args);
+    auto cond = UnaryExpression::makeNot(pool, fnCall);
+    auto filter = Filter::make(qctx, input, cond);
     filter->setColNames(input->colNames());
     return filter;
 }
@@ -231,7 +269,7 @@ PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
 Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
                                           const SpaceInfo& space,
                                           QueryContext* qctx,
-                                          Expression* initialExpr,
+                                          Expression** initialExpr,
                                           SubPlan& plan) {
     return appendFetchVertexPlan(
         nodeFilter, space, qctx, initialExpr, plan.root->outputVar(), plan);
@@ -240,81 +278,38 @@ Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
 Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
                                           const SpaceInfo& space,
                                           QueryContext* qctx,
-                                          Expression* initialExpr,
+                                          Expression** initialExpr,
                                           std::string inputVar,
                                           SubPlan& plan) {
+    auto* pool = qctx->objPool();
     // [Project && Dedup]
     extractAndDedupVidColumn(qctx, initialExpr, plan.root, inputVar, plan);
-    auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
+    auto srcExpr = InputPropertyExpression::make(pool, kVid);
     // [Get vertices]
-    auto props = flattenTags(qctx, space);
+    auto props = SchemaUtil::getAllVertexProp(qctx, space, true);
     NG_RETURN_IF_ERROR(props);
     auto gv = GetVertices::make(qctx,
                                 plan.root,
                                 space.id,
-                                qctx->objPool()->add(srcExpr.release()),
+                                srcExpr,
                                 std::move(props).value(),
                                 {});
 
     PlanNode* root = gv;
     if (nodeFilter != nullptr) {
-        auto filter = qctx->objPool()->add(nodeFilter->clone().release());
-        RewriteMatchLabelVisitor visitor(
-            [](const Expression* expr) -> Expression *{
-            DCHECK(expr->kind() == Expression::Kind::kLabelAttribute ||
-                expr->kind() == Expression::Kind::kLabel);
-            // filter prop
-            if (expr->kind() == Expression::Kind::kLabelAttribute) {
-                auto la = static_cast<const LabelAttributeExpression*>(expr);
-                return new AttributeExpression(
-                    new VertexExpression(), la->right()->clone().release());
-            }
-            // filter tag
-            return new VertexExpression();
-        });
-        filter->accept(&visitor);
-        root = Filter::make(qctx, root, filter);
+        auto* newFilter = MatchSolver::rewriteLabel2Vertex(qctx, nodeFilter);
+        root = Filter::make(qctx, root, newFilter);
     }
-    // [Project]
+
     // Normalize all columns to one
-    auto columns = qctx->objPool()->add(new YieldColumns);
-    auto pathExpr = std::make_unique<PathBuildExpression>();
-    pathExpr->add(std::make_unique<VertexExpression>());
-    columns->addColumn(new YieldColumn(pathExpr.release()));
+    auto columns = pool->add(new YieldColumns);
+    auto pathExpr = PathBuildExpression::make(pool);
+    pathExpr->add(VertexExpression::make(pool));
+    columns->addColumn(new YieldColumn(pathExpr));
     plan.root = Project::make(qctx, root, columns);
     plan.root->setColNames({kPathStr});
     return Status::OK();
 }
 
-StatusOr<std::vector<storage::cpp2::VertexProp>> MatchSolver::flattenTags(QueryContext* qctx,
-                                                                          const SpaceInfo& space) {
-    // Get all tags in the space
-    const auto allTagsResult = qctx->schemaMng()->getAllLatestVerTagSchema(space.id);
-    NG_RETURN_IF_ERROR(allTagsResult);
-    // allTags: std::unordered_map<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>
-    const auto allTags = std::move(allTagsResult).value();
-
-    std::vector<storage::cpp2::VertexProp> props;
-    props.reserve(allTags.size());
-    // Retrieve prop names of each tag and append "_tag" to the name list to query empty tags
-    for (const auto& tag : allTags) {
-        // tag: pair<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>
-        std::vector<std::string> propNames;
-        storage::cpp2::VertexProp vProp;
-
-        const auto tagId = tag.first;
-        vProp.set_tag(tagId);
-        const auto tagSchema = tag.second;   // nebulaSchemaProvider
-        for (size_t i = 0; i < tagSchema->getNumFields(); i++) {
-            const auto propName = tagSchema->getFieldName(i);
-            propNames.emplace_back(propName);
-        }
-        propNames.emplace_back(nebula::kTag);   // "_tag"
-        vProp.set_props(std::move(propNames));
-        props.emplace_back(std::move(vProp));
-    }
-    return props;
-}
-
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula

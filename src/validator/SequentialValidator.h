@@ -7,7 +7,6 @@
 #ifndef VALIDATOR_SEQUENTIALVALIDATOR_H_
 #define VALIDATOR_SEQUENTIALVALIDATOR_H_
 
-#include "common/base/Base.h"
 #include "parser/SequentialSentences.h"
 #include "validator/Validator.h"
 
@@ -27,9 +26,7 @@ public:
     SequentialValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
         setNoSpaceRequired();
-        seqAstCtx_ = std::make_unique<SequentialAstContext>();
-        seqAstCtx_->sentence = sentence;
-        seqAstCtx_->qctx = context;
+        seqAstCtx_ = getContext<SequentialAstContext>();
     }
 
     Status validateImpl() override;

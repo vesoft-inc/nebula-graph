@@ -5,7 +5,7 @@
  */
 
 #include "executor/admin/BalanceLeadersExecutor.h"
-#include "planner/Admin.h"
+#include "planner/plan/Admin.h"
 
 namespace nebula {
 namespace graph {
@@ -18,7 +18,7 @@ folly::Future<Status> BalanceLeadersExecutor::execute() {
 folly::Future<Status> BalanceLeadersExecutor::balanceLeaders() {
     return qctx()->getMetaClient()->balanceLeader()
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .thenValue([this](StatusOr<bool> resp) {
             SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();

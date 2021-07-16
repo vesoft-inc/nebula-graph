@@ -5,7 +5,7 @@
  */
 #include "executor/algo/ConjunctPathExecutor.h"
 
-#include "planner/Algo.h"
+#include "planner/plan/Algo.h"
 
 namespace nebula {
 namespace graph {
@@ -33,6 +33,9 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
             << " right input: " << conjunct->rightInputVar();
     DCHECK(!!lIter);
 
+    auto steps = conjunct->steps();
+    count_++;
+
     DataSet ds;
     ds.colNames = conjunct->colNames();
 
@@ -41,7 +44,7 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
     forward_.emplace_back();
     for (; lIter->valid(); lIter->next()) {
         auto& dst = lIter->getColumn(kVid);
-        auto& edge = lIter->getColumn("edge");
+        auto& edge = lIter->getColumn(kEdgeStr);
         VLOG(1) << "dst: " << dst << " edge: " << edge;
         if (!edge.isEdge()) {
             forward_.back().emplace(Value(dst), nullptr);
@@ -62,14 +65,16 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
         }
     }
 
-    auto latest = rHist.back().iter();
-    isLatest = true;
-    backward_.emplace_back();
-    VLOG(1) << "Find even length path.";
-    auto rows = findBfsShortestPath(latest.get(), isLatest, forward_.back());
-    if (!rows.empty()) {
-        VLOG(1) << "Meet even length path.";
-        ds.rows = std::move(rows);
+    if (count_ * 2 <= steps) {
+        auto latest = rHist.back().iter();
+        isLatest = true;
+        backward_.emplace_back();
+        VLOG(1) << "Find even length path.";
+        auto rows = findBfsShortestPath(latest.get(), isLatest, forward_.back());
+        if (!rows.empty()) {
+            VLOG(1) << "Meet even length path.";
+            ds.rows = std::move(rows);
+        }
     }
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
@@ -77,12 +82,12 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
 std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
     Iterator* iter,
     bool isLatest,
-    std::multimap<Value, const Edge*>& table) {
+    std::unordered_multimap<Value, const Edge*>& table) {
     std::unordered_set<Value> meets;
     for (; iter->valid(); iter->next()) {
         auto& dst = iter->getColumn(kVid);
         if (isLatest) {
-            auto& edge = iter->getColumn("edge");
+            auto& edge = iter->getColumn(kEdgeStr);
             VLOG(1) << "dst: " << dst << " edge: " << edge;
             if (!edge.isEdge()) {
                 backward_.back().emplace(dst, nullptr);
@@ -118,10 +123,10 @@ std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
     return rows;
 }
 
-std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
+std::unordered_multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
     std::unordered_set<Value>& meets,
-    std::vector<std::multimap<Value, const Edge*>>& hists) {
-    std::multimap<Value, Path> results;
+    std::vector<std::unordered_multimap<Value, const Edge*>>& hists) {
+    std::unordered_multimap<Value, Path> results;
     for (auto& v : meets) {
         VLOG(1) << "Meet at: " << v;
         Path start;
@@ -189,9 +194,9 @@ folly::Future<Status> ConjunctPathExecutor::floydShortestPath() {
     for (; lIter->valid(); lIter->next()) {
         auto& dst = lIter->getColumn(kDst);
         auto& src = lIter->getColumn(kSrc);
-        auto cost = lIter->getColumn("cost");
+        auto cost = lIter->getColumn(kCostStr);
 
-        auto& pathList = lIter->getColumn("paths");
+        auto& pathList = lIter->getColumn(kPathStr);
         if (!pathList.isList()) {
             continue;
         }
@@ -205,7 +210,7 @@ folly::Future<Status> ConjunctPathExecutor::floydShortestPath() {
         findPath(previous.get(), forwardCostPathMap, ds);
     }
 
-    if (count_ * 2 < steps) {
+    if (count_ * 2 <= steps) {
         VLOG(1) << "Find even length path.";
         auto latest = rHist.back().iter();
         findPath(latest.get(), forwardCostPathMap, ds);
@@ -224,7 +229,7 @@ Status ConjunctPathExecutor::conjunctPath(const List& forwardPaths,
         }
         for (auto& j : backwardPaths.values) {
             if (!j.isPath()) {
-                return Status::Error("Forward Path Type Error");
+                return Status::Error("Backward Path Type Error");
             }
             Row row;
             auto forward = i.getPath();
@@ -250,9 +255,9 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
     for (; backwardPathIter->valid(); backwardPathIter->next()) {
         auto& dst = backwardPathIter->getColumn(kDst);
         auto& endVid = backwardPathIter->getColumn(kSrc);
-        auto cost = backwardPathIter->getColumn("cost");
+        auto cost = backwardPathIter->getColumn(kCostStr);
         VLOG(1) << "Backward dst: " << dst;
-        auto& pathList = backwardPathIter->getColumn("paths");
+        auto& pathList = backwardPathIter->getColumn(kPathStr);
         if (!pathList.isList()) {
             continue;
         }
@@ -288,9 +293,11 @@ void ConjunctPathExecutor::delPathFromConditionalVar(const Value& start, const V
 
     while (iter->valid()) {
         auto startVid = iter->getColumn(0);
-        auto endVid = iter->getColumn(1);
+        auto endVid = iter->getColumn(4);
         if (startVid == endVid || (startVid == start && endVid == end)) {
             iter->unstableErase();
+            VLOG(1) << "Path src: " << start << " dst: " << end;
+            VLOG(1) << "Delete CartesianProduct src: "<< startVid << " dstVid: " << endVid;
         } else {
             iter->next();
         }
@@ -316,7 +323,7 @@ folly::Future<Status> ConjunctPathExecutor::allPaths() {
     std::unordered_map<Value, const List&> table;
     for (; lIter->valid(); lIter->next()) {
         auto& dst = lIter->getColumn(kVid);
-        auto& path = lIter->getColumn("path");
+        auto& path = lIter->getColumn(kPathStr);
         if (path.isList()) {
             VLOG(1) << "Forward dst: " << dst;
             table.emplace(dst, path.getList());
@@ -345,7 +352,7 @@ bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
     for (; backwardPathsIter->valid(); backwardPathsIter->next()) {
         auto& dst = backwardPathsIter->getColumn(kVid);
         VLOG(1) << "Backward dst: " << dst;
-        auto& pathList = backwardPathsIter->getColumn("path");
+        auto& pathList = backwardPathsIter->getColumn(kPathStr);
         if (!pathList.isList()) {
             continue;
         }

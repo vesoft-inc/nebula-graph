@@ -23,53 +23,48 @@ void ParserUtil::rewriteLC(QueryContext *qctx,
                            const std::string &oldVarName) {
     const auto &newVarName = qctx->vctx()->anonVarGen()->getVar();
     qctx->ectx()->setValue(newVarName, Value());
-    auto rewriter = [&oldVarName, &newVarName](const Expression *expr) {
+    auto *pool = qctx->objPool();
+
+    auto matcher = [](const Expression *expr) -> bool {
+        return expr->kind() == Expression::Kind::kLabel ||
+               expr->kind() == Expression::Kind::kLabelAttribute;
+    };
+
+    auto rewriter = [&, pool, newVarName](const Expression *expr) {
         Expression *ret = nullptr;
         if (expr->kind() == Expression::Kind::kLabel) {
             auto *label = static_cast<const LabelExpression *>(expr);
-            if (*label->name() == oldVarName) {
-                ret = new VariableExpression(new std::string(newVarName));
+            if (label->name() == oldVarName) {
+                ret = VariableExpression::make(pool, newVarName, true);
             } else {
-                ret = label->clone().release();
+                ret = label->clone();
             }
         } else {
             DCHECK(expr->kind() == Expression::Kind::kLabelAttribute);
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
-            if (*la->left()->name() == oldVarName) {
+            if (la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName)),
-                                              new ConstantExpression(value));
+                ret = AttributeExpression::make(pool,
+                                                VariableExpression::make(pool, newVarName, true),
+                                                ConstantExpression::make(pool, value));
             } else {
-                ret = la->clone().release();
+                ret = la->clone();
             }
         }
         return ret;
     };
 
-    RewriteMatchLabelVisitor visitor(rewriter);
-
-    lc->setOriginString(new std::string(lc->makeString()));
-    lc->setInnerVar(new std::string(newVarName));
+    lc->setOriginString(lc->toString());
+    lc->setInnerVar(newVarName);
     if (lc->hasFilter()) {
         Expression *filter = lc->filter();
-        Expression *newFilter = nullptr;
-        if (isLabel(filter)) {
-            newFilter = rewriter(filter);
-        } else {
-            newFilter = filter->clone().release();
-            newFilter->accept(&visitor);
-        }
+        auto *newFilter = RewriteVisitor::transform(filter, matcher, rewriter);
         lc->setFilter(newFilter);
     }
     if (lc->hasMapping()) {
         Expression *mapping = lc->mapping();
-        Expression *newMapping = nullptr;
-        if (isLabel(mapping)) {
-            newMapping = rewriter(mapping);
-        } else {
-            newMapping = mapping->clone().release();
-            newMapping->accept(&visitor);
-        }
+        auto *newMapping =
+            RewriteVisitor::transform(mapping, std::move(matcher), std::move(rewriter));
         lc->setMapping(newMapping);
     }
 }
@@ -80,41 +75,42 @@ void ParserUtil::rewritePred(QueryContext *qctx,
                              const std::string &oldVarName) {
     const auto &newVarName = qctx->vctx()->anonVarGen()->getVar();
     qctx->ectx()->setValue(newVarName, Value());
-    auto rewriter = [&oldVarName, &newVarName](const Expression *expr) {
+    auto *pool = qctx->objPool();
+
+    auto matcher = [](const Expression *expr) -> bool {
+        return expr->kind() == Expression::Kind::kLabel ||
+               expr->kind() == Expression::Kind::kLabelAttribute;
+    };
+
+    auto rewriter = [&](const Expression *expr) {
         Expression *ret = nullptr;
         if (expr->kind() == Expression::Kind::kLabel) {
             auto *label = static_cast<const LabelExpression *>(expr);
-            if (*label->name() == oldVarName) {
-                ret = new VariableExpression(new std::string(newVarName));
+            if (label->name() == oldVarName) {
+                ret = VariableExpression::make(pool, newVarName, true);
             } else {
-                ret = label->clone().release();
+                ret = label->clone();
             }
         } else {
             DCHECK(expr->kind() == Expression::Kind::kLabelAttribute);
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
-            if (*la->left()->name() == oldVarName) {
+            if (la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName)),
-                                              new ConstantExpression(value));
+                ret = AttributeExpression::make(pool,
+                                                VariableExpression::make(pool, newVarName, true),
+                                                ConstantExpression::make(pool, value));
             } else {
-                ret = la->clone().release();
+                ret = la->clone();
             }
         }
         return ret;
     };
 
-    RewriteMatchLabelVisitor visitor(rewriter);
+    pred->setOriginString(pred->toString());
+    pred->setInnerVar(newVarName);
 
-    pred->setOriginString(new std::string(pred->makeString()));
-    pred->setInnerVar(new std::string(newVarName));
-    Expression *filter = pred->filter();
-    Expression *newFilter = nullptr;
-    if (isLabel(filter)) {
-        newFilter = rewriter(filter);
-    } else {
-        newFilter = filter->clone().release();
-        newFilter->accept(&visitor);
-    }
+    auto *newFilter =
+        RewriteVisitor::transform(pred->filter(), std::move(matcher), std::move(rewriter));
     pred->setFilter(newFilter);
 }
 
@@ -127,48 +123,49 @@ void ParserUtil::rewriteReduce(QueryContext *qctx,
     qctx->ectx()->setValue(newAccName, Value());
     const auto &newVarName = qctx->vctx()->anonVarGen()->getVar();
     qctx->ectx()->setValue(newVarName, Value());
-    auto rewriter = [oldAccName, newAccName, oldVarName, newVarName](const Expression *expr) {
+    auto *pool = qctx->objPool();
+
+    auto matcher = [](const Expression *expr) -> bool {
+        return expr->kind() == Expression::Kind::kLabel ||
+               expr->kind() == Expression::Kind::kLabelAttribute;
+    };
+    auto rewriter = [&](const Expression *expr) {
         Expression *ret = nullptr;
         if (expr->kind() == Expression::Kind::kLabel) {
             auto *label = static_cast<const LabelExpression *>(expr);
-            if (*label->name() == oldAccName) {
-                ret = new VariableExpression(new std::string(newAccName));
-            } else if (*label->name() == oldVarName) {
-                ret = new VariableExpression(new std::string(newVarName));
+            if (label->name() == oldAccName) {
+                ret = VariableExpression::make(pool, newAccName, true);
+            } else if (label->name() == oldVarName) {
+                ret = VariableExpression::make(pool, newVarName, true);
             } else {
-                ret = label->clone().release();
+                ret = label->clone();
             }
         } else {
             DCHECK(expr->kind() == Expression::Kind::kLabelAttribute);
             auto *la = static_cast<const LabelAttributeExpression *>(expr);
-            if (*la->left()->name() == oldAccName) {
+            if (la->left()->name() == oldAccName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newAccName)),
-                                              new ConstantExpression(value));
-            } else if (*la->left()->name() == oldVarName) {
+                ret = AttributeExpression::make(pool,
+                                                VariableExpression::make(pool, newAccName, true),
+                                                ConstantExpression::make(pool, value));
+            } else if (la->left()->name() == oldVarName) {
                 const auto &value = la->right()->value();
-                ret = new AttributeExpression(new VariableExpression(new std::string(newVarName)),
-                                              new ConstantExpression(value));
+                ret = AttributeExpression::make(pool,
+                                                VariableExpression::make(pool, newVarName, true),
+                                                ConstantExpression::make(pool, value));
             } else {
-                ret = la->clone().release();
+                ret = la->clone();
             }
         }
         return ret;
     };
 
-    RewriteMatchLabelVisitor visitor(rewriter);
+    reduce->setOriginString(reduce->toString());
+    reduce->setAccumulator(newAccName);
+    reduce->setInnerVar(newVarName);
 
-    reduce->setOriginString(new std::string(reduce->makeString()));
-    reduce->setAccumulator(new std::string(newAccName));
-    reduce->setInnerVar(new std::string(newVarName));
-    Expression *mapping = reduce->mapping();
-    Expression *newMapping = nullptr;
-    if (isLabel(mapping)) {
-        newMapping = rewriter(mapping);
-    } else {
-        newMapping = mapping->clone().release();
-        newMapping->accept(&visitor);
-    }
+    auto *newMapping =
+        RewriteVisitor::transform(reduce->mapping(), std::move(matcher), std::move(rewriter));
     reduce->setMapping(newMapping);
 }
 

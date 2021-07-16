@@ -7,11 +7,10 @@
 #ifndef UTIL_PARSERUTIL_H_
 #define UTIL_PARSERUTIL_H_
 
-#include "common/base/Base.h"
 #include "common/base/StatusOr.h"
 #include "context/QueryContext.h"
 #include "parser/MaintainSentences.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
+#include "visitor/RewriteVisitor.h"
 
 namespace nebula {
 namespace graph {

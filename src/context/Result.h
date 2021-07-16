@@ -7,7 +7,6 @@
 #ifndef CONTEXT_RESULT_H_
 #define CONTEXT_RESULT_H_
 
-#include <memory>
 #include <vector>
 
 #include "context/Iterator.h"
@@ -46,8 +45,16 @@ public:
         return core_.iter->size();
     }
 
-    std::unique_ptr<Iterator> iter() const {
+    std::unique_ptr<Iterator> iter() const & {
         return core_.iter->copy();
+    }
+
+    std::unique_ptr<Iterator> iter() && {
+        return std::move(core_.iter);
+    }
+
+    Iterator* iterRef() {
+        return core_.iter.get();
     }
 
 private:
@@ -59,6 +66,22 @@ private:
     }
 
     struct Core {
+        Core() = default;
+        Core(Core &&) = default;
+        Core& operator=(Core &&) = default;
+        Core(const Core &c) {
+            *this = c;
+        }
+        Core& operator=(const Core &c) {
+            if (&c != this) {
+                state = c.state;
+                msg = c.msg;
+                value = c.value;
+                iter = c.iter->copy();
+            }
+            return *this;
+        }
+
         State state;
         std::string msg;
         std::shared_ptr<Value> value;

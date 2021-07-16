@@ -6,7 +6,6 @@
 
 #include "common/base/Base.h"
 #include "parser/TraverseSentences.h"
-#include "util/ExpressionUtils.h"
 
 namespace nebula {
 
@@ -33,10 +32,18 @@ std::string GoSentence::toString() const {
         buf += " ";
         buf += yieldClause_->toString();
     }
-
+    if (truncateClause_ != nullptr) {
+        buf += " ";
+        buf += truncateClause_->toString();
+    }
     return buf;
 }
 
+LookupSentence::LookupSentence(std::string *from, WhereClause *where, YieldClause *yield)
+    : Sentence(Kind::kLookup),
+      from_(DCHECK_NOTNULL(from)),
+      whereClause_(where),
+      yieldClause_(yield) {}
 
 std::string LookupSentence::toString() const {
     std::string buf;
@@ -197,13 +204,13 @@ std::string FindPathSentence::toString() const {
         buf += over_->toString();
         buf += " ";
     }
+    if (where_ != nullptr) {
+        buf += where_->toString();
+        buf += " ";
+    }
     if (step_ != nullptr) {
         buf += "UPTO ";
         buf += step_->toString();
-        buf += " ";
-    }
-    if (where_ != nullptr) {
-        buf += where_->toString();
         buf += " ";
     }
     return buf;
@@ -215,15 +222,6 @@ std::string LimitSentence::toString() const {
     }
 
     return folly::stringPrintf("LIMIT %ld,%ld", offset_, count_);
-}
-
-bool YieldSentence::hasAgg() const {
-    for (auto* col : columns()) {
-        if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate})) {
-            return true;
-        }
-    }
-    return false;
 }
 
 std::string YieldSentence::toString() const {

@@ -7,11 +7,11 @@
 #include "executor/admin/SwitchSpaceExecutor.h"
 
 #include "service/PermissionManager.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "common/clients/meta/MetaClient.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "context/QueryContext.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ScopedTimer.h"
 
 namespace nebula {
@@ -24,7 +24,7 @@ folly::Future<Status> SwitchSpaceExecutor::execute() {
     auto spaceName = spaceToNode->getSpaceName();
     return qctx()->getMetaClient()->getSpace(spaceName)
             .via(runner())
-            .then([spaceName, this](StatusOr<meta::cpp2::SpaceItem> resp) {
+            .thenValue([spaceName, this](StatusOr<meta::cpp2::SpaceItem> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();

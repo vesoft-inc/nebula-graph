@@ -9,8 +9,8 @@
 #include "common/expression/PropertyExpression.h"
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
-#include "planner/PlanNode.h"
-#include "planner/Query.h"
+#include "planner/plan/PlanNode.h"
+#include "planner/plan/Query.h"
 
 using nebula::Expression;
 using nebula::InputPropertyExpression;
@@ -51,7 +51,7 @@ bool MergeGetNbrsAndProjectRule::match(OptContext *ctx, const MatchedResult &mat
         return false;
     }
     auto inputPropExpr = static_cast<const InputPropertyExpression *>(srcExpr);
-    return columns.back() == *inputPropExpr->prop();
+    return columns.back() == inputPropExpr->prop();
 }
 
 StatusOr<OptRule::TransformResult> MergeGetNbrsAndProjectRule::transform(
@@ -63,10 +63,9 @@ StatusOr<OptRule::TransformResult> MergeGetNbrsAndProjectRule::transform(
     DCHECK_EQ(optProj->node()->kind(), PlanNode::Kind::kProject);
     auto gn = static_cast<const GetNeighbors *>(optGN->node());
     auto project = static_cast<const Project *>(optProj->node());
-    auto qctx = ctx->qctx();
-    auto newGN = gn->clone(qctx);
+    auto newGN = static_cast<GetNeighbors *>(gn->clone());
     auto column = project->columns()->back();
-    auto srcExpr = qctx->objPool()->add(column->expr()->clone().release());
+    auto srcExpr = column->expr()->clone();
     newGN->setSrc(srcExpr);
     newGN->setInputVar(project->inputVar());
     auto newOptGV = OptGroupNode::create(ctx, newGN, optGN->group());

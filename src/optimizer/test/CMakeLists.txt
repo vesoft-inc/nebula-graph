@@ -31,9 +31,10 @@ set(OPTIMIZER_TEST_LIB
     $<TARGET_OBJECTS:common_graph_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
     $<TARGET_OBJECTS:common_ws_common_obj>
+    $<TARGET_OBJECTS:common_version_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:expr_visitor_obj>
-    $<TARGET_OBJECTS:session_obj>
+    $<TARGET_OBJECTS:graph_session_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:util_obj>
@@ -52,10 +53,8 @@ nebula_add_test(
     OBJECTS
         ${OPTIMIZER_TEST_LIB}
     LIBRARIES
-        proxygenhttpserver
-        proxygenlib
+        ${PROXYGEN_LIBRARIES}
         ${THRIFT_LIBRARIES}
-        wangle
         gtest
         gtest_main
 )
@@ -68,10 +67,8 @@ nebula_add_test(
     OBJECTS
         ${OPTIMIZER_TEST_LIB}
     LIBRARIES
-        proxygenhttpserver
-        proxygenlib
-    ${THRIFT_LIBRARIES}
-        wangle
+        ${PROXYGEN_LIBRARIES}
+        ${THRIFT_LIBRARIES}
         gtest
         gtest_main
 )

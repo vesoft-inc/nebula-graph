@@ -7,7 +7,6 @@
 #ifndef UTIL_INDEXUTIL_H_
 #define UTIL_INDEXUTIL_H_
 
-#include "common/base/Base.h"
 #include "common/base/StatusOr.h"
 #include "parser/MaintainSentences.h"
 #include "util/SchemaUtil.h"
@@ -26,6 +25,8 @@ public:
     static StatusOr<DataSet> toShowCreateIndex(bool isTagIndex,
                                                const std::string &indexName,
                                                const meta::cpp2::IndexItem &indexItem);
+
+    static Expression::Kind reverseRelationalExprKind(Expression::Kind kind);
 };
 
 }  // namespace graph

@@ -5,7 +5,7 @@
  */
 
 #include "executor/query/AssignExecutor.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -27,8 +27,7 @@ folly::Future<Status> AssignExecutor::execute() {
             ectx_->setValue(varName, std::move(value));
         }
     }
-    DataSet ds;
-    return finish(ResultBuilder().value(Value(std::move(ds))).finish());
+    return Status::OK();
 }
 
 }   // namespace graph

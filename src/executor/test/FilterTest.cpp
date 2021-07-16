@@ -9,7 +9,7 @@
 #include "executor/query/FilterExecutor.h"
 #include "executor/query/ProjectExecutor.h"
 #include "executor/test/QueryTestBase.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 
 namespace nebula {
@@ -25,27 +25,15 @@ public:
 #define FILTER_RESUTL_CHECK(inputName, outputName, sentence, expected)                             \
     do {                                                                                           \
         qctx_->symTable()->newVariable(outputName);                                                \
-        auto yieldSentence = getYieldSentence(sentence);                                           \
+        auto* pool = qctx_->objPool();                                                             \
+        auto yieldSentence = getYieldSentence(sentence, qctx_.get());                              \
         auto columns = yieldSentence->columns();                                                   \
         for (auto& col : columns) {                                                                \
-            if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {                        \
-                auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());                 \
-                col->setExpr(                                                                      \
-                    ExpressionUtils ::rewriteLabelAttribute<EdgePropertyExpression>(               \
-                        laExpr));                                                                  \
-            } else {                                                                               \
-                ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());       \
-            }                                                                                      \
+            col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, col->expr()));           \
         }                                                                                          \
-        auto* filter = yieldSentence->where()->filter();                                           \
-        if (filter->kind() == Expression::Kind::kLabelAttribute) {                                 \
-            auto laExpr = static_cast<LabelAttributeExpression*>(filter);                          \
-            yieldSentence->where()->setFilter(                                                     \
-                ExpressionUtils ::rewriteLabelAttribute<EdgePropertyExpression>(                   \
-                    laExpr));                                                                      \
-        } else {                                                                                   \
-            ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(filter);                \
-        }                                                                                          \
+        auto* whereSentence = yieldSentence->where();                                              \
+        whereSentence->setFilter(                                                                  \
+            ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, whereSentence->filter()));            \
         auto* filterNode = Filter::make(qctx_.get(), nullptr, yieldSentence->where()->filter());   \
         filterNode->setInputVar(inputName);                                                        \
         filterNode->setOutputVar(outputName);                                                      \

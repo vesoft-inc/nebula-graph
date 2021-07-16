@@ -12,15 +12,12 @@
 #include "context/QueryContext.h"
 #include "context/ValidateContext.h"
 #include "parser/Sentence.h"
-#include "planner/ExecutionPlan.h"
+#include "planner/plan/ExecutionPlan.h"
 #include "planner/Planner.h"
 #include "service/PermissionCheck.h"
 #include "visitor/DeducePropsVisitor.h"
 
 namespace nebula {
-
-class YieldColumns;
-
 namespace graph {
 
 class Validator {
@@ -65,6 +62,8 @@ public:
     void setOutputCols(ColsDef& outputCols) {
         outputs_ = outputCols;
     }
+
+    std::vector<std::string> getOutColNames() const;
 
     ColsDef inputCols() const {
         return inputs_;
@@ -126,7 +125,8 @@ protected:
     // Do all permission checking in validator except which need execute
     // TODO(shylock) do all permission which don't need execute in here
     virtual Status checkPermission() {
-        return PermissionCheck::permissionCheck(qctx_->rctx()->session(), sentence_, space_.id);
+        return PermissionCheck::permissionCheck(
+                qctx_->rctx()->session(), sentence_, qctx_->vctx(), space_.id);
     }
 
     /**
@@ -142,10 +142,6 @@ protected:
     virtual AstContext* getAstContext() {
         return nullptr;
     }
-
-    std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
-
-    std::string deduceColName(const YieldColumn* col) const;
 
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
 
@@ -176,6 +172,15 @@ protected:
     Status checkDuplicateColName();
 
     Status invalidLabelIdentifiers(const Expression* expr) const;
+
+    template <typename T>
+    std::unique_ptr<T> getContext() const {
+        auto ctx = std::make_unique<T>();
+        ctx->sentence = sentence_;
+        ctx->qctx = qctx_;
+        ctx->space = space_;
+        return ctx;
+    }
 
 protected:
     SpaceInfo                       space_;

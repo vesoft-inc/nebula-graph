@@ -10,12 +10,12 @@
 #include "context/QueryContext.h"
 #include "context/ValidateContext.h"
 #include "parser/GQLParser.h"
-#include "planner/Admin.h"
-#include "planner/ExecutionPlan.h"
-#include "planner/Maintain.h"
-#include "planner/Mutate.h"
-#include "planner/PlanNode.h"
-#include "planner/Query.h"
+#include "planner/plan/Admin.h"
+#include "planner/plan/ExecutionPlan.h"
+#include "planner/plan/Maintain.h"
+#include "planner/plan/Mutate.h"
+#include "planner/plan/PlanNode.h"
+#include "planner/plan/Query.h"
 #include "util/Utils.h"
 
 namespace nebula {
@@ -41,28 +41,19 @@ void ValidatorTestBase::bfsTraverse(const PlanNode *root, std::vector<PlanNode::
             ASSERT_TRUE(false) << "Unknown Plan Node.";
         }
 
-        switch (node->dependencies().size()) {
-            case 1: {
-                auto *sNode = static_cast<const SingleDependencyNode *>(node);
-                queue.emplace(sNode->dep());
-                if (node->kind() == PlanNode::Kind::kSelect) {
-                    auto *current = static_cast<const Select *>(node);
-                    queue.emplace(current->then());
-                    if (current->otherwise() != nullptr) {
-                        queue.emplace(current->otherwise());
-                    }
-                } else if (node->kind() == PlanNode::Kind::kLoop) {
-                    auto *current = static_cast<const Loop *>(node);
-                    queue.emplace(current->body());
-                }
-                break;
+        for (size_t i = 0; i < node->numDeps(); ++i) {
+            queue.emplace(node->dep(i));
+        }
+
+        if (node->kind() == PlanNode::Kind::kSelect) {
+            auto *current = static_cast<const Select *>(node);
+            queue.emplace(current->then());
+            if (current->otherwise() != nullptr) {
+                queue.emplace(current->otherwise());
             }
-            case 2: {
-                auto *current = static_cast<const BiInputNode *>(node);
-                queue.emplace(current->left());
-                queue.emplace(current->right());
-                break;
-            }
+        } else if (node->kind() == PlanNode::Kind::kLoop) {
+            auto *current = static_cast<const Loop *>(node);
+            queue.emplace(current->body());
         }
     }
 }
@@ -83,7 +74,7 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
     }
     // TODO(shylock) col names in GetVertices generate by unordered container
     // So can't check now
-    if ((l->colNamesRef() != r->colNamesRef()) && l->kind() != PlanNode::Kind::kGetVertices) {
+    if ((l->colNames() != r->colNames()) && l->kind() != PlanNode::Kind::kGetVertices) {
         return Status::Error(
             "%s.colNames_ != %s.colNames_", l->outputVar().c_str(), r->outputVar().c_str());
     }
@@ -96,7 +87,7 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
         case PlanNode::Kind::kDataCollect: {
             const auto *lDC = static_cast<const DataCollect*>(l);
             const auto *rDC = static_cast<const DataCollect*>(r);
-            if (lDC->collectKind() != rDC->collectKind()) {
+            if (lDC->kind() != rDC->kind()) {
                 return Status::Error(
                     "%s.collectKind_ != %s.collectKind_",
                     l->outputVar().c_str(), r->outputVar().c_str());
@@ -159,7 +150,7 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
                         l->outputVar().c_str(), r->outputVar().c_str());
             }
             // props
-            if (lGE->props() != rGE->props()) {
+            if (*lGE->props() != *rGE->props()) {
                 return Status::Error(
                     "%s.props_ != %s.props_", l->outputVar().c_str(), r->outputVar().c_str());
             }
@@ -229,8 +220,8 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
         return Eq(lDep, rDep);
     }
 
-    const auto *lBi = dynamic_cast<const BiInputNode *>(l);
-    const auto *rBi = dynamic_cast<const BiInputNode *>(r);
+    const auto *lBi = dynamic_cast<const BinaryInputNode *>(l);
+    const auto *rBi = dynamic_cast<const BinaryInputNode *>(r);
     if (lBi != nullptr) {
         const auto *llInput = lBi->left();
         const auto *rlInput = CHECK_NOTNULL(rBi)->left();

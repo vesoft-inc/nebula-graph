@@ -7,7 +7,6 @@
 #ifndef VALIDATOR_ADMIN_JOB_VALIDATOR_H_
 #define VALIDATOR_ADMIN_JOB_VALIDATOR_H_
 
-#include "common/base/Base.h"
 #include "validator/Validator.h"
 #include "parser/AdminSentences.h"
 
@@ -35,12 +34,13 @@ private:
                 switch (sentence_->getCmd()) {
                     case meta::cpp2::AdminCmd::REBUILD_TAG_INDEX:
                     case meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX:
+                    case meta::cpp2::AdminCmd::REBUILD_FULLTEXT_INDEX:
                     case meta::cpp2::AdminCmd::STATS:
                     case meta::cpp2::AdminCmd::COMPACT:
                     case meta::cpp2::AdminCmd::FLUSH:
                         return true;
                     case meta::cpp2::AdminCmd::DATA_BALANCE:
-                    case meta::cpp2::AdminCmd::DOWELOAD:
+                    case meta::cpp2::AdminCmd::DOWNLOAD:
                     case meta::cpp2::AdminCmd::INGEST:
                     case meta::cpp2::AdminCmd::UNKNOWN:
                         return false;

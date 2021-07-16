@@ -11,7 +11,7 @@
 #include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/LabelExpression.h"
 #include "context/QueryContext.h"
-#include "context/ast/QueryAstContext.h"
+#include "context/ast/CypherAstContext.h"
 #include "planner/Planner.h"
 
 namespace nebula {
@@ -24,38 +24,40 @@ public:
     MatchSolver() = delete;
     ~MatchSolver() = delete;
 
-    // static Status buildReturn(MatchAstContext* matchCtx, SubPlan& subPlan);
+    static Expression* rewriteLabel2Vertex(QueryContext* qctx, const Expression* expr);
 
-    static Expression* rewrite(const LabelExpression* label);
+    static Expression* rewriteLabel2Edge(QueryContext* qctx, const Expression* expr);
 
-    static Expression* rewrite(const LabelAttributeExpression* la);
+    static Expression* rewriteLabel2VarProp(QueryContext* qctx, const Expression* expr);
 
-    static Expression* doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
+    static Expression* doRewrite(QueryContext* qctx,
+                                 const std::unordered_map<std::string, AliasType>& aliases,
                                  const Expression* expr);
 
     static Expression* makeIndexFilter(const std::string& label,
                                        const MapExpression* map,
-                                       QueryContext* qctx);
+                                       QueryContext* qctx,
+                                       bool isEdgeProperties = false);
 
     static Expression* makeIndexFilter(const std::string& label,
                                        const std::string& alias,
                                        Expression* filter,
-                                       QueryContext* qctx);
-
-    static Status buildFilter(const MatchClauseContext* mctx, SubPlan* plan);
+                                       QueryContext* qctx,
+                                       bool isEdgeProperties = false);
 
     static void extractAndDedupVidColumn(QueryContext* qctx,
-                                         Expression* initialExpr,
+                                         Expression** initialExpr,
                                          PlanNode* dep,
                                          const std::string& inputVar,
                                          SubPlan& plan);
 
-    static Expression* initialExprOrEdgeDstExpr(Expression* initialExpr,
+    static Expression* initialExprOrEdgeDstExpr(QueryContext* qctx,
+                                                Expression** initialExpr,
                                                 const std::string& vidCol);
 
-    static Expression* getEndVidInPath(const std::string& colName);
+    static Expression* getEndVidInPath(QueryContext* qctx, const std::string& colName);
 
-    static Expression* getStartVidInPath(const std::string& colName);
+    static Expression* getStartVidInPath(QueryContext* qctx, const std::string& colName);
 
     static PlanNode* filtPathHasSameEdge(PlanNode* input,
                                          const std::string& column,
@@ -64,7 +66,7 @@ public:
     static Status appendFetchVertexPlan(const Expression* nodeFilter,
                                         const SpaceInfo& space,
                                         QueryContext* qctx,
-                                        Expression* initialExpr,
+                                        Expression** initialExpr,
                                         SubPlan& plan);
 
     // In 0 step left expansion case, the result of initial index scan
@@ -72,15 +74,11 @@ public:
     static Status appendFetchVertexPlan(const Expression* nodeFilter,
                                         const SpaceInfo& space,
                                         QueryContext* qctx,
-                                        Expression* initialExpr,
+                                        Expression** initialExpr,
                                         std::string inputVar,
                                         SubPlan& plan);
-
-    // Fetch all tags in the space and retrieve props from tags
-    static StatusOr<std::vector<storage::cpp2::VertexProp>> flattenTags(QueryContext* qctx,
-                                                                        const SpaceInfo& space);
 };
 
-}  // namespace graph
-}  // namespace nebula
-#endif  // PLANNER_MATCHSOLVER_H_
+}   // namespace graph
+}   // namespace nebula
+#endif   // PLANNER_MATCHSOLVER_H_

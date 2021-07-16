@@ -8,7 +8,7 @@
 
 #include "context/QueryContext.h"
 #include "executor/admin/GrantRoleExecutor.h"
-#include "planner/Admin.h"
+#include "planner/plan/Admin.h"
 #include "service/PermissionManager.h"
 
 namespace nebula {
@@ -39,7 +39,7 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
         ->getMetaClient()
         ->grantToUser(std::move(item))
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .thenValue([this](StatusOr<bool> resp) {
             SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {

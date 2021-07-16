@@ -7,7 +7,6 @@
 #ifndef VALIDATOR_GETSUBGRAPHVALIDATOR_H_
 #define VALIDATOR_GETSUBGRAPHVALIDATOR_H_
 
-#include "common/base/Base.h"
 #include "validator/TraversalValidator.h"
 #include "parser/Clauses.h"
 
@@ -15,6 +14,7 @@ namespace nebula {
 namespace graph {
 class GetSubgraphValidator final : public TraversalValidator {
 public:
+    using EdgeProp = nebula::storage::cpp2::EdgeProp;
     GetSubgraphValidator(Sentence* sentence, QueryContext* context)
         : TraversalValidator(sentence, context) {}
 
@@ -29,20 +29,15 @@ private:
 
     Status validateBothInOutBound(BothInOutClause* out);
 
-    StatusOr<GetNeighbors::EdgeProps> buildEdgeProps();
+    StatusOr<std::unique_ptr<std::vector<EdgeProp>>> buildEdgeProps();
 
     Status zeroStep(PlanNode* depend, const std::string& inputVar);
 
-    StatusOr<std::vector<storage::cpp2::VertexProp>> buildVertexProp();
-
-    StatusOr<std::vector<storage::cpp2::EdgeProp>> fillEdgeProp(
-        const std::unordered_set<EdgeType> &edges);
-
-    StatusOr<std::vector<storage::cpp2::EdgeProp>> buildAllEdgeProp();
-
 private:
-    std::unordered_set<EdgeType>                edgeTypes_;
+    std::unordered_set<EdgeType> edgeTypes_;
+    bool withProp_{false};
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif

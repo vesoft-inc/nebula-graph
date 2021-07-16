@@ -1,4 +1,4 @@
-# Copyright (c) 2020 vesoft inc. All rights reserved.
+# Copyright (c) 2021 vesoft inc. All rights reserved.
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -17,10 +17,21 @@ Feature: Go Sentence
       | "Spurs"    |
     When executing query:
       """
+      GO FROM "Tim Duncan", "Tony Parker" OVER like WHERE $$.player.age > 9223372036854775807+1
+      """
+    Then a ExecutionError should be raised at runtime: result of (9223372036854775807+1) cannot be represented as an integer
+    When executing query:
+      """
+      GO FROM "Tim Duncan", "Tony Parker" OVER like WHERE $$.player.age > -9223372036854775808-1
+      """
+    Then a ExecutionError should be raised at runtime: result of (-9223372036854775808-1) cannot be represented as an integer
+    When executing query:
+      """
       GO FROM "Tim Duncan" OVER like YIELD $^.player.name as name, $^.player.age as age
       """
     Then the result should be, in any order, with relax comparison:
       | name         | age |
+      | "Tim Duncan" | 42  |
       | "Tim Duncan" | 42  |
     When executing query:
       """
@@ -29,6 +40,9 @@ Feature: Go Sentence
     Then the result should be, in any order, with relax comparison:
       | name          | age |
       | "Tim Duncan"  | 42  |
+      | "Tim Duncan"  | 42  |
+      | "Tony Parker" | 36  |
+      | "Tony Parker" | 36  |
       | "Tony Parker" | 36  |
     When executing query:
       """
@@ -128,6 +142,22 @@ Feature: Go Sentence
       | "Spurs"         |
       | "Hornets"       |
       | "Trail Blazers" |
+
+  Scenario: In expression
+    When executing query:
+      """
+      GO FROM 'Tony Parker' OVER like WHERE like._dst IN ['Tim Duncan', 'Danny Green'] YIELD $$.player.name
+      """
+    Then the result should be, in any order, with relax comparison:
+      | $$.player.name |
+      | "Tim Duncan"   |
+    When executing query:
+      """
+      GO FROM 'Tony Parker' OVER like WHERE like._dst IN ['Tim Duncan', 'Danny Green'] YIELD $^.player.name
+      """
+    Then the result should be, in any order, with relax comparison:
+      | $^.player.name |
+      | "Tony Parker"  |
 
   Scenario: assignment simple
     When executing query:
@@ -308,6 +338,29 @@ Feature: Go Sentence
       | "Marc Gasol"  | EMPTY       | EMPTY         |
     When executing query:
       """
+      GO FROM "Paul Gasol" OVER *
+      WHERE $$.player.name IS NOT EMPTY
+      YIELD like._dst
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst     |
+      | "Kobe Bryant" |
+      | "Marc Gasol"  |
+    When executing query:
+      """
+      GO FROM "Paul Gasol" OVER *
+      WHERE $$.player.name IS EMPTY
+      YIELD like._dst
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+      | EMPTY     |
+      | EMPTY     |
+      | EMPTY     |
+      | EMPTY     |
+      | EMPTY     |
+    When executing query:
+      """
       GO FROM "Manu Ginobili" OVER * REVERSELY YIELD like.likeness, teammate.start_year, serve.start_year, $$.player.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -348,7 +401,7 @@ Feature: Go Sentence
       """
       YIELD serve.start_year, like.likeness, serve._type, like._type
       """
-    Then a SemanticError should be raised at runtime: Not supported expression `serve.start_year' for props deduction.
+    Then a SemanticError should be raised at runtime: Invalid label identifiers: serve
     When executing query:
       """
       GO FROM "Russell Westbrook" OVER serve, like REVERSELY
@@ -1639,3 +1692,132 @@ Feature: Go Sentence
     Then the result should be, in any order, with relax comparison:
       | like._dst     |
       | "Tony Parker" |
+
+  Scenario: Step over end
+    When executing query:
+      """
+      GO 2 STEPS FROM "Tim Duncan" OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+    When executing query:
+      """
+      GO 10 STEPS FROM "Tim Duncan" OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+    When executing query:
+      """
+      GO 10000000000000 STEPS FROM "Tim Duncan" OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+    When executing query:
+      """
+      GO 1 TO 10 STEPS FROM "Tim Duncan" OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+      | "Spurs"    |
+    When executing query:
+      """
+      GO 2 TO 10 STEPS FROM "Tim Duncan" OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+    When executing query:
+      """
+      GO 1000000000 TO 1000000002 STEPS FROM "Tim Duncan" OVER serve;
+      """
+    Then the result should be, in any order:
+      | serve._dst |
+
+  @skip
+  Scenario: go step limit
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like LIMIT [10,10];
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like LIMIT ["10"];
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like LIMIT [a];
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like LIMIT [1];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like LIMIT [1, 2, 2];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+
+  @skip
+  Scenario: go step filter & step limit
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like WHERE [like._dst == "Tony Parker"]  LIMIT [1];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE [like._dst == "Tony Parker", $$.player.age>20, $$.player.age>22] LIMIT [1, 2, 2];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+
+  @skip
+  Scenario: go step sample
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like SAMPLE [10,10];
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like SAMPLE ["10"];
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like SAMPLE [a];
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like SAMPLE [1];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like SAMPLE [1, 3, 2];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+
+  @skip
+  Scenario: go step filter & step sample
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like WHERE [like._dst == "Tony Parker"]  SAMPLE [1];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |
+    When executing query:
+      """
+      GO 3 STEPS FROM "Tim Duncan" OVER like WHERE [like._dst == "Tony Parker", $$.player.age>20, $$.player.age>22] SAMPLE [1, 2, 2];
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst |

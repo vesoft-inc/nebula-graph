@@ -7,7 +7,6 @@
 #ifndef VALIDATOR_MUTATEVALIDATOR_H_
 #define VALIDATOR_MUTATEVALIDATOR_H_
 
-#include "common/base/Base.h"
 #include "validator/Validator.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/MutateSentences.h"
@@ -37,7 +36,7 @@ private:
     std::unordered_map<TagID, std::vector<std::string>>         tagPropNames_;
     std::vector<std::pair<TagID, TagSchema>>                    schemas_;
     uint16_t                                                    propSize_{0};
-    bool                                                        overwritable_{false};
+    bool                                                        ifNotExists_{false};
     std::vector<storage::cpp2::NewVertex>                       vertices_;
 };
 
@@ -58,7 +57,7 @@ private:
 
 private:
     GraphSpaceID                                      spaceId_{-1};
-    bool                                              overwritable_{true};
+    bool                                              ifNotExists_{false};
     EdgeType                                          edgeType_{-1};
     std::shared_ptr<const meta::SchemaProviderIf>     schema_;
     std::vector<std::string>                          propNames_;
@@ -137,12 +136,12 @@ protected:
 private:
     Status checkAndResetSymExpr(Expression* inExpr,
                                 const std::string& symName,
-                                std::string &encodeStr);
+                                std::string& encodeStr);
 
-    std::unique_ptr<Expression> rewriteSymExpr(Expression* expr,
-                                               const std::string &sym,
-                                               bool &hasWrongType,
-                                               bool isEdge = false);
+    Expression* rewriteSymExpr(Expression* expr,
+                               const std::string& sym,
+                               bool& hasWrongType,
+                               bool isEdge = false);
 
 protected:
     UpdateBaseSentence                                 *sentence_;

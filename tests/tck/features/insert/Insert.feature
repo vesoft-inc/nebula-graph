@@ -34,6 +34,44 @@ Feature: Insert string vid of vertex and edge
       INSERT VERTEX person(name, age) VALUES "Tom":("Tom", 22)
       """
     Then the execution should be successful
+    # insert vretex with default property names
+    When executing query:
+      """
+      INSERT VERTEX person VALUES "Tom":("Tom", 18);
+      """
+    Then the execution should be successful
+    When try to execute query:
+      """
+      INSERT VERTEX person(name, age), interest(name) VALUES "Tom":("Tom", 18, "basketball");
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      INSERT VERTEX person, interest(name) VALUES "Tom":("Tom", 18, "basketball");
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      INSERT VERTEX person(name, age), interest VALUES "Tom":("Tom", 18, "basketball");
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      INSERT VERTEX person(age), interest(name) VALUES "Tom":(18, "basketball");
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      INSERT VERTEX person, interest VALUES "Tom":("Tom", 18, "basketball");
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      FETCH PROP ON * "Tom"
+      """
+    Then the result should be, in any order, with relax comparison:
+      | vertices_                                                      |
+      | ("Tom":person{name:"Tom", age:18}:interest{name:"basketball"}) |
     # insert vertex wrong type value
     When executing query:
       """
@@ -254,7 +292,7 @@ Feature: Insert string vid of vertex and edge
       | $$.student.number | $$.person.name |
       | 20190901003       | 'Aero'         |
     # test same prop name diff type
-    When executing query:
+    When try to execute query:
       """
       INSERT VERTEX person(name, age), employee(name) VALUES "Joy":("Joy", 18, 123), "Petter":("Petter", 19, 456);
       INSERT EDGE schoolmate(likeness, nickname) VALUES "Joy"->"Petter":(90, "Petter");
@@ -446,7 +484,7 @@ Feature: Insert string vid of vertex and edge
       """
       INSERT VERTEX student(name, age) VALUES "12345678901":("Tom", 2)
       """
-    Then a ExecutionError should be raised at runtime: Storage Error: The VID must be a 64-bit interger or a string fitting space vertex id length limit.
+    Then a ExecutionError should be raised at runtime: Storage Error: The VID must be a 64-bit integer or a string fitting space vertex id length limit.
     # test insert not null prop
     When executing query:
       """

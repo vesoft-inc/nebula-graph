@@ -7,7 +7,7 @@
 #include "planner/match/InnerJoinStrategy.h"
 
 #include "common/expression/AttributeExpression.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 #include "planner/match/MatchSolver.h"
 
@@ -20,24 +20,22 @@ PlanNode* InnerJoinStrategy::connect(const PlanNode* left, const PlanNode* right
 PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* right) {
     Expression* buildExpr = nullptr;
     if (leftPos_ == JoinPos::kStart) {
-        auto& leftKey = left->colNamesRef().front();
-        buildExpr = MatchSolver::getStartVidInPath(leftKey);
+        auto& leftKey = left->colNames().front();
+        buildExpr = MatchSolver::getStartVidInPath(qctx_, leftKey);
     } else {
-        auto& leftKey = left->colNamesRef().back();
-        buildExpr = MatchSolver::getEndVidInPath(leftKey);
+        auto& leftKey = left->colNames().back();
+        buildExpr = MatchSolver::getEndVidInPath(qctx_, leftKey);
     }
 
     Expression* probeExpr = nullptr;
     if (rightPos_ == JoinPos::kStart) {
-        auto& rightKey = right->colNamesRef().front();
-        probeExpr = MatchSolver::getStartVidInPath(rightKey);
+        auto& rightKey = right->colNames().front();
+        probeExpr = MatchSolver::getStartVidInPath(qctx_, rightKey);
     } else {
-        auto& rightKey = right->colNamesRef().back();
-        probeExpr = MatchSolver::getEndVidInPath(rightKey);
+        auto& rightKey = right->colNames().back();
+        probeExpr = MatchSolver::getEndVidInPath(qctx_, rightKey);
     }
 
-    qctx_->objPool()->add(buildExpr);
-    qctx_->objPool()->add(probeExpr);
     auto join = InnerJoin::make(qctx_,
                                const_cast<PlanNode*>(right),
                                {left->outputVar(), 0},
@@ -45,7 +43,7 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
                                {buildExpr},
                                {probeExpr});
     std::vector<std::string> colNames = left->colNames();
-    const auto& rightColNames = right->colNamesRef();
+    const auto& rightColNames = right->colNames();
     colNames.insert(colNames.end(), rightColNames.begin(), rightColNames.end());
     join->setColNames(std::move(colNames));
     return join;

@@ -6,7 +6,7 @@
 
 #include "executor/query/GetEdgesExecutor.h"
 #include "context/QueryContext.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
 
@@ -21,37 +21,45 @@ folly::Future<Status> GetEdgesExecutor::execute() {
     return getEdges();
 }
 
+DataSet GetEdgesExecutor::buildRequestDataSet(const GetEdges* ge) {
+    auto valueIter = ectx_->getResult(ge->inputVar()).iter();
+    VLOG(1) << "GE input var:" << ge->inputVar() << " iter kind: " << valueIter->kind();
+    QueryExpressionContext exprCtx(qctx()->ectx());
+
+    nebula::DataSet edges({kSrc, kType, kRank, kDst});
+    edges.rows.reserve(valueIter->size());
+    std::unordered_set<std::tuple<Value, Value, Value, Value>> uniqueEdges;
+    uniqueEdges.reserve(valueIter->size());
+    for (; valueIter->valid(); valueIter->next()) {
+        auto type = ge->type()->eval(exprCtx(valueIter.get()));
+        auto src = ge->src()->eval(exprCtx(valueIter.get()));
+        auto dst = ge->dst()->eval(exprCtx(valueIter.get()));
+        auto rank = ge->ranking()->eval(exprCtx(valueIter.get()));
+        type = type < 0 ? -type : type;
+        auto edgeKey = std::make_tuple(src, type, rank, dst);
+        if (ge->dedup() && !uniqueEdges.emplace(std::move(edgeKey)).second) {
+            continue;
+        }
+        if (!rank.isInt()) {
+            LOG(WARNING) << "wrong rank type";
+            continue;
+        }
+        edges.emplace_back(Row({std::move(src), type, rank, std::move(dst)}));
+    }
+    return edges;
+}
+
 folly::Future<Status> GetEdgesExecutor::getEdges() {
     SCOPED_TIMER(&execTime_);
-
     GraphStorageClient *client = qctx()->getStorageClient();
-
     auto *ge = asNode<GetEdges>(node());
-    nebula::DataSet edges({kSrc, kType, kRank, kDst});
-    const auto& spaceInfo = qctx()->rctx()->session()->space();
-    if (ge->src() != nullptr &&
-        ge->type() != nullptr &&
-        ge->ranking() != nullptr &&
-        ge->dst() != nullptr) {
-        // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
-        auto valueIter = ectx_->getResult(ge->inputVar()).iter();
-        auto expCtx = QueryExpressionContext(qctx()->ectx());
-        for (; valueIter->valid(); valueIter->next()) {
-            auto src = ge->src()->eval(expCtx(valueIter.get()));
-            auto type = ge->type()->eval(expCtx(valueIter.get()));
-            auto ranking = ge->ranking()->eval(expCtx(valueIter.get()));
-            auto dst = ge->dst()->eval(expCtx(valueIter.get()));
-            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)
-                    || !SchemaUtil::isValidVid(dst, spaceInfo.spaceDesc.vid_type)
-                    || !type.isInt() || !ranking.isInt()) {
-                LOG(WARNING) << "Mismatched edge key type";
-                continue;
-            }
-            edges.emplace_back(Row({
-                std::move(src), type, ranking, std::move(dst)
-            }));
-        }
+    if (ge->src() == nullptr || ge->type() == nullptr || ge->ranking() == nullptr ||
+        ge->dst() == nullptr) {
+        return Status::Error("ptr is nullptr");
     }
+
+    auto edges = buildRequestDataSet(ge);
+    VLOG(1) << "Edges: " << edges;
 
     if (edges.rows.empty()) {
         // TODO: add test for empty input.
@@ -66,8 +74,8 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         ->getProps(ge->space(),
                    std::move(edges),
                    nullptr,
-                   &ge->props(),
-                   ge->exprs().empty() ? nullptr : &ge->exprs(),
+                   ge->props(),
+                   ge->exprs(),
                    ge->dedup(),
                    ge->orderBy(),
                    ge->limit(),
@@ -78,10 +86,10 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             otherStats_.emplace("total_rpc",
                                 folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
         })
-        .then([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+        .thenValue([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
-            return handleResp(std::move(rpcResp), ge->colNamesRef());
+            return handleResp(std::move(rpcResp), ge->colNames());
         });
 }
 

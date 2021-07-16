@@ -7,7 +7,6 @@
 #ifndef VALIDATOR_MOCKSCHEMAMANAGER_H_
 #define VALIDATOR_MOCKSCHEMAMANAGER_H_
 
-#include "common/meta/SchemaProviderIf.h"
 #include "common/meta/SchemaManager.h"
 #include "common/meta/NebulaSchemaProvider.h"
 
@@ -100,10 +99,26 @@ public:
         return allVerEdgeSchemas;
     }
 
+    // Returns all latest version of  edges schema
+    StatusOr<meta::EdgeSchema> getAllLatestVerEdgeSchema(GraphSpaceID space) override {
+        meta::EdgeSchema allLatestVerEdgeSchemas;
+        const auto& edgeSchemas = edgeSchemas_[space];
+        for (const auto &edgeSchema : edgeSchemas) {
+            allLatestVerEdgeSchemas.emplace(edgeSchema.first, edgeSchema.second);
+        }
+        return allLatestVerEdgeSchemas;
+    }
+
     StatusOr<std::vector<nebula::meta::cpp2::FTClient> > getFTClients() override;
 
     StatusOr<int32_t> getPartsNum(GraphSpaceID) override {
         LOG(FATAL) << "Unimplemented.";
+    }
+
+    StatusOr<std::pair<std::string, nebula::meta::cpp2::FTIndex>>
+    getFTIndex(GraphSpaceID, int32_t) override {
+        LOG(FATAL) << "Unimplemented";
+        return Status::Error("Unimplemented");
     }
 
 private:

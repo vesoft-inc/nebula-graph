@@ -5,7 +5,7 @@
  */
 
 #include "validator/FetchEdgesValidator.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 #include "util/SchemaUtil.h"
 
@@ -20,6 +20,8 @@ namespace graph {
 };
 
 Status FetchEdgesValidator::validateImpl() {
+    props_ = std::make_unique<std::vector<EdgeProp>>();
+    exprs_ = std::make_unique<std::vector<Expr>>();
     NG_RETURN_IF_ERROR(check());
     NG_RETURN_IF_ERROR(prepareEdges());
     NG_RETURN_IF_ERROR(prepareProperties());
@@ -50,32 +52,23 @@ Status FetchEdgesValidator::toPlan() {
 
     // filter when the edge key is empty which means not exists edge in fact
     auto *notExistEdgeFilter = Filter::make(qctx_, current, emptyEdgeKeyFilter());
-    notExistEdgeFilter->setInputVar(current->outputVar());
     notExistEdgeFilter->setColNames(geColNames_);
     current = notExistEdgeFilter;
 
     if (withYield_) {
-        auto *projectNode = Project::make(qctx_, current, newYield_->yields());
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        current = Project::make(qctx_, current, newYield_->yields());
         // Project select the properties then dedup
         if (dedup_) {
-            auto *dedupNode = Dedup::make(qctx_, current);
-            dedupNode->setInputVar(current->outputVar());
-            dedupNode->setColNames(colNames_);
-            current = dedupNode;
+            current = Dedup::make(qctx_, current);
 
             // the framework will add data collect to collect the result
             // if the result is required
         }
     } else {
         auto *columns = qctx_->objPool()->add(new YieldColumns());
-        columns->addColumn(new YieldColumn(new EdgeExpression(), new std::string("edges_")));
-        auto *projectNode = Project::make(qctx_, current, columns);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
+        auto *pool = qctx_->objPool();
+        columns->addColumn(new YieldColumn(EdgeExpression::make(pool), "edges_"));
+        current = Project::make(qctx_, current, columns);
     }
     root_ = current;
     tail_ = getEdgesNode;
@@ -172,34 +165,25 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
     storage::cpp2::EdgeProp prop;
     prop.set_type(edgeType_);
     // insert the reserved properties expression be compatible with 1.0
+    auto *pool = qctx_->objPool();
     auto *newYieldColumns = new YieldColumns();
-    newYieldColumns->addColumn(
-        new YieldColumn(new EdgeSrcIdExpression(new std::string(edgeTypeName_))));
-    newYieldColumns->addColumn(
-        new YieldColumn(new EdgeDstIdExpression(new std::string(edgeTypeName_))));
-    newYieldColumns->addColumn(
-        new YieldColumn(new EdgeRankExpression(new std::string(edgeTypeName_))));
+    newYieldColumns->addColumn(new YieldColumn(EdgeSrcIdExpression::make(pool, edgeTypeName_)));
+    newYieldColumns->addColumn(new YieldColumn(EdgeDstIdExpression::make(pool, edgeTypeName_)));
+    newYieldColumns->addColumn(new YieldColumn(EdgeRankExpression::make(pool, edgeTypeName_)));
     for (auto col : yield->columns()) {
         newYieldColumns->addColumn(col->clone().release());
     }
     newYield_ = qctx_->objPool()->add(new YieldClause(newYieldColumns, yield->isDistinct()));
 
     auto newYieldSize = newYield_->columns().size();
-    colNames_.reserve(newYieldSize);
     outputs_.reserve(newYieldSize);
 
     std::vector<std::string> propsName;
     propsName.reserve(newYield_->columns().size());
     dedup_ = newYield_->isDistinct();
     for (auto col : newYield_->columns()) {
+        col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(pool, col->expr()));
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
-
-        if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
-            col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr));
-        } else {
-            ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());
-        }
         const auto *invalidExpr = findInvalidYieldExpression(col->expr());
         if (invalidExpr != nullptr) {
             return Status::SemanticError("Invalid newYield_ expression `%s'.",
@@ -210,35 +194,33 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
         const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
         for (const auto &storageExpr : storageExprs) {
             const auto *expr = static_cast<const PropertyExpression *>(storageExpr);
-            if (*expr->sym() != edgeTypeName_) {
+            if (expr->sym() != edgeTypeName_) {
                 return Status::SemanticError("Mismatched edge type name");
             }
             // Check is prop name in schema
-            if (schema_->getFieldIndex(*expr->prop()) < 0 &&
-                reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
-                LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `" << edgeTypeName_
+            if (schema_->getFieldIndex(expr->prop()) < 0 &&
+                reservedProperties.find(expr->prop()) == reservedProperties.end()) {
+                LOG(ERROR) << "Unknown column `" << expr->prop() << "' in edge `" << edgeTypeName_
                            << "'.";
                 return Status::SemanticError("Unknown column `%s' in edge `%s'",
-                                             expr->prop()->c_str(),
+                                             expr->prop().c_str(),
                                              edgeTypeName_.c_str());
             }
-            propsName.emplace_back(*expr->prop());
-            geColNames_.emplace_back(*expr->sym() + "." + *expr->prop());
+            propsName.emplace_back(expr->prop());
+            geColNames_.emplace_back(expr->sym() + "." + expr->prop());
         }
-        colNames_.emplace_back(deduceColName(col));
         auto typeResult = deduceExprType(col->expr());
         NG_RETURN_IF_ERROR(typeResult);
-        outputs_.emplace_back(colNames_.back(), typeResult.value());
+        outputs_.emplace_back(col->name(), typeResult.value());
         // TODO(shylock) think about the push-down expr
     }
     prop.set_props(std::move(propsName));
-    props_.emplace_back(std::move(prop));
+    props_->emplace_back(std::move(prop));
     return Status::OK();
 }
 
 Status FetchEdgesValidator::preparePropertiesWithoutYield() {
     // no yield
-    colNames_.emplace_back("edges_");
     outputs_.emplace_back("edges_", Value::Type::EDGE);
     storage::cpp2::EdgeProp prop;
     prop.set_type(edgeType_);
@@ -264,7 +246,7 @@ Status FetchEdgesValidator::preparePropertiesWithoutYield() {
         geColNames_.emplace_back(edgeTypeName_ + "." + schema_->getFieldName(i));
     }
     prop.set_props(std::move(propNames));
-    props_.emplace_back(std::move(prop));
+    props_->emplace_back(std::move(prop));
     return Status::OK();
 }
 
@@ -283,20 +265,17 @@ std::string FetchEdgesValidator::buildConstantInput() {
     auto input = vctx_->anonVarGen()->getVar();
     qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(edgeKeys_))).finish());
 
-    src_ =
-        pool->makeAndAdd<VariablePropertyExpression>(new std::string(input), new std::string(kSrc));
-    type_ = pool->makeAndAdd<ConstantExpression>(edgeType_);
-    rank_ = pool->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                         new std::string(kRank));
-    dst_ =
-        pool->makeAndAdd<VariablePropertyExpression>(new std::string(input), new std::string(kDst));
+    src_ = VariablePropertyExpression::make(pool, input, kSrc);
+    type_ = ConstantExpression::make(pool, edgeType_);
+    rank_ = VariablePropertyExpression::make(pool, input, kRank);
+    dst_ = VariablePropertyExpression::make(pool, input, kDst);
     return input;
 }
 
 std::string FetchEdgesValidator::buildRuntimeInput() {
     auto pool = qctx_->objPool();
     src_ = DCHECK_NOTNULL(srcRef_);
-    type_ = pool->makeAndAdd<ConstantExpression>(edgeType_);
+    type_ = ConstantExpression::make(pool, edgeType_);
     rank_ = DCHECK_NOTNULL(rankRef_);
     dst_ = DCHECK_NOTNULL(dstRef_);
     return inputVar_;
@@ -305,11 +284,11 @@ std::string FetchEdgesValidator::buildRuntimeInput() {
 Expression *FetchEdgesValidator::emptyEdgeKeyFilter() {
     // _src != empty && _dst != empty && _rank != empty
     DCHECK_GE(geColNames_.size(), 3);
-    auto *srcNotEmptyExpr = notEmpty(new EdgeSrcIdExpression(new std::string(edgeTypeName_)));
-    auto *dstNotEmptyExpr = notEmpty(new EdgeDstIdExpression(new std::string(edgeTypeName_)));
-    auto *rankNotEmptyExpr = notEmpty(new EdgeRankExpression(new std::string(edgeTypeName_)));
-    auto *edgeKeyNotEmptyExpr =
-        qctx_->objPool()->add(lgAnd(srcNotEmptyExpr, lgAnd(dstNotEmptyExpr, rankNotEmptyExpr)));
+    auto *pool = qctx_->objPool();
+    auto *srcNotEmptyExpr = notEmpty(EdgeSrcIdExpression::make(pool, edgeTypeName_));
+    auto *dstNotEmptyExpr = notEmpty(EdgeDstIdExpression::make(pool, edgeTypeName_));
+    auto *rankNotEmptyExpr = notEmpty(EdgeRankExpression::make(pool, edgeTypeName_));
+    auto *edgeKeyNotEmptyExpr = lgAnd(srcNotEmptyExpr, lgAnd(dstNotEmptyExpr, rankNotEmptyExpr));
     return edgeKeyNotEmptyExpr;
 }
 

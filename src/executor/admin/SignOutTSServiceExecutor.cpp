@@ -5,7 +5,7 @@
  */
 
 #include "executor/admin/SignOutTSServiceExecutor.h"
-#include "planner/Admin.h"
+#include "planner/plan/Admin.h"
 
 namespace nebula {
 namespace graph {
@@ -18,7 +18,7 @@ folly::Future<Status> SignOutTSServiceExecutor::execute() {
 folly::Future<Status> SignOutTSServiceExecutor::signOutTSService() {
     return qctx()->getMetaClient()->signOutFTService()
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .thenValue([this](StatusOr<bool> resp) {
             SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {

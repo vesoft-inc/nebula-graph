@@ -6,13 +6,13 @@
 
 #include "planner/match/Expand.h"
 
-#include "planner/Logic.h"
-#include "planner/Query.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/Query.h"
 #include "planner/match/MatchSolver.h"
 #include "planner/match/SegmentsConnector.h"
 #include "util/AnonColGenerator.h"
 #include "util/ExpressionUtils.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
+#include "visitor/RewriteVisitor.h"
 
 using nebula::storage::cpp2::EdgeProp;
 using nebula::storage::cpp2::VertexProp;
@@ -25,11 +25,11 @@ static std::unique_ptr<std::vector<VertexProp>> genVertexProps() {
     return std::make_unique<std::vector<VertexProp>>();
 }
 
-std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const EdgeInfo &edge) {
+std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const EdgeInfo& edge) {
     auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     for (auto edgeType : edge.edgeTypes) {
-        auto edgeSchema = matchCtx_->qctx->schemaMng()->getEdgeSchema(
-            matchCtx_->space.id, edgeType);
+        auto edgeSchema =
+            matchCtx_->qctx->schemaMng()->getEdgeSchema(matchCtx_->space.id, edgeType);
 
         switch (edge.direction) {
             case Direction::OUT_EDGE: {
@@ -68,23 +68,23 @@ std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const
     return edgeProps;
 }
 
-static Expression* mergePathColumnsExpr(const std::string& lcol, const std::string& rcol) {
-    auto expr = std::make_unique<PathBuildExpression>();
-    expr->add(ExpressionUtils::inputPropExpr(lcol));
-    expr->add(ExpressionUtils::inputPropExpr(rcol));
-    return expr.release();
+static Expression* mergePathColumnsExpr(ObjectPool* pool,
+                                        const std::string& lcol,
+                                        const std::string& rcol) {
+    auto expr = PathBuildExpression::make(pool);
+    expr->add(InputPropertyExpression::make(pool, lcol));
+    expr->add(InputPropertyExpression::make(pool, rcol));
+    return expr;
 }
 
-static Expression* buildPathExpr() {
-    auto expr = std::make_unique<PathBuildExpression>();
-    expr->add(std::make_unique<VertexExpression>());
-    expr->add(std::make_unique<EdgeExpression>());
-    return expr.release();
+static Expression* buildPathExpr(ObjectPool* pool) {
+    auto expr = PathBuildExpression::make(pool);
+    expr->add(VertexExpression::make(pool));
+    expr->add(EdgeExpression::make(pool));
+    return expr;
 }
 
-Status Expand::doExpand(const NodeInfo& node,
-                        const EdgeInfo& edge,
-                        SubPlan* plan) {
+Status Expand::doExpand(const NodeInfo& node, const EdgeInfo& edge, SubPlan* plan) {
     NG_RETURN_IF_ERROR(expandSteps(node, edge, plan));
     NG_RETURN_IF_ERROR(filterDatasetByPathLength(edge, plan->root, plan));
     return Status::OK();
@@ -92,9 +92,7 @@ Status Expand::doExpand(const NodeInfo& node,
 
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project2->
 // DataJoin->Project3->[Filter]->Passthrough->Loop->UnionAllVer
-Status Expand::expandSteps(const NodeInfo& node,
-                           const EdgeInfo& edge,
-                           SubPlan* plan) {
+Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* plan) {
     SubPlan subplan;
     int64_t startIndex = 0;
     auto minHop = edge.range ? edge.range->min() : 1;
@@ -109,10 +107,10 @@ Status Expand::expandSteps(const NodeInfo& node,
         NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(node.filter,
                                                               matchCtx_->space,
                                                               matchCtx_->qctx,
-                                                              initialExpr_.release(),
+                                                              &initialExpr_,
                                                               inputVar_,
                                                               subplan));
-    } else {  // Case 1 to n steps
+    } else {   // Case 1 to n steps
         startIndex = 1;
         // Expand first step from src
         NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, &subplan));
@@ -140,7 +138,7 @@ Status Expand::expandSteps(const NodeInfo& node,
                                   nullptr,
                                   &loopBodyPlan));
 
-    NG_RETURN_IF_ERROR(collectData(startNode,         // left join node
+    NG_RETURN_IF_ERROR(collectData(startNode,           // left join node
                                    loopBodyPlan.root,   // right join node
                                    &firstStep,          // passThrough
                                    &subplan));
@@ -148,7 +146,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     auto body = subplan.root;
 
     // Loop condition
-    auto condition = buildNStepLoopCondition(startIndex, maxHop);
+    auto condition = buildExpandCondition(body->outputVar(), startIndex, maxHop);
 
     // Create loop
     auto* loop = Loop::make(matchCtx_->qctx, firstStep, body, condition);
@@ -170,57 +168,36 @@ Status Expand::expandStep(const EdgeInfo& edge,
                           const Expression* nodeFilter,
                           SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
-
+    auto* pool = qctx->objPool();
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
     curr.root = dep;
-    MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_.release(), dep, inputVar, curr);
+    MatchSolver::extractAndDedupVidColumn(qctx, &initialExpr_, dep, inputVar, curr);
     // [GetNeighbors]
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
-    auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
-    gn->setSrc(qctx->objPool()->add(srcExpr.release()));
+    auto srcExpr = InputPropertyExpression::make(pool, kVid);
+    gn->setSrc(srcExpr);
     gn->setVertexProps(genVertexProps());
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
 
     PlanNode* root = gn;
-    // [Filter]
     if (nodeFilter != nullptr) {
-        auto filter = qctx->objPool()->add(nodeFilter->clone().release());
-        RewriteMatchLabelVisitor visitor(
-            [](const Expression* expr) -> Expression *{
-            DCHECK(expr->kind() == Expression::Kind::kLabelAttribute ||
-                expr->kind() == Expression::Kind::kLabel);
-            // filter prop
-            if (expr->kind() == Expression::Kind::kLabelAttribute) {
-                auto la = static_cast<const LabelAttributeExpression*>(expr);
-                return new AttributeExpression(
-                    new VertexExpression(), la->right()->clone().release());
-            }
-            // filter tag
-            return new VertexExpression();
-        });
-        filter->accept(&visitor);
-        auto filterNode = Filter::make(matchCtx_->qctx, root, filter);
+        auto* newFilter = MatchSolver::rewriteLabel2Vertex(qctx, nodeFilter);
+        auto filterNode = Filter::make(matchCtx_->qctx, root, newFilter);
         filterNode->setColNames(root->colNames());
         root = filterNode;
     }
 
     if (edge.filter != nullptr) {
-        RewriteMatchLabelVisitor visitor([](const Expression* expr) {
-            DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
-            auto la = static_cast<const LabelAttributeExpression*>(expr);
-            return new AttributeExpression(new EdgeExpression(), la->right()->clone().release());
-        });
-        auto filter = saveObject(edge.filter->clone().release());
-        filter->accept(&visitor);
-        auto filterNode = Filter::make(qctx, root, filter);
+        auto* newFilter = MatchSolver::rewriteLabel2Edge(qctx, edge.filter);
+        auto filterNode = Filter::make(qctx, root, newFilter);
         filterNode->setColNames(root->colNames());
         root = filterNode;
     }
 
     auto listColumns = saveObject(new YieldColumns);
-    listColumns->addColumn(new YieldColumn(buildPathExpr(), new std::string(kPathStr)));
+    listColumns->addColumn(new YieldColumn(buildPathExpr(pool), kPathStr));
     // [Project]
     root = Project::make(qctx, root, listColumns);
     root->setColNames({kPathStr});
@@ -244,7 +221,7 @@ Status Expand::collectData(const PlanNode* joinLeft,
     plan->tail = join;
 
     auto columns = saveObject(new YieldColumns);
-    auto listExpr = mergePathColumnsExpr(lpath, rpath);
+    auto listExpr = mergePathColumnsExpr(qctx->objPool(), lpath, rpath);
     columns->addColumn(new YieldColumn(listExpr));
     // [Project]
     auto project = Project::make(qctx, join, columns);
@@ -257,40 +234,44 @@ Status Expand::collectData(const PlanNode* joinLeft,
     return Status::OK();
 }
 
-Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
-                                         PlanNode* input,
-                                         SubPlan* plan) {
+Status Expand::filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
+    auto* pool = qctx->objPool();
 
     // Filter rows whose edges number less than min hop
-    auto args = std::make_unique<ArgumentList>();
+    auto args = ArgumentList::make(pool);
     // Expr: length(relationships(p)) >= minHop
-    auto pathExpr = ExpressionUtils::inputPropExpr(kPathStr);
-    args->addArgument(std::move(pathExpr));
-    auto fn = std::make_unique<std::string>("length");
-    auto edgeExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    auto pathExpr = InputPropertyExpression::make(pool, kPathStr);
+    args->addArgument(pathExpr);
+    auto edgeExpr = FunctionCallExpression::make(pool, "length", args);
     auto minHop = edge.range == nullptr ? 1 : edge.range->min();
-    auto minHopExpr = std::make_unique<ConstantExpression>(minHop);
-    auto expr = std::make_unique<RelationalExpression>(
-        Expression::Kind::kRelGE, edgeExpr.release(), minHopExpr.release());
+    auto minHopExpr = ConstantExpression::make(pool, minHop);
+    auto expr = RelationalExpression::makeGE(pool, edgeExpr, minHopExpr);
 
-    auto filter = Filter::make(qctx, input, saveObject(expr.release()));
+    auto filter = Filter::make(qctx, input, expr);
     filter->setColNames(input->colNames());
     plan->root = filter;
     return Status::OK();
 }
 
-Expression* Expand::buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) const {
+// loopSteps{startIndex} <= maxHop &&  ($lastStepResult == empty || size($lastStepResult) != 0)
+Expression* Expand::buildExpandCondition(const std::string& lastStepResult,
+                                         int64_t startIndex,
+                                         int64_t maxHop) const {
     VLOG(1) << "match expand maxHop: " << maxHop;
-    // ++loopSteps{startIndex} <= maxHop
+    auto pool = matchCtx_->qctx->objPool();
     auto loopSteps = matchCtx_->qctx->vctx()->anonVarGen()->getVar();
     matchCtx_->qctx->ectx()->setValue(loopSteps, startIndex);
-    return matchCtx_->qctx->objPool()->add(new RelationalExpression(
-        Expression::Kind::kRelLE,
-        new UnaryExpression(Expression::Kind::kUnaryIncr,
-                            new VariableExpression(new std::string(loopSteps))),
-        new ConstantExpression(static_cast<int64_t>(maxHop))));
+    // ++loopSteps{startIndex} << maxHop
+    auto stepCondition = ExpressionUtils::stepCondition(pool, loopSteps, maxHop);
+    // lastStepResult == empty || size(lastStepReult) != 0
+    auto* eqEmpty = RelationalExpression::makeEQ(pool,
+                                                 VariableExpression::make(pool, lastStepResult),
+                                                 ConstantExpression::make(pool, Value()));
+    auto neZero = ExpressionUtils::neZeroCondition(pool, lastStepResult);
+    auto* existValCondition = LogicalExpression::makeOr(pool, eqEmpty, neZero);
+    return LogicalExpression::makeAnd(pool, stepCondition, existValCondition);
 }
 
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula

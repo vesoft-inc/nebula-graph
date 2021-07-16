@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 vesoft inc. All rights reserved.
+/* Copyright (c) 2021 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -8,19 +8,20 @@
 #define _UTIL_EXPRESSION_UTILS_H_
 
 #include "common/base/Status.h"
+#include "common/expression/AggregateExpression.h"
 #include "common/expression/BinaryExpression.h"
 #include "common/expression/Expression.h"
 #include "common/expression/FunctionCallExpression.h"
-#include "common/expression/AggregateExpression.h"
 #include "common/expression/LabelExpression.h"
 #include "common/expression/PropertyExpression.h"
 #include "common/expression/TypeCastingExpression.h"
 #include "common/expression/UnaryExpression.h"
-#include "visitor/CollectAllExprsVisitor.h"
-#include "visitor/FindAnyExprVisitor.h"
-#include "visitor/RewriteLabelAttrVisitor.h"
+#include "visitor/EvaluableExprVisitor.h"
+#include "visitor/FindVisitor.h"
+#include "visitor/RewriteVisitor.h"
 
 namespace nebula {
+class ObjectPool;
 namespace graph {
 
 class ExpressionUtils {
@@ -32,118 +33,120 @@ public:
         return expected.find(expr->kind()) != expected.end();
     }
 
-    // null for not found
-    static const Expression* findAny(const Expression* self,
-                                     const std::unordered_set<Expression::Kind>& expected) {
-        FindAnyExprVisitor visitor(expected);
-        const_cast<Expression*>(self)->accept(&visitor);
-        return visitor.expr();
-    }
+    static bool isPropertyExpr(const Expression* expr);
 
-    // Find all expression fit any kind
-    // Empty for not found any one
-    static std::vector<const Expression*> collectAll(
-        const Expression* self,
-        const std::unordered_set<Expression::Kind>& expected) {
-        CollectAllExprsVisitor visitor(expected);
-        const_cast<Expression*>(self)->accept(&visitor);
-        return std::move(visitor).exprs();
-    }
+    static const Expression* findAny(const Expression* self,
+                                     const std::unordered_set<Expression::Kind>& expected);
 
     static bool hasAny(const Expression* expr,
                        const std::unordered_set<Expression::Kind>& expected) {
         return findAny(expr, expected) != nullptr;
     }
 
-    static std::vector<const Expression*> findAllStorage(const Expression* expr) {
-        return collectAll(expr,
-                          {Expression::Kind::kTagProperty,
-                           Expression::Kind::kEdgeProperty,
-                           Expression::Kind::kDstProperty,
-                           Expression::Kind::kSrcProperty,
-                           Expression::Kind::kEdgeSrc,
-                           Expression::Kind::kEdgeType,
-                           Expression::Kind::kEdgeRank,
-                           Expression::Kind::kEdgeDst,
-                           Expression::Kind::kVertex,
-                           Expression::Kind::kEdge});
-    }
+    static std::vector<const Expression*> collectAll(
+        const Expression* self,
+        const std::unordered_set<Expression::Kind>& expected);
 
-    static std::vector<const Expression*> findAllInputVariableProp(const Expression* expr) {
-        return collectAll(expr, {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty});
-    }
+    static std::vector<const Expression*> findAllStorage(const Expression* expr);
 
-    static bool isConstExpr(const Expression* expr) {
-        return !hasAny(expr,
-                       {Expression::Kind::kInputProperty,
-                        Expression::Kind::kVarProperty,
-                        Expression::Kind::kVar,
-                        Expression::Kind::kVersionedVar,
-                        Expression::Kind::kLabelAttribute,
-                        Expression::Kind::kTagProperty,
-                        Expression::Kind::kEdgeProperty,
-                        Expression::Kind::kDstProperty,
-                        Expression::Kind::kSrcProperty,
-                        Expression::Kind::kEdgeSrc,
-                        Expression::Kind::kEdgeType,
-                        Expression::Kind::kEdgeRank,
-                        Expression::Kind::kEdgeDst,
-                        Expression::Kind::kVertex,
-                        Expression::Kind::kEdge});
-    }
+    static std::vector<const Expression*> findAllInputVariableProp(const Expression* expr);
 
-    // determine the detail about symbol property expression
-    template <typename To,
-              typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
-                                          std::is_same<To, TagPropertyExpression>::value>>
-    static void rewriteLabelAttribute(Expression* expr) {
-        RewriteLabelAttrVisitor visitor(std::is_same<To, TagPropertyExpression>::value);
-        expr->accept(&visitor);
-    }
+    // **Expression type check**
+    static bool isConstExpr(const Expression* expr);
 
-    template <typename To,
-              typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
-                                          std::is_same<To, TagPropertyExpression>::value>>
-    static To* rewriteLabelAttribute(LabelAttributeExpression* expr) {
-        const auto& value = expr->right()->value();
-        return new To(new std::string(std::move(*expr->left()->name())),
-                      new std::string(value.getStr()));
-    }
+    static bool isEvaluableExpr(const Expression* expr);
+
+    static Expression* rewriteLabelAttr2TagProp(ObjectPool* pool, const Expression* expr);
+
+    static Expression* rewriteLabelAttr2EdgeProp(ObjectPool* pool, const Expression* expr);
+
+    static Expression* rewriteAgg2VarProp(ObjectPool* pool, const Expression* expr);
+
+    static Expression* rewriteInnerVar(ObjectPool* pool,
+                                       const Expression* expr,
+                                       std::string newVar);
+
+    // Rewrite relational expression, gather evaluable expressions to one side
+    static Expression* rewriteRelExpr(const Expression* expr, ObjectPool* pool);
+    static Expression* rewriteRelExprHelper(ObjectPool* pool,
+                                            const Expression* expr,
+                                            Expression*& relRightOperandExpr);
 
     // Clone and fold constant expression
-    static std::unique_ptr<Expression> foldConstantExpr(const Expression* expr);
+    static StatusOr<Expression*> foldConstantExpr(ObjectPool* objPool, const Expression* expr);
 
-    static Expression* pullAnds(Expression *expr);
-    static void pullAndsImpl(LogicalExpression *expr,
-                             std::vector<std::unique_ptr<Expression>> &operands);
+    // Clone and reduce unaryNot expression
+    static Expression* reduceUnaryNotExpr(const Expression* expr, ObjectPool* pool);
 
-    static Expression* pullOrs(Expression *expr);
-    static void pullOrsImpl(LogicalExpression *expr,
-                            std::vector<std::unique_ptr<Expression>> &operands);
+    // Transform filter using multiple expression rewrite strategies
+    static StatusOr<Expression*> filterTransform(const Expression* expr, ObjectPool* objPool);
 
-    static VariablePropertyExpression* newVarPropExpr(const std::string& prop,
-                                                      const std::string& var = "");
+    // Negate the given logical expr: (A && B) -> (!A || !B)
+    static LogicalExpression* reverseLogicalExpr(ObjectPool* pool, LogicalExpression* expr);
 
-    static std::unique_ptr<InputPropertyExpression> inputPropExpr(const std::string& prop);
+    // Negate the given relational expr: (A > B) -> (A <= B)
+    static RelationalExpression* reverseRelExpr(ObjectPool* pool, RelationalExpression* expr);
 
-    static std::unique_ptr<Expression> pushOrs(
-        const std::vector<std::unique_ptr<Expression>>& rels);
+    // Return the negation of the given relational kind
+    static Expression::Kind getNegatedRelExprKind(const Expression::Kind kind);
 
-    static std::unique_ptr<Expression> pushAnds(
-        const std::vector<std::unique_ptr<Expression>>& rels);
+    // Return the negation of the given logical kind
+    static Expression::Kind getNegatedLogicalExprKind(const Expression::Kind kind);
 
-    static std::unique_ptr<Expression> pushImpl(
-        Expression::Kind kind, const std::vector<std::unique_ptr<Expression>>& rels);
+    // Return the negation of the given arithmetic kind: plus -> minus
+    static Expression::Kind getNegatedArithmeticType(const Expression::Kind kind);
 
-    static std::unique_ptr<Expression> expandExpr(const Expression *expr);
+    static void pullAnds(Expression* expr);
 
-    static std::unique_ptr<Expression> expandImplAnd(const Expression *expr);
+    static void pullAndsImpl(LogicalExpression* expr,
+                             std::vector<Expression*>& operands);
 
-    static std::vector<std::unique_ptr<Expression>> expandImplOr(const Expression *expr);
+    static void pullOrs(Expression* expr);
+    static void pullOrsImpl(LogicalExpression* expr,
+                            std::vector<Expression*>& operands);
+
+    static Expression* pushOrs(ObjectPool* pool, const std::vector<Expression*>& rels);
+
+    static Expression* pushAnds(ObjectPool* pool, const std::vector<Expression*>& rels);
+
+    static Expression* pushImpl(ObjectPool* pool,
+                                Expression::Kind kind,
+                                const std::vector<Expression*>& rels);
+
+    static Expression* flattenInnerLogicalAndExpr(const Expression* expr);
+
+    static Expression* flattenInnerLogicalOrExpr(const Expression* expr);
+
+    static Expression* flattenInnerLogicalExpr(const Expression* expr);
+
+    static void splitFilter(ObjectPool* pool,
+                            const Expression* expr,
+                            std::function<bool(const Expression*)> picker,
+                            Expression** filterPicked,
+                            Expression** filterUnpicked);
+
+    static Expression* expandExpr(ObjectPool* pool, const Expression* expr);
+
+    static Expression* expandImplAnd(ObjectPool* pool, const Expression* expr);
+
+    static std::vector<Expression*> expandImplOr(const Expression* expr);
 
     static Status checkAggExpr(const AggregateExpression* aggExpr);
 
-    static bool isEvaluableExpr(const Expression* expr);
+    static bool findInnerRandFunction(const Expression *expr);
+
+    // loop condition
+    // ++loopSteps <= steps
+    static Expression* stepCondition(ObjectPool* pool, const std::string& loopStep, uint32_t steps);
+
+    // size(var) == 0
+    static Expression* zeroCondition(ObjectPool* pool, const std::string& var);
+
+    // size(var) != 0
+    static Expression* neZeroCondition(ObjectPool* pool, const std::string& var);
+
+    // var == value
+    static Expression* equalCondition(ObjectPool* pool, const std::string& var, const Value& value);
 };
 
 }   // namespace graph

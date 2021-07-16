@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/ExecutionPlan.h"
+#include "planner/plan/ExecutionPlan.h"
 
 #include <folly/init/Init.h>
 #include <folly/stop_watch.h>
@@ -13,7 +13,7 @@
 #include "context/QueryContext.h"
 #include "executor/ExecutionError.h"
 #include "executor/Executor.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "scheduler/Scheduler.h"
 
 using std::chrono::duration_cast;
@@ -35,9 +35,13 @@ public:
 
         watch_.reset();
         scheduler_->schedule()
-            .then([](Status s) { ASSERT_TRUE(s.ok()) << s.toString(); })
-            .onError([](const ExecutionError& e) { LOG(ERROR) << e.what(); })
-            .onError([](const std::exception& e) { LOG(ERROR) << "exception: " << e.what(); })
+            .thenValue([](Status s) { ASSERT_TRUE(s.ok()) << s.toString(); })
+            .onError(folly::tag_t<ExecutionError>{}, [](const ExecutionError& e) {
+                        LOG(ERROR) << e.what();
+                    })
+            .onError(folly::tag_t<std::exception>{}, [](const std::exception& e) {
+                        LOG(ERROR) << "exception: " << e.what();
+                    })
             .ensure([this]() {
                 auto us = duration_cast<microseconds>(watch_.elapsed());
                 LOG(INFO) << "elapsed time: " << us.count() << "us";

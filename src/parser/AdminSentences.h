@@ -6,7 +6,6 @@
 #ifndef PARSER_ADMINSENTENCES_H_
 #define PARSER_ADMINSENTENCES_H_
 
-#include <memory>
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
 #include "parser/MutateSentences.h"
@@ -156,7 +155,7 @@ public:
         CHARSET,
         COLLATE,
         ATOMIC_EDGE,
-        GROUP_NAME
+        GROUP_NAME,
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -272,6 +271,10 @@ public:
         }
     }
 
+    bool isVidType() {
+        return optType_ == OptionType::VID_TYPE;
+    }
+
     std::string toString() const;
 
 private:
@@ -294,6 +297,16 @@ public:
         return result;
     }
 
+    bool hasVidType() const {
+        auto spaceOptItems = getOpts();
+        for (SpaceOptItem* item : spaceOptItems) {
+            if (item->isVidType()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     std::string toString() const;
 
 private:
@@ -312,12 +325,28 @@ public:
         return spaceName_.get();
     }
 
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
     void setOpts(SpaceOptList* spaceOpts) {
         spaceOpts_.reset(spaceOpts);
     }
 
     void setGroupName(std::string* name) {
         groupName_.reset(name);
+    }
+
+    const SpaceOptList* spaceOpts() const {
+        return spaceOpts_.get();
+    }
+
+    void setComment(std::string *name) {
+        comment_.reset(name);
+    }
+
+    const std::string* comment() const {
+        return comment_.get();
     }
 
     std::vector<SpaceOptItem*> getOpts() {
@@ -333,6 +362,7 @@ private:
     std::unique_ptr<std::string>     spaceName_;
     std::unique_ptr<std::string>     groupName_;
     std::unique_ptr<SpaceOptList>    spaceOpts_;
+    std::unique_ptr<std::string>     comment_;
 };
 
 
@@ -389,7 +419,7 @@ public:
     ConfigRowItem(meta::cpp2::ConfigModule module, std::string* name, Expression* value) {
         module_ = module;
         name_.reset(name);
-        value_.reset(value);
+        value_ = value;
     }
 
     ConfigRowItem(meta::cpp2::ConfigModule module, std::string* name) {
@@ -412,7 +442,7 @@ public:
     }
 
     Expression* getValue() const {
-        return value_.get();
+        return value_;
     }
 
     const UpdateList* getUpdateItems() const {
@@ -424,7 +454,7 @@ public:
 private:
     meta::cpp2::ConfigModule        module_;
     std::unique_ptr<std::string>    name_;
-    std::unique_ptr<Expression>     value_;
+    Expression*                     value_{nullptr};
     std::unique_ptr<UpdateList>     updateItems_;
 };
 
@@ -674,6 +704,102 @@ public:
     }
 
     std::string toString() const override;
+};
+
+class ShowSessionsSentence final : public Sentence {
+public:
+    ShowSessionsSentence() {
+        kind_ = Kind::kShowSessions;
+    }
+
+    explicit ShowSessionsSentence(SessionID sessionId) {
+        kind_ = Kind::kShowSessions;
+        sessionId_ = sessionId;
+        setSeesionId_ = true;
+    }
+
+    bool isSetSessionID() const {
+        return setSeesionId_;
+    }
+
+    SessionID getSessionID() const {
+        return sessionId_;
+    }
+
+    std::string toString() const override;
+
+private:
+    SessionID   sessionId_{0};
+    bool        setSeesionId_{false};
+};
+
+class ShowQueriesSentence final : public Sentence {
+public:
+    explicit ShowQueriesSentence(bool isAll = false) {
+        kind_ = Kind::kShowQueries;
+        isAll_ = isAll;
+    }
+
+    bool isAll() const {
+        return isAll_;
+    }
+
+    std::string toString() const override;
+
+private:
+    bool isAll_{false};
+};
+
+class QueryUniqueIdentifier final {
+public:
+    explicit QueryUniqueIdentifier(Expression* epId, Expression* sessionId)
+        : epId_(epId), sessionId_(sessionId) {}
+
+    Expression* sessionId() const {
+        return sessionId_;
+    }
+
+    Expression* epId() const {
+        return epId_;
+    }
+
+    void setSession() {
+        isSetSession_ = true;
+    }
+
+    bool isSetSession() const {
+        return isSetSession_;
+    }
+
+private:
+    Expression* epId_{nullptr};
+    Expression* sessionId_{nullptr};
+    bool        isSetSession_{false};
+};
+
+class KillQuerySentence final : public Sentence {
+public:
+    explicit KillQuerySentence(QueryUniqueIdentifier* identifier) {
+        kind_ = Kind::kKillQuery;
+        identifier_.reset(identifier);
+    }
+
+    Expression* sessionId() const {
+        return identifier_->sessionId();
+    }
+
+    Expression* epId() const {
+        return identifier_->epId();
+    }
+
+    std::string toString() const override;
+
+private:
+    bool isSetSession() const {
+        return identifier_->isSetSession();
+    }
+
+    std::unique_ptr<QueryUniqueIdentifier> identifier_;
 };
 }   // namespace nebula
 

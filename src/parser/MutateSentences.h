@@ -34,52 +34,60 @@ private:
     std::vector<std::unique_ptr<std::string>>   properties_;
 };
 
-
 class VertexTagItem final {
- public:
-     explicit VertexTagItem(std::string *tagName, PropertyList *properties = nullptr) {
-         tagName_.reset(tagName);
-         properties_.reset(properties);
-     }
+public:
+    explicit VertexTagItem(std::string *tagName, PropertyList *properties = nullptr) {
+        tagName_.reset(tagName);
+        properties_.reset(properties);
+    }
 
-     std::string toString() const;
+    std::string toString() const;
 
-     const std::string* tagName() const {
-         return tagName_.get();
-     }
+    const std::string* tagName() const {
+        return tagName_.get();
+    }
 
-     std::vector<std::string*> properties() const {
-         if (nullptr == properties_) {
-             return {};
-         }
-         return properties_->properties();
-     }
+    bool isDefaultPropNames() const {
+        return defaultPropNames_;
+    }
 
- private:
-     std::unique_ptr<std::string>               tagName_;
-     std::unique_ptr<PropertyList>              properties_;
+    void setDefaultPropNames() {
+        defaultPropNames_ = true;
+    }
+
+    std::vector<std::string*> properties() const {
+        if (nullptr == properties_) {
+            return {};
+        }
+        return properties_->properties();
+    }
+
+private:
+    bool                                       defaultPropNames_{false};
+    std::unique_ptr<std::string>               tagName_;
+    std::unique_ptr<PropertyList>              properties_;
 };
 
 
 class VertexTagList final {
- public:
-     void addTagItem(VertexTagItem *tagItem) {
-         tagItems_.emplace_back(tagItem);
-     }
+public:
+    void addTagItem(VertexTagItem *tagItem) {
+        tagItems_.emplace_back(tagItem);
+    }
 
-     std::string toString() const;
+    std::string toString() const;
 
-     std::vector<VertexTagItem*> tagItems() const {
-         std::vector<VertexTagItem*> result;
-         result.reserve(tagItems_.size());
-         for (auto &item : tagItems_) {
-             result.emplace_back(item.get());
-         }
-         return result;
-     }
+    std::vector<VertexTagItem*> tagItems() const {
+        std::vector<VertexTagItem*> result;
+        result.reserve(tagItems_.size());
+        for (auto &item : tagItems_) {
+            result.emplace_back(item.get());
+        }
+        return result;
+    }
 
- private:
-     std::vector<std::unique_ptr<VertexTagItem>>    tagItems_;
+private:
+    std::vector<std::unique_ptr<VertexTagItem>>    tagItems_;
 };
 
 
@@ -91,28 +99,24 @@ public:
 
     std::string toString() const;
 
-    std::vector<Expression*> values() const {
-        std::vector<Expression*> result;
-        result.resize(values_.size());
-        auto get = [] (const auto &ptr) { return ptr.get(); };
-        std::transform(values_.begin(), values_.end(), result.begin(), get);
-        return result;
+    const std::vector<Expression*> &values() const {
+        return values_;
     }
 
 private:
-    std::vector<std::unique_ptr<Expression>>    values_;
+    std::vector<Expression*>    values_;
 };
 
 
 class VertexRowItem final {
 public:
     VertexRowItem(Expression *id, ValueList *values) {
-        id_.reset(id);
+        id_ = id;
         values_.reset(values);
     }
 
     Expression* id() const {
-        return id_.get();
+        return id_;
     }
 
     std::vector<Expression*> values() const {
@@ -122,8 +126,8 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 id_;
-    std::unique_ptr<ValueList>                  values_;
+    Expression*                 id_{nullptr};
+    std::unique_ptr<ValueList>  values_;
 };
 
 
@@ -160,15 +164,11 @@ class InsertVerticesSentence final : public Sentence {
 public:
     InsertVerticesSentence(VertexTagList *tagList,
                            VertexRowList *rows,
-                           bool overwritable = true) {
+                           bool ifNotExists) {
         tagList_.reset(tagList);
         rows_.reset(rows);
-        overwritable_ = overwritable;
+        ifNotExists_ = ifNotExists;
         kind_ = Kind::kInsertVertices;
-    }
-
-    bool overwritable() const {
-        return overwritable_;
     }
 
     auto tagItems() const {
@@ -181,8 +181,12 @@ public:
 
     std::string toString() const override;
 
+    bool isIfNotExists() const {
+        return ifNotExists_;
+    }
+
 private:
-    bool                                        overwritable_{true};
+    bool                                        ifNotExists_{false};
     std::unique_ptr<VertexTagList>              tagList_;
     std::unique_ptr<VertexRowList>              rows_;
 };
@@ -191,24 +195,24 @@ private:
 class EdgeRowItem final {
 public:
     EdgeRowItem(Expression *srcid, Expression *dstid, ValueList *values) {
-        srcid_.reset(srcid);
-        dstid_.reset(dstid);
+        srcid_ = srcid;
+        dstid_ = dstid;
         values_.reset(values);
     }
 
     EdgeRowItem(Expression *srcid, Expression *dstid, int64_t rank, ValueList *values) {
-        srcid_.reset(srcid);
-        dstid_.reset(dstid);
+        srcid_ = srcid;
+        dstid_ = dstid;
         rank_ = rank;
         values_.reset(values);
     }
 
     auto srcid() const {
-        return srcid_.get();
+        return srcid_;
     }
 
     auto dstid() const {
-        return dstid_.get();
+        return dstid_;
     }
 
     auto rank() const {
@@ -222,12 +226,11 @@ public:
     std::string toString() const;
 
 private:
-    std::unique_ptr<Expression>                 srcid_;
-    std::unique_ptr<Expression>                 dstid_;
-    EdgeRanking                                 rank_{0};
-    std::unique_ptr<ValueList>                  values_;
+    Expression *srcid_{nullptr};
+    Expression *dstid_{nullptr};
+    EdgeRanking rank_{0};
+    std::unique_ptr<ValueList> values_;
 };
-
 
 class EdgeRowList final {
 public:
@@ -252,20 +255,11 @@ private:
 
 class InsertEdgesSentence final : public Sentence {
 public:
-    InsertEdgesSentence() {
-        kind_ = Kind::kInsertEdges;
-    }
-
-    void setOverwrite(bool overwritable) {
-        overwritable_ = overwritable;
-    }
-
-    bool overwritable() const {
-        return overwritable_;
-    }
-
-    void setEdge(std::string *edge) {
+    explicit InsertEdgesSentence(std::string* edge, EdgeRowList* rows, bool ifNotExists)
+        : Sentence(Kind::kInsertEdges) {
         edge_.reset(edge);
+        rows_.reset(rows);
+        ifNotExists_ = ifNotExists;
     }
 
     const std::string* edge() const {
@@ -283,18 +277,27 @@ public:
         return properties_->properties();
     }
 
-    void setRows(EdgeRowList *rows) {
-        rows_.reset(rows);
-    }
-
     std::vector<EdgeRowItem*> rows() const {
         return rows_->rows();
+    }
+
+    bool isIfNotExists() const {
+        return ifNotExists_;
+    }
+
+    void setDefaultPropNames() {
+        isDefaultPropNames_ = true;
+    }
+
+    bool isDefaultPropNames() const {
+        return isDefaultPropNames_;
     }
 
     std::string toString() const override;
 
 private:
-    bool                                        overwritable_{true};
+    bool                                        isDefaultPropNames_{false};
+    bool                                        ifNotExists_{false};
     std::unique_ptr<std::string>                edge_;
     std::unique_ptr<PropertyList>               properties_;
     std::unique_ptr<EdgeRowList>                rows_;
@@ -305,12 +308,12 @@ class UpdateItem final {
 public:
     UpdateItem(std::string *field, Expression *value) {
         fieldStr_.reset(field);
-        value_.reset(value);
+        value_ = value;
     }
 
     UpdateItem(Expression *field, Expression *value) {
-        fieldExpr_.reset(field);
-        value_.reset(value);
+        fieldExpr_ = field;
+        value_ = value;
     }
 
     std::string* getFieldName() const {
@@ -318,11 +321,11 @@ public:
     }
 
     const Expression* getFieldExpr() const {
-        return fieldExpr_.get();
+        return fieldExpr_;
     }
 
     const Expression* value() const {
-        return value_.get();
+        return value_;
     }
 
     std::string toString() const;
@@ -330,11 +333,10 @@ public:
     StatusOr<std::string> toEvaledString() const;
 
 private:
-    std::unique_ptr<std::string>                fieldStr_;
-    std::unique_ptr<Expression>                 fieldExpr_;
-    std::unique_ptr<Expression>                 value_;
+    std::unique_ptr<std::string> fieldStr_;
+    Expression *fieldExpr_{nullptr};
+    Expression *value_{nullptr};
 };
-
 
 class UpdateList final {
 public:
@@ -416,7 +418,7 @@ public:
                          bool isInsertable = false)
         : UpdateBaseSentence(updateList, whenClause, yieldClause, tagName, isInsertable) {
         kind_ = Kind::kUpdateVertex;
-        vid_.reset(vid);
+        vid_ = vid;
     }
 
     UpdateVertexSentence(Expression *vid,
@@ -426,7 +428,7 @@ public:
                          bool isInsertable = false)
         : UpdateBaseSentence(updateList, whenClause, yieldClause, nullptr, isInsertable) {
         kind_ = Kind::kUpdateVertex;
-        vid_.reset(vid);
+        vid_ = vid;
     }
 
     ~UpdateVertexSentence() {}
@@ -436,7 +438,7 @@ public:
     }
 
     Expression* getVid() const {
-        return vid_.get();
+        return vid_;
     }
 
     const UpdateList* updateList() const {
@@ -454,7 +456,7 @@ public:
     std::string toString() const override;
 
 private:
-    std::unique_ptr<Expression>                 vid_;
+    Expression*                 vid_{nullptr};
 };
 
 
@@ -470,17 +472,17 @@ public:
                        bool isInsertable = false)
         : UpdateBaseSentence(updateList, whenClause, yieldClause, edgeName, isInsertable) {
         kind_ = Kind::kUpdateEdge;
-        srcId_.reset(srcId);
-        dstId_.reset(dstId);
+        srcId_ = srcId;
+        dstId_ = dstId;
         rank_ = rank;
     }
 
     Expression* getSrcId() const {
-        return srcId_.get();
+        return srcId_;
     }
 
     Expression* getDstId() const {
-        return dstId_.get();
+        return dstId_;
     }
 
     int64_t getRank() const {
@@ -490,9 +492,9 @@ public:
     std::string toString() const override;
 
 private:
-    std::unique_ptr<Expression>                 srcId_;
-    std::unique_ptr<Expression>                 dstId_;
-    int64_t                                     rank_{0L};
+    Expression *srcId_{nullptr};
+    Expression *dstId_{nullptr};
+    int64_t rank_{0L};
 };
 
 

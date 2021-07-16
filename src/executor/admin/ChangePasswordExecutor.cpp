@@ -8,7 +8,7 @@
 
 #include "context/QueryContext.h"
 #include "executor/admin/ChangePasswordExecutor.h"
-#include "planner/Admin.h"
+#include "planner/plan/Admin.h"
 
 namespace nebula {
 namespace graph {
@@ -26,7 +26,7 @@ folly::Future<Status> ChangePasswordExecutor::changePassword() {
                          encryption::MD5Utils::md5Encode(*cpNode->newPassword()),
                          encryption::MD5Utils::md5Encode(*cpNode->password()))
         .via(runner())
-        .then([this](StatusOr<bool> &&resp) {
+        .thenValue([this](StatusOr<bool> &&resp) {
             SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {

@@ -8,18 +8,29 @@
 #define VISITOR_FOLDCONSTANTEXPRVISITOR_H_
 
 #include "common/expression/ExprVisitor.h"
+// #include "common/base/Status.h"
 
 namespace nebula {
 namespace graph {
 
 class FoldConstantExprVisitor final : public ExprVisitor {
 public:
+    explicit FoldConstantExprVisitor(ObjectPool* pool): pool_(pool) {}
+
     bool canBeFolded() const {
         return canBeFolded_;
     }
 
     bool isConstant(Expression *expr) const {
         return expr->kind() == Expression::Kind::kConstant;
+    }
+
+    bool ok() const {
+        return status_.ok();
+    }
+
+    Status status() && {
+        return std::move(status_);
     }
 
     void visit(ConstantExpression *expr) override;
@@ -70,12 +81,17 @@ public:
     void visit(ListComprehensionExpression *) override;
     // reduce expression
     void visit(ReduceExpression *expr) override;
+    // subscript range expression
+    void visit(SubscriptRangeExpression *expr) override;
 
     void visitBinaryExpr(BinaryExpression *expr);
-    Expression *fold(Expression *expr) const;
+    Expression *fold(Expression *expr);
 
 private:
+    // Obejct pool used to manage expressions generated during visiting
+    ObjectPool *pool_;
     bool canBeFolded_{false};
+    Status status_;
 };
 
 }   // namespace graph

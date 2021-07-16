@@ -105,7 +105,7 @@ DeduceTypeVisitor::DeduceTypeVisitor(QueryContext *qctx,
     if (!vctx->spaceChosen()) {
         vidType_ = Value::Type::__EMPTY__;
     } else {
-        auto vidType = vctx_->whichSpace().spaceDesc.vid_type.get_type();
+        auto vidType = vctx_->whichSpace().spaceDesc.vid_type_ref().value().get_type();
         vidType_ = SchemaUtil::propTypeToValueType(vidType);
     }
 }
@@ -134,6 +134,14 @@ void DeduceTypeVisitor::visit(UnaryExpression *expr) {
             break;
         }
         case Expression::Kind::kIsNotNull: {
+            type_ = Value::Type::BOOL;
+            break;
+        }
+        case Expression::Kind::kIsEmpty: {
+            type_ = Value::Type::BOOL;
+            break;
+        }
+        case Expression::Kind::kIsNotEmpty: {
             type_ = Value::Type::BOOL;
             break;
         }
@@ -396,7 +404,7 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
         if (!ok()) return;
         argsTypeList.push_back(type_);
     }
-    auto funName = *expr->name();
+    auto funName = expr->name();
     if (funName == "id" || funName == "src" || funName == "dst") {
         type_ = vidType_;
         return;
@@ -448,8 +456,8 @@ void DeduceTypeVisitor::visit(TagPropertyExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(EdgePropertyExpression *expr) {
-    auto *edge = expr->sym();
-    auto edgeType = qctx_->schemaMng()->toEdgeType(space_, *edge);
+    const auto &edge = expr->sym();
+    auto edgeType = qctx_->schemaMng()->toEdgeType(space_, edge);
     if (!edgeType.ok()) {
         status_ = edgeType.status();
         return;
@@ -457,46 +465,46 @@ void DeduceTypeVisitor::visit(EdgePropertyExpression *expr) {
     auto schema = qctx_->schemaMng()->getEdgeSchema(space_, edgeType.value());
     if (!schema) {
         status_ = Status::SemanticError(
-            "`%s', not found edge `%s'.", expr->toString().c_str(), edge->c_str());
+            "`%s', not found edge `%s'.", expr->toString().c_str(), edge.c_str());
         return;
     }
 
-    auto *prop = expr->prop();
-    auto *field = schema->field(*prop);
+    const auto &prop = expr->prop();
+    auto *field = schema->field(prop);
     if (field == nullptr) {
         status_ = Status::SemanticError(
-            "`%s', not found the property `%s'.", expr->toString().c_str(), prop->c_str());
+            "`%s', not found the property `%s'.", expr->toString().c_str(), prop.c_str());
         return;
     }
     type_ = SchemaUtil::propTypeToValueType(field->type());
 }
 
 void DeduceTypeVisitor::visit(InputPropertyExpression *expr) {
-    auto *prop = expr->prop();
+    const auto &prop = expr->prop();
     auto found = std::find_if(
-        inputs_.cbegin(), inputs_.cend(), [&prop](auto &col) { return *prop == col.name; });
+        inputs_.cbegin(), inputs_.cend(), [&prop](auto &col) { return prop == col.name; });
     if (found == inputs_.cend()) {
         status_ = Status::SemanticError(
-            "`%s', not exist prop `%s'", expr->toString().c_str(), prop->c_str());
+            "`%s', not exist prop `%s'", expr->toString().c_str(), prop.c_str());
         return;
     }
     type_ = found->type;
 }
 
 void DeduceTypeVisitor::visit(VariablePropertyExpression *expr) {
-    auto *var = expr->sym();
-    if (!vctx_->existVar(*var)) {
+    const auto &var = expr->sym();
+    if (!vctx_->existVar(var)) {
         status_ = Status::SemanticError(
-            "`%s', not exist variable `%s'", expr->toString().c_str(), var->c_str());
+            "`%s', not exist variable `%s'", expr->toString().c_str(), var.c_str());
         return;
     }
-    auto *prop = expr->prop();
-    auto cols = vctx_->getVar(*var);
+    const auto &prop = expr->prop();
+    auto cols = vctx_->getVar(var);
     auto found =
-        std::find_if(cols.begin(), cols.end(), [&prop](auto &col) { return *prop == col.name; });
+        std::find_if(cols.begin(), cols.end(), [&prop](auto &col) { return prop == col.name; });
     if (found == cols.end()) {
         status_ = Status::SemanticError(
-            "`%s', not exist prop `%s'", expr->toString().c_str(), prop->c_str());
+            "`%s', not exist prop `%s'", expr->toString().c_str(), prop.c_str());
         return;
     }
     type_ = found->type;
@@ -548,6 +556,7 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         if (!ok()) return;
     }
 
+    std::unordered_set<Value::Type> types;
     for (const auto &whenThen : expr->cases()) {
         whenThen.when->accept(this);
         if (!ok()) return;
@@ -559,10 +568,14 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         }
         whenThen.then->accept(this);
         if (!ok()) return;
+        types.emplace(type_);
     }
 
-    // Will not deduce the actual value type returned by case expression.
-    type_ = Value::Type::__EMPTY__;
+    if (types.size() == 1) {
+        type_ = *types.begin();
+    } else {
+        type_ = Value::Type::__EMPTY__;
+    }
 }
 
 void DeduceTypeVisitor::visit(PredicateExpression *expr) {
@@ -648,9 +661,47 @@ void DeduceTypeVisitor::visit(ReduceExpression *expr) {
     type_ = Value::Type::__EMPTY__;
 }
 
+void DeduceTypeVisitor::visit(SubscriptRangeExpression *expr) {
+    expr->list()->accept(this);
+    if (!ok()) {
+        return;
+    }
+    if (type_ == Value::Type::NULLVALUE || type_ == Value::Type::__EMPTY__) {
+        // deduce failed
+        return;
+    }
+    if (type_ != Value::Type::LIST) {
+        status_ = Status::SemanticError("Expect list type for subscript range operator.");
+        return;
+    }
+
+    if (expr->lo() != nullptr) {
+        expr->lo()->accept(this);
+        if (!ok()) {
+            return;
+        }
+        if (type_ != Value::Type::INT && type_ != Value::Type::NULLVALUE) {
+            status_ = Status::SemanticError("Expect integer type for subscript range bound.");
+            return;
+        }
+    }
+
+    if (expr->hi() != nullptr) {
+        expr->hi()->accept(this);
+        if (!ok()) {
+            return;
+        }
+        if (type_ != Value::Type::INT && type_ != Value::Type::NULLVALUE) {
+            status_ = Status::SemanticError("Expect integer type for subscript range bound.");
+            return;
+        }
+    }
+    type_ = Value::Type::LIST;
+}
+
 void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {
-    auto *tag = expr->sym();
-    auto tagId = qctx_->schemaMng()->toTagID(space_, *tag);
+    const auto &tag = expr->sym();
+    auto tagId = qctx_->schemaMng()->toTagID(space_, tag);
     if (!tagId.ok()) {
         status_ = tagId.status();
         return;
@@ -658,14 +709,14 @@ void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {
     auto schema = qctx_->schemaMng()->getTagSchema(space_, tagId.value());
     if (!schema) {
         status_ = Status::SemanticError(
-            "`%s', not found tag `%s'.", expr->toString().c_str(), tag->c_str());
+            "`%s', not found tag `%s'.", expr->toString().c_str(), tag.c_str());
         return;
     }
-    auto *prop = expr->prop();
-    auto *field = schema->field(*prop);
+    const auto &prop = expr->prop();
+    auto *field = schema->field(prop);
     if (field == nullptr) {
         status_ = Status::SemanticError(
-            "`%s', not found the property `%s'.", expr->toString().c_str(), prop->c_str());
+            "`%s', not found the property `%s'.", expr->toString().c_str(), prop.c_str());
         return;
     }
     type_ = SchemaUtil::propTypeToValueType(field->type());

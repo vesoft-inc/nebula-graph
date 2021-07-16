@@ -66,6 +66,28 @@ Feature: Basic match
       | 'Ray Allen'     | 43  |
       | 'David West'    | 38  |
       | 'Tracy McGrady' | 39  |
+    When executing query:
+      """
+      MATCH (v:player) where v.name == null RETURN v
+      """
+    Then the result should be, in any order, with relax comparison:
+      | v |
+    When executing query:
+      """
+      MATCH (v:player) where v.name == 3 RETURN v
+      """
+    Then the result should be, in any order, with relax comparison:
+      | v |
+    When executing query:
+      """
+      MATCH (v:player) where v.age > 9223372036854775807+1  return v
+      """
+    Then a ExecutionError should be raised at runtime: result of (9223372036854775807+1) cannot be represented as an integer
+    When executing query:
+      """
+      MATCH (v:player) where v.age > -9223372036854775808-1  return v
+      """
+    Then a ExecutionError should be raised at runtime: result of (-9223372036854775808-1) cannot be represented as an integer
 
   Scenario: One step
     When executing query:
@@ -468,11 +490,6 @@ Feature: Basic match
     Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player{age:23}:bachelor) RETURN v
     When executing query:
       """
-      MATCH () -[r:serve]-> () return *
-      """
-    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-[r:serve]->() RETURN *
-    When executing query:
-      """
       MATCH () -[]-> (v) return *
       """
     Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v) RETURN *
@@ -481,3 +498,10 @@ Feature: Basic match
       MATCH () --> (v) --> () return *
       """
     Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *
+    # The 0 step means node scan in fact, but p and t has no label or properties for index seek
+    # So it's not workable now
+    When executing query:
+      """
+      MATCH (p)-[:serve*0..3]->(t) RETURN p
+      """
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (p)-[:serve*0..3]->(t) RETURN p

@@ -6,7 +6,7 @@
 
 #include "executor/query/FilterExecutor.h"
 
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 
 #include "context/QueryExpressionContext.h"
 #include "util/ScopedTimer.h"
@@ -17,7 +17,8 @@ namespace graph {
 folly::Future<Status> FilterExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* filter = asNode<Filter>(node());
-    auto iter = ectx_->getResult(filter->inputVar()).iter();
+    Result result = ectx_->getResult(filter->inputVar());
+    auto* iter = result.iterRef();
     if (iter == nullptr || iter->isDefaultIter()) {
         LOG(ERROR) << "Internal Error: iterator is nullptr or DefaultIter";
         return Status::Error("Internal Error: iterator is nullptr or DefaultIter");
@@ -28,12 +29,12 @@ folly::Future<Status> FilterExecutor::execute() {
             << ", input data size: " << iter->size();
 
     ResultBuilder builder;
-    builder.value(iter->valuePtr());
+    builder.value(result.valuePtr());
     QueryExpressionContext ctx(ectx_);
     auto condition = filter->condition();
     while (iter->valid()) {
-        auto val = condition->eval(ctx(iter.get()));
-        if (!val.empty() && !val.isBool() && !val.isNull()) {
+        auto val = condition->eval(ctx(iter));
+        if (val.isBadNull() || (!val.empty() && !val.isBool() && !val.isNull())) {
             return Status::Error("Internal Error: Wrong type result, "
                                  "the type should be NULL,EMPTY or BOOL");
         }
@@ -49,7 +50,7 @@ folly::Future<Status> FilterExecutor::execute() {
     }
 
     iter->reset();
-    builder.iter(std::move(iter));
+    builder.iter(std::move(result).iter());
     return finish(builder.finish());
 }
 

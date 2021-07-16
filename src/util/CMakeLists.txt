@@ -9,9 +9,11 @@ nebula_add_library(
     ExpressionUtils.cpp
     SchemaUtil.cpp
     IndexUtil.cpp
+    FTIndexUtils.cpp
     ZoneUtil.cpp
     ToJson.cpp
     ParserUtil.cpp
+    QueryUtil.cpp
 )
 
 nebula_add_library(

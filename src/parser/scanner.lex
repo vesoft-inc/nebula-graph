@@ -9,6 +9,7 @@
 #include "parser/GQLParser.h"
 #include "parser/GraphScanner.h"
 #include "GraphParser.hpp"
+#include "service/GraphFlags.h"
 
 #define YY_USER_ACTION                  \
     yylloc->step();                     \
@@ -32,6 +33,8 @@ ENDS_WITH                   (ENDS{blanks}WITH)
 NOT_ENDS_WITH               (NOT{blanks}ENDS{blanks}WITH)
 IS_NULL                     (IS{blanks}NULL)
 IS_NOT_NULL                 (IS{blanks}NOT{blanks}NULL)
+IS_EMPTY                    (IS{blanks}EMPTY)
+IS_NOT_EMPTY                (IS{blanks}NOT{blanks}EMPTY)
 
 LABEL                       ([a-zA-Z][_a-zA-Z0-9]*)
 DEC                         ([0-9])
@@ -39,6 +42,8 @@ EXP                         ([eE][-+]?[0-9]+)
 HEX                         ([0-9a-fA-F])
 OCT                         ([0-7])
 IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
+
+
 
 %%
 
@@ -213,6 +218,8 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 {NOT_ENDS_WITH}             { return TokenType::KW_NOT_ENDS_WITH;}
 {IS_NULL}                   { return TokenType::KW_IS_NULL;}
 {IS_NOT_NULL}               { return TokenType::KW_IS_NOT_NULL;}
+{IS_EMPTY}                  { return TokenType::KW_IS_EMPTY;}
+{IS_NOT_EMPTY}              { return TokenType::KW_IS_NOT_EMPTY;}
 "UNWIND"                    { return TokenType::KW_UNWIND;}
 "SKIP"                      { return TokenType::KW_SKIP;}
 "OPTIONAL"                  { return TokenType::KW_OPTIONAL;}
@@ -225,6 +232,7 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "INTO"                      { return TokenType::KW_INTO; }
 "LISTENER"                  { return TokenType::KW_LISTENER; }
 "ELASTICSEARCH"             { return TokenType::KW_ELASTICSEARCH; }
+"FULLTEXT"                  { return TokenType::KW_FULLTEXT; }
 "AUTO"                      { return TokenType::KW_AUTO; }
 "FUZZY"                     { return TokenType::KW_FUZZY; }
 "PREFIX"                    { return TokenType::KW_PREFIX; }
@@ -238,6 +246,15 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "TEXT_SEARCH"               { return TokenType::KW_TEXT_SEARCH; }
 "RESET"                     { return TokenType::KW_RESET; }
 "PLAN"                      { return TokenType::KW_PLAN; }
+"COMMENT"                   { return TokenType::KW_COMMENT; }
+"SESSIONS"                  { return TokenType::KW_SESSIONS; }
+"SESSION"                   { return TokenType::KW_SESSION; }
+"SAMPLE"                    { return TokenType::KW_SAMPLE; }
+"QUERIES"                   { return TokenType::KW_QUERIES; }
+"QUERY"                     { return TokenType::KW_QUERY; }
+"KILL"                      { return TokenType::KW_KILL; }
+"TOP"                       { return TokenType::KW_TOP; }
+
 "TRUE"                      { yylval->boolval = true; return TokenType::BOOL; }
 "FALSE"                     { yylval->boolval = false; return TokenType::BOOL; }
 
@@ -369,13 +386,28 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                                 sbufPos_ += yyleng;
                             }
 <DQ_STR,SQ_STR>\\{OCT}{1,3} {
-                                makeSpaceForString(1);
-                                uint32_t val = 0;
-                                sscanf(yytext + 1, "%o", &val);
-                                if (val > 0xFF) {
+                                if (FLAGS_disable_octal_escape_char) {
+                                    makeSpaceForString(yyleng);
+                                    ::strncpy(sbuf() + sbufPos_, yytext, yyleng);
+                                    sbufPos_ += yyleng;
+                                } else {
+                                    makeSpaceForString(1);
+                                    uint32_t val = 0;
+                                    sscanf(yytext + 1, "%o", &val);
+                                    if (val > 0xFF) {
+                                        yyterminate();
+                                    }
+                                    sbuf()[sbufPos_++] = val;
+                                }
+                            }
+<DQ_STR,SQ_STR>\\{DEC}+ {
+                                if (FLAGS_disable_octal_escape_char) {
+                                    makeSpaceForString(yyleng);
+                                    ::strncpy(sbuf() + sbufPos_, yytext, yyleng);
+                                    sbufPos_ += yyleng;
+                                } else {
                                     yyterminate();
                                 }
-                                sbuf()[sbufPos_++] = val;
                             }
 <DQ_STR,SQ_STR>\\[uUxX]{HEX}{4} {
                                 auto encoded = folly::codePointToUtf8(std::strtoul(yytext+2, nullptr, 16));
@@ -383,7 +415,6 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                                 ::strncpy(sbuf() + sbufPos_, encoded.data(), encoded.size());
                                 sbufPos_ += encoded.size();
                             }
-<DQ_STR,SQ_STR>\\{DEC}+     { yyterminate(); }
 <DQ_STR,SQ_STR>\\n          {
                                 makeSpaceForString(1);
                                 sbuf()[sbufPos_++] = '\n';

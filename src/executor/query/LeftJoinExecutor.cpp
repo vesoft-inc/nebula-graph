@@ -8,7 +8,7 @@
 
 #include "context/Iterator.h"
 #include "context/QueryExpressionContext.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ScopedTimer.h"
 
 namespace nebula {
@@ -50,6 +50,7 @@ folly::Future<Status> LeftJoinExecutor::join() {
     }
 
     result.colNames = join->colNames();
+    VLOG(2) << node_->toString() << ", result: " << result;
     return finish(ResultBuilder().value(Value(std::move(result))).finish());
 }
 

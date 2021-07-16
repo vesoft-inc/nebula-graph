@@ -51,20 +51,46 @@ StatusOr<DataSet> IndexUtil::toShowCreateIndex(bool isTagIndex,
     row.emplace_back(indexName);
     for (auto &col : indexItem.get_fields()) {
         createStr += " `" + col.get_name();
+        createStr += "`";
         const auto &type = col.get_type();
-        if (type.__isset.type_length) {
-            createStr += "(" + std::to_string(*type.get_type_length()) + ")";
+        if (type.type_length_ref().has_value()) {
+            createStr += "(" + std::to_string(*type.type_length_ref()) + ")";
         }
-        createStr += "`,\n";
+        createStr += ",\n";
     }
-    if (!indexItem.fields.empty()) {
+    if (!(*indexItem.fields_ref()).empty()) {
         createStr.resize(createStr.size() -2);
         createStr += "\n";
     }
     createStr += ")";
+    if (indexItem.comment_ref().has_value()) {
+        createStr += " comment = \"";
+        createStr += *indexItem.get_comment();
+        createStr += "\"";
+    }
     row.emplace_back(std::move(createStr));
     dataSet.rows.emplace_back(std::move(row));
     return dataSet;
+}
+
+Expression::Kind IndexUtil::reverseRelationalExprKind(Expression::Kind kind) {
+    switch (kind) {
+        case Expression::Kind::kRelGE: {
+            return Expression::Kind::kRelLE;
+        }
+        case Expression::Kind::kRelGT: {
+            return Expression::Kind::kRelLT;
+        }
+        case Expression::Kind::kRelLE: {
+            return Expression::Kind::kRelGE;
+        }
+        case Expression::Kind::kRelLT: {
+            return Expression::Kind::kRelGT;
+        }
+        default: {
+            return kind;
+        }
+    }
 }
 
 }  // namespace graph

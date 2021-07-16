@@ -6,12 +6,12 @@
 
 #include "planner/match/UnwindClausePlanner.h"
 
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "planner/match/MatchSolver.h"
 #include "planner/match/OrderByClausePlanner.h"
 #include "planner/match/PaginationPlanner.h"
 #include "planner/match/SegmentsConnector.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
+#include "visitor/RewriteVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -27,35 +27,9 @@ StatusOr<SubPlan> UnwindClausePlanner::transform(CypherClauseContextBase* clause
 }
 
 Status UnwindClausePlanner::buildUnwind(UnwindClauseContext* uctx, SubPlan& subPlan) {
-    auto* yields = new YieldColumns();
-    uctx->qctx->objPool()->add(yields);
-    std::vector<std::string> colNames;
-
-    auto rewriter = [uctx](const Expression* expr) {
-        return MatchSolver::doRewrite(*uctx->aliasesUsed, expr);
-    };
-
-    for (auto* col : uctx->yieldColumns->columns()) {
-        auto kind = col->expr()->kind();
-        YieldColumn* newColumn = nullptr;
-        if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
-            newColumn = new YieldColumn(rewriter(col->expr()), new std::string(*col->alias()));
-        } else {
-            auto newExpr = col->expr()->clone();
-            RewriteMatchLabelVisitor visitor(rewriter);
-            newExpr->accept(&visitor);
-            newColumn = new YieldColumn(newExpr.release());
-        }
-        yields->addColumn(newColumn);
-        if (col->alias() != nullptr) {
-            colNames.emplace_back(*col->alias());
-        } else {
-            return Status::Error("Expression in UNWIND must be aliased (use AS)");
-        }
-    }
-
-    auto* unwind = Unwind::make(uctx->qctx, nullptr, yields);
-    unwind->setColNames(std::move(colNames));
+    auto* newUnwindExpr = MatchSolver::doRewrite(uctx->qctx, *uctx->aliasesUsed, uctx->unwindExpr);
+    auto* unwind = Unwind::make(uctx->qctx, nullptr, newUnwindExpr, uctx->alias);
+    unwind->setColNames({uctx->alias});
     subPlan.root = unwind;
     subPlan.tail = unwind;
 

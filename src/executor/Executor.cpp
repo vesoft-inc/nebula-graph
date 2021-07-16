@@ -9,6 +9,8 @@
 #include <folly/String.h>
 #include <folly/executors/InlineExecutor.h>
 
+#include "common/base/Memory.h"
+#include "common/base/ObjectPool.h"
 #include "common/interface/gen-cpp2/graph_types.h"
 #include "context/ExecutionContext.h"
 #include "context/QueryContext.h"
@@ -19,78 +21,84 @@
 #include "executor/admin/CharsetExecutor.h"
 #include "executor/admin/ConfigExecutor.h"
 #include "executor/admin/CreateUserExecutor.h"
+#include "executor/admin/DownloadExecutor.h"
 #include "executor/admin/DropUserExecutor.h"
 #include "executor/admin/GrantRoleExecutor.h"
+#include "executor/admin/GroupExecutor.h"
+#include "executor/admin/IngestExecutor.h"
 #include "executor/admin/ListRolesExecutor.h"
 #include "executor/admin/ListUserRolesExecutor.h"
 #include "executor/admin/ListUsersExecutor.h"
+#include "executor/admin/ListenerExecutor.h"
 #include "executor/admin/PartExecutor.h"
+#include "executor/admin/ResetBalanceExecutor.h"
 #include "executor/admin/RevokeRoleExecutor.h"
 #include "executor/admin/ShowBalanceExecutor.h"
 #include "executor/admin/ShowHostsExecutor.h"
-#include "executor/admin/SnapshotExecutor.h"
-#include "executor/admin/ListenerExecutor.h"
-#include "executor/admin/SpaceExecutor.h"
-#include "executor/admin/StopBalanceExecutor.h"
-#include "executor/admin/ResetBalanceExecutor.h"
-#include "executor/admin/SubmitJobExecutor.h"
-#include "executor/admin/SwitchSpaceExecutor.h"
-#include "executor/admin/UpdateUserExecutor.h"
-#include "executor/admin/GroupExecutor.h"
-#include "executor/admin/ZoneExecutor.h"
 #include "executor/admin/ShowStatsExecutor.h"
 #include "executor/admin/ShowTSClientsExecutor.h"
 #include "executor/admin/SignInTSServiceExecutor.h"
 #include "executor/admin/SignOutTSServiceExecutor.h"
-#include "executor/admin/DownloadExecutor.h"
-#include "executor/admin/IngestExecutor.h"
+#include "executor/admin/SnapshotExecutor.h"
+#include "executor/admin/SpaceExecutor.h"
+#include "executor/admin/StopBalanceExecutor.h"
+#include "executor/admin/SubmitJobExecutor.h"
+#include "executor/admin/SwitchSpaceExecutor.h"
+#include "executor/admin/UpdateUserExecutor.h"
+#include "executor/admin/ZoneExecutor.h"
+#include "executor/admin/ShowQueriesExecutor.h"
+#include "executor/admin/KillQueryExecutor.h"
 #include "executor/algo/BFSShortestPathExecutor.h"
-#include "executor/algo/ProduceSemiShortestPathExecutor.h"
+#include "executor/algo/CartesianProductExecutor.h"
 #include "executor/algo/ConjunctPathExecutor.h"
 #include "executor/algo/ProduceAllPathsExecutor.h"
-#include "executor/algo/CartesianProductExecutor.h"
+#include "executor/algo/ProduceSemiShortestPathExecutor.h"
 #include "executor/algo/SubgraphExecutor.h"
+#include "executor/admin/SessionExecutor.h"
 #include "executor/logic/LoopExecutor.h"
 #include "executor/logic/PassThroughExecutor.h"
 #include "executor/logic/SelectExecutor.h"
 #include "executor/logic/StartExecutor.h"
 #include "executor/maintain/EdgeExecutor.h"
-#include "executor/maintain/TagExecutor.h"
 #include "executor/maintain/EdgeIndexExecutor.h"
+#include "executor/maintain/TagExecutor.h"
 #include "executor/maintain/TagIndexExecutor.h"
+#include "executor/maintain/FTIndexExecutor.h"
 #include "executor/mutate/DeleteExecutor.h"
 #include "executor/mutate/InsertExecutor.h"
 #include "executor/mutate/UpdateExecutor.h"
 #include "executor/query/AggregateExecutor.h"
+#include "executor/query/AssignExecutor.h"
 #include "executor/query/DataCollectExecutor.h"
-#include "executor/query/LeftJoinExecutor.h"
-#include "executor/query/InnerJoinExecutor.h"
 #include "executor/query/DedupExecutor.h"
 #include "executor/query/FilterExecutor.h"
 #include "executor/query/GetEdgesExecutor.h"
 #include "executor/query/GetNeighborsExecutor.h"
 #include "executor/query/GetVerticesExecutor.h"
 #include "executor/query/IndexScanExecutor.h"
+#include "executor/query/InnerJoinExecutor.h"
 #include "executor/query/IntersectExecutor.h"
+#include "executor/query/LeftJoinExecutor.h"
 #include "executor/query/LimitExecutor.h"
 #include "executor/query/MinusExecutor.h"
 #include "executor/query/ProjectExecutor.h"
-#include "executor/query/UnwindExecutor.h"
 #include "executor/query/SortExecutor.h"
 #include "executor/query/TopNExecutor.h"
-#include "executor/query/UnionExecutor.h"
 #include "executor/query/UnionAllVersionVarExecutor.h"
-#include "executor/query/AssignExecutor.h"
-#include "planner/Admin.h"
-#include "planner/Logic.h"
-#include "planner/Maintain.h"
-#include "planner/Mutate.h"
-#include "planner/PlanNode.h"
-#include "planner/Query.h"
-#include "common/base/ObjectPool.h"
+#include "executor/query/UnionExecutor.h"
+#include "executor/query/UnwindExecutor.h"
+#include "planner/plan/Admin.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/Maintain.h"
+#include "planner/plan/Mutate.h"
+#include "planner/plan/PlanNode.h"
+#include "planner/plan/Query.h"
+#include "service/GraphFlags.h"
 #include "util/ScopedTimer.h"
 
 using folly::stringPrintf;
+
+DEFINE_bool(enable_lifetime_optimize, true, "Does enable the lifetime optimize.");
 
 namespace nebula {
 namespace graph {
@@ -113,40 +121,23 @@ Executor *Executor::makeExecutor(const PlanNode *node,
     }
 
     Executor *exec = makeExecutor(qctx, node);
-    switch (node->dependencies().size()) {
-        case 0: {
-            // Do nothing
-            break;
-        }
-        case 1: {
-            if (node->kind() == PlanNode::Kind::kSelect) {
-                auto select = asNode<Select>(node);
-                auto thenBody = makeExecutor(select->then(), qctx, visited);
-                auto elseBody = makeExecutor(select->otherwise(), qctx, visited);
-                auto selectExecutor = static_cast<SelectExecutor *>(exec);
-                selectExecutor->setThenBody(thenBody);
-                selectExecutor->setElseBody(elseBody);
-            } else if (node->kind() == PlanNode::Kind::kLoop) {
-                auto loop = asNode<Loop>(node);
-                auto body = makeExecutor(loop->body(), qctx, visited);
-                auto loopExecutor = static_cast<LoopExecutor *>(exec);
-                loopExecutor->setLoopBody(body);
-            }
-            auto dep = makeExecutor(node->dep(0), qctx, visited);
-            exec->dependsOn(dep);
-            break;
-        }
-        case 2: {
-            auto left = makeExecutor(node->dep(0), qctx, visited);
-            auto right = makeExecutor(node->dep(1), qctx, visited);
-            exec->dependsOn(left)->dependsOn(right);
-            break;
-        }
-        default: {
-            LOG(FATAL) << "Unsupported plan node type which has dependencies: "
-                       << node->dependencies().size();
-            break;
-        }
+
+    if (node->kind() == PlanNode::Kind::kSelect) {
+        auto select = asNode<Select>(node);
+        auto thenBody = makeExecutor(select->then(), qctx, visited);
+        auto elseBody = makeExecutor(select->otherwise(), qctx, visited);
+        auto selectExecutor = static_cast<SelectExecutor *>(exec);
+        selectExecutor->setThenBody(thenBody);
+        selectExecutor->setElseBody(elseBody);
+    } else if (node->kind() == PlanNode::Kind::kLoop) {
+        auto loop = asNode<Loop>(node);
+        auto body = makeExecutor(loop->body(), qctx, visited);
+        auto loopExecutor = static_cast<LoopExecutor *>(exec);
+        loopExecutor->setLoopBody(body);
+    }
+
+    for (size_t i = 0; i < node->numDeps(); ++i) {
+        exec->dependsOn(makeExecutor(node->dep(i), qctx, visited));
     }
 
     visited->insert({node->id(), exec});
@@ -190,7 +181,13 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kUnwind: {
             return pool->add(new UnwindExecutor(node, qctx));
         }
-        case PlanNode::Kind::kIndexScan: {
+        case PlanNode::Kind::kIndexScan:
+        case PlanNode::Kind::kEdgeIndexFullScan:
+        case PlanNode::Kind::kEdgeIndexPrefixScan:
+        case PlanNode::Kind::kEdgeIndexRangeScan:
+        case PlanNode::Kind::kTagIndexFullScan:
+        case PlanNode::Kind::kTagIndexPrefixScan:
+        case PlanNode::Kind::kTagIndexRangeScan: {
             return pool->add(new IndexScanExecutor(node, qctx));
         }
         case PlanNode::Kind::kStart: {
@@ -280,11 +277,17 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kCreateEdgeIndex: {
             return pool->add(new CreateEdgeIndexExecutor(node, qctx));
         }
+        case PlanNode::Kind::kCreateFTIndex: {
+            return pool->add(new CreateFTIndexExecutor(node, qctx));
+        }
         case PlanNode::Kind::kDropTagIndex: {
             return pool->add(new DropTagIndexExecutor(node, qctx));
         }
         case PlanNode::Kind::kDropEdgeIndex: {
             return pool->add(new DropEdgeIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDropFTIndex: {
+            return pool->add(new DropFTIndexExecutor(node, qctx));
         }
         case PlanNode::Kind::kDescTagIndex: {
             return pool->add(new DescTagIndexExecutor(node, qctx));
@@ -481,6 +484,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kShowTSClients: {
             return pool->add(new ShowTSClientsExecutor(node, qctx));
         }
+        case PlanNode::Kind::kShowFTIndexes: {
+            return pool->add(new ShowFTIndexesExecutor(node, qctx));
+        }
         case PlanNode::Kind::kSignInTSService: {
             return pool->add(new SignInTSServiceExecutor(node, qctx));
         }
@@ -492,6 +498,18 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kIngest: {
             return pool->add(new IngestExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowSessions:  {
+            return pool->add(new ShowSessionsExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kUpdateSession:  {
+            return pool->add(new UpdateSessionExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowQueries: {
+            return pool->add(new ShowQueriesExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kKillQuery: {
+            return pool->add(new KillQueryExecutor(node, qctx));
         }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
@@ -517,6 +535,22 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 Executor::~Executor() {}
 
 Status Executor::open() {
+    if (qctx_->isKilled()) {
+        VLOG(1) << "Execution is being killed. session: " << qctx()->rctx()->session()->id()
+            << "ep: " << qctx()->plan()->id()
+            << "query: " << qctx()->rctx()->query();
+        return Status::Error("Execution had been killed");
+    }
+    auto status = MemInfo::make();
+    NG_RETURN_IF_ERROR(status);
+    auto mem = std::move(status).value();
+    if (node_->isQueryNode() && mem->hitsHighWatermark(FLAGS_system_memory_high_watermark_ratio)) {
+        return Status::Error(
+            "Used memory(%ldKB) hits the high watermark(%lf) of total system memory(%ldKB).",
+            mem->usedInKB(),
+            FLAGS_system_memory_high_watermark_ratio,
+            mem->totalInKB());
+    }
     numRows_ = 0;
     execTime_ = 0;
     totalDuration_.reset();
@@ -541,12 +575,30 @@ folly::Future<Status> Executor::start(Status status) const {
 }
 
 folly::Future<Status> Executor::error(Status status) const {
-    return folly::makeFuture<Status>(ExecutionError(std::move(status))).via(runner());
+    return folly::makeFuture<Status>(std::move(status)).via(runner());
+}
+
+void Executor::drop() {
+    for (const auto &inputVar : node()->inputVars()) {
+        if (inputVar != nullptr) {
+            if (inputVar->lastUser.value() == node()->id()) {
+                    ectx_->dropResult(inputVar->name);
+                    VLOG(1) << "Drop variable " << node()->outputVar();
+            }
+        }
+    }
 }
 
 Status Executor::finish(Result &&result) {
-    numRows_ = result.size();
-    ectx_->setResult(node()->outputVar(), std::move(result));
+    if (!FLAGS_enable_lifetime_optimize || node()->outputVarPtr()->lastUser.hasValue()) {
+        numRows_ = result.size();
+        ectx_->setResult(node()->outputVar(), std::move(result));
+    } else {
+        VLOG(1) << "Drop variable " << node()->outputVar();
+    }
+    if (FLAGS_enable_lifetime_optimize) {
+        drop();
+    }
     return Status::OK();
 }
 

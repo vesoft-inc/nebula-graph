@@ -33,7 +33,8 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:common_time_utils_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
     $<TARGET_OBJECTS:common_ws_common_obj>
-    $<TARGET_OBJECTS:session_obj>
+    $<TARGET_OBJECTS:common_version_obj>
+    $<TARGET_OBJECTS:graph_session_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
     $<TARGET_OBJECTS:validator_obj>
@@ -52,8 +53,7 @@ SET(EXEC_QUERY_TEST_LIBS
     ${THRIFT_LIBRARIES}
     gtest
     wangle
-    proxygenhttpserver
-    proxygenlib
+    ${PROXYGEN_LIBRARIES}
 )
 
 nebula_add_test(
@@ -80,6 +80,7 @@ nebula_add_test(
         ProduceAllPathsTest.cpp
         CartesianProductTest.cpp
         AssignTest.cpp
+        ShowQueriesTest.cpp
     OBJECTS
         ${EXEC_QUERY_TEST_OBJS}
     LIBRARIES

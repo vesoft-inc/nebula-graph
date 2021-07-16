@@ -18,6 +18,28 @@ Feature: Basic Aggregate and GroupBy
     Then the result should be, in any order, with relax comparison:
       | (COUNT(*)+1) | (1+2) | (INT)abs(count(2)) |
       | 2            | 3     | 1                  |
+    When executing query:
+      """
+      YIELD count(null) AS v1,
+            avg(null) AS v2,
+            sum(null) AS v3,
+            std(null) AS v4,
+            min(null) AS v5,
+            max(null) AS v6,
+            bit_and(null) AS v9,
+            bit_or(null) AS v10,
+            bit_xor(null) AS v11
+      """
+    Then the result should be, in any order, with relax comparison:
+      | v1 | v2   | v3 | v4   | v5   | v6   | v9   | v10  | v11  |
+      | 0  | NULL | 0  | NULL | NULL | NULL | NULL | NULL | NULL |
+    When executing query:
+      """
+      YIELD 3 AS x | YIELD case COUNT($-.x) == 1 when true THEN 1 ELSE 0 END as a
+      """
+    Then the result should be, in any order, with relax comparison:
+      | a |
+      | 1 |
 
   Scenario: [1] Basic GroupBy
     When executing query:
@@ -323,6 +345,17 @@ Feature: Basic Aggregate and GroupBy
       | "Raptors"   | 34     |
       | "Lakers"    | 40     |
 
+  Scenario: GroupBy user defined var
+    When executing query:
+      """
+      $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age;
+      GROUP BY $var.age YIELD $var.age AS age, count($var.dst) AS count
+      """
+    Then the result should be, in any order, with relax comparison:
+      | age | count |
+      | 36  | 1     |
+      | 41  | 1     |
+
   Scenario: Implicit GroupBy
     When executing query:
       """
@@ -369,6 +402,102 @@ Feature: Basic Aggregate and GroupBy
       | dst             | count |
       | "Tony Parker"   | 1     |
       | "Manu Ginobili" | 1     |
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
+      | GROUP BY $-.dst
+      YIELD
+        $-.dst AS dst,
+        (INT)(sum($-.age)/count($-.age))+avg(distinct $-.age+1)+1 AS statistics
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst             | statistics |
+      | "Tony Parker"   | 74.0       |
+      | "Manu Ginobili" | 84.0       |
+
+  Scenario: Match Implicit GroupBy
+    When executing query:
+      """
+      MATCH (v:player)-[:like]-(m:player)
+      WITH m.age AS age, count(m.age) AS count
+      RETURN age, count
+      ORDER BY age, count
+      """
+    Then the result should be, in order, with relax comparison:
+      | age | count |
+      | 20  | 4     |
+      | 22  | 2     |
+      | 23  | 2     |
+      | 25  | 3     |
+      | 26  | 1     |
+      | 28  | 3     |
+      | 29  | 16    |
+      | 30  | 7     |
+      | 31  | 8     |
+      | 32  | 8     |
+      | 33  | 14    |
+      | 34  | 16    |
+      | 36  | 12    |
+      | 37  | 6     |
+      | 38  | 5     |
+      | 39  | 6     |
+      | 40  | 8     |
+      | 41  | 5     |
+      | 42  | 15    |
+      | 43  | 3     |
+      | 45  | 13    |
+      | 46  | 2     |
+      | 47  | 3     |
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})-[:like]->(m)
+      RETURN
+        m.name as dst,
+        (INT)(sum(m.age)/count(m.age))+avg(distinct m.age+1)+1 AS statistics
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst             | statistics |
+      | "Tony Parker"   | 74.0       |
+      | "Manu Ginobili" | 84.0       |
+    When executing query:
+      """
+      MATCH (v:player {name:"noexist"})-[:like]-(m:player)
+      WITH m.age AS age, count(m.age) AS count
+      RETURN age, count
+      ORDER BY age, count
+      """
+    Then the result should be, in order, with relax comparison:
+      | age | count |
+    When executing query:
+      """
+      MATCH (v:player {name:"noexist"})-[:like]-(m:player)
+      RETURN count(m.age) AS count,
+             sum(m.age) AS sum,
+             avg(m.age) AS avg,
+             min(m.age) AS min,
+             max(m.age) AS max,
+             std(m.age) AS std,
+             bit_and(m.age) AS b1,
+             bit_or(m.age) AS b2,
+             bit_xor(m.age) AS b3
+      """
+    Then the result should be, in order, with relax comparison:
+      | count | sum | avg  | min  | max  | std  | b1   | b2   | b3   |
+      | 0     | 0   | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+    When executing query:
+      """
+      UNWIND [1,2,3] AS d RETURN d | YIELD 1 IN COLLECT($-.d) AS b
+      """
+    Then the result should be, in order, with relax comparison:
+      | b    |
+      | True |
+    When executing query:
+      """
+      UNWIND [1,2,3] AS d RETURN d | YIELD ANY(l IN COLLECT($-.d) WHERE l==1) AS b
+      """
+    Then the result should be, in order, with relax comparison:
+      | b    |
+      | True |
 
   Scenario: Empty input
     When executing query:
@@ -387,25 +516,25 @@ Feature: Basic Aggregate and GroupBy
     When executing query:
       """
       GO FROM 'noexist' OVER serve
-                YIELD $^.player.name as name,
+          YIELD $^.player.name as name,
                 serve.start_year as start,
                 $$.team.name as team
-                | YIELD $-.name as name
-                WHERE $-.start > 20000
-                | GROUP BY $-.name
-                YIELD $-.name AS name
+          | YIELD $-.name as name
+            WHERE $-.start > 20000
+            | GROUP BY $-.name
+              YIELD $-.name AS name
       """
     Then the result should be, in order, with relax comparison:
       | name |
     When executing query:
       """
       GO FROM 'noexist' OVER serve
-                YIELD $^.player.name as name,
+          YIELD $^.player.name as name,
                 serve.start_year as start,
                 $$.team.name as team
-                | YIELD $-.name as name
-                WHERE $-.start > 20000
-                | Limit 1
+          | YIELD $-.name as name
+            WHERE $-.start > 20000
+            | Limit 1
       """
     Then the result should be, in any order, with relax comparison:
       | name |
@@ -468,6 +597,15 @@ Feature: Basic Aggregate and GroupBy
       | "Carmelo Anthony" | 1.5 | 1     |
       | "Dwyane Wade"     | 1.5 | 1     |
 
+  Scenario: Distinct sum
+    When executing query:
+      """
+      UNWIND [1,2,3,3] AS d RETURN d | YIELD sum(distinct $-.d) AS sum
+      """
+    Then the result should be, in any order:
+      | sum |
+      | 6   |
+
   Scenario: Error Check
     When executing query:
       """
@@ -478,6 +616,11 @@ Feature: Basic Aggregate and GroupBy
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.dst,$-.x YIELD avg(distinct $-.age) AS age
+      """
+    Then a SemanticError should be raised at runtime:  `$-.x', not exist prop `x'
+    When executing query:
+      """
+      YIELD case COUNT($-.x) == 1 when true THEN 1 ELSE 0 END as a
       """
     Then a SemanticError should be raised at runtime:  `$-.x', not exist prop `x'
     When executing query:
@@ -503,7 +646,7 @@ Feature: Basic Aggregate and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,abs(avg(distinct count($-.age))) AS age
       """
-    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `abs(avg(distinct count($-.age)))'
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `avg(distinct count($-.age))'
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
@@ -532,9 +675,16 @@ Feature: Basic Aggregate and GroupBy
     Then a SemanticError should be raised at runtime: Only one variable allowed to use.
     When executing query:
       """
+      $var1=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst;
+      $var2=GO FROM "Tim Duncan" OVER serve YIELD serve._dst AS dst;
+      GROUP BY $var1.dst,$var2.dst YIELD 3
+      """
+    Then a SemanticError should be raised at runtime: Only one variable allowed to use.
+    When executing query:
+      """
       GO FROM "Tim Duncan" OVER like YIELD count(*)
       """
-    Then a SemanticError should be raised at runtime: `COUNT(*)', not support aggregate function in go sentence.
+    Then a SemanticError should be raised at runtime: `count(*)', not support aggregate function in go sentence.
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like where COUNT(*) > 2
@@ -611,6 +761,29 @@ Feature: Basic Aggregate and GroupBy
                COUNT(serve._dst) AS id
       """
     Then a SemanticError should be raised at runtime: `COUNT(serve._dst) AS id', not support aggregate function in go sentence.
+    When executing query:
+      """
+      MATCH (v:player)
+      WHERE avg(v.age) > 1
+      RETURN v.age
+      """
+    Then a SyntaxError should be raised at runtime: Invalid use of aggregating function in this context. near `WHERE avg(v.age) > 1'
+    When executing query:
+      """
+      MATCH (v:player)
+      WITH v
+      WHERE avg(v.age) > 1
+      RETURN v.age
+      """
+    Then a SyntaxError should be raised at runtime: Invalid use of aggregating function in this context. near `WHERE avg(v.age) > 1'
+    When executing query:
+      """
+      MATCH (v:player)
+      WITH DISTINCT v
+      WHERE avg(v.age) > 1
+      RETURN v.age
+      """
+    Then a SyntaxError should be raised at runtime: Invalid use of aggregating function in this context. near `WHERE avg(v.age) > 1'
 
 # When executing query:
 # """

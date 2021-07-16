@@ -25,8 +25,8 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
 
     auto *gv = asNode<GetVertices>(node());
     GraphStorageClient *storageClient = qctx()->getStorageClient();
-    DataSet vertices = buildRequestDataSet(gv);
 
+    DataSet vertices = buildRequestDataSet(gv);
     VLOG(1) << "vertices: " << vertices;
     if (vertices.rows.empty()) {
         // TODO: add test for empty input.
@@ -40,9 +40,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     return DCHECK_NOTNULL(storageClient)
         ->getProps(gv->space(),
                    std::move(vertices),
-                   &gv->props(),
+                   gv->props(),
                    nullptr,
-                   gv->exprs().empty() ? nullptr : &gv->exprs(),
+                   gv->exprs(),
                    gv->dedup(),
                    gv->orderBy(),
                    gv->limit(),
@@ -53,17 +53,16 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
             otherStats_.emplace("total_rpc",
                                  folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
         })
-        .then([this, gv](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+        .thenValue([this, gv](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
-            return handleResp(std::move(rpcResp), gv->colNamesRef());
+            return handleResp(std::move(rpcResp), gv->colNames());
         });
 }
 
 DataSet GetVerticesExecutor::buildRequestDataSet(const GetVertices* gv) {
-    nebula::DataSet vertices({kVid});
     if (gv == nullptr) {
-        return vertices;
+        return nebula::DataSet({kVid});
     }
     // Accept Table such as | $a | $b | $c |... as input which one column indicate src
     auto valueIter = ectx_->getResult(gv->inputVar()).iter();

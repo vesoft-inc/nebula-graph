@@ -19,14 +19,14 @@ namespace graph {
 
 class RewriteSymExprVisitor final : public ExprVisitor {
 public:
-    RewriteSymExprVisitor(const std::string &sym, bool isEdge);
+    RewriteSymExprVisitor(ObjectPool *objPool, const std::string &sym, bool isEdge);
 
     bool hasWrongType() const {
         return hasWrongType_;
     }
 
-    std::unique_ptr<Expression> expr() && {
-        return std::move(expr_);
+    Expression* expr() {
+        return expr_;
     }
 
     void visit(ConstantExpression *expr) override;
@@ -77,14 +77,17 @@ public:
     void visit(ListComprehensionExpression *expr) override;
     // reduce expression
     void visit(ReduceExpression *expr) override;
+    // subscript range expression
+    void visit(SubscriptRangeExpression *expr) override;
 
 private:
     void visitBinaryExpr(BinaryExpression *expr);
 
+    ObjectPool *pool_;
     const std::string &sym_;
     bool hasWrongType_{false};
     bool isEdge_{false};
-    std::unique_ptr<Expression> expr_;
+    Expression *expr_{nullptr};
 };
 
 }   // namespace graph

@@ -11,10 +11,10 @@
 #include "common/datatypes/Value.h"
 #include "common/meta/SchemaManager.h"
 #include "context/Symbols.h"
-#include "planner/ExecutionPlan.h"
-#include "service/Session.h"
+#include "planner/plan/ExecutionPlan.h"
 #include "util/AnonColGenerator.h"
 #include "util/AnonVarGenerator.h"
+#include "session/ClientSession.h"
 
 namespace nebula {
 namespace graph {

@@ -4,13 +4,14 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#include <thrift/lib/cpp/util/EnumUtils.h>
 #include "service/PermissionManager.h"
 
 namespace nebula {
 namespace graph {
 
 // static
-Status PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
+Status PermissionManager::canReadSpace(ClientSession *session, GraphSpaceID spaceId) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
@@ -35,19 +36,15 @@ Status PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
 }
 
 // static
-Status PermissionManager::canReadSchemaOrData(Session *session) {
+Status PermissionManager::canReadSchemaOrData(ClientSession *session, ValidateContext *vctx) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
     if (session->isGod()) {
         return Status::OK();
     }
-    if (session->space().id == -1) {
-        LOG(ERROR) << "No space selected";
-        return Status::PermissionError("No space selected.");
-    }
-    auto roleResult = session->roleWithSpace(session->space().id);
-    if (!roleResult.ok()) {
+    auto roleResult = checkRoleWithSpace(session, vctx);
+        if (!roleResult.ok()) {
         return Status::PermissionError("No permission to read schema/data.");
     }
     auto role = roleResult.value();
@@ -64,7 +61,7 @@ Status PermissionManager::canReadSchemaOrData(Session *session) {
 }
 
 // static
-Status PermissionManager::canWriteSpace(Session *session) {
+Status PermissionManager::canWriteSpace(ClientSession *session) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
@@ -75,18 +72,14 @@ Status PermissionManager::canWriteSpace(Session *session) {
 }
 
 // static
-Status PermissionManager::canWriteSchema(Session *session) {
+Status PermissionManager::canWriteSchema(ClientSession *session, ValidateContext *vctx) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
     if (session->isGod()) {
         return Status::OK();
     }
-    if (session->space().id == -1) {
-        LOG(ERROR) << "No space selected";
-        return Status::PermissionError("No space selected.");
-    }
-    auto roleResult = session->roleWithSpace(session->space().id);
+    auto roleResult = checkRoleWithSpace(session, vctx);
     if (!roleResult.ok()) {
         return Status::PermissionError("No permission to write schema.");
     }
@@ -105,7 +98,7 @@ Status PermissionManager::canWriteSchema(Session *session) {
 }
 
 // static
-Status PermissionManager::canWriteUser(Session *session) {
+Status PermissionManager::canWriteUser(ClientSession *session) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
@@ -120,10 +113,10 @@ Status PermissionManager::canWriteUser(Session *session) {
     }
 }
 
-Status PermissionManager::canWriteRole(Session *session,
-                                     meta::cpp2::RoleType targetRole,
-                                     GraphSpaceID spaceId,
-                                     const std::string& targetUser) {
+Status PermissionManager::canWriteRole(ClientSession *session,
+                                       meta::cpp2::RoleType targetRole,
+                                       GraphSpaceID spaceId,
+                                       const std::string& targetUser) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
@@ -161,23 +154,19 @@ Status PermissionManager::canWriteRole(Session *session,
         return Status::OK();
     }
     return Status::PermissionError("No permission to grant/revoke `%s' to `%s'.",
-                                   meta::cpp2::_RoleType_VALUES_TO_NAMES.at(role),
+                                   apache::thrift::util::enumNameSafe(role).c_str(),
                                    targetUser.c_str());
 }
 
 // static
-Status PermissionManager::canWriteData(Session *session) {
+Status PermissionManager::canWriteData(ClientSession *session, ValidateContext *vctx) {
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
     if (session->isGod()) {
         return Status::OK();
     }
-    if (session->space().id == -1) {
-        LOG(ERROR) << "No space selected.";
-        return Status::PermissionError("No space selected.");
-    }
-    auto roleResult = session->roleWithSpace(session->space().id);
+    auto roleResult = checkRoleWithSpace(session, vctx);
     if (!roleResult.ok()) {
         return Status::PermissionError("No permission to write data.");
     }
@@ -193,6 +182,22 @@ Status PermissionManager::canWriteData(Session *session) {
             return Status::PermissionError("No permission to write data.");
     }
     return Status::PermissionError("No permission to write data.");
+}
+
+StatusOr<meta::cpp2::RoleType>
+PermissionManager::checkRoleWithSpace(ClientSession *session, ValidateContext *vctx) {
+    if (!vctx->spaceChosen()) {
+        return Status::Error("No space chosen.");
+    }
+    if (vctx->whichSpace().id <= 0) {
+        LOG(ERROR) << "Space id is invalid: " << vctx->whichSpace().id;
+        return Status::PermissionError("No space chosen.");
+    }
+    auto roleResult = session->roleWithSpace(vctx->whichSpace().id);
+    if (!roleResult.ok()) {
+        return Status::PermissionError("No permission with the space.");
+    }
+    return roleResult.value();
 }
 }   // namespace graph
 }   // namespace nebula

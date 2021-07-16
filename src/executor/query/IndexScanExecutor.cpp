@@ -6,7 +6,7 @@
 
 #include "executor/query/IndexScanExecutor.h"
 
-#include "planner/PlanNode.h"
+#include "planner/plan/PlanNode.h"
 #include "context/QueryContext.h"
 #include "service/GraphFlags.h"
 
@@ -29,12 +29,12 @@ folly::Future<Status> IndexScanExecutor::indexScan() {
         return finish(ResultBuilder().value(Value(std::move(dataSet))).finish());
     }
     return storageClient->lookupIndex(lookup->space(),
-                                     *lookup->queryContext(),
+                                      lookup->queryContext(),
                                       lookup->isEdge(),
                                       lookup->schemaId(),
-                                     *lookup->returnColumns())
+                                      lookup->returnColumns())
         .via(runner())
-        .then([this](StorageRpcResponse<LookupIndexResp> &&rpcResp) {
+        .thenValue([this](StorageRpcResponse<LookupIndexResp> &&rpcResp) {
             return handleResp(std::move(rpcResp));
         });
 }
@@ -49,20 +49,20 @@ Status IndexScanExecutor::handleResp(storage::StorageRpcResponse<Resp> &&rpcResp
     auto state = std::move(completeness).value();
     nebula::DataSet v;
     for (auto &resp : rpcResp.responses()) {
-        if (resp.__isset.data) {
-            nebula::DataSet* data = resp.get_data();
+        if (resp.data_ref().has_value()) {
+            nebula::DataSet& data = *resp.data_ref();
             // TODO : convert the column name to alias.
             if (v.colNames.empty()) {
-                v.colNames = data->colNames;
+                v.colNames = data.colNames;
             }
-            v.rows.insert(v.rows.end(), data->rows.begin(), data->rows.end());
+            v.rows.insert(v.rows.end(), data.rows.begin(), data.rows.end());
         } else {
             state = Result::State::kPartialSuccess;
         }
     }
-    if (!node()->colNamesRef().empty()) {
-        DCHECK_EQ(node()->colNamesRef().size(), v.colNames.size());
-        v.colNames = node()->colNamesRef();
+    if (!node()->colNames().empty()) {
+        DCHECK_EQ(node()->colNames().size(), v.colNames.size());
+        v.colNames = node()->colNames();
     }
     VLOG(2) << "Dataset produced by IndexScan: \n" << v << "\n";
     return finish(ResultBuilder()

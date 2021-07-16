@@ -7,8 +7,8 @@
 #include "planner/SequentialPlanner.h"
 
 #include "parser/Sentence.h"
-#include "planner/Logic.h"
-#include "planner/Query.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/Query.h"
 #include "validator/SequentialValidator.h"
 
 namespace nebula {
@@ -44,10 +44,9 @@ void SequentialPlanner::ifBuildDataCollect(SubPlan& subPlan, QueryContext* qctx)
         case PlanNode::Kind::kCartesianProduct:
         case PlanNode::Kind::kMinus:
         case PlanNode::Kind::kFilter: {
-            auto* dc = DataCollect::make(qctx,
-                                         subPlan.root,
-                                         DataCollect::CollectKind::kRowBasedMove,
-                                         {subPlan.root->outputVar()});
+            auto* dc = DataCollect::make(qctx, DataCollect::DCKind::kRowBasedMove);
+            dc->addDep(subPlan.root);
+            dc->setInputVars({subPlan.root->outputVar()});
             dc->setColNames(subPlan.root->colNames());
             subPlan.root = dc;
             break;

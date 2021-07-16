@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 vesoft inc. All rights reserved.
+/* Copyright (c) 2021 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -6,8 +6,8 @@
 #include "validator/MutateValidator.h"
 
 #include "common/expression/LabelAttributeExpression.h"
-#include "planner/Mutate.h"
-#include "planner/Query.h"
+#include "planner/plan/Mutate.h"
+#include "planner/plan/Query.h"
 #include "util/SchemaUtil.h"
 #include "visitor/RewriteSymExprVisitor.h"
 
@@ -16,18 +16,9 @@ namespace graph {
 
 Status InsertVerticesValidator::validateImpl() {
     spaceId_ = vctx_->whichSpace().id;
-    auto status = Status::OK();
-    do {
-        status = check();
-        if (!status.ok()) {
-            break;
-        }
-        status = prepareVertices();
-        if (!status.ok()) {
-            break;
-        }
-    } while (false);
-    return status;
+    NG_RETURN_IF_ERROR(check());
+    NG_RETURN_IF_ERROR(prepareVertices());
+    return Status::OK();
 }
 
 Status InsertVerticesValidator::toPlan() {
@@ -36,7 +27,7 @@ Status InsertVerticesValidator::toPlan() {
                                        spaceId_,
                                        std::move(vertices_),
                                        std::move(tagPropNames_),
-                                       overwritable_);
+                                       ifNotExists_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -44,13 +35,13 @@ Status InsertVerticesValidator::toPlan() {
 
 Status InsertVerticesValidator::check() {
     auto sentence = static_cast<InsertVerticesSentence*>(sentence_);
+    ifNotExists_ = sentence->isIfNotExists();
     rows_ = sentence->rows();
     if (rows_.empty()) {
         return Status::SemanticError("VALUES cannot be empty");
     }
 
     auto tagItems = sentence->tagItems();
-    overwritable_ = sentence->overwritable();
 
     schemas_.reserve(tagItems.size());
 
@@ -70,15 +61,24 @@ Status InsertVerticesValidator::check() {
         }
 
         std::vector<std::string> names;
-        auto props = item->properties();
-        // Check prop name is in schema
-        for (auto *it : props) {
-            if (schema->getFieldIndex(*it) < 0) {
-                LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-                return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+        if (item->isDefaultPropNames()) {
+            size_t numFields = schema->getNumFields();
+            for (size_t i = 0; i < numFields; ++i) {
+                const char* propName = schema->getFieldName(i);
+                names.emplace_back(propName);
             }
-            propSize_++;
-            names.emplace_back(*it);
+            propSize_ += numFields;
+        } else {
+            auto props = item->properties();
+            // Check prop name is in schema
+            for (auto *it : props) {
+                if (schema->getFieldIndex(*it) < 0) {
+                    LOG(ERROR) << "Unknown column `" << *it << "' in schema";
+                    return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+                }
+                propSize_++;
+                names.emplace_back(*it);
+            }
         }
         tagPropNames_[tagId] = names;
         schemas_.emplace_back(tagId, schema);
@@ -147,13 +147,15 @@ Status InsertEdgesValidator::validateImpl() {
 }
 
 Status InsertEdgesValidator::toPlan() {
-    auto useChainInsert = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useChainInsert = isoLevel == IsoLevel::TOSS;
     auto doNode = InsertEdges::make(qctx_,
                                     nullptr,
                                     spaceId_,
                                     std::move(edges_),
                                     std::move(propNames_),
-                                    overwritable_,
+                                    ifNotExists_,
                                     useChainInsert);
     root_ = doNode;
     tail_ = root_;
@@ -162,7 +164,7 @@ Status InsertEdgesValidator::toPlan() {
 
 Status InsertEdgesValidator::check() {
     auto sentence = static_cast<InsertEdgesSentence*>(sentence_);
-    overwritable_ = sentence->overwritable();
+    ifNotExists_ = sentence->isIfNotExists();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, *sentence->edge());
     NG_RETURN_IF_ERROR(edgeStatus);
     edgeType_ = edgeStatus.value();
@@ -175,20 +177,29 @@ Status InsertEdgesValidator::check() {
         return Status::SemanticError("No schema found for `%s'", sentence->edge()->c_str());
     }
 
-    // Check prop name is in schema
-    for (auto *it : props) {
-        if (schema_->getFieldIndex(*it) < 0) {
-            LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-            return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+    if (sentence->isDefaultPropNames()) {
+        size_t propNums = schema_->getNumFields();
+        for (size_t i = 0; i < propNums; ++i) {
+            const char* propName = schema_->getFieldName(i);
+            propNames_.emplace_back(propName);
         }
-        propNames_.emplace_back(*it);
+    } else {
+        // Check prop name is in schema
+        for (auto *it : props) {
+            if (schema_->getFieldIndex(*it) < 0) {
+                LOG(ERROR) << "Unknown column `" << *it << "' in schema";
+                return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
+            }
+            propNames_.emplace_back(*it);
+        }
     }
-
     return Status::OK();
 }
 
 Status InsertEdgesValidator::prepareEdges() {
-    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useToss = isoLevel == IsoLevel::TOSS;
     auto size = useToss ? rows_.size() : rows_.size() * 2;
     edges_.reserve(size);
     for (auto i = 0u; i < rows_.size(); i++) {
@@ -229,22 +240,22 @@ Status InsertEdgesValidator::prepareEdges() {
         auto valsRet = SchemaUtil::toValueVec(row->values());
         NG_RETURN_IF_ERROR(valsRet);
         auto props = std::move(valsRet).value();
-        // outbound
         storage::cpp2::NewEdge edge;
-        edge.key.set_src(srcId);
-        edge.key.set_dst(dstId);
-        edge.key.set_ranking(rank);
-        edge.key.set_edge_type(edgeType_);
-        edge.set_props(std::move(props));
-        edge.__isset.key = true;
-        edge.__isset.props = true;
-        edges_.emplace_back(edge);
+        storage::cpp2::EdgeKey key;
 
+        key.set_src(srcId);
+        key.set_dst(dstId);
+        key.set_edge_type(edgeType_);
+        key.set_ranking(rank);
+        edge.set_key(key);
+        edge.set_props(std::move(props));
+        edges_.emplace_back(edge);
         if (!useToss) {
             // inbound
-            edge.key.set_src(dstId);
-            edge.key.set_dst(srcId);
-            edge.key.set_edge_type(-edgeType_);
+            key.set_src(dstId);
+            key.set_dst(srcId);
+            key.set_edge_type(-edgeType_);
+            edge.set_key(key);
             edges_.emplace_back(std::move(edge));
         }
     }
@@ -259,10 +270,10 @@ Status DeleteVerticesValidator::validateImpl() {
         vidRef_ = sentence->vertices()->ref();
         auto type = deduceExprType(vidRef_);
         NG_RETURN_IF_ERROR(type);
-        if (type.value() != Value::Type::STRING) {
+        if (type.value() != vidType_) {
             std::stringstream ss;
-            ss << "The vid should be string type, "
-               << "but input is `" << type.value() << "'";
+            ss << "The vid `" << vidRef_->toString() << "' should be type of `" << vidType_
+               << "', but was`" << type.value() << "'";
             return Status::SemanticError(ss.str());
         }
     } else {
@@ -296,11 +307,8 @@ std::string DeleteVerticesValidator::buildVIds() {
         ds.rows.emplace_back(std::move(row));
     }
     qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
-
-    auto* vIds = new VariablePropertyExpression(
-            new std::string(input),
-            new std::string(kVid));
-    qctx_->objPool()->add(vIds);
+    auto *pool = qctx_->objPool();
+    auto *vIds = VariablePropertyExpression::make(pool, input, kVid);
     vidRef_ = vIds;
     return input;
 }
@@ -310,30 +318,33 @@ Status DeleteVerticesValidator::toPlan() {
     if (!vertices_.empty() && vidRef_ == nullptr) {
         vidVar = buildVIds();
     } else if (vidRef_ != nullptr && vidRef_->kind() == Expression::Kind::kVarProperty) {
-        vidVar = *static_cast<PropertyExpression*>(vidRef_)->sym();
+        vidVar = static_cast<PropertyExpression*>(vidRef_)->sym();
     } else if (vidRef_ != nullptr && vidRef_->kind() == Expression::Kind::kInputProperty) {
         vidVar = inputVarName_;
     }
+
+    auto* dedupVid = Dedup::make(qctx_, nullptr);
+    dedupVid->setInputVar(vidVar);
 
     std::vector<storage::cpp2::EdgeProp> edgeProps;
     // make edgeRefs and edgeProp
     auto index = 0u;
     DCHECK(edgeTypes_.size() == edgeNames_.size());
+    auto *pool = qctx_->objPool();
     for (auto &name : edgeNames_) {
-        auto *edgeKeyRef = new EdgeKeyRef(
-                new EdgeSrcIdExpression(new std::string(name)),
-                new EdgeDstIdExpression(new std::string(name)),
-                new EdgeRankExpression(new std::string(name)));
-        edgeKeyRef->setType(new EdgeTypeExpression(new std::string(name)));
+        auto *edgeKeyRef = new EdgeKeyRef(EdgeSrcIdExpression::make(pool, name),
+                                          EdgeDstIdExpression::make(pool, name),
+                                          EdgeRankExpression::make(pool, name));
+        edgeKeyRef->setType(EdgeTypeExpression::make(pool, name));
         qctx_->objPool()->add(edgeKeyRef);
         edgeKeyRefs_.emplace_back(edgeKeyRef);
 
         storage::cpp2::EdgeProp edgeProp;
         edgeProp.set_type(edgeTypes_[index]);
-        edgeProp.props.emplace_back(kSrc);
-        edgeProp.props.emplace_back(kDst);
-        edgeProp.props.emplace_back(kType);
-        edgeProp.props.emplace_back(kRank);
+        edgeProp.props_ref().value().emplace_back(kSrc);
+        edgeProp.props_ref().value().emplace_back(kDst);
+        edgeProp.props_ref().value().emplace_back(kType);
+        edgeProp.props_ref().value().emplace_back(kRank);
         edgeProps.emplace_back(edgeProp);
 
         edgeProp.set_type(-edgeTypes_[index]);
@@ -346,7 +357,7 @@ Status DeleteVerticesValidator::toPlan() {
     auto statPropsPtr = std::make_unique<std::vector<storage::cpp2::StatProp>>();
     auto exprPtr = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto* getNeighbors = GetNeighbors::make(qctx_,
-                                            nullptr,
+                                            dedupVid,
                                             spaceId_,
                                             vidRef_,
                                             edgeTypes_,
@@ -355,24 +366,35 @@ Status DeleteVerticesValidator::toPlan() {
                                             std::move(edgePropsPtr),
                                             std::move(statPropsPtr),
                                             std::move(exprPtr));
-    getNeighbors->setInputVar(vidVar);
+
+    auto *yieldColumns = pool->makeAndAdd<YieldColumns>();
+    yieldColumns->addColumn(new YieldColumn(EdgeSrcIdExpression::make(pool, "*"), kSrc));
+    yieldColumns->addColumn(new YieldColumn(EdgeTypeExpression::make(pool, "*"), kType));
+    yieldColumns->addColumn(new YieldColumn(EdgeRankExpression::make(pool, "*"), kRank));
+    yieldColumns->addColumn(new YieldColumn(EdgeDstIdExpression::make(pool, "*"), kDst));
+    auto *edgeKey = Project::make(qctx_, getNeighbors, yieldColumns);
+
+    auto *dedupEdgeKey = Dedup::make(qctx_, edgeKey);
 
     // create deleteEdges node
+    auto *edgeKeyRef = pool->makeAndAdd<EdgeKeyRef>(InputPropertyExpression::make(pool, kSrc),
+                                                    InputPropertyExpression::make(pool, kDst),
+                                                    InputPropertyExpression::make(pool, kRank),
+                                                    true);
+    edgeKeyRef->setType(InputPropertyExpression::make(pool, kType));
     auto *deNode = DeleteEdges::make(qctx_,
-                                     getNeighbors,
+                                     dedupEdgeKey,
                                      spaceId_,
-                                     std::move(edgeKeyRefs_));
-
-    deNode->setInputVar(getNeighbors->outputVar());
+                                     edgeKeyRef);
 
     auto *dvNode = DeleteVertices::make(qctx_,
                                         deNode,
                                         spaceId_,
                                         vidRef_);
 
-    dvNode->setInputVar(vidVar);
+    dvNode->setInputVar(dedupVid->outputVar());
     root_ = dvNode;
-    tail_ = getNeighbors;
+    tail_ = dedupVid;
     return Status::OK();
 }
 
@@ -382,9 +404,10 @@ Status DeleteEdgesValidator::validateImpl() {
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId, *sentence->edge());
     NG_RETURN_IF_ERROR(edgeStatus);
     auto edgeType = edgeStatus.value();
+    auto *pool = qctx_->objPool();
     if (sentence->isRef()) {
         edgeKeyRefs_.emplace_back(sentence->edgeKeyRef());
-        (*edgeKeyRefs_.begin())->setType(new ConstantExpression(edgeType));
+        (*edgeKeyRefs_.begin())->setType(ConstantExpression::make(pool, edgeType));
         NG_RETURN_IF_ERROR(checkInput());
     } else {
         return buildEdgeKeyRef(sentence->edgeKeys()->keys(), edgeType);
@@ -415,11 +438,11 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
         ds.emplace_back(std::move(row));
     }
     qctx_->ectx()->setResult(edgeKeyVar_, ResultBuilder().value(Value(std::move(ds))).finish());
-
-    auto* srcIdExpr = new InputPropertyExpression(new std::string(kSrc));
-    auto* typeExpr = new InputPropertyExpression(new std::string(kType));
-    auto* rankExpr = new InputPropertyExpression(new std::string(kRank));
-    auto* dstIdExpr = new InputPropertyExpression(new std::string(kDst));
+    auto *pool = qctx_->objPool();
+    auto *srcIdExpr = InputPropertyExpression::make(pool, kSrc);
+    auto *typeExpr = InputPropertyExpression::make(pool, kType);
+    auto *rankExpr = InputPropertyExpression::make(pool, kRank);
+    auto *dstIdExpr = InputPropertyExpression::make(pool, kDst);
     auto* edgeKeyRef = new EdgeKeyRef(srcIdExpr, dstIdExpr, rankExpr);
     edgeKeyRef->setType(typeExpr);
     qctx_->objPool()->add(edgeKeyRef);
@@ -458,7 +481,7 @@ Status DeleteEdgesValidator::checkInput() {
     NG_RETURN_IF_ERROR(status);
 
     if (edgeKeyRef->srcid()->kind() == Expression::Kind::kVarProperty) {
-        edgeKeyVar_ = *static_cast<PropertyExpression*>(edgeKeyRef->srcid())->sym();
+        edgeKeyVar_ = static_cast<PropertyExpression*>(edgeKeyRef->srcid())->sym();
     } else if (edgeKeyRef->srcid()->kind() == Expression::Kind::kInputProperty) {
         edgeKeyVar_ = inputVarName_;
     }
@@ -466,13 +489,15 @@ Status DeleteEdgesValidator::checkInput() {
 }
 
 Status DeleteEdgesValidator::toPlan() {
+    auto dedup = Dedup::make(qctx_, nullptr);
+    dedup->setInputVar(edgeKeyVar_);
+
     auto *doNode = DeleteEdges::make(qctx_,
-                                     nullptr,
+                                     dedup,
                                      vctx_->whichSpace().id,
-                                     edgeKeyRefs_);
-    doNode->setInputVar(edgeKeyVar_);
+                                     edgeKeyRefs_.front());
     root_ = doNode;
-    tail_ = root_;
+    tail_ = dedup;
     return Status::OK();
 }
 
@@ -492,15 +517,15 @@ Status UpdateValidator::getCondition() {
     if (clause && clause->filter()) {
         auto filter = clause->filter()->clone();
         bool hasWrongType = false;
-        auto symExpr = rewriteSymExpr(filter.get(), name_, hasWrongType, isEdge_);
+        auto symExpr = rewriteSymExpr(filter, name_, hasWrongType, isEdge_);
         if (hasWrongType) {
             return Status::SemanticError("Has wrong expr in `%s'",
                                          filter->toString().c_str());
         }
         if (symExpr != nullptr) {
-            filter.reset(symExpr.release());
+            filter = symExpr;
         }
-        auto typeStatus = deduceExprType(filter.get());
+        auto typeStatus = deduceExprType(filter);
         NG_RETURN_IF_ERROR(typeStatus);
         auto type = typeStatus.value();
         if (type != Value::Type::BOOL
@@ -520,14 +545,10 @@ Status UpdateValidator::getReturnProps() {
     if (clause != nullptr) {
         auto yields = clause->columns();
         for (auto *col : yields) {
-            if (col->alias() == nullptr) {
-                yieldColNames_.emplace_back(col->expr()->toString());
-            } else {
-                yieldColNames_.emplace_back(*col->alias());
-            }
+            yieldColNames_.emplace_back(col->name());
             std::string encodeStr;
             auto copyColExpr = col->expr()->clone();
-            NG_LOG_AND_RETURN_IF_ERROR(checkAndResetSymExpr(copyColExpr.get(), name_, encodeStr));
+            NG_LOG_AND_RETURN_IF_ERROR(checkAndResetSymExpr(copyColExpr, name_, encodeStr));
             returnProps_.emplace_back(std::move(encodeStr));
         }
     }
@@ -539,19 +560,19 @@ Status UpdateValidator::getUpdateProps() {
     auto items = sentence_->updateList()->items();
     std::unordered_set<std::string> symNames;
     std::string fieldName;
-    const std::string *symName = nullptr;
+    std::string symName;
     for (auto& item : items) {
         storage::cpp2::UpdatedProp updatedProp;
         // The syntax has guaranteed it is name or expression
         if (item->getFieldName() != nullptr) {
-            symName = &name_;
+            symName = name_;
             fieldName = *item->getFieldName();
             symNames.emplace(name_);
         }
         if (item->getFieldExpr() != nullptr) {
             DCHECK(item->getFieldExpr()->kind() == Expression::Kind::kLabelAttribute);
             auto laExpr = static_cast<const LabelAttributeExpression*>(item->getFieldExpr());
-            symNames.emplace(*laExpr->left()->name());
+            symNames.emplace(laExpr->left()->name());
             symName = laExpr->left()->name();
             const auto &value = laExpr->right()->value();
             fieldName = value.getStr();
@@ -563,7 +584,7 @@ Status UpdateValidator::getUpdateProps() {
         }
         std::string encodeStr;
         auto copyValueExpr = valueExpr->clone();
-        NG_LOG_AND_RETURN_IF_ERROR(checkAndResetSymExpr(copyValueExpr.get(), *symName, encodeStr));
+        NG_LOG_AND_RETURN_IF_ERROR(checkAndResetSymExpr(copyValueExpr, symName, encodeStr));
         updatedProp.set_value(std::move(encodeStr));
         updatedProp.set_name(fieldName);
         updatedProps_.emplace_back(std::move(updatedProp));
@@ -574,8 +595,8 @@ Status UpdateValidator::getUpdateProps() {
         LOG(ERROR) << errorMsg;
         return Status::SemanticError(std::move(errorMsg));
     }
-    if (symName != nullptr) {
-        name_ = *symName;
+    if (!symName.empty()) {
+        name_ = symName;
     }
     return status;
 }
@@ -599,11 +620,11 @@ Status UpdateValidator::checkAndResetSymExpr(Expression* inExpr,
 }
 
 // rewrite the expr which has kSymProperty expr to toExpr
-std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression *expr,
-                                                            const std::string &sym,
-                                                            bool &hasWrongType,
-                                                            bool isEdge) {
-    RewriteSymExprVisitor visitor(sym, isEdge);
+Expression *UpdateValidator::rewriteSymExpr(Expression *expr,
+                                            const std::string &sym,
+                                            bool &hasWrongType,
+                                            bool isEdge) {
+    RewriteSymExprVisitor visitor(qctx_->objPool(), sym, isEdge);
     expr->accept(&visitor);
     hasWrongType = visitor.hasWrongType();
     return std::move(visitor).expr();
@@ -683,7 +704,9 @@ Status UpdateEdgeValidator::toPlan() {
                                      {},
                                      condition_,
                                      {});
-    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    using IsoLevel = meta::cpp2::IsolationLevel;
+    auto isoLevel = space_.spaceDesc.isolation_level_ref().value_or(IsoLevel::DEFAULT);
+    auto useToss = isoLevel == IsoLevel::TOSS;
     if (useToss) {
         root_ = outNode;
         tail_ = root_;

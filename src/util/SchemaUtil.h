@@ -18,9 +18,12 @@
 
 namespace nebula {
 namespace graph {
-
+class QueryContext;
+struct SpaceInfo;
 class SchemaUtil final {
 public:
+    using VertexProp = nebula::storage::cpp2::VertexProp;
+    using EdgeProp = nebula::storage::cpp2::EdgeProp;
     SchemaUtil() = delete;
 
 public:
@@ -28,11 +31,13 @@ public:
                                 meta::cpp2::Schema &schema);
 
     static std::shared_ptr<const meta::NebulaSchemaProvider>
-    generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema &schema);
+    generateSchemaProvider(ObjectPool* pool, const SchemaVer ver, const meta::cpp2::Schema& schema);
 
     static Status setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
 
     static Status setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
+
+    static Status setComment(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
 
     static StatusOr<Value> toVertexID(Expression *expr, Value::Type vidType);
 
@@ -54,6 +59,19 @@ public:
     static bool isValidVid(const Value& value, meta::cpp2::PropertyType type);
 
     static bool isValidVid(const Value& value);
+
+    // Fetch all tags in the space and retrieve props from tags
+    // only take _tag when withProp is false
+    static StatusOr<std::unique_ptr<std::vector<VertexProp>>>
+    getAllVertexProp(QueryContext* qctx, const SpaceInfo& space, bool withProp);
+
+    // retrieve prop from specific edgetypes
+    // only take _src _dst _type _rank when withProp is false
+    static StatusOr<std::unique_ptr<std::vector<EdgeProp>>> getEdgeProps(
+        QueryContext* qctx,
+        const SpaceInfo& space,
+        const std::vector<EdgeType>& edgeTypes,
+        bool withProp);
 };
 
 }  // namespace graph

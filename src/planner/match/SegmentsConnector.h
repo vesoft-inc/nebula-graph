@@ -8,8 +8,8 @@
 #define PLANNER_MATCH_SEGMENTSCONNECTOR_H_
 
 #include "context/QueryContext.h"
-#include "context/ast/QueryAstContext.h"
-#include "planner/PlanNode.h"
+#include "context/ast/CypherAstContext.h"
+#include "planner/plan/PlanNode.h"
 #include "planner/Planner.h"
 #include "planner/match/InnerJoinStrategy.h"
 

@@ -10,12 +10,19 @@
 #include <ostream>
 
 #include "common/base/Base.h"
-#include "planner/PlanNode.h"
+#include "planner/plan/PlanNode.h"
 #include "context/ast/AstContext.h"
 
 namespace nebula {
 namespace graph {
 class Planner;
+
+extern const char* kSrcVID;
+extern const char* kDstVID;
+extern const char* kRanking;
+extern const char* kVertexID;
+extern const char* kVertices;
+extern const char* kEdges;
 
 struct SubPlan {
     // root and tail of a subplan.

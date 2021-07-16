@@ -4,7 +4,6 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "common/base/Base.h"
 #include "parser/Clauses.h"
 
 namespace nebula {
@@ -14,11 +13,11 @@ std::string StepClause::toString() const {
     std::string buf;
     buf.reserve(256);
     if (isMToN()) {
-        buf += std::to_string(mToN_->mSteps);
+        buf += std::to_string(mSteps_);
         buf += " TO ";
-        buf += std::to_string(mToN_->nSteps);
+        buf += std::to_string(nSteps_);
     } else {
-        buf += std::to_string(steps_);
+        buf += std::to_string(steps());
     }
     buf += " STEPS";
     return buf;
@@ -112,6 +111,18 @@ std::string OverClause::toString() const {
     return buf;
 }
 
+std::string TruncateClause::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    if (isSample_) {
+        buf += "SAMPLE ";
+    } else {
+        buf += "LIMIT ";
+    }
+    buf += truncate_->toString();
+    return buf;
+}
+
 std::string WhereClause::toString() const {
     std::string buf;
     buf.reserve(256);
@@ -131,11 +142,11 @@ std::string WhenClause::toString() const {
 std::string YieldColumn::toString() const {
     std::string buf;
     buf.reserve(256);
-    buf += expr_->toString();
+    buf += expr_->rawString();
 
-    if (alias_ != nullptr) {
+    if (!alias_.empty()) {
         buf += " AS ";
-        buf += *alias_;
+        buf += alias_;
     }
 
     return buf;
@@ -155,8 +166,8 @@ std::string YieldColumns::toString() const {
 }
 
 bool operator==(const YieldColumn &l, const YieldColumn &r) {
-    if (l.alias() != nullptr && r.alias() != nullptr) {
-        if (*l.alias() != *r.alias()) {
+    if (!l.alias().empty() && !r.alias().empty()) {
+        if (l.alias() != r.alias()) {
             return false;
         }
     } else if (l.alias() != r.alias()) {

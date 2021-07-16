@@ -4,6 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#include <thrift/lib/cpp/util/EnumUtils.h>
 #include "validator/TraversalValidator.h"
 #include "common/expression/VariableExpression.h"
 #include "util/SchemaUtil.h"
@@ -28,21 +29,21 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
         if (!type.ok()) {
             return type.status();
         }
-        auto vidType = space_.spaceDesc.vid_type.get_type();
+        auto vidType = space_.spaceDesc.vid_type_ref().value().get_type();
         if (type.value() != SchemaUtil::propTypeToValueType(vidType)) {
             std::stringstream ss;
             ss << "`" << src->toString() << "', the srcs should be type of "
-                << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
+                << apache::thrift::util::enumNameSafe(vidType) << ", but was`"
                 << type.value() << "'";
             return Status::SemanticError(ss.str());
         }
         starts.originalSrc = src;
         auto* propExpr = static_cast<PropertyExpression*>(src);
         if (starts.fromType == kVariable) {
-            starts.userDefinedVarName = *(propExpr->sym());
+            starts.userDefinedVarName = propExpr->sym();
             userDefinedVarNameList_.emplace(starts.userDefinedVarName);
         }
-        starts.firstBeginningSrcVidColName = *(propExpr->prop());
+        starts.runtimeVidName = propExpr->prop();
     } else {
         auto vidList = clause->vidList();
         QueryExpressionContext ctx;
@@ -52,14 +53,13 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                         expr->toString().c_str());
             }
             auto vid = expr->eval(ctx(nullptr));
-            auto vidType = space_.spaceDesc.vid_type.get_type();
+            auto vidType = space_.spaceDesc.vid_type_ref().value().get_type();
             if (!SchemaUtil::isValidVid(vid, vidType)) {
                 std::stringstream ss;
-                ss << "Vid should be a " << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType);
+                ss << "Vid should be a " << apache::thrift::util::enumNameSafe(vidType);
                 return Status::SemanticError(ss.str());
             }
             starts.vids.emplace_back(std::move(vid));
-            startVidList_->add(expr->clone().release());
         }
     }
     return Status::OK();
@@ -105,54 +105,35 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
     return Status::OK();
 }
 
-Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
+Status TraversalValidator::validateStep(const StepClause* clause, StepClause& step) {
     if (clause == nullptr) {
         return Status::SemanticError("Step clause nullptr.");
     }
+    step = *clause;
     if (clause->isMToN()) {
-        auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
-        mToN->mSteps = clause->mToN()->mSteps;
-        mToN->nSteps = clause->mToN()->nSteps;
-
-        if (mToN->mSteps == 0 && mToN->nSteps == 0) {
-            step.steps = 0;
-            return Status::OK();
+        if (step.mSteps() == 0) {
+            step.setMSteps(1);
         }
-        if (mToN->mSteps == 0) {
-            mToN->mSteps = 1;
-        }
-        if (mToN->nSteps < mToN->mSteps) {
+        if (step.nSteps() < step.mSteps()) {
             return Status::SemanticError(
                 "`%s', upper bound steps should be greater than lower bound.",
-                clause->toString().c_str());
+                step.toString().c_str());
         }
-        if (mToN->mSteps == mToN->nSteps) {
-            steps_.steps = mToN->mSteps;
-            return Status::OK();
-        }
-        step.mToN = mToN;
-    } else {
-        auto steps = clause->steps();
-        step.steps = steps;
     }
     return Status::OK();
 }
 
 PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
     Project* project = nullptr;
-    auto* columns = qctx_->objPool()->add(new YieldColumns());
-    auto* column = new YieldColumn(
-        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
-        new std::string(kVid));
+    auto pool = qctx_->objPool();
+    auto* columns = pool->add(new YieldColumns());
+    auto* column = new YieldColumn(EdgePropertyExpression::make(pool, "*", kDst), kVid);
     columns->addColumn(column);
 
     project = Project::make(qctx_, gn, columns);
-    project->setInputVar(gn->outputVar());
-    project->setColNames(deduceColNames(columns));
     VLOG(1) << project->outputVar();
 
     auto* dedupDstVids = Dedup::make(qctx_, project);
-    dedupDstVids->setInputVar(project->outputVar());
     dedupDstVids->setOutputVar(outputVar);
     dedupDstVids->setColNames(project->colNames());
     return dedupDstVids;
@@ -169,28 +150,24 @@ void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVi
     }
     qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
-    starts.src =
-        new VariablePropertyExpression(new std::string(startVidsVar), new std::string(kVid));
-    qctx_->objPool()->add(starts.src);
+    auto pool = qctx_->objPool();
+    starts.src = VariablePropertyExpression::make(pool, startVidsVar, kVid);
 }
 
 PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& projectStartVid) {
     auto pool = qctx_->objPool();
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(starts.originalSrc->clone().release(), new std::string(kVid));
+    auto* column = new YieldColumn(starts.originalSrc->clone(), kVid);
     columns->addColumn(column);
 
     auto* project = Project::make(qctx_, nullptr, columns);
     if (starts.fromType == kVariable) {
         project->setInputVar(starts.userDefinedVarName);
     }
-    project->setColNames({kVid});
     VLOG(1) << project->outputVar() << " input: " << project->inputVar();
-    starts.src = pool->add(new InputPropertyExpression(new std::string(kVid)));
+    starts.src = InputPropertyExpression::make(pool, kVid);
 
     auto* dedupVids = Dedup::make(qctx_, project);
-    dedupVids->setInputVar(project->outputVar());
-    dedupVids->setColNames(project->colNames());
 
     projectStartVid = project;
     return dedupVids;
@@ -199,12 +176,27 @@ PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& proje
 Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {
     VLOG(1) << "steps: " << steps;
     // ++loopSteps{0} <= steps
+    auto* pool = qctx_->objPool();
     qctx_->ectx()->setValue(loopSteps_, 0);
-    return qctx_->objPool()->add(new RelationalExpression(
-        Expression::Kind::kRelLE,
-        new UnaryExpression(Expression::Kind::kUnaryIncr,
-                            new VariableExpression(new std::string(loopSteps_))),
-        new ConstantExpression(static_cast<int32_t>(steps))));
+    return RelationalExpression::makeLE(
+        pool,
+        UnaryExpression::makeIncr(pool, VariableExpression::make(pool, loopSteps_)),
+        ConstantExpression::make(pool, static_cast<int32_t>(steps)));
+}
+
+// $var == empty || size($var) != 0
+Expression* TraversalValidator::buildExpandEndCondition(const std::string& lastStepResult) const {
+    auto* pool = qctx_->objPool();
+    auto* eqEmpty =
+        RelationalExpression::makeEQ(pool,
+                                     VariableExpression::make(pool, lastStepResult),
+                                     ConstantExpression::make(qctx_->objPool(), Value()));
+
+    auto* args = ArgumentList::make(pool);
+    args->addArgument(VariableExpression::make(pool, lastStepResult));
+    auto* neZero = RelationalExpression::makeNE(
+        pool, FunctionCallExpression::make(pool, "size", args), ConstantExpression::make(pool, 0));
+    return LogicalExpression::makeOr(pool, eqEmpty, neZero);
 }
 
 }  // namespace graph

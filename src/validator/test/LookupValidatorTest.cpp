@@ -5,8 +5,8 @@
  */
 
 #include "common/base/ObjectPool.h"
-#include "planner/Logic.h"
-#include "planner/Query.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/Query.h"
 #include "validator/LookupValidator.h"
 #include "validator/test/ValidatorTestBase.h"
 
@@ -24,7 +24,9 @@ TEST_F(LookupValidatorTest, InputOutput) {
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
-                                    PlanNode::Kind::kIndexScan,
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kFilter,
+                                    PlanNode::Kind::kTagIndexFullScan,
                                     PlanNode::Kind::kStart,
                                 }));
     }
@@ -38,7 +40,8 @@ TEST_F(LookupValidatorTest, InputOutput) {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kIndexScan,
+                                    PlanNode::Kind::kFilter,
+                                    PlanNode::Kind::kTagIndexFullScan,
                                     PlanNode::Kind::kStart,
                                 }));
     }
@@ -50,7 +53,9 @@ TEST_F(LookupValidatorTest, InputOutput) {
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
-                                    PlanNode::Kind::kIndexScan,
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kFilter,
+                                    PlanNode::Kind::kTagIndexFullScan,
                                     PlanNode::Kind::kStart,
                                 }));
     }
@@ -64,7 +69,8 @@ TEST_F(LookupValidatorTest, InputOutput) {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kIndexScan,
+                                    PlanNode::Kind::kFilter,
+                                    PlanNode::Kind::kTagIndexFullScan,
                                     PlanNode::Kind::kStart,
                                 }));
     }
@@ -78,7 +84,8 @@ TEST_F(LookupValidatorTest, InvalidYieldExpression) {
         EXPECT_FALSE(checkResult(query,
                                  {
                                      PlanNode::Kind::kProject,
-                                     PlanNode::Kind::kIndexScan,
+                                     PlanNode::Kind::kFilter,
+                                     PlanNode::Kind::kTagIndexFullScan,
                                      PlanNode::Kind::kStart,
                                  }));
     }
@@ -109,6 +116,11 @@ TEST_F(LookupValidatorTest, InvalidFilterExpression) {
         const std::string query =
             "LOOKUP ON person where person.age > person.name + 5;";
         EXPECT_FALSE(checkResult(query, {}));
+    }
+    {
+        const std::string query =
+            "LOOKUP ON person where  1 + 5 < person.age;";
+        EXPECT_TRUE(checkResult(query, {}));
     }
     {
         const std::string query =

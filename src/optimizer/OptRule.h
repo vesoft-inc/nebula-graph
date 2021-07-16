@@ -13,12 +13,13 @@
 #include <vector>
 
 #include "common/base/StatusOr.h"
-#include "planner/PlanNode.h"
+#include "planner/plan/PlanNode.h"
 
 namespace nebula {
 
 namespace graph {
 class QueryContext;
+class PlanNode;
 }   // namespace graph
 
 namespace opt {
@@ -30,6 +31,16 @@ class OptGroup;
 struct MatchedResult {
     const OptGroupNode *node{nullptr};
     std::vector<MatchedResult> dependencies;
+
+    // params       | plan node
+    // -------------+------------
+    // {}           | this->node
+    // {0}          | this->node
+    // {1}          | error
+    // {0, 1}       | this->dependencies[1]
+    // {0, 1, 0}    | this->dependencies[1].dependencies[0]
+    // {0, 1, 0, 1} | this->dependencies[1].dependencies[0].dependencies[1]
+    const graph::PlanNode *planNode(const std::vector<int32_t> &pos = {}) const;
 };
 
 class Pattern final {

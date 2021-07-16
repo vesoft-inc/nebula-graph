@@ -28,7 +28,7 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE TAG tag1
       """
     Then the result should be, in any order:
-      | Field | Type | Null | Default |
+      | Field | Type | Null | Default | Comment |
     # alter
     When executing query:
       """
@@ -41,9 +41,9 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE TAG tag1
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null  | Default |
-      | "id"   | "int64"  | "YES" | EMPTY   |
-      | "name" | "string" | "YES" | EMPTY   |
+      | Field  | Type     | Null  | Default | Comment |
+      | "id"   | "int64"  | "YES" | EMPTY   | EMPTY   |
+      | "name" | "string" | "YES" | EMPTY   | EMPTY   |
     # create tag succeed
     When executing query:
       """
@@ -74,30 +74,30 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE TAG person
       """
     Then the result should be, in any order:
-      | Field           | Type        | Null  | Default |
-      | "name"          | "string"    | "YES" | EMPTY   |
-      | "email"         | "string"    | "YES" | "NULL"  |
-      | "age"           | "int64"     | "YES" | EMPTY   |
-      | "gender"        | "string"    | "YES" | EMPTY   |
-      | "row_timestamp" | "timestamp" | "YES" | 2020    |
+      | Field           | Type        | Null  | Default | Comment |
+      | "name"          | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "email"         | "string"    | "YES" | "NULL"  | EMPTY   |
+      | "age"           | "int64"     | "YES" | EMPTY   | EMPTY   |
+      | "gender"        | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "row_timestamp" | "timestamp" | "YES" | 2020    | EMPTY   |
     # test DESC
     When executing query:
       """
       DESC TAG person
       """
     Then the result should be, in any order:
-      | Field           | Type        | Null  | Default |
-      | "name"          | "string"    | "YES" | EMPTY   |
-      | "email"         | "string"    | "YES" | "NULL"  |
-      | "age"           | "int64"     | "YES" | EMPTY   |
-      | "gender"        | "string"    | "YES" | EMPTY   |
-      | "row_timestamp" | "timestamp" | "YES" | 2020    |
+      | Field           | Type        | Null  | Default | Comment |
+      | "name"          | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "email"         | "string"    | "YES" | "NULL"  | EMPTY   |
+      | "age"           | "int64"     | "YES" | EMPTY   | EMPTY   |
+      | "gender"        | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "row_timestamp" | "timestamp" | "YES" | 2020    | EMPTY   |
     # describe not existed tag
     When executing query:
       """
       DESCRIBE TAG not_exist
       """
-    Then a ExecutionError should be raised at runtime: Not existed!
+    Then a ExecutionError should be raised at runtime: Tag not existed!
     # unreserved keyword
     When executing query:
       """
@@ -110,12 +110,12 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE TAG upper
       """
     Then the result should be, in any order:
-      | Field           | Type        | Null  | Default |
-      | "name"          | "string"    | "YES" | EMPTY   |
-      | "account"       | "string"    | "YES" | EMPTY   |
-      | "age"           | "int64"     | "YES" | EMPTY   |
-      | "gender"        | "string"    | "YES" | EMPTY   |
-      | "row_timestamp" | "timestamp" | "YES" | 100     |
+      | Field           | Type        | Null  | Default | Comment |
+      | "name"          | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "account"       | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "age"           | "int64"     | "YES" | EMPTY   | EMPTY   |
+      | "gender"        | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "row_timestamp" | "timestamp" | "YES" | 100     | EMPTY   |
     # create existed tag
     When executing query:
       """
@@ -133,20 +133,20 @@ Feature: Insert string vid of vertex and edge
       """
       ALTER TAG person DROP (gender)
       """
-    Then a ExecutionError should be raised at runtime: Not existed!
+    Then a ExecutionError should be raised at runtime: Tag prop not existed!
     # check result
     When executing query:
       """
       DESCRIBE TAG person
       """
     Then the result should be, in any order:
-      | Field           | Type        | Null  | Default |
-      | "name"          | "string"    | "YES" | EMPTY   |
-      | "email"         | "string"    | "YES" | "NULL"  |
-      | "age"           | "string"    | "YES" | EMPTY   |
-      | "row_timestamp" | "timestamp" | "YES" | 2020    |
-      | "col1"          | "int64"     | "YES" | EMPTY   |
-      | "col2"          | "string"    | "YES" | EMPTY   |
+      | Field           | Type        | Null  | Default | Comment |
+      | "name"          | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "email"         | "string"    | "YES" | "NULL"  | EMPTY   |
+      | "age"           | "string"    | "YES" | EMPTY   | EMPTY   |
+      | "row_timestamp" | "timestamp" | "YES" | 2020    | EMPTY   |
+      | "col1"          | "int64"     | "YES" | EMPTY   | EMPTY   |
+      | "col2"          | "string"    | "YES" | EMPTY   | EMPTY   |
     # check result
     # When executing query:
     # """
@@ -194,7 +194,7 @@ Feature: Insert string vid of vertex and edge
       """
       DROP TAG not_exist_tag
       """
-    Then a ExecutionError should be raised at runtime: Not existed!
+    Then a ExecutionError should be raised at runtime: Tag not existed!
     # drop if exists with not exist tag
     When executing query:
       """
@@ -226,7 +226,7 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE EDGE edge1
       """
     Then the result should be, in any order:
-      | Field | Type | Null | Default |
+      | Field | Type | Null | Default | Comment |
     # alter edge
     When executing query:
       """
@@ -239,9 +239,9 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE EDGE edge1
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null  | Default |
-      | "id"   | "int64"  | "YES" | EMPTY   |
-      | "name" | "string" | "YES" | EMPTY   |
+      | Field  | Type     | Null  | Default | Comment |
+      | "id"   | "int64"  | "YES" | EMPTY   | EMPTY   |
+      | "name" | "string" | "YES" | EMPTY   | EMPTY   |
     # create edge succeeded
     When executing query:
       """
@@ -284,24 +284,24 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE EDGE buy
       """
     Then the result should be, in any order:
-      | Field   | Type     | Null  | Default |
-      | "id"    | "int64"  | "YES" | EMPTY   |
-      | "time_" | "string" | "YES" | EMPTY   |
+      | Field   | Type     | Null  | Default | Comment |
+      | "id"    | "int64"  | "YES" | EMPTY   | EMPTY   |
+      | "time_" | "string" | "YES" | EMPTY   | EMPTY   |
     # DESC edge
     When executing query:
       """
       DESC EDGE buy
       """
     Then the result should be, in any order:
-      | Field   | Type     | Null  | Default |
-      | "id"    | "int64"  | "YES" | EMPTY   |
-      | "time_" | "string" | "YES" | EMPTY   |
+      | Field   | Type     | Null  | Default | Comment |
+      | "id"    | "int64"  | "YES" | EMPTY   | EMPTY   |
+      | "time_" | "string" | "YES" | EMPTY   | EMPTY   |
     # desc nonexistent edge, TODO: FIX ERROR MSG
     When executing query:
       """
       DESCRIBE EDGE not_exist
       """
-    Then a ExecutionError should be raised at runtime: Unknown error!
+    Then a ExecutionError should be raised at runtime: Edge not existed!
     # create edge with timestamp
     When executing query:
       """
@@ -314,10 +314,10 @@ Feature: Insert string vid of vertex and edge
       DESC EDGE education
       """
     Then the result should be, in any order:
-      | Field    | Type        | Null  | Default |
-      | "id"     | "int64"     | "YES" | EMPTY   |
-      | "time_"  | "timestamp" | "YES" | EMPTY   |
-      | "school" | "string"    | "YES" | EMPTY   |
+      | Field    | Type        | Null  | Default | Comment |
+      | "id"     | "int64"     | "YES" | EMPTY   | EMPTY   |
+      | "time_"  | "timestamp" | "YES" | EMPTY   | EMPTY   |
+      | "school" | "string"    | "YES" | EMPTY   | EMPTY   |
     # show edges
     When executing query:
       """
@@ -340,17 +340,17 @@ Feature: Insert string vid of vertex and edge
       """
       ALTER EDGE education DROP (id, time_)
       """
-    Then a ExecutionError should be raised at runtime: Not existed!
+    Then a ExecutionError should be raised at runtime: Edge prop not existed!
     # check result
     When executing query:
       """
       DESC EDGE education
       """
     Then the result should be, in any order:
-      | Field    | Type     | Null  | Default |
-      | "school" | "int64"  | "YES" | EMPTY   |
-      | "col1"   | "int64"  | "YES" | EMPTY   |
-      | "col2"   | "string" | "YES" | EMPTY   |
+      | Field    | Type     | Null  | Default | Comment |
+      | "school" | "int64"  | "YES" | EMPTY   | EMPTY   |
+      | "col1"   | "int64"  | "YES" | EMPTY   | EMPTY   |
+      | "col2"   | "string" | "YES" | EMPTY   | EMPTY   |
     # with negative DEFAULT value
     When executing query:
       """
@@ -379,7 +379,7 @@ Feature: Insert string vid of vertex and edge
       """
       DROP EDGE not_exist_edge
       """
-    Then a ExecutionError should be raised at runtime: Not existed!
+    Then a ExecutionError should be raised at runtime: Edge not existed!
     # drop if exists
     When executing query:
       """
@@ -397,7 +397,7 @@ Feature: Insert string vid of vertex and edge
     # test same tag in different space
     When executing query:
       """
-      CREATE SPACE my_space(partition_num=9, replica_factor=1);
+      CREATE SPACE my_space(partition_num=9, replica_factor=1, vid_type=FIXED_STRING(8));
       USE my_space;
       CREATE TAG animal(name string, kind string);
       """
@@ -408,9 +408,9 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE TAG animal
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null  | Default |
-      | "name" | "string" | "YES" | EMPTY   |
-      | "kind" | "string" | "YES" | EMPTY   |
+      | Field  | Type     | Null  | Default | Comment |
+      | "name" | "string" | "YES" | EMPTY   | EMPTY   |
+      | "kind" | "string" | "YES" | EMPTY   | EMPTY   |
     When executing query:
       """
       CREATE TAG person(name string, interest string)
@@ -428,7 +428,7 @@ Feature: Insert string vid of vertex and edge
     # test same tag in different space
     When executing query:
       """
-      CREATE SPACE test_multi;
+      CREATE SPACE test_multi(vid_type=FIXED_STRING(8));
       USE test_multi;
       CREATE Tag test_tag();
       SHOW TAGS;
@@ -486,7 +486,7 @@ Feature: Insert string vid of vertex and edge
     # test alter tag with default
     When executing query:
       """
-      CREATE SPACE tag_space(partition_num=9);
+      CREATE SPACE tag_space(partition_num=9, vid_type=FIXED_STRING(8));
       USE tag_space;
       CREATE TAG t(name string DEFAULT "N/A", age int DEFAULT -1);
       """
@@ -533,6 +533,7 @@ Feature: Insert string vid of vertex and edge
     Then the result should be, in any order:
       | VertexID | t.name | t.age | t.description |
       | "1"      | "N/A"  | -1    | "some one"    |
+    And wait 3 seconds
     # insert without default prop, failed
     When executing query:
       """
@@ -611,8 +612,8 @@ Feature: Insert string vid of vertex and edge
       DESC TAG tag_null_default1;
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null  | Default |
-      | 'name' | 'string' | 'YES' | 'N/A'   |
+      | Field  | Type     | Null  | Default | Comment |
+      | 'name' | 'string' | 'YES' | 'N/A'   | EMPTY   |
     When executing query:
       """
       CREATE TAG tag_null_default2(name string DEFAULT "N/A" NULL)
@@ -623,8 +624,8 @@ Feature: Insert string vid of vertex and edge
       DESC TAG tag_null_default2;
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null  | Default |
-      | 'name' | 'string' | 'YES' | 'N/A'   |
+      | Field  | Type     | Null  | Default | Comment |
+      | 'name' | 'string' | 'YES' | 'N/A'   | EMPTY   |
     # test create tag with not null default value
     When executing query:
       """
@@ -636,8 +637,8 @@ Feature: Insert string vid of vertex and edge
       DESC TAG tag_not_null_default1;
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null | Default |
-      | 'name' | 'string' | 'NO' | 'N/A'   |
+      | Field  | Type     | Null | Default | Comment |
+      | 'name' | 'string' | 'NO' | 'N/A'   | EMPTY   |
     When executing query:
       """
       CREATE TAG tag_not_null_default2(name string DEFAULT "N/A" NOT NULL)
@@ -648,14 +649,14 @@ Feature: Insert string vid of vertex and edge
       DESC TAG tag_not_null_default2;
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null | Default |
-      | 'name' | 'string' | 'NO' | 'N/A'   |
+      | Field  | Type     | Null | Default | Comment |
+      | 'name' | 'string' | 'NO' | 'N/A'   | EMPTY   |
     # test with bad null default value
     When executing query:
       """
       CREATE TAG bad_null_default_value(name string DEFAULT "N/A", age int DEFAULT 1%0)
       """
-    Then a ExecutionError should be raised at runtime: Invalid parm!
+    Then a ExecutionError should be raised at runtime: / by zero
     # test alter tag with wrong type default value of string when add
     When executing query:
       """
@@ -703,9 +704,9 @@ Feature: Insert string vid of vertex and edge
       DESC TAG tag_not_null_default1;
       """
     Then the result should be, in any order:
-      | Field  | Type              | Null  | Default |
-      | "name" | "string"          | "NO"  | "N/A"   |
-      | "col1" | "fixed_string(5)" | "YES" | "Hello" |
+      | Field  | Type              | Null  | Default | Comment |
+      | "name" | "string"          | "NO"  | "N/A"   | EMPTY   |
+      | "col1" | "fixed_string(5)" | "YES" | "Hello" | EMPTY   |
     # test alter tag with wrong type default value of time when change
     When executing query:
       """
@@ -760,9 +761,9 @@ Feature: Insert string vid of vertex and edge
       DESC EDGE edge_not_null_default1;
       """
     Then the result should be, in any order:
-      | Field  | Type              | Null  | Default |
-      | "name" | "string"          | "NO"  | "N/A"   |
-      | "col1" | "fixed_string(5)" | "YES" | "Hello" |
+      | Field  | Type              | Null  | Default | Comment |
+      | "name" | "string"          | "NO"  | "N/A"   | EMPTY   |
+      | "col1" | "fixed_string(5)" | "YES" | "Hello" | EMPTY   |
     # test alter tag with wrong type default value of time when change
     When executing query:
       """

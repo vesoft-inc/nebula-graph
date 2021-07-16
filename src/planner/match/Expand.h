@@ -8,9 +8,10 @@
 #define PLANNER_MATCH_EXPAND_H_
 
 #include "common/base/Base.h"
-#include "context/ast/QueryAstContext.h"
-#include "planner/PlanNode.h"
+#include "context/ast/CypherAstContext.h"
+#include "planner/plan/PlanNode.h"
 #include "planner/Planner.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -19,8 +20,8 @@ namespace graph {
  */
 class Expand final {
 public:
-    Expand(MatchClauseContext* matchCtx, std::unique_ptr<Expression> initialExpr)
-        : matchCtx_(matchCtx), initialExpr_(std::move(initialExpr)) {}
+    Expand(MatchClauseContext* matchCtx, Expression* initialExpr)
+        : matchCtx_(matchCtx), initialExpr_(initialExpr) {}
 
     Expand* reversely() {
         reversely_ = true;
@@ -61,7 +62,9 @@ private:
                                      PlanNode* input,
                                      SubPlan* plan);
 
-    Expression* buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) const;
+    Expression* buildExpandCondition(const std::string& lastStepResult,
+                                     int64_t startIndex,
+                                     int64_t maxHop) const;
 
     template <typename T>
     T* saveObject(T* obj) const {
@@ -71,7 +74,7 @@ private:
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
 
     MatchClauseContext*                 matchCtx_;
-    std::unique_ptr<Expression>         initialExpr_;
+    Expression*                         initialExpr_{nullptr};
     bool                                reversely_{false};
     PlanNode*                           dependency_{nullptr};
     std::string                         inputVar_;

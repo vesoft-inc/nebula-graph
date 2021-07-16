@@ -11,7 +11,8 @@
 #include "common/clients/meta/MetaClient.h"
 #include "parser/AdminSentences.h"
 #include "service/GraphFlags.h"
-#include "service/Session.h"
+#include "session/ClientSession.h"
+#include "context/ValidateContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,16 +20,20 @@ namespace graph {
 class PermissionManager final {
 public:
     PermissionManager() = delete;
-    static Status canReadSpace(Session *session, GraphSpaceID spaceId);
-    static Status canReadSchemaOrData(Session *session);
-    static Status canWriteSpace(Session *session);
-    static Status canWriteSchema(Session *session);
-    static Status canWriteUser(Session *session);
-    static Status canWriteRole(Session *session,
+    static Status canReadSpace(ClientSession *session, GraphSpaceID spaceId);
+    static Status canReadSchemaOrData(ClientSession *session, ValidateContext *vctx);
+    static Status canWriteSpace(ClientSession *session);
+    static Status canWriteSchema(ClientSession *session, ValidateContext *vctx);
+    static Status canWriteUser(ClientSession *session);
+    static Status canWriteRole(ClientSession *session,
                                meta::cpp2::RoleType targetRole,
                                GraphSpaceID spaceId,
                                const std::string& targetUser);
-    static Status canWriteData(Session *session);
+    static Status canWriteData(ClientSession *session, ValidateContext *vctx);
+
+private:
+    static StatusOr<meta::cpp2::RoleType> checkRoleWithSpace(ClientSession *session,
+                                                             ValidateContext *vctx);
 };
 }  // namespace graph
 }  // namespace nebula

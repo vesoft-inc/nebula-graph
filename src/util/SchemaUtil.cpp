@@ -4,8 +4,11 @@
 * attached with Common Clause Condition 1.0, found in the LICENSES directory.
 */
 
+#include <thrift/lib/cpp/util/EnumUtils.h>
+
 #include "common/base/Base.h"
 #include "util/SchemaUtil.h"
+#include "context/QueryContext.h"
 #include "context/QueryExpressionContext.h"
 
 namespace nebula {
@@ -30,14 +33,19 @@ Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps
                         return status;
                     }
                     break;
+                case SchemaPropItem::COMMENT:
+                    status = setComment(schemaProp, schema);
+                    NG_RETURN_IF_ERROR(status);
+                    break;
             }
         }
 
-        if (schema.schema_prop.get_ttl_duration() &&
-            (*schema.schema_prop.get_ttl_duration() != 0)) {
+        auto &prop = *schema.schema_prop_ref();
+        if (prop.get_ttl_duration() &&
+            (*prop.get_ttl_duration() != 0)) {
             // Disable implicit TTL mode
-            if (!schema.schema_prop.get_ttl_col() ||
-                (schema.schema_prop.get_ttl_col() && schema.schema_prop.get_ttl_col()->empty())) {
+            if (!prop.get_ttl_col() ||
+                (prop.get_ttl_col() && prop.get_ttl_col()->empty())) {
                 return Status::Error("Implicit ttl_col not support");
             }
         }
@@ -47,20 +55,22 @@ Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps
 }
 
 // static
-std::shared_ptr<const meta::NebulaSchemaProvider>
-SchemaUtil::generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema &schema) {
+std::shared_ptr<const meta::NebulaSchemaProvider> SchemaUtil::generateSchemaProvider(
+    ObjectPool *pool,
+    const SchemaVer ver,
+    const meta::cpp2::Schema &schema) {
     auto schemaPtr = std::make_shared<meta::NebulaSchemaProvider>(ver);
     for (auto col : schema.get_columns()) {
-        bool hasDef = col.__isset.default_value;
-        std::unique_ptr<Expression> defaultValueExpr;
+        bool hasDef = col.default_value_ref().has_value();
+        Expression* defaultValueExpr = nullptr;
         if (hasDef) {
-            defaultValueExpr = Expression::decode(*col.get_default_value());
+            defaultValueExpr = Expression::decode(pool, *col.default_value_ref());
         }
         schemaPtr->addField(col.get_name(),
                             col.get_type().get_type(),
-                            col.type.__isset.type_length ? *col.get_type().get_type_length() : 0,
-                            col.__isset.nullable ? *col.get_nullable() : false,
-                            hasDef ? defaultValueExpr.release() : nullptr);
+                            col.type.type_length_ref().value_or(0),
+                            col.nullable_ref().value_or(false),
+                            hasDef ? defaultValueExpr : nullptr);
     }
     return schemaPtr;
 }
@@ -73,7 +83,7 @@ Status SchemaUtil::setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema
     }
 
     auto ttlDuration = ret.value();
-    schema.schema_prop.set_ttl_duration(ttlDuration);
+    schema.schema_prop_ref().value().set_ttl_duration(ttlDuration);
     return Status::OK();
 }
 
@@ -87,11 +97,11 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 
     auto  ttlColName = ret.value();
     if (ttlColName.empty()) {
-        schema.schema_prop.set_ttl_col("");
+        schema.schema_prop_ref().value().set_ttl_col("");
         return Status::OK();
     }
     // Check the legality of the ttl column name
-    for (auto& col : schema.columns) {
+    for (auto& col : *schema.columns_ref()) {
         if (col.name == ttlColName) {
             // Only integer columns and timestamp columns can be used as ttl_col
             // TODO(YT) Ttl_duration supports datetime type
@@ -99,11 +109,20 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
                 col.type.type != meta::cpp2::PropertyType::TIMESTAMP) {
                 return Status::Error("Ttl column type illegal");
             }
-            schema.schema_prop.set_ttl_col(ttlColName);
+            schema.schema_prop_ref().value().set_ttl_col(ttlColName);
             return Status::OK();
         }
     }
     return Status::Error("Ttl column name not exist in columns");
+}
+
+// static
+Status SchemaUtil::setComment(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
+    auto ret = schemaProp->getComment();
+    if (ret.ok()) {
+        schema.schema_prop_ref()->set_comment(std::move(ret).value());
+    }
+    return Status::OK();
 }
 
 // static
@@ -135,16 +154,18 @@ SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
 }
 
 StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
-    DataSet dataSet({"Field", "Type", "Null", "Default"});
+    DataSet dataSet({"Field", "Type", "Null", "Default", "Comment"});
     for (auto &col : schema.get_columns()) {
         Row row;
         row.values.emplace_back(Value(col.get_name()));
         row.values.emplace_back(typeToString(col));
-        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        auto nullable = col.nullable_ref().has_value() ? *col.nullable_ref() : false;
         row.values.emplace_back(nullable ? "YES" : "NO");
         auto defaultValue = Value::kEmpty;
-        if (col.__isset.default_value) {
-            auto expr = Expression::decode(*col.get_default_value());
+        ObjectPool tempPool;
+
+        if (col.default_value_ref().has_value()) {
+            auto expr = Expression::decode(&tempPool, *col.default_value_ref());
             if (expr == nullptr) {
                 LOG(ERROR) << "Internal error: Wrong default value expression.";
                 defaultValue = Value();
@@ -152,12 +173,17 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
             }
             if (expr->kind() == Expression::Kind::kConstant) {
                 QueryExpressionContext ctx;
-                defaultValue = Expression::eval(expr.get(), ctx(nullptr));
+                defaultValue = Expression::eval(expr, ctx(nullptr));
             } else {
                 defaultValue = Value(expr->toString());
             }
         }
         row.values.emplace_back(std::move(defaultValue));
+        if (col.comment_ref().has_value()) {
+            row.values.emplace_back(*col.comment_ref());
+        } else {
+            row.values.emplace_back();
+        }
         dataSet.emplace_back(std::move(row));
     }
     return dataSet;
@@ -176,46 +202,58 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
         dataSet.colNames = {"Edge", "Create Edge"};
         createStr = "CREATE EDGE `" + name + "` (\n";
     }
+
     Row row;
     row.emplace_back(name);
+    ObjectPool tempPool;
     for (auto &col : schema.get_columns()) {
         createStr += " `" + col.get_name() + "`";
         createStr += " " + typeToString(col);
-        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        auto nullable = col.nullable_ref().has_value() ? *col.nullable_ref() : false;
         if (!nullable) {
             createStr += " NOT NULL";
         } else {
             createStr += " NULL";
         }
 
-        if (col.__isset.default_value) {
-            auto encodeStr = *col.get_default_value();
-            auto expr = Expression::decode(encodeStr);
+        if (col.default_value_ref().has_value()) {
+            auto encodeStr = *col.default_value_ref();
+            auto expr = Expression::decode(&tempPool, encodeStr);
             if (expr == nullptr) {
                 LOG(ERROR) << "Internal error: the default value is wrong expression.";
                 continue;
             }
             createStr += " DEFAULT " + expr->toString();
         }
+        if (col.comment_ref().has_value()) {
+            createStr += " COMMENT \"";
+            createStr += *col.comment_ref();
+            createStr += "\"";
+        }
         createStr += ",\n";
     }
-    if (!schema.columns.empty()) {
+    if (!(*schema.columns_ref()).empty()) {
         createStr.resize(createStr.size() -2);
         createStr += "\n";
     }
     createStr += ")";
     auto prop = schema.get_schema_prop();
     createStr += " ttl_duration = ";
-    if (prop.__isset.ttl_duration) {
-        createStr += folly::to<std::string>(*prop.get_ttl_duration());
+    if (prop.ttl_duration_ref().has_value()) {
+        createStr += folly::to<std::string>(*prop.ttl_duration_ref());
     } else {
         createStr += "0";
     }
     createStr += ", ttl_col = ";
-    if (prop.__isset.ttl_col && !(prop.get_ttl_col()->empty())) {
-        createStr += "\"" + *prop.get_ttl_col() + "\"";
+    if (prop.ttl_col_ref().has_value() && !(*prop.ttl_col_ref()).empty()) {
+        createStr += "\"" + *prop.ttl_col_ref() + "\"";
     } else {
         createStr += "\"\"";
+    }
+    if (prop.comment_ref().has_value()) {
+        createStr += ", comment = \"";
+        createStr += *prop.comment_ref();
+        createStr += "\"";
     }
     row.emplace_back(std::move(createStr));
     dataSet.rows.emplace_back(std::move(row));
@@ -223,9 +261,9 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
 }
 
 std::string SchemaUtil::typeToString(const meta::cpp2::ColumnTypeDef &col) {
-    auto type = meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(col.get_type());
+    auto type = apache::thrift::util::enumNameSafe(col.get_type());
     if (col.get_type() == meta::cpp2::PropertyType::FIXED_STRING) {
-        return folly::stringPrintf("%s(%d)", type, *col.get_type_length());
+        return folly::stringPrintf("%s(%d)", type.c_str(), *col.get_type_length());
     }
     return type;
 }
@@ -280,5 +318,58 @@ bool SchemaUtil::isValidVid(const Value &value) {
     return value.isStr() || value.isInt();
 }
 
+StatusOr<std::unique_ptr<std::vector<storage::cpp2::VertexProp>>>
+SchemaUtil::getAllVertexProp(QueryContext *qctx, const SpaceInfo &space, bool withProp) {
+    // Get all tags in the space
+    const auto allTagsResult = qctx->schemaMng()->getAllLatestVerTagSchema(space.id);
+    NG_RETURN_IF_ERROR(allTagsResult);
+    // allTags: std::unordered_map<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>
+    const auto allTags = std::move(allTagsResult).value();
+
+    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    vertexProps->reserve(allTags.size());
+    // Retrieve prop names of each tag and append "_tag" to the name list to query empty tags
+    for (const auto &tag : allTags) {
+        // tag: pair<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>
+        std::vector<std::string> propNames;
+        if (withProp) {
+            const auto tagSchema = tag.second;   // nebulaSchemaProvider
+            for (size_t i = 0; i < tagSchema->getNumFields(); i++) {
+                const auto propName = tagSchema->getFieldName(i);
+                propNames.emplace_back(propName);
+            }
+        }
+        storage::cpp2::VertexProp vProp;
+        const auto tagId = tag.first;
+        vProp.set_tag(tagId);
+        propNames.emplace_back(nebula::kTag);   // "_tag"
+        vProp.set_props(std::move(propNames));
+        vertexProps->emplace_back(std::move(vProp));
+    }
+    return vertexProps;
+}
+
+StatusOr<std::unique_ptr<std::vector<storage::cpp2::EdgeProp>>> SchemaUtil::getEdgeProps(
+    QueryContext *qctx,
+    const SpaceInfo &space,
+    const std::vector<EdgeType> &edgeTypes,
+    bool withProp) {
+    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
+    edgeProps->reserve(edgeTypes.size());
+    for (const auto &edgeType : edgeTypes) {
+        std::vector<std::string> propNames = {kSrc, kType, kRank, kDst};
+        if (withProp) {
+            auto edgeSchema = qctx->schemaMng()->getEdgeSchema(space.id, std::abs(edgeType));
+            for (size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
+                propNames.emplace_back(edgeSchema->getFieldName(i));
+            }
+        }
+        storage::cpp2::EdgeProp prop;
+        prop.set_type(edgeType);
+        prop.set_props(std::move(propNames));
+        edgeProps->emplace_back(std::move(prop));
+    }
+    return edgeProps;
+}
 }  // namespace graph
 }  // namespace nebula

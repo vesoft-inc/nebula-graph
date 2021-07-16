@@ -11,8 +11,7 @@ import io
 import csv
 import re
 
-from nebula2.common.ttypes import Value
-from nebula2.graph.ttypes import ErrorCode
+from nebula2.common.ttypes import Value, ErrorCode
 from pytest_bdd import given, parsers, then, when
 
 from tests.common.dataset_printer import DataSetPrinter
@@ -58,7 +57,7 @@ def is_job_finished(sess, job):
 
 
 def wait_all_jobs_finished(sess, jobs=[]):
-    times = 30
+    times = 60
     while jobs and times > 0:
         jobs = [job for job in jobs if not is_job_finished(sess, job)]
         time.sleep(0.5)
@@ -76,11 +75,10 @@ def job_id(resp):
 def wait_tag_or_edge_indexes_ready(sess, schema: str = "TAG"):
     resp = resp_ok(sess, f"SHOW {schema} INDEXES")
     jobs = []
-    for key in resp.keys():
-        for val in resp.column_values(key):
-            job = val.as_string()
-            resp = resp_ok(sess, f"REBUILD {schema} INDEX {job}", True)
-            jobs.append(job_id(resp))
+    for val in resp.column_values("Index Name"):
+        job = val.as_string()
+        resp = resp_ok(sess, f"REBUILD {schema} INDEX {job}", True)
+        jobs.append(job_id(resp))
     wait_all_jobs_finished(sess, jobs)
 
 
@@ -150,6 +148,20 @@ def new_space(request, options, session, graph_spaces):
     graph_spaces["space_desc"] = space_desc
     graph_spaces["drop_space"] = True
 
+@given(parse("Any graph"))
+def new_space(request, session, graph_spaces):
+    name = "EmptyGraph_" + space_generator()
+    space_desc = SpaceDesc(
+        name=name,
+        partition_num=9,
+        replica_factor=1,
+        vid_type="FIXED_STRING(30)",
+        charset="utf8",
+        collate="utf8_bin",
+    )
+    create_space(space_desc, session)
+    graph_spaces["space_desc"] = space_desc
+    graph_spaces["drop_space"] = True
 
 @given(parse('load "{data}" csv data to a new space'))
 def import_csv_data(request, data, graph_spaces, session, pytestconfig):
@@ -401,8 +413,8 @@ def execution_should_be_succ(graph_spaces):
     check_resp(rs, stmt)
 
 
-@then(rparse(r"a (?P<err_type>\w+) should be raised at (?P<time>runtime|compile time)(?P<sym>:|.)(?P<msg>.*)"))
-def raised_type_error(err_type, time, sym, msg, graph_spaces):
+@then(rparse(r"(?P<unit>a|an) (?P<err_type>\w+) should be raised at (?P<time>runtime|compile time)(?P<sym>:|.)(?P<msg>.*)"))
+def raised_type_error(unit, err_type, time, sym, msg, graph_spaces):
     res = graph_spaces["result_set"]
     ngql = graph_spaces['ngql']
     assert not res.is_succeeded(), f"Response should be failed: ngql:{ngql}"
@@ -443,3 +455,12 @@ def check_plan(plan, graph_spaces):
         rows[i] = row
     differ = PlanDiffer(resp.plan_desc(), expect)
     assert differ.diff(), differ.err_msg()
+
+@when(parse("executing query via graph {index:d}:\n{query}"))
+def executing_query(query, index, graph_spaces, session_from_first_conn_pool, session_from_second_conn_pool, request):
+    assert index < 2, "There exists only 0,1 graph: {}".format(index)
+    ngql = combine_query(query)
+    if index == 0:
+        exec_query(request, ngql, session_from_first_conn_pool, graph_spaces)
+    else:
+        exec_query(request, ngql, session_from_second_conn_pool, graph_spaces)

@@ -7,13 +7,11 @@
 #ifndef SERVICE_QUERYENGINE_H_
 #define SERVICE_QUERYENGINE_H_
 
-#include "common/base/Base.h"
 #include "common/cpp/helpers.h"
 #include "service/RequestContext.h"
 #include "common/interface/gen-cpp2/GraphService.h"
 #include "common/meta/SchemaManager.h"
 #include "common/meta/IndexManager.h"
-// #include "common/meta/ClientBasedGflagsManager.h"
 #include "common/clients/meta/MetaClient.h"
 #include "common/clients/storage/GraphStorageClient.h"
 #include "common/network/NetworkUtils.h"
@@ -35,22 +33,22 @@ public:
     QueryEngine() = default;
     ~QueryEngine() = default;
 
-    Status init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor);
+    Status init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor,
+                meta::MetaClient* metaClient);
 
     using RequestContextPtr = std::unique_ptr<RequestContext<ExecutionResponse>>;
     void execute(RequestContextPtr rctx);
 
     const meta::MetaClient* metaClient() const {
-        return metaClient_.get();
+        return metaClient_;
     }
 
 private:
     std::unique_ptr<meta::SchemaManager>              schemaManager_;
     std::unique_ptr<meta::IndexManager>               indexManager_;
-    // std::unique_ptr<meta::ClientBasedGflagsManager>   gflagsManager_;
     std::unique_ptr<storage::GraphStorageClient>      storage_;
-    std::unique_ptr<meta::MetaClient>                 metaClient_;
     std::unique_ptr<opt::Optimizer>                   optimizer_;
+    meta::MetaClient                                 *metaClient_;
     CharsetInfo*                                      charsetInfo_{nullptr};
 };
 

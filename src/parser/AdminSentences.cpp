@@ -7,6 +7,7 @@
 #include "parser/AdminSentences.h"
 #include <sstream>
 #include "util/SchemaUtil.h"
+#include <thrift/lib/cpp/util/EnumUtils.h>
 
 namespace nebula {
 
@@ -56,22 +57,22 @@ std::string ShowZonesSentence::toString() const {
 
 std::string SpaceOptItem::toString() const {
     switch (optType_) {
-        case PARTITION_NUM:
+        case OptionType::PARTITION_NUM:
             return folly::stringPrintf("partition_num = %ld", boost::get<int64_t>(optValue_));
-        case REPLICA_FACTOR:
+        case OptionType::REPLICA_FACTOR:
             return folly::stringPrintf("replica_factor = %ld", boost::get<int64_t>(optValue_));
-        case VID_TYPE: {
+        case OptionType::VID_TYPE: {
             auto &typeDef = boost::get<meta::cpp2::ColumnTypeDef>(optValue_);
             return folly::stringPrintf("vid_type = %s",
                                        graph::SchemaUtil::typeToString(typeDef).c_str());
         }
-        case CHARSET:
+        case OptionType::CHARSET:
             return folly::stringPrintf("charset = %s", boost::get<std::string>(optValue_).c_str());
-        case COLLATE:
+        case OptionType::COLLATE:
             return folly::stringPrintf("collate = %s", boost::get<std::string>(optValue_).c_str());
-        case ATOMIC_EDGE:
+        case OptionType::ATOMIC_EDGE:
             return folly::stringPrintf("atomic_edge = %s", getAtomicEdge() ? "true" : "false");
-        case GROUP_NAME:
+        case OptionType::GROUP_NAME:
             return "";
     }
     DLOG(FATAL) << "Space parameter illegal";
@@ -106,6 +107,11 @@ std::string CreateSpaceSentence::toString() const {
         buf += " ON ";
         buf += *groupName_;
     }
+    if (comment_ != nullptr) {
+        buf += " comment = \"";
+        buf += *comment_;
+        buf += "\"";
+    }
     return buf;
 }
 
@@ -123,7 +129,7 @@ std::string ConfigRowItem::toString() const {
     std::string buf;
     buf.reserve(128);
     if (module_ != meta::cpp2::ConfigModule::ALL) {
-        buf += meta::cpp2::_ConfigModule_VALUES_TO_NAMES.at(module_);
+        buf += apache::thrift::util::enumNameSafe(module_);
         buf += ":";
     }
     if (name_ != nullptr) {
@@ -265,18 +271,20 @@ std::string AdminJobSentence::toString() const {
                 case meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX:
                     return folly::stringPrintf("REBUILD EDGE INDEX %s",
                             folly::join(",", paras_).c_str());
+                case meta::cpp2::AdminCmd::REBUILD_FULLTEXT_INDEX:
+                    return "REBUILD FULLTEXT INDEX";
                 case meta::cpp2::AdminCmd::STATS:
                     return paras_.empty() ? "SUBMIT JOB STATS"
                         : folly::stringPrintf("SUBMIT JOB STATS %s", paras_[0].c_str());
-                case meta::cpp2::AdminCmd::DOWELOAD:
-                    return paras_.empty() ? "DOWELOAD HDFS "
-                        : folly::stringPrintf("DOWELOAD HDFS %s", paras_[0].c_str());
+                case meta::cpp2::AdminCmd::DOWNLOAD:
+                    return paras_.empty() ? "DOWNLOAD HDFS "
+                        : folly::stringPrintf("DOWNLOAD HDFS %s", paras_[0].c_str());
                 case meta::cpp2::AdminCmd::INGEST:
                     return "INGEST";
                 case meta::cpp2::AdminCmd::DATA_BALANCE:
                 case meta::cpp2::AdminCmd::UNKNOWN:
                     return folly::stringPrintf("Unsupported AdminCmd: %s",
-                            meta::cpp2::_AdminCmd_VALUES_TO_NAMES.at(cmd_));
+                            apache::thrift::util::enumNameSafe(cmd_).c_str());
             }
         }
         case meta::cpp2::AdminJobOp::SHOW_All:
@@ -333,12 +341,12 @@ std::string SignInTextServiceSentence::toString() const {
         buf += client.get_host().host;
         buf += ":";
         buf += std::to_string(client.get_host().port);
-        if (client.__isset.user && !client.get_user()->empty()) {
+        if (client.user_ref().has_value() && !(*client.user_ref()).empty()) {
             buf += ", \"";
             buf += *client.get_user();
             buf += "\"";
         }
-        if (client.__isset.pwd && !client.get_pwd()->empty()) {
+        if (client.pwd_ref().has_value() && !(*client.pwd_ref()).empty()) {
             buf += ", \"";
             buf += *client.get_pwd();
             buf += "\"";
@@ -354,5 +362,34 @@ std::string SignInTextServiceSentence::toString() const {
 
 std::string SignOutTextServiceSentence::toString() const {
     return "SIGN OUT TEXT SERVICE";
+}
+
+std::string ShowSessionsSentence::toString() const {
+    if (isSetSessionID()) {
+        return folly::stringPrintf("SHOW SESSION %ld", sessionId_);
+    }
+    return "SHOW SESSIONS";
+}
+
+std::string ShowQueriesSentence::toString() const {
+    std::string buf = "SHOW";
+    if (isAll()) {
+        buf += " ALL";
+    }
+    buf += " QUERIES";
+    return buf;
+}
+
+std::string KillQuerySentence::toString() const {
+    std::string buf = "KILL QUERY (";
+    if (isSetSession()) {
+        buf += "session=";
+        buf += sessionId()->toString();
+        buf += ", ";
+    }
+    buf += "plan=";
+    buf += epId()->toString();
+    buf += ")";
+    return buf;
 }
 }   // namespace nebula

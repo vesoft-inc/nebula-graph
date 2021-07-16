@@ -7,7 +7,6 @@
 #ifndef CONTEXT_EXECUTIONCONTEXT_H_
 #define CONTEXT_EXECUTIONCONTEXT_H_
 
-#include "common/base/Base.h"
 #include "common/datatypes/Value.h"
 #include "context/Result.h"
 
@@ -21,8 +20,9 @@ class QueryInstance;
  * The context for each query request
  *
  * The context is NOT thread-safe. The execution plan has to guarantee
- * all accesses to context are safe
- *
+ * all accesses to context are safe by pre-allocate all place for variables in semantic analysis
+ * and the single variable is accessed sequentially in runtime, so don't add/delete variable
+ * in runtime it's safe to access
  * The life span of the context is same as the request. That means a new
  * context object will be created as soon as the query engine receives the
  * query request. The context object will be visible to the parser, the
@@ -62,7 +62,7 @@ public:
 
     void setResult(const std::string& name, Result&& result);
 
-    void deleteValue(const std::string& name);
+    void dropResult(const std::string& name);
 
     // Only keep the last several versoins of the Value
     void truncHistory(const std::string& name, size_t numVersionsToKeep);

@@ -13,11 +13,11 @@
 #include "context/QueryContext.h"
 #include "context/ValidateContext.h"
 #include "parser/GQLParser.h"
-#include "planner/ExecutionPlan.h"
-#include "planner/Logic.h"
-#include "planner/PlanNode.h"
+#include "planner/plan/ExecutionPlan.h"
+#include "planner/plan/Logic.h"
+#include "planner/plan/PlanNode.h"
 #include "planner/PlannersRegister.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "common/base/ObjectPool.h"
 #include "validator/Validator.h"
 #include "validator/test/MockSchemaManager.h"
@@ -30,11 +30,14 @@ namespace graph {
 class ValidatorTestBase : public ::testing::Test {
 protected:
     void SetUp() override {
-        session_ = Session::create(0);
+        meta::cpp2::Session session;
+        session.set_session_id(0);
+        session.set_user_name("root");
+        session_ = ClientSession::create(std::move(session), nullptr);
         SpaceInfo spaceInfo;
         spaceInfo.name = "test_space";
         spaceInfo.id = 1;
-        spaceInfo.spaceDesc.space_name = "test_space";
+        spaceInfo.spaceDesc.set_space_name("test_space");
         session_->setSpace(std::move(spaceInfo));
         schemaMng_ = CHECK_NOTNULL(MockSchemaManager::makeUnique());
         indexMng_ = CHECK_NOTNULL(MockIndexManager::makeUnique());
@@ -44,13 +47,14 @@ protected:
 
     StatusOr<QueryContext*> validate(const std::string& query) {
         VLOG(1) << "query: " << query;
-        auto result = GQLParser().parse(query);
+        auto qctx = buildContext();
+        auto result = GQLParser(qctx).parse(query);
         if (!result.ok()) {
             return std::move(result).status();
         }
-        NG_RETURN_IF_ERROR(AstUtils::reprAstCheck(*result.value()));
+        NG_RETURN_IF_ERROR(AstUtils::reprAstCheck(*result.value(), qctx));
+
         auto sentences = pool_->add(std::move(result).value().release());
-        auto qctx = buildContext();
         NG_RETURN_IF_ERROR(Validator::validate(sentences, qctx));
         return qctx;
     }
@@ -119,7 +123,7 @@ protected:
     static void bfsTraverse(const PlanNode* root, std::vector<PlanNode::Kind>& result);
 
 protected:
-    std::shared_ptr<Session>              session_;
+    std::shared_ptr<ClientSession>        session_;
     std::unique_ptr<MockSchemaManager>    schemaMng_;
     std::unique_ptr<MockIndexManager>     indexMng_{nullptr};
     std::unique_ptr<Sentence>             sentences_;

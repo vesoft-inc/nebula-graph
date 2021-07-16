@@ -8,7 +8,7 @@
 
 #include "context/QueryContext.h"
 #include "executor/admin/ShowTSClientsExecutor.h"
-#include "planner/Admin.h"
+#include "planner/plan/Admin.h"
 #include "service/PermissionManager.h"
 
 namespace nebula {
@@ -24,7 +24,7 @@ return qctx()
         ->getMetaClient()
         ->listFTClients()
         .via(runner())
-        .then([this](auto &&resp) {
+        .thenValue([this](auto &&resp) {
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();
                 return resp.status();

@@ -5,7 +5,7 @@
  */
 
 #include "executor/admin/ListUsersExecutor.h"
-#include "planner/Admin.h"
+#include "planner/plan/Admin.h"
 #include "context/QueryContext.h"
 
 namespace nebula {
@@ -19,7 +19,7 @@ folly::Future<Status> ListUsersExecutor::execute() {
 folly::Future<Status> ListUsersExecutor::listUsers() {
     return qctx()->getMetaClient()->listUsers()
         .via(runner())
-        .then([this](StatusOr<std::unordered_map<std::string, std::string>> &&resp) {
+        .thenValue([this](StatusOr<std::unordered_map<std::string, std::string>> &&resp) {
             SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 return std::move(resp).status();

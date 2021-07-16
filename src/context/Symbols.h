@@ -7,12 +7,12 @@
 #ifndef CONTEXT_SYMBOLS_H_
 #define CONTEXT_SYMBOLS_H_
 
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include "common/base/ObjectPool.h"
 #include "common/datatypes/Value.h"
+#include "common/base/StatusOr.h"
 
 namespace nebula {
 namespace graph {
@@ -46,6 +46,17 @@ struct Variable {
 
     std::unordered_set<PlanNode*> readBy;
     std::unordered_set<PlanNode*> writtenBy;
+
+    // None means will used in later
+    // non-positive means static lifetime
+    // positive means last user id
+    folly::Optional<int64_t>      lastUser;
+
+    void setLastUser(int64_t id) {
+        if (!lastUser.hasValue()) {
+            lastUser = id;
+        }
+    }
 };
 
 class SymbolTable final {

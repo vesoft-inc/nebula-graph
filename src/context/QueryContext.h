@@ -7,7 +7,6 @@
 #ifndef CONTEXT_QUERYCONTEXT_H_
 #define CONTEXT_QUERYCONTEXT_H_
 
-#include "common/base/Base.h"
 #include "common/base/ObjectPool.h"
 #include "common/charset/Charset.h"
 #include "common/clients/meta/MetaClient.h"
@@ -130,6 +129,14 @@ public:
         rctx_->resp().errorCode = ErrorCode::E_PARTIAL_SUCCEEDED;
     }
 
+    void markKilled() {
+        killed_.exchange(true);
+    }
+
+    bool isKilled() const {
+        return killed_.load();
+    }
+
 private:
     void init();
 
@@ -148,6 +155,8 @@ private:
     std::unique_ptr<ObjectPool>                             objPool_;
     std::unique_ptr<IdGenerator>                            idGen_;
     std::unique_ptr<SymbolTable>                            symTable_;
+
+    std::atomic<bool>                                       killed_{false};
 };
 
 }   // namespace graph

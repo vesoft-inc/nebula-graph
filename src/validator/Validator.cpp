@@ -8,7 +8,7 @@
 
 #include "common/function/FunctionManager.h"
 #include "parser/Sentence.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ExpressionUtils.h"
 #include "util/SchemaUtil.h"
 #include "validator/ACLValidator.h"
@@ -231,6 +231,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<ShowStatusValidator>(sentence, context);
         case Sentence::Kind::kShowTSClients:
             return std::make_unique<ShowTSClientsValidator>(sentence, context);
+        case Sentence::Kind::kShowFTIndexes:
+            return std::make_unique<ShowFTIndexesValidator>(sentence, context);
         case Sentence::Kind::kSignInTSService:
             return std::make_unique<SignInTSServiceValidator>(sentence, context);
         case Sentence::Kind::kSignOutTSService:
@@ -239,8 +241,18 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DownloadValidator>(sentence, context);
         case Sentence::Kind::kIngest:
             return std::make_unique<IngestValidator>(sentence, context);
+        case Sentence::Kind::kCreateFTIndex:
+            return std::make_unique<CreateFTIndexValidator>(sentence, context);
+        case Sentence::Kind::kDropFTIndex:
+            return std::make_unique<DropFTIndexValidator>(sentence, context);
         case Sentence::Kind::kShowGroups:
         case Sentence::Kind::kShowZones:
+        case Sentence::Kind::kShowSessions:
+            return std::make_unique<ShowSessionsValidator>(sentence, context);
+        case Sentence::Kind::kShowQueries:
+            return std::make_unique<ShowQueriesValidator>(sentence, context);
+        case Sentence::Kind::kKillQuery:
+            return std::make_unique<KillQueryValidator>(sentence, context);
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kReturn: {
             // nothing
@@ -274,10 +286,19 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
     return Status::OK();
 }
 
+std::vector<std::string> Validator::getOutColNames() const {
+    std::vector<std::string> colNames;
+    colNames.reserve(outputs_.size());
+    for (const auto& col : outputs_) {
+        colNames.emplace_back(col.name);
+    }
+    return colNames;
+}
+
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     DCHECK(node != nullptr);
     DCHECK(appended != nullptr);
-    if (node->dependencies().size() != 1) {
+    if (!node->isSingleInput()) {
         return Status::SemanticError("%s not support to append an input.",
                                      PlanNode::toString(node->kind()));
     }
@@ -307,10 +328,11 @@ Status Validator::validate() {
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
-        VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name << " id: " << space_.id;
+        VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name_ref().value()
+                << " id: " << space_.id;
     }
 
-    auto vidType = space_.spaceDesc.vid_type.get_type();
+    auto vidType = space_.spaceDesc.vid_type_ref().value().type_ref().value();
     vidType_ = SchemaUtil::propTypeToValueType(vidType);
 
     NG_RETURN_IF_ERROR(validateImpl());
@@ -330,21 +352,6 @@ Status Validator::validate() {
 
 bool Validator::spaceChosen() {
     return vctx_->spaceChosen();
-}
-
-std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) const {
-    std::vector<std::string> colNames;
-    for (auto col : cols->columns()) {
-        colNames.emplace_back(deduceColName(col));
-    }
-    return colNames;
-}
-
-std::string Validator::deduceColName(const YieldColumn* col) const {
-    if (col->alias() != nullptr) {
-        return *col->alias();
-    }
-    return col->toString();
 }
 
 StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
@@ -371,18 +378,18 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
-        ColDef col(*propExpr->prop(), type);
+        ColDef col(propExpr->prop(), type);
         const auto find = std::find(inputs_.begin(), inputs_.end(), col);
         if (find == inputs_.end()) {
-            return Status::SemanticError("No input property `%s'", propExpr->prop()->c_str());
+            return Status::SemanticError("No input property `%s'", propExpr->prop().c_str());
         }
         return inputVarName_;
     }
     if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
-        ColDef col(*propExpr->prop(), type);
+        ColDef col(propExpr->prop(), type);
 
-        const auto &outputVar = *propExpr->sym();
+        const auto &outputVar = propExpr->sym();
         const auto &var = vctx_->getVar(outputVar);
         if (var.empty()) {
             return Status::SemanticError("No variable `%s'", outputVar.c_str());
@@ -390,7 +397,7 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         const auto find = std::find(var.begin(), var.end(), col);
         if (find == var.end()) {
             return Status::SemanticError(
-                "No property `%s' in variable `%s'", propExpr->prop()->c_str(), outputVar.c_str());
+                "No property `%s' in variable `%s'", propExpr->prop().c_str(), outputVar.c_str());
         }
         userDefinedVarNameList_.emplace(outputVar);
         return outputVar;

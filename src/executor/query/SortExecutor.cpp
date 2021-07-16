@@ -5,7 +5,7 @@
  */
 
 #include "executor/query/SortExecutor.h"
-#include "planner/Query.h"
+#include "planner/plan/Query.h"
 #include "util/ScopedTimer.h"
 
 namespace nebula {
@@ -15,7 +15,8 @@ folly::Future<Status> SortExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto* sort = asNode<Sort>(node());
-    auto iter = ectx_->getResult(sort->inputVar()).iter();
+    Result result = ectx_->getResult(sort->inputVar());
+    auto* iter = result.iterRef();
     if (UNLIKELY(iter == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in sort executor");
     }
@@ -44,9 +45,9 @@ folly::Future<Status> SortExecutor::execute() {
         return false;
     };
 
-    auto seqIter = static_cast<SequentialIter*>(iter.get());
+    auto seqIter = static_cast<SequentialIter*>(iter);
     std::sort(seqIter->begin(), seqIter->end(), comparator);
-    return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
+    return finish(ResultBuilder().value(result.valuePtr()).iter(std::move(result).iter()).finish());
 }
 
 }   // namespace graph
