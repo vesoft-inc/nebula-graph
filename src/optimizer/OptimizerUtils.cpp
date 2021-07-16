@@ -884,7 +884,7 @@ bool OptimizerUtils::findOptimalIndex(const Expression* condition,
     hints.reserve(index.hints.size());
     auto iter = index.hints.begin();
 
-    // Use full scan if the highest index socre is NotEqual
+    // Use full scan if the highest index score is NotEqual
     if (iter->score == IndexScore::kNotEqual) {
         return false;
     }

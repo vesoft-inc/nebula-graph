@@ -4,26 +4,35 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "optimizer/rule/OptimizeTagIndexScanbyFilterRule.h"
+#include "optimizer/rule/OptimizeEdgeIndexScanByFilterRule.h"
+#include <algorithm>
+#include <memory>
+#include <vector>
 
+#include "common/base/Base.h"
+#include "common/base/Status.h"
 #include "common/expression/Expression.h"
+#include "common/expression/LogicalExpression.h"
+#include "common/expression/PropertyExpression.h"
+#include "common/expression/RelationalExpression.h"
+#include "common/interface/gen-cpp2/meta_types.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "context/QueryContext.h"
 #include "optimizer/OptContext.h"
 #include "optimizer/OptGroup.h"
 #include "optimizer/OptimizerUtils.h"
-#include "optimizer/rule/IndexScanRule.h"
 #include "planner/plan/PlanNode.h"
 #include "planner/plan/Scan.h"
 
+using nebula::Expression;
+using nebula::graph::EdgeIndexFullScan;
+using nebula::graph::EdgeIndexPrefixScan;
+using nebula::graph::EdgeIndexRangeScan;
+using nebula::graph::EdgeIndexScan;
 using nebula::graph::Filter;
 using nebula::graph::OptimizerUtils;
 using nebula::graph::QueryContext;
-using nebula::graph::TagIndexFullScan;
-using nebula::graph::TagIndexPrefixScan;
-using nebula::graph::TagIndexRangeScan;
-using nebula::graph::TagIndexScan;
-using nebula::storage::cpp2::IndexColumnHint;
+using nebula::meta::cpp2::IndexItem;
 using nebula::storage::cpp2::IndexQueryContext;
 
 using Kind = nebula::graph::PlanNode::Kind;
@@ -33,25 +42,25 @@ using TransformResult = nebula::opt::OptRule::TransformResult;
 namespace nebula {
 namespace opt {
 
-std::unique_ptr<OptRule> OptimizeTagIndexScanbyFilterRule::kInstance =
-    std::unique_ptr<OptimizeTagIndexScanbyFilterRule>(new OptimizeTagIndexScanbyFilterRule());
+std::unique_ptr<OptRule> OptimizeEdgeIndexScanByFilterRule::kInstance =
+    std::unique_ptr<OptimizeEdgeIndexScanByFilterRule>(new OptimizeEdgeIndexScanByFilterRule());
 
-OptimizeTagIndexScanbyFilterRule::OptimizeTagIndexScanbyFilterRule() {
+OptimizeEdgeIndexScanByFilterRule::OptimizeEdgeIndexScanByFilterRule() {
     RuleSet::DefaultRules().addRule(this);
 }
 
-const Pattern& OptimizeTagIndexScanbyFilterRule::pattern() const {
+const Pattern& OptimizeEdgeIndexScanByFilterRule::pattern() const {
     static Pattern pattern =
-        Pattern::create(Kind::kFilter, {Pattern::create(Kind::kTagIndexFullScan)});
+        Pattern::create(Kind::kFilter, {Pattern::create(Kind::kEdgeIndexFullScan)});
     return pattern;
 }
 
-bool OptimizeTagIndexScanbyFilterRule::match(OptContext* ctx, const MatchedResult& matched) const {
+bool OptimizeEdgeIndexScanByFilterRule::match(OptContext* ctx, const MatchedResult& matched) const {
     if (!OptRule::match(ctx, matched)) {
         return false;
     }
     auto filter = static_cast<const Filter*>(matched.planNode());
-    auto scan = static_cast<const TagIndexFullScan*>(matched.planNode({0, 0}));
+    auto scan = static_cast<const EdgeIndexFullScan*>(matched.planNode({0, 0}));
     for (auto& ictx : scan->queryContext()) {
         if (ictx.column_hints_ref().is_set()) {
             return false;
@@ -60,7 +69,7 @@ bool OptimizeTagIndexScanbyFilterRule::match(OptContext* ctx, const MatchedResul
     auto condition = filter->condition();
     if (condition->isRelExpr()) {
         auto relExpr = static_cast<const RelationalExpression*>(condition);
-        return relExpr->left()->kind() == ExprKind::kTagProperty &&
+        return relExpr->left()->kind() == ExprKind::kEdgeProperty &&
                relExpr->right()->kind() == ExprKind::kConstant;
     }
     if (condition->isLogicalExpr()) {
@@ -70,26 +79,25 @@ bool OptimizeTagIndexScanbyFilterRule::match(OptContext* ctx, const MatchedResul
     return false;
 }
 
-TagIndexScan* makeTagIndexScan(QueryContext* qctx, const TagIndexScan* scan, bool isPrefixScan) {
-    TagIndexScan* tagScan = nullptr;
+EdgeIndexScan* makeEdgeIndexScan(QueryContext* qctx, const EdgeIndexScan* scan, bool isPrefixScan) {
+    EdgeIndexScan* scanNode = nullptr;
     if (isPrefixScan) {
-        tagScan = TagIndexPrefixScan::make(qctx, nullptr, scan->tagName());
+        scanNode = EdgeIndexPrefixScan::make(qctx, nullptr, scan->edgeType());
     } else {
-        tagScan = TagIndexRangeScan::make(qctx, nullptr, scan->tagName());
+        scanNode = EdgeIndexRangeScan::make(qctx, nullptr, scan->edgeType());
     }
-
-    OptimizerUtils::copyIndexScanData(scan, tagScan);
-    return tagScan;
+    OptimizerUtils::copyIndexScanData(scan, scanNode);
+    return scanNode;
 }
 
-StatusOr<TransformResult> OptimizeTagIndexScanbyFilterRule::transform(
+StatusOr<TransformResult> OptimizeEdgeIndexScanByFilterRule::transform(
     OptContext* ctx,
     const MatchedResult& matched) const {
     auto filter = static_cast<const Filter*>(matched.planNode());
-    auto scan = static_cast<const TagIndexFullScan*>(matched.planNode({0, 0}));
+    auto scan = static_cast<const EdgeIndexFullScan*>(matched.planNode({0, 0}));
 
     auto metaClient = ctx->qctx()->getMetaClient();
-    auto status = metaClient->getTagIndexesFromCache(scan->space());
+    auto status = metaClient->getEdgeIndexesFromCache(scan->space());
     NG_RETURN_IF_ERROR(status);
     auto indexItems = std::move(status).value();
 
@@ -100,9 +108,8 @@ StatusOr<TransformResult> OptimizeTagIndexScanbyFilterRule::transform(
     if (!OptimizerUtils::findOptimalIndex(filter->condition(), indexItems, &isPrefixScan, &ictx)) {
         return TransformResult::noTransform();
     }
-
     std::vector<IndexQueryContext> idxCtxs = {ictx};
-    auto scanNode = makeTagIndexScan(ctx->qctx(), scan, isPrefixScan);
+    EdgeIndexScan* scanNode = makeEdgeIndexScan(ctx->qctx(), scan, isPrefixScan);
     scanNode->setIndexQueryContext(std::move(idxCtxs));
     scanNode->setOutputVar(filter->outputVar());
     scanNode->setColNames(filter->colNames());
@@ -117,8 +124,8 @@ StatusOr<TransformResult> OptimizeTagIndexScanbyFilterRule::transform(
     return result;
 }
 
-std::string OptimizeTagIndexScanbyFilterRule::toString() const {
-    return "OptimizeTagIndexScanbyFilterRule";
+std::string OptimizeEdgeIndexScanByFilterRule::toString() const {
+    return "OptimizeEdgeIndexScanByFilterRule";
 }
 
 }   // namespace opt
