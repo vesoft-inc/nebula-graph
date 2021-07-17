@@ -32,6 +32,15 @@ const Value& QueryExpressionContext::getVarProp(const std::string& var,
     return iter_->getColumn(prop);
 }
 
+StatusOr<std::size_t> QueryExpressionContext::getVarPropColIndex(const std::string& var,
+                                                                 const std::string& prop) const {
+    UNUSED(var);
+    if (iter_ == nullptr) {
+        return Status::Error("Null result iterator.");
+    }
+    return iter_->getColumnIndex(prop);
+}
+
 Value QueryExpressionContext::getTagProp(const std::string& tag,
                     const std::string& prop) const {
     if (iter_ == nullptr) {
@@ -71,7 +80,14 @@ const Value& QueryExpressionContext::getInputProp(const std::string& prop) const
     return iter_->getColumn(prop);
 }
 
-Value QueryExpressionContext::getColumn(int32_t index) const {
+StatusOr<std::size_t> QueryExpressionContext::getInputPropColIndex(const std::string& prop) const {
+    if (iter_ == nullptr) {
+        return Status::Error("Null result iterator.");
+    }
+    return iter_->getColumnIndex(prop);
+}
+
+const Value& QueryExpressionContext::getColumn(int32_t index) const {
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }

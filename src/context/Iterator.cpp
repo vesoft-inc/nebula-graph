@@ -280,6 +280,15 @@ const Value& GetNeighborsIter::getColumn(int32_t index) const {
     return currentRow_->values[index];
 }
 
+StatusOr<std::size_t> GetNeighborsIter::getColumnIndex(const std::string& col) const {
+    auto& index = currentDs_->colIndices;
+    auto found = index.find(col);
+    if (found == index.end()) {
+        return Status::Error("Don't exist column `%s'.", col.c_str());
+    }
+    return found->second;
+}
+
 const Value& GetNeighborsIter::getTagProp(const std::string& tag,
                                           const std::string& prop) const {
     if (!valid()) {
@@ -528,6 +537,14 @@ const Value& SequentialIter::getColumn(int32_t index) const {
     return getColumnByIndex(index, iter_);
 }
 
+StatusOr<std::size_t> SequentialIter::getColumnIndex(const std::string& col) const {
+    auto index = colIndices_.find(col);
+    if (index == colIndices_.end()) {
+        return Status::Error("Don't exist column `%s'.", col.c_str());
+    }
+    return index->second;
+}
+
 PropIter::PropIter(std::shared_ptr<Value> value) : SequentialIter(value) {
     DCHECK(value->isDataSet());
     auto& ds = value->getDataSet();
@@ -583,6 +600,14 @@ const Value& PropIter::getColumn(const std::string& col) const {
     auto& row = *iter_;
     DCHECK_LT(index->second, row.values.size());
     return row.values[index->second];
+}
+
+StatusOr<std::size_t> PropIter::getColumnIndex(const std::string& col) const {
+    auto index = dsIndex_.colIndices.find(col);
+    if (index == dsIndex_.colIndices.end()) {
+        return Status::Error("Don't exist column `%s'.", col.c_str());
+    }
+    return index->second;
 }
 
 const Value& PropIter::getProp(const std::string& name, const std::string& prop) const {
