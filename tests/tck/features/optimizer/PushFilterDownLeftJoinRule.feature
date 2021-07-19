@@ -23,25 +23,28 @@ Feature: Push Filter down LeftJoin rule
       | "Tim Duncan"   |
     And the execution plan should be:
       | id | name               | dependencies | operator info |
-      | 24 | Project            | 23           |               |
-      | 23 | Filter             | 22           |               |
-      | 22 | InnerJoin          | 21           |               |
-      | 21 | LeftJoin           | 20           |               |
-      | 20 | Project            | 19           |               |
-      | 19 | GetVertices        | 18           |               |
-      | 18 | Project            | 31           |               |
-      | 31 | GetNeighbors       | 14           |               |
-      | 14 | Project            | 13           |               |
-      | 13 | Filter             | 12           |               |
-      | 12 | InnerJoin          | 11           |               |
-      | 11 | LeftJoin           | 10           |               |
+      | 26 | Project            | 25           |               |
+      | 25 | Filter             | 24           |               |
+      | 24 | InnerJoin          | 22,23        |               |
+      | 22 | LeftJoin           | 19,21        |               |
+      | 19 | Project            | 32           |               |
+      | 32 | GetNeighbors       | 15           |               |
+      | 15 | Project            | 14           |               |
+      | 14 | Filter             | 13           |               |
+      | 13 | InnerJoin          | 11,12        |               |
+      | 11 | LeftJoin           | 8,10         |               |
+      | 8  | Project            | 31           |               |
+      | 31 | GetNeighbors       | 4            |               |
+      | 4  | Project            | 3            |               |
+      | 3  | Project            | 27           |               |
+      | 27 | TagIndexPrefixScan | 0            |               |
+      | 0  | Start              |              |               |
       | 10 | Project            | 9            |               |
       | 9  | GetVertices        | 8            |               |
-      | 8  | Project            | 30           |               |
-      | 30 | GetNeighbors       | 27           |               |
-      | 27 | Project            | 25           |               |
-      | 25 | TagIndexPrefixScan | 0            |               |
-      | 0  | Start              |              |               |
+      | 12 | Start              |              |               |
+      | 21 | Project            | 20           |               |
+      | 20 | GetVertices        | 19           |               |
+      | 23 | Start              |              |               |
     When profiling query:
       """
       GO FROM "Tony Parker" OVER like
@@ -54,13 +57,14 @@ Feature: Push Filter down LeftJoin rule
       | "Manu Ginobili"     | 95       | 41  |
       | "Tim Duncan"        | 95       | 42  |
     And the execution plan should be:
-      | id | name         | dependencies | operator info                               |
-      | 7  | Project      | 6            |                                             |
-      | 6  | Filter       | 5            | {"condition" : "($__COL_0>=32)"}            |
-      | 5  | LeftJoin     | 8            |                                             |
-      | 8  | Filter       | 4            | {"condition" : "($__Project_2.__COL_1>85)"} |
-      | 4  | Project      | 3            |                                             |
-      | 3  | GetVertices  | 2            |                                             |
-      | 2  | Project      | 1            |                                             |
-      | 1  | GetNeighbors | 0            |                                             |
-      | 0  | Start        |              |                                             |
+      | id | name         | dependencies | operator info |
+      | 7  | Project      | 10           |               |
+      | 10 | Filter       | 9            |               |
+      | 9  | LeftJoin     | 12,4         |               |
+      | 12 | Project      | 11           |               |
+      | 11 | Filter       | 1            |               |
+      | 1  | GetNeighbors | 0            |               |
+      | 0  | Start        |              |               |
+      | 4  | Project      | 3            |               |
+      | 3  | GetVertices  | 2            |               |
+      | 2  | Project      | 1            |               |

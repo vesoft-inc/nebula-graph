@@ -41,6 +41,8 @@ struct MatchedResult {
     // {0, 1, 0}    | this->dependencies[1].dependencies[0]
     // {0, 1, 0, 1} | this->dependencies[1].dependencies[0].dependencies[1]
     const graph::PlanNode *planNode(const std::vector<int32_t> &pos = {}) const;
+
+    std::string toString() const;
 };
 
 class Pattern final {
@@ -48,6 +50,8 @@ public:
     static Pattern create(graph::PlanNode::Kind kind, std::initializer_list<Pattern> patterns = {});
 
     StatusOr<MatchedResult> match(const OptGroupNode *groupNode) const;
+
+    std::string toString() const;
 
 private:
     Pattern() = default;

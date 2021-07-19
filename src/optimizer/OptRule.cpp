@@ -32,6 +32,28 @@ const PlanNode *MatchedResult::planNode(const std::vector<int32_t> &pos) const {
     return DCHECK_NOTNULL(result->node)->node();
 }
 
+std::string MatchedResult::toString() const {
+    std::stringstream ss;
+    std::queue<const MatchedResult*> queue;
+    std::unordered_set<const MatchedResult*> visited;
+    queue.emplace(this);
+
+    while (!queue.empty()) {
+        auto* n = queue.front();
+        queue.pop();
+        visited.emplace(n);
+        ss << n->node->node()->outputVar() << ",";
+
+        for (auto& dep : n->dependencies) {
+            queue.emplace(&dep);
+        }
+    }
+
+    auto ret = ss.str();
+    ret.pop_back();
+    return ret;
+}
+
 Pattern Pattern::create(graph::PlanNode::Kind kind, std::initializer_list<Pattern> patterns) {
     Pattern pattern;
     pattern.kind_ = kind;
@@ -77,7 +99,30 @@ StatusOr<MatchedResult> Pattern::match(const OptGroup *group) const {
     return Status::Error();
 }
 
+std::string Pattern::toString() const {
+    std::stringstream ss;
+    std::queue<const Pattern*> queue;
+    std::unordered_set<const Pattern*> visited;
+    queue.emplace(this);
+    while (!queue.empty()) {
+        auto& p = queue.front();
+        queue.pop();
+        visited.emplace(p);
+
+        ss << p->kind_ << ",";
+        for (auto& pattern : p->dependencies_) {
+            queue.emplace(&pattern);
+        }
+    }
+
+    auto ret = ss.str();
+    ret.pop_back();
+    return ss.str();
+}
+
 StatusOr<MatchedResult> OptRule::match(OptContext *ctx, const OptGroupNode *groupNode) const {
+    VLOG(1) << "Apply rule: " + this->toString()
+        << " to node: " << groupNode->node()->outputVar();
     const auto &pattern = this->pattern();
     auto status = pattern.match(groupNode);
     NG_RETURN_IF_ERROR(status);
@@ -85,6 +130,9 @@ StatusOr<MatchedResult> OptRule::match(OptContext *ctx, const OptGroupNode *grou
     if (!this->match(ctx, matched)) {
         return Status::Error();
     }
+    VLOG(1) << "Hit rule: " + this->toString()
+        << " pattern: " << pattern.toString()
+        << " subtree of plan: " << matched.toString();
     return matched;
 }
 

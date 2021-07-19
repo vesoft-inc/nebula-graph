@@ -83,18 +83,18 @@ Feature: Match index selection
       | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
     And the execution plan should be:
       | id | name         | dependencies | operator info                                                                                        |
-      | 16 | Project      | 19           |                                                                                                      |
-      | 19 | Filter       | 13           | { "condition": "((($v.name<=\"Aron Baynes\") OR ($n.age>45)) AND !(hasSameEdgeInPath($-.__COL_0)))"} |
+      | 16 | Project      | 18           |                                                                                                      |
+      | 18 | Filter       | 13           | { "condition": "((($v.name<=\"Aron Baynes\") OR ($n.age>45)) AND !(hasSameEdgeInPath($-.__COL_0)))"} |
       | 13 | Project      | 12           |                                                                                                      |
-      | 12 | InnerJoin    | 11           |                                                                                                      |
-      | 11 | Project      | 21           |                                                                                                      |
-      | 21 | GetVertices  | 7            |                                                                                                      |
+      | 12 | InnerJoin    | 7, 11        |                                                                                                      |
       | 7  | Filter       | 6            |                                                                                                      |
       | 6  | Project      | 5            |                                                                                                      |
-      | 5  | Filter       | 23           |                                                                                                      |
-      | 23 | GetNeighbors | 17           |                                                                                                      |
-      | 17 | IndexScan    | 0            |                                                                                                      |
+      | 5  | Filter       | 22           |                                                                                                      |
+      | 22 | GetNeighbors | 1            |                                                                                                      |
+      | 1  | IndexScan    | 0            |                                                                                                      |
       | 0  | Start        |              |                                                                                                      |
+      | 11 | Project      | 20           |                                                                                                      |
+      | 20 | GetVertices  | 7            |                                                                                                      |
     # This is actually the optimization for another optRule,
     # but it is necessary to ensure that the current optimization does not destroy this scenario
     # and it can be considered in the subsequent refactoring
@@ -114,15 +114,15 @@ Feature: Match index selection
       | 81    |
     And the execution plan should be:
       | id | name         | dependencies | operator info |
-      | 16 | Aggregate    | 18           |               |
-      | 18 | Filter       | 13           |               |
+      | 16 | Aggregate    | 17           |               |
+      | 17 | Filter       | 13           |               |
       | 13 | Project      | 12           |               |
-      | 12 | InnerJoin    | 11           |               |
-      | 11 | Project      | 20           |               |
-      | 20 | GetVertices  | 7            |               |
+      | 12 | InnerJoin    | 7, 11        |               |
       | 7  | Filter       | 6            |               |
       | 6  | Project      | 5            |               |
-      | 5  | Filter       | 22           |               |
-      | 22 | GetNeighbors | 17           |               |
-      | 17 | IndexScan    | 0            |               |
+      | 5  | Filter       | 21           |               |
+      | 21 | GetNeighbors | 1            |               |
+      | 1  | IndexScan    | 0            |               |
       | 0  | Start        |              |               |
+      | 11 | Project      | 19           |               |
+      | 19 | GetVertices  | 7            |               |

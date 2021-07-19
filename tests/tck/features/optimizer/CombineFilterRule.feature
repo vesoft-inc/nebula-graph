@@ -21,15 +21,15 @@ Feature: combine filters
       | ("Jason Kidd" :player{age: 45, name: "Jason Kidd"})     | ("Steve Nash" :player{age: 45, name: "Steve Nash"}) |
     And the execution plan should be:
       | id | name         | dependencies | operator info                                                                       |
-      | 16 | Project      | 18           |                                                                                     |
-      | 18 | Filter       | 13           | {"condition": "(($v.age>40) AND ($n.age>42) AND !(hasSameEdgeInPath($-.__COL_0)))"} |
+      | 16 | Project      | 19           |                                                                                     |
+      | 19 | Filter       | 13           | {"condition": "(($v.age>40) AND ($n.age>42) AND !(hasSameEdgeInPath($-.__COL_0)))"} |
       | 13 | Project      | 12           |                                                                                     |
-      | 12 | InnerJoin    | 11           |                                                                                     |
-      | 11 | Project      | 20           |                                                                                     |
-      | 20 | GetVertices  | 7            |                                                                                     |
+      | 12 | InnerJoin    | 7, 11        |                                                                                     |
       | 7  | Filter       | 6            |                                                                                     |
       | 6  | Project      | 5            |                                                                                     |
-      | 5  | Filter       | 22           |                                                                                     |
-      | 22 | GetNeighbors | 17           |                                                                                     |
+      | 5  | Filter       | 23           |                                                                                     |
+      | 23 | GetNeighbors | 17           |                                                                                     |
       | 17 | IndexScan    | 0            |                                                                                     |
       | 0  | Start        |              |                                                                                     |
+      | 11 | Project      | 21           |                                                                                     |
+      | 21 | GetVertices  | 7            |                                                                                     |

@@ -19,24 +19,24 @@ Feature: merge get neighbors, dedup and project rule
       | "Tony Parker"   |
       | "Tim Duncan"    |
     And the execution plan should be:
-      | id | name               | dependencies | operator info                                       |
-      | 0  | Project            | 1            |                                                     |
-      | 1  | Filter             | 2            |                                                     |
-      | 2  | Project            | 3            |                                                     |
-      | 3  | InnerJoin          | 4            |                                                     |
-      | 4  | Project            | 5            |                                                     |
-      | 5  | GetVertices        | 6            | {"dedup": "true"}                                   |
-      | 6  | Filter             | 7            |                                                     |
-      | 7  | UnionAllVersionVar | 8            |                                                     |
-      | 8  | Loop               | 15           | {"loopBody": "9"}                                   |
-      | 9  | Filter             | 10           |                                                     |
-      | 10 | Project            | 11           |                                                     |
-      | 11 | InnerJoin          | 12           | {"inputVar": {"rightVar":{"__Project_11":"0"}}}     |
-      | 12 | Project            | 13           |                                                     |
-      | 13 | GetNeighbors       | 14           | {"dedup": "true"}                                   |
-      | 14 | Start              |              |                                                     |
-      | 15 | Project            | 16           |                                                     |
-      | 16 | Filter             | 17           |                                                     |
-      | 17 | GetVertices        | 18           | {"dedup": "true"}                                   |
-      | 18 | IndexScan          | 19           | {"indexCtx": {"columnHints":{"scanType":"PREFIX"}}} |
-      | 19 | Start              |              |                                                     |
+      | id | name               | dependencies | operator info      |
+      | 25 | Project            | 24           |                    |
+      | 24 | Filter             | 23           |                    |
+      | 23 | Project            | 22           |                    |
+      | 22 | InnerJoin          | 17,21        |                    |
+      | 17 | Filter             | 16           |                    |
+      | 16 | UnionAllVersionVar | 15           |                    |
+      | 15 | Loop               | 6            | {"loopBody": "14"} |
+      | 14 | Filter             | 13           |                    |
+      | 13 | Project            | 12           |                    |
+      | 12 | InnerJoin          | 7,11         |                    |
+      | 7  | Start              |              |                    |
+      | 11 | Project            | 32           |                    |
+      | 32 | GetNeighbors       | 7            | {"dedup": "true"}  |
+      | 6  | Project            | 5            |                    |
+      | 5  | Filter             | 29           |                    |
+      | 29 | GetVertices        | 26           | {"dedup": "true"}  |
+      | 26 | IndexScan          | 0            |                    |
+      | 0  | Start              |              |                    |
+      | 21 | Project            | 30           |                    |
+      | 30 | GetVertices        | 17           | {"dedup": "true"}  |
