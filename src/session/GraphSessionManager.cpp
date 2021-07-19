@@ -20,11 +20,6 @@ GraphSessionManager::GraphSessionManager(meta::MetaClient* metaClient, const Hos
 
 folly::Future<StatusOr<std::shared_ptr<ClientSession>>>
 GraphSessionManager::findSession(SessionID id, folly::Executor* runner) {
-    // When the sessionId is 0, it means the clients to ping the connection is ok
-    if (id == 0) {
-        return folly::makeFuture(Status::Error("SessionId is invalid")).via(runner);
-    }
-
     auto sessionPtr = findSessionFromCache(id);
     if (sessionPtr != nullptr) {
         return folly::makeFuture(sessionPtr).via(runner);
@@ -222,11 +217,11 @@ void GraphSessionManager::updateSessionsToMeta() {
         auto& killedQueriesForEachSession = *resp.value().killed_queries_ref();
         for (auto& killedQueries : killedQueriesForEachSession) {
             auto sessionId = killedQueries.first;
+            auto session = activeSessions_.find(sessionId);
+            if (session == activeSessions_.end()) {
+                continue;
+            }
             for (auto& desc : killedQueries.second) {
-                auto session = activeSessions_.find(sessionId);
-                if (session == activeSessions_.end()) {
-                    continue;
-                }
                 if (desc.second.get_graph_addr() !=
                     session->second->getGraphAddr()) {
                     continue;

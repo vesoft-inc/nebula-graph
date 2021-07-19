@@ -181,7 +181,13 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kUnwind: {
             return pool->add(new UnwindExecutor(node, qctx));
         }
-        case PlanNode::Kind::kIndexScan: {
+        case PlanNode::Kind::kIndexScan:
+        case PlanNode::Kind::kEdgeIndexFullScan:
+        case PlanNode::Kind::kEdgeIndexPrefixScan:
+        case PlanNode::Kind::kEdgeIndexRangeScan:
+        case PlanNode::Kind::kTagIndexFullScan:
+        case PlanNode::Kind::kTagIndexPrefixScan:
+        case PlanNode::Kind::kTagIndexRangeScan: {
             return pool->add(new IndexScanExecutor(node, qctx));
         }
         case PlanNode::Kind::kStart: {
@@ -577,6 +583,7 @@ void Executor::drop() {
         if (inputVar != nullptr) {
             if (inputVar->lastUser.value() == node()->id()) {
                     ectx_->dropResult(inputVar->name);
+                    VLOG(1) << "Drop variable " << node()->outputVar();
             }
         }
     }
@@ -586,6 +593,8 @@ Status Executor::finish(Result &&result) {
     if (!FLAGS_enable_lifetime_optimize || node()->outputVarPtr()->lastUser.hasValue()) {
         numRows_ = result.size();
         ectx_->setResult(node()->outputVar(), std::move(result));
+    } else {
+        VLOG(1) << "Drop variable " << node()->outputVar();
     }
     if (FLAGS_enable_lifetime_optimize) {
         drop();
