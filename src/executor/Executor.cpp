@@ -96,9 +96,9 @@
 #include "service/GraphFlags.h"
 #include "util/ScopedTimer.h"
 
-using folly::stringPrintf;
+DECLARE_bool(enable_lifetime_optimize);
 
-DEFINE_bool(enable_lifetime_optimize, true, "Does enable the lifetime optimize.");
+using folly::stringPrintf;
 
 namespace nebula {
 namespace graph {

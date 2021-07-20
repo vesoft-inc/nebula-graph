@@ -18,6 +18,7 @@ struct PlanNodeDescription;
 namespace graph {
 
 class PlanNode;
+class QueryContext;
 
 class ExecutionPlan final {
 public:
@@ -48,10 +49,14 @@ public:
         explainFormat_ = format;
     }
 
+    void analyze(QueryContext* qctx) const;
+
 private:
     uint64_t makePlanNodeDesc(const PlanNode* node);
     void descBranchInfo(const PlanNode* node, bool isDoBranch, int64_t id);
     void setPlanNodeDeps(const PlanNode* dep, PlanNodeDescription* planNodeDesc) const;
+    void analyzeLifetime(QueryContext* qctx, const PlanNode* node, bool inLoop = false) const;
+    void needMultipleVersionsForInputNodes(QueryContext* qctx, const std::string& var) const;
 
     int32_t optimizeTimeInUs_{0};
     int64_t id_{-1};

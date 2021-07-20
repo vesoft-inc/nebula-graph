@@ -25,11 +25,7 @@ public:
 
     virtual folly::Future<Status> schedule() = 0;
 
-    void analyzeLifetime(const PlanNode *node, bool inLoop = false) const;
-
 protected:
-    void needMultipleVersionsForInputNodes(const std::string &var) const;
-
     QueryContext *qctx_{nullptr};
 };
 

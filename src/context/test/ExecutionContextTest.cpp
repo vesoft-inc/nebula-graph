@@ -14,18 +14,18 @@ namespace graph {
 
 TEST(ExecutionContext, ReadWriteTest) {
     ExecutionContext ctx;
-    ctx.setValue("v1", 10);
-    ctx.setValue("v2", "Hello world");
+    ctx.appendValue("v1", 10);
+    ctx.appendValue("v2", "Hello world");
     EXPECT_EQ(Value(10), ctx.getValue("v1"));
     EXPECT_EQ(Value("Hello world"), ctx.getValue("v2"));
 }
 
 TEST(ExecutionContext, HistoryTest) {
     ExecutionContext ctx;
-    ctx.setValue("v1", 10);
-    ctx.setValue("v1", "Hello world");
-    ctx.setValue("v1", 3.14);
-    ctx.setValue("v1", true);
+    ctx.appendValue("v1", 10);
+    ctx.appendValue("v1", "Hello world");
+    ctx.appendValue("v1", 3.14);
+    ctx.appendValue("v1", true);
 
     ASSERT_EQ(4, ctx.numVersions("v1"));
     const auto& hist1 = ctx.getHistory("v1");

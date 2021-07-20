@@ -9,8 +9,6 @@
 #include "context/QueryContext.h"
 #include "planner/plan/PlanNode.h"
 
-DECLARE_bool(enable_lifetime_optimize);
-
 namespace nebula {
 namespace graph {
 
@@ -18,10 +16,6 @@ AsyncMsgNotifyBasedScheduler::AsyncMsgNotifyBasedScheduler(QueryContext* qctx) :
 
 folly::Future<Status> AsyncMsgNotifyBasedScheduler::schedule() {
     auto root = qctx_->plan()->root();
-    if (FLAGS_enable_lifetime_optimize) {
-        root->outputVarPtr()->setLastUser(-1);  // special for root
-        analyzeLifetime(root);
-    }
     auto executor = Executor::create(root, qctx_);
     return doSchedule(executor);
 }

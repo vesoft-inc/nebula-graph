@@ -13,6 +13,8 @@
 #include "planner/plan/Query.h"
 #include "util/IdGenerator.h"
 
+DECLARE_bool(enable_lifetime_optimize);
+
 namespace nebula {
 namespace graph {
 
@@ -83,6 +85,81 @@ void ExecutionPlan::addProfileStats(int64_t planNodeId, ProfilingStats&& profili
     auto idx = found->second;
     auto& planNodeDesc = planDescription_->planNodeDescs[idx];
     planNodeDesc.profiles->emplace_back(std::move(profilingStats));
+}
+
+void ExecutionPlan::analyze(QueryContext* qctx) const {
+    // TODO(yee): remove this flag
+    if (FLAGS_enable_lifetime_optimize) {
+        root_->outputVarPtr()->setLastUser(-1);   // special for root
+        analyzeLifetime(qctx, root_);
+    }
+}
+
+void ExecutionPlan::analyzeLifetime(QueryContext* qctx, const PlanNode* root, bool inLoop) const {
+    std::stack<std::tuple<const PlanNode*, bool>> stack;
+    stack.push(std::make_tuple(root, inLoop));
+    while (!stack.empty()) {
+        const auto& current = stack.top();
+        auto currentNode = std::get<0>(current);
+        auto currentInLoop = std::get<1>(current);
+        for (auto& inputVar : currentNode->inputVars()) {
+            if (inputVar != nullptr) {
+                auto isLoopOrBody = currentNode->kind() == PlanNode::Kind::kLoop || currentInLoop;
+                inputVar->setLastUser(isLoopOrBody ? -1 : currentNode->id());
+            }
+        }
+        stack.pop();
+
+        for (auto dep : currentNode->dependencies()) {
+            stack.push(std::make_tuple(dep, currentInLoop));
+        }
+        switch (currentNode->kind()) {
+            case PlanNode::Kind::kSelect: {
+                auto sel = static_cast<const Select*>(currentNode);
+                stack.push(std::make_tuple(sel->then(), currentInLoop));
+                stack.push(std::make_tuple(sel->otherwise(), currentInLoop));
+                break;
+            }
+            case PlanNode::Kind::kLoop: {
+                auto loop = static_cast<const Loop*>(currentNode);
+                loop->outputVarPtr()->setLastUser(-1);
+                stack.push(std::make_tuple(loop->body(), true));
+                break;
+            }
+            case PlanNode::Kind::kInnerJoin:
+            case PlanNode::Kind::kLeftJoin: {
+                auto join = static_cast<const Join*>(currentNode);
+                auto leftVerVar = join->leftVar();
+                if (leftVerVar.second != ExecutionContext::kLatestVersion) {
+                    needMultipleVersionsForInputNodes(qctx, leftVerVar.first);
+                }
+                auto rightVerVar = join->rightVar();
+                if (rightVerVar.second != ExecutionContext::kLatestVersion) {
+                    needMultipleVersionsForInputNodes(qctx, rightVerVar.first);
+                }
+                break;
+            }
+            case PlanNode::Kind::kConjunctPath:
+            case PlanNode::Kind::kUnionAllVersionVar:
+            case PlanNode::Kind::kDataCollect: {
+                for (auto var : currentNode->inputVars()) {
+                    needMultipleVersionsForInputNodes(qctx, var->name);
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+}
+
+void ExecutionPlan::needMultipleVersionsForInputNodes(QueryContext* qctx,
+                                                      const std::string& var) const {
+    auto symTbl = qctx->symTable();
+    auto variable = DCHECK_NOTNULL(symTbl->getVar(var));
+    for (auto w : variable->writtenBy) {
+        w->setInPlaceUpdate(false);
+    }
 }
 
 }   // namespace graph
