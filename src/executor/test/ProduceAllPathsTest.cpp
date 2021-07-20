@@ -232,6 +232,7 @@ TEST_F(ProduceAllPathsTest, AllPath) {
     auto* allPathsNode = ProduceAllPaths::make(qctx_.get(), nullptr);
     allPathsNode->setInputVar("input");
     allPathsNode->setColNames({kDst, "_paths"});
+    allPathsNode->setInPlaceUpdate(false);
 
     auto allPathsExe = std::make_unique<ProduceAllPathsExecutor>(allPathsNode, qctx_.get());
 
@@ -456,6 +457,7 @@ TEST_F(ProduceAllPathsTest, EmptyInput) {
     auto* allPathsNode = ProduceAllPaths::make(qctx_.get(), nullptr);
     allPathsNode->setInputVar("empty_get_neighbors");
     allPathsNode->setColNames({kDst, "_paths"});
+    allPathsNode->setInPlaceUpdate(false);
 
     auto allPathsExe = std::make_unique<ProduceAllPathsExecutor>(allPathsNode, qctx_.get());
     auto future = allPathsExe->execute();

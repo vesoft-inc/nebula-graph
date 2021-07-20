@@ -225,6 +225,7 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
     auto* pssp = ProduceSemiShortestPath::make(qctx_.get(), nullptr);
     pssp->setInputVar("input");
     pssp->setColNames({"_dst", "_src", "cost", "paths"});
+    pssp->setInPlaceUpdate(false);
 
     auto psspExe = std::make_unique<ProduceSemiShortestPathExecutor>(pssp, qctx_.get());
     // Step 1
@@ -493,6 +494,7 @@ TEST_F(ProduceSemiShortestPathTest, EmptyInput) {
     auto* pssp = ProduceSemiShortestPath::make(qctx_.get(), nullptr);
     pssp->setInputVar("empty_get_neighbors");
     pssp->setColNames({"_dst", "_src", "cost", "paths"});
+    pssp->setInPlaceUpdate(false);
 
     auto psspExe = std::make_unique<ProduceSemiShortestPathExecutor>(pssp, qctx_.get());
     auto future = psspExe->execute();

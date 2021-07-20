@@ -267,7 +267,7 @@ public:
         return inPlaceUpdate_;
     }
 
-    void setInPlaceUpdate(bool update = true) {
+    void setInPlaceUpdate(bool update) {
         inPlaceUpdate_ = update;
     }
 
