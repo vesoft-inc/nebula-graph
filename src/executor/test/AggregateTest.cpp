@@ -60,7 +60,7 @@ protected:
         ds.rows.emplace_back(std::move(row));
 
         qctx_->symTable()->newVariable(*input_);
-        qctx_->ectx()->setResult(*input_, ResultBuilder().value(Value(ds)).finish());
+        qctx_->ectx()->appendResult(*input_, ResultBuilder().value(Value(ds)).finish());
     }
 
 protected:

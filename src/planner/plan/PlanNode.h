@@ -263,6 +263,14 @@ public:
         return inputVars_;
     }
 
+    bool isInPlaceUpdate() const {
+        return inPlaceUpdate_;
+    }
+
+    void setInPlaceUpdate(bool update = true) {
+        inPlaceUpdate_ = update;
+    }
+
     void releaseSymbols();
 
     static const char* toString(Kind kind);
@@ -287,8 +295,9 @@ protected:
         outputVars_ = node.outputVars_;
     }
 
-    QueryContext*                            qctx_{nullptr};
+    bool                                     inPlaceUpdate_{true};
     Kind                                     kind_{Kind::kUnknown};
+    QueryContext*                            qctx_{nullptr};
     int64_t                                  id_{-1};
     double                                   cost_{0.0};
     std::vector<const PlanNode*>             dependencies_;

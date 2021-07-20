@@ -33,7 +33,7 @@ protected:
             ResultBuilder builder;
             builder.value(Value(std::move(ds)));
             qctx_->symTable()->newVariable("input_project");
-            qctx_->ectx()->setResult("input_project", builder.finish());
+            qctx_->ectx()->appendResult("input_project", builder.finish());
         }
         {
             DataSet ds;
@@ -41,7 +41,7 @@ protected:
             ResultBuilder builder;
             builder.value(Value(std::move(ds)));
             qctx_->symTable()->newVariable("empty");
-            qctx_->ectx()->setResult("empty", builder.finish());
+            qctx_->ectx()->appendResult("empty", builder.finish());
         }
     }
 

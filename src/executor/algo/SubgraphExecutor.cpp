@@ -71,7 +71,7 @@ void SubgraphExecutor::oneMoreStep() {
     }
     iter->reset();
     builder.iter(std::move(iter));
-    ectx_->setResult(output, builder.finish());
+    ectx_->appendResult(output, builder.finish());
 }
 
 }   // namespace graph

@@ -210,7 +210,7 @@ protected:
                             "_edge:+edge1:prop1:prop2:_dst:_rank",
                             "_expr"};
                 qctx_->symTable()->newVariable("empty_get_neighbors");
-                qctx_->ectx()->setResult("empty_get_neighbors",
+                qctx_->ectx()->appendResult("empty_get_neighbors",
                                         ResultBuilder()
                                             .value(Value(std::move(ds)))
                                             .iter(Iterator::Kind::kGetNeighbors)
@@ -241,7 +241,7 @@ TEST_F(ProduceAllPathsTest, AllPath) {
         List datasets;
         datasets.values.emplace_back(std::move(firstStepResult_));
         builder.value(std::move(datasets)).iter(Iterator::Kind::kGetNeighbors);
-        qctx_->ectx()->setResult("input", builder.finish());
+        qctx_->ectx()->appendResult("input", builder.finish());
 
         auto future = allPathsExe->execute();
         auto status = std::move(future).get();
@@ -322,7 +322,7 @@ TEST_F(ProduceAllPathsTest, AllPath) {
         List datasets;
         datasets.values.emplace_back(std::move(secondStepResult_));
         builder.value(std::move(datasets)).iter(Iterator::Kind::kGetNeighbors);
-        qctx_->ectx()->setResult("input", builder.finish());
+        qctx_->ectx()->appendResult("input", builder.finish());
 
         auto future = allPathsExe->execute();
         auto status = std::move(future).get();
@@ -412,7 +412,7 @@ TEST_F(ProduceAllPathsTest, AllPath) {
         List datasets;
         datasets.values.emplace_back(std::move(thridStepResult_));
         builder.value(std::move(datasets)).iter(Iterator::Kind::kGetNeighbors);
-        qctx_->ectx()->setResult("input", builder.finish());
+        qctx_->ectx()->appendResult("input", builder.finish());
 
         auto future = allPathsExe->execute();
         auto status = std::move(future).get();

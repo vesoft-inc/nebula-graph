@@ -78,7 +78,7 @@ protected:
                               .iter(Iterator::Kind::kGetNeighbors)
                               .finish();
             qctx_->symTable()->newVariable("input_neighbor");
-            qctx_->ectx()->setResult("input_neighbor", std::move(result));
+            qctx_->ectx()->appendResult("input_neighbor", std::move(result));
         }
         // sequential
         {
@@ -90,7 +90,7 @@ protected:
             dataset.emplace_back(Row({"Ann", "Ann", 18, "School1", 2010, 2014}));
             dataset.emplace_back(Row({"Lily", "Lily", 20, "School2", 2009, 2012}));
             qctx_->symTable()->newVariable("input_sequential");
-            qctx_->ectx()->setResult("input_sequential",
+            qctx_->ectx()->appendResult("input_sequential",
                                      ResultBuilder().value(Value(dataset)).finish());
         }
         // sequential init by two sequentialIters
@@ -101,13 +101,13 @@ protected:
             lds.emplace_back(Row({"Tom", "Tom", 20, "School2", 2008, 2012}));
             lds.emplace_back(Row({"Kate", "Kate", 19, "School2", 2009, 2013}));
             qctx_->symTable()->newVariable("left_neighbor");
-            qctx_->ectx()->setResult("left_sequential",
+            qctx_->ectx()->appendResult("left_sequential",
                                      ResultBuilder().value(Value(lds)).finish());
 
             DataSet rds({"vid", "v_name", "v_age", "v_dst", "e_start_year", "e_end_year"});
             rds.emplace_back(Row({"Ann", "Ann", 18, "School1", 2010, 2014}));
             rds.emplace_back(Row({"Lily", "Lily", 20, "School2", 2009, 2012}));
-            qctx_->ectx()->setResult("right_sequential",
+            qctx_->ectx()->appendResult("right_sequential",
                                      ResultBuilder().value(Value(rds)).finish());
 
             auto lIter = qctx_->ectx()->getResult("left_sequential").iter();
@@ -116,14 +116,14 @@ protected:
             builder.value(lIter->valuePtr())
                 .iter(std::make_unique<SequentialIter>(std::move(lIter), std::move(rIter)));
             qctx_->symTable()->newVariable("union_sequential");
-            qctx_->ectx()->setResult("union_sequential", builder.finish());
+            qctx_->ectx()->appendResult("union_sequential", builder.finish());
         }
         // empty
         {
             DataSet dataset({kVid, "_stats", "_tag:person:name:age",
                              "_edge:+study:_dst:start_year:end_year", "_expr"});
             qctx_->symTable()->newVariable("empty");
-            qctx_->ectx()->setResult("empty",
+            qctx_->ectx()->appendResult("empty",
                                      ResultBuilder().value(Value(dataset)).finish());
         }
     }

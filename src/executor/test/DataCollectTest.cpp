@@ -91,8 +91,8 @@ protected:
             ResultBuilder builder;
             builder.value(Value(std::move(datasets))).iter(Iterator::Kind::kGetNeighbors);
             qctx_->symTable()->newVariable("input_datasets");
-            qctx_->ectx()->setResult("input_datasets", builder.finish());
-            qctx_->ectx()->setResult("input_datasets",
+            qctx_->ectx()->appendResult("input_datasets", builder.finish());
+            qctx_->ectx()->appendResult("input_datasets",
                                      ResultBuilder()
                                          .value(Value(std::move(ds2)))
                                          .iter(Iterator::Kind::kGetNeighbors)
@@ -108,7 +108,7 @@ protected:
                 ds.rows.emplace_back(std::move(row));
             }
             qctx_->symTable()->newVariable("input_sequential");
-            qctx_->ectx()->setResult("input_sequential",
+            qctx_->ectx()->appendResult("input_sequential",
                                      ResultBuilder().value(Value(std::move(ds))).finish());
         }
         {
@@ -119,12 +119,12 @@ protected:
                             "_edge:+edge1:prop1:prop2:_dst:_rank",
                             "_expr"};
             qctx_->symTable()->newVariable("empty_get_neighbors");
-            qctx_->ectx()->setResult("empty_get_neighbors",
+            qctx_->ectx()->appendResult("empty_get_neighbors",
                                      ResultBuilder()
                                          .value(Value(ds))
                                          .iter(Iterator::Kind::kGetNeighbors)
                                          .finish());
-            qctx_->ectx()->setResult("empty_get_neighbors",
+            qctx_->ectx()->appendResult("empty_get_neighbors",
                                      ResultBuilder()
                                          .value(Value(std::move(ds)))
                                          .iter(Iterator::Kind::kGetNeighbors)
@@ -143,7 +143,7 @@ protected:
                 vertices.rows.emplace_back(std::move(row));
             }
             qctx_->symTable()->newVariable("vertices");
-            qctx_->ectx()->setResult("vertices",
+            qctx_->ectx()->appendResult("vertices",
                                      ResultBuilder()
                                          .value(Value(std::move(vertices)))
                                          .iter(Iterator::Kind::kProp)
@@ -159,7 +159,7 @@ protected:
             edge.values.emplace_back(90);
             edges.rows.emplace_back(std::move(edge));
             qctx_->symTable()->newVariable("edges");
-            qctx_->ectx()->setResult("edges",
+            qctx_->ectx()->appendResult("edges",
                                      ResultBuilder()
                                          .value(Value(std::move(edges)))
                                          .iter(Iterator::Kind::kProp)
@@ -175,7 +175,7 @@ protected:
             row.values.emplace_back(std::move(path));
             paths.rows.emplace_back(std::move(row));
             qctx_->symTable()->newVariable("paths");
-            qctx_->ectx()->setResult("paths",
+            qctx_->ectx()->appendResult("paths",
                                      ResultBuilder().value(Value(std::move(paths))).finish());
         }
     }

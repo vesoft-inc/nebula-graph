@@ -34,7 +34,7 @@ protected:
                 ds.rows.emplace_back(std::move(row));
             }
             qctx_->symTable()->newVariable("var1");
-            qctx_->ectx()->setResult(
+            qctx_->ectx()->appendResult(
                 "var1",
                 ResultBuilder().value(Value(std::move(ds))).finish());
         }
@@ -48,7 +48,7 @@ protected:
                 ds.rows.emplace_back(std::move(row));
             }
             qctx_->symTable()->newVariable("var2");
-            qctx_->ectx()->setResult(
+            qctx_->ectx()->appendResult(
                 "var2", ResultBuilder().value(Value(std::move(ds))).finish());
         }
         {
@@ -58,14 +58,14 @@ protected:
             row.values.emplace_back("11");
             ds.rows.emplace_back(std::move(row));
             qctx_->symTable()->newVariable("var3");
-            qctx_->ectx()->setResult(
+            qctx_->ectx()->appendResult(
                 "var3", ResultBuilder().value(Value(std::move(ds))).finish());
         }
         {
             DataSet ds;
             ds.colNames = {kVid, "tag_prop", "edge_prop", kDst};
             qctx_->symTable()->newVariable("empty_var1");
-            qctx_->ectx()->setResult(
+            qctx_->ectx()->appendResult(
                 "empty_var1",
                 ResultBuilder().value(Value(std::move(ds))).finish());
         }
@@ -73,7 +73,7 @@ protected:
             DataSet ds;
             ds.colNames = {"src", "dst"};
             qctx_->symTable()->newVariable("empty_var2");
-            qctx_->ectx()->setResult(
+            qctx_->ectx()->appendResult(
                 "empty_var2",
                 ResultBuilder().value(Value(std::move(ds))).finish());
         }

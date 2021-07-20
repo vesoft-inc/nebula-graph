@@ -8,6 +8,7 @@
 
 namespace nebula {
 namespace graph {
+
 constexpr int64_t ExecutionContext::kLatestVersion;
 constexpr int64_t ExecutionContext::kOldestVersion;
 constexpr int64_t ExecutionContext::kPreviousOneVersion;
@@ -18,7 +19,22 @@ void ExecutionContext::setValue(const std::string& name, Value&& val) {
     setResult(name, builder.finish());
 }
 
+void ExecutionContext::appendValue(const std::string& name, Value&& val) {
+    ResultBuilder builder;
+    builder.value(std::move(val)).iter(Iterator::Kind::kDefault);
+    appendResult(name, builder.finish());
+}
+
 void ExecutionContext::setResult(const std::string& name, Result&& result) {
+    auto& hist = valueMap_[name];
+    if (hist.empty()) {
+        hist.emplace_back(std::move(result));
+    } else {
+        hist[0] = std::move(result);
+    }
+}
+
+void ExecutionContext::appendResult(const std::string& name, Result&& result) {
     auto& hist = valueMap_[name];
     hist.emplace_back(std::move(result));
 }

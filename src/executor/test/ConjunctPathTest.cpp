@@ -60,7 +60,7 @@ protected:
                     ds.rows.emplace_back(std::move(row));
                 }
             }
-            qctx_->ectx()->setResult("conditionalVar", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("conditionalVar", ResultBuilder().value(ds).finish());
         }
         {
             DataSet ds;
@@ -131,7 +131,7 @@ protected:
                 row.values.emplace_back(std::move(paths));
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("forwardPath1", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("forwardPath1", ResultBuilder().value(ds).finish());
         }
         {
             DataSet ds;
@@ -203,7 +203,7 @@ protected:
                 row.values.emplace_back(std::move(paths));
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("forwardPath2", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("forwardPath2", ResultBuilder().value(ds).finish());
         }
         {
             DataSet ds;
@@ -299,7 +299,7 @@ protected:
                 row.values.emplace_back(std::move(paths));
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("forwardPath3", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("forwardPath3", ResultBuilder().value(ds).finish());
         }
         // backward endVid {9, 12}
         {
@@ -315,7 +315,7 @@ protected:
                 row.values = {"12", Value::kEmpty, 0, Value::kEmpty};
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backwardPath1", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("backwardPath1", ResultBuilder().value(ds).finish());
 
             DataSet ds1;
             auto cost = 1;
@@ -346,8 +346,8 @@ protected:
                 row.values.emplace_back(std::move(paths));
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backwardPath1", ResultBuilder().value(ds1).finish());
-            qctx_->ectx()->setResult("backwardPath2", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("backwardPath1", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("backwardPath2", ResultBuilder().value(ds1).finish());
         }
         {
             DataSet ds;
@@ -379,8 +379,8 @@ protected:
                 row.values.emplace_back(std::move(paths));
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backwardPath2", ResultBuilder().value(ds).finish());
-            qctx_->ectx()->setResult("backwardPath3", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("backwardPath2", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("backwardPath3", ResultBuilder().value(ds).finish());
         }
         {
             DataSet ds;
@@ -413,7 +413,7 @@ protected:
                 row.values.emplace_back(std::move(paths));
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backwardPath3", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("backwardPath3", ResultBuilder().value(ds).finish());
         }
     }
     void biBfsInit() {
@@ -432,7 +432,7 @@ protected:
                 row.values = {"1", Value::kEmpty};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("forward1", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("forward1", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
             ds2.colNames = {kVid, kEdgeStr};
@@ -446,7 +446,7 @@ protected:
                 row.values = {"3", Edge("1", "3", 1, "edge1", 0, {})};
                 ds2.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("forward1", ResultBuilder().value(ds2).finish());
+            qctx_->ectx()->appendResult("forward1", ResultBuilder().value(ds2).finish());
         }
         {
             // 4
@@ -457,11 +457,11 @@ protected:
                 row.values = {"4", Value::kEmpty};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backward1", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("backward1", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
             ds2.colNames = {kVid, kEdgeStr};
-            qctx_->ectx()->setResult("backward1", ResultBuilder().value(ds2).finish());
+            qctx_->ectx()->appendResult("backward1", ResultBuilder().value(ds2).finish());
         }
         {
             // 2
@@ -472,11 +472,11 @@ protected:
                 row.values = {"2", Value::kEmpty};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backward2", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("backward2", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
             ds2.colNames = {kVid, kEdgeStr};
-            qctx_->ectx()->setResult("backward2", ResultBuilder().value(ds2).finish());
+            qctx_->ectx()->appendResult("backward2", ResultBuilder().value(ds2).finish());
         }
         {
             // 4->3
@@ -487,7 +487,7 @@ protected:
                 row.values = {"4", Value::kEmpty};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backward3", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("backward3", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
             ds2.colNames = {kVid, kEdgeStr};
@@ -496,7 +496,7 @@ protected:
                 row.values = {"3", Edge("4", "3", -1, "edge1", 0, {})};
                 ds2.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backward3", ResultBuilder().value(ds2).finish());
+            qctx_->ectx()->appendResult("backward3", ResultBuilder().value(ds2).finish());
         }
         {
             // 5->4
@@ -507,7 +507,7 @@ protected:
                 row.values = {"5", Value::kEmpty};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backward4", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("backward4", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
             ds2.colNames = {kVid, kEdgeStr};
@@ -516,7 +516,7 @@ protected:
                 row.values = {"4", Edge("5", "4", -1, "edge1", 0, {})};
                 ds2.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backward4", ResultBuilder().value(ds2).finish());
+            qctx_->ectx()->appendResult("backward4", ResultBuilder().value(ds2).finish());
         }
     }
 
@@ -547,7 +547,7 @@ protected:
                 row.values = {"3", std::move(paths)};
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("all_paths_forward1", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("all_paths_forward1", ResultBuilder().value(ds).finish());
         }
         {
             // 4->7
@@ -561,7 +561,7 @@ protected:
                 row.values = {"7", std::move(paths)};
                 ds2.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("all_paths_backward1", ResultBuilder().value(ds2).finish());
+            qctx_->ectx()->appendResult("all_paths_backward1", ResultBuilder().value(ds2).finish());
         }
         {
             // 2
@@ -576,7 +576,7 @@ protected:
                 row.values = {"2", std::move(paths)};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("all_paths_backward2", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("all_paths_backward2", ResultBuilder().value(ds1).finish());
 
             // 2->7
             DataSet ds2;
@@ -589,7 +589,7 @@ protected:
                 row.values = {"7", std::move(paths)};
                 ds2.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("all_paths_backward2", ResultBuilder().value(ds2).finish());
+            qctx_->ectx()->appendResult("all_paths_backward2", ResultBuilder().value(ds2).finish());
         }
         {
             // 4->3
@@ -603,7 +603,7 @@ protected:
                 row.values = {"3", std::move(paths)};
                 ds2.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("all_paths_backward3", ResultBuilder().value(ds2).finish());
+            qctx_->ectx()->appendResult("all_paths_backward3", ResultBuilder().value(ds2).finish());
         }
         {
             // 5->4
@@ -617,7 +617,7 @@ protected:
                 row.values = {"4", std::move(paths)};
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("all_paths_backward4", ResultBuilder().value(ds).finish());
+            qctx_->ectx()->appendResult("all_paths_backward4", ResultBuilder().value(ds).finish());
         }
     }
 
@@ -753,7 +753,7 @@ TEST_F(ConjunctPathTest, BiBFSThreeStepsPath) {
                 row.values = {"4", Edge("2", "4", 1, "edge1", 1, {})};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("forward1", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("forward1", ResultBuilder().value(ds1).finish());
         }
         {
             // 4->6@0
@@ -764,7 +764,7 @@ TEST_F(ConjunctPathTest, BiBFSThreeStepsPath) {
                 row.values = {"6", Edge("4", "6", -1, "edge1", 0, {})};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backward4", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("backward4", ResultBuilder().value(ds1).finish());
         }
         auto future = conjunctExe->execute();
         auto status = std::move(future).get();
@@ -835,7 +835,7 @@ TEST_F(ConjunctPathTest, BiBFSFourStepsPath) {
                 row.values = {"6", Edge("2", "6", 1, "edge1", 1, {})};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("forward1", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("forward1", ResultBuilder().value(ds1).finish());
         }
         {
             // 4->6@0
@@ -846,7 +846,7 @@ TEST_F(ConjunctPathTest, BiBFSFourStepsPath) {
                 row.values = {"6", Edge("4", "6", -1, "edge1", 0, {})};
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("backward4", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("backward4", ResultBuilder().value(ds1).finish());
         }
         auto future = conjunctExe->execute();
         auto status = std::move(future).get();
@@ -997,7 +997,7 @@ TEST_F(ConjunctPathTest, AllPathsThreeStepsPath) {
             }
             row.values = {"4", std::move(paths)};
             ds1.rows.emplace_back(std::move(row));
-            qctx_->ectx()->setResult("all_paths_forward1", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("all_paths_forward1", ResultBuilder().value(ds1).finish());
         }
         auto future = conjunctExe->execute();
         auto status = std::move(future).get();
@@ -1074,7 +1074,7 @@ TEST_F(ConjunctPathTest, AllPathsFourStepsPath) {
             }
             row.values = {"6", std::move(paths)};
             ds1.rows.emplace_back(std::move(row));
-            qctx_->ectx()->setResult("all_paths_forward1", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("all_paths_forward1", ResultBuilder().value(ds1).finish());
         }
         {
             // 5->4->6@0
@@ -1092,7 +1092,7 @@ TEST_F(ConjunctPathTest, AllPathsFourStepsPath) {
             }
             row.values = {"6", std::move(paths)};
             ds1.rows.emplace_back(std::move(row));
-            qctx_->ectx()->setResult("all_paths_backward4", ResultBuilder().value(ds1).finish());
+            qctx_->ectx()->appendResult("all_paths_backward4", ResultBuilder().value(ds1).finish());
         }
         auto future = conjunctExe->execute();
         auto status = std::move(future).get();

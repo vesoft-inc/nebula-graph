@@ -263,7 +263,7 @@ const Expression *FetchEdgesValidator::findInvalidYieldExpression(const Expressi
 std::string FetchEdgesValidator::buildConstantInput() {
     auto pool = qctx_->objPool();
     auto input = vctx_->anonVarGen()->getVar();
-    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(edgeKeys_))).finish());
+    qctx_->ectx()->appendResult(input, ResultBuilder().value(Value(std::move(edgeKeys_))).finish());
 
     src_ = VariablePropertyExpression::make(pool, input, kSrc);
     type_ = ConstantExpression::make(pool, edgeType_);

@@ -19,7 +19,7 @@
 namespace nebula {
 namespace graph {
 
-PlanNode::PlanNode(QueryContext* qctx, Kind kind) : qctx_(qctx), kind_(kind) {
+PlanNode::PlanNode(QueryContext* qctx, Kind kind) : kind_(kind), qctx_(qctx) {
     DCHECK(qctx != nullptr);
     id_ = qctx_->genId();
     auto varName = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
@@ -347,6 +347,7 @@ std::unique_ptr<PlanNodeDescription> PlanNode::explain() const {
     desc->id = id_;
     desc->name = toString(kind_);
     desc->outputVar = folly::toJson(util::toJson(outputVars_));
+    addDescription("inPlaceUpdate", util::toJson(inPlaceUpdate_), desc.get());
     return desc;
 }
 

@@ -592,9 +592,11 @@ void Executor::drop() {
 Status Executor::finish(Result &&result) {
     if (!FLAGS_enable_lifetime_optimize || node()->outputVarPtr()->lastUser.hasValue()) {
         numRows_ = result.size();
-        ectx_->setResult(node()->outputVar(), std::move(result));
-    } else {
-        VLOG(1) << "Drop variable " << node()->outputVar();
+        if (node()->isInPlaceUpdate()) {
+            ectx_->setResult(node()->outputVar(), std::move(result));
+        } else {
+            ectx_->appendResult(node()->outputVar(), std::move(result));
+        }
     }
     if (FLAGS_enable_lifetime_optimize) {
         drop();

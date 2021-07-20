@@ -148,7 +148,7 @@ void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVi
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
+    qctx_->ectx()->appendResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
     auto pool = qctx_->objPool();
     starts.src = VariablePropertyExpression::make(pool, startVidsVar, kVid);

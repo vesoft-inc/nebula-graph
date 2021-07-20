@@ -25,7 +25,7 @@ void QueryUtil::buildConstantInput(QueryContext *qctx, Starts& starts, std::stri
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx->ectx()->setResult(vidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
+    qctx->ectx()->appendResult(vidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
     auto* pool = qctx->objPool();
     // If possible, use column numbers in preference to column names,
     starts.src = ColumnExpression::make(pool, 0);

@@ -7,22 +7,32 @@
 #ifndef SCHEDULER_SCHEDULER_H_
 #define SCHEDULER_SCHEDULER_H_
 
-#include "common/base/Base.h"
+#include <folly/futures/Future.h>
+
 #include "common/base/Status.h"
-#include "executor/Executor.h"
-#include "planner/plan/PlanNode.h"
+#include "common/cpp/helpers.h"
 
 namespace nebula {
 namespace graph {
+
+class PlanNode;
+class QueryContext;
+
 class Scheduler : private cpp::NonCopyable, private cpp::NonMovable {
 public:
-    Scheduler() = default;
+    explicit Scheduler(QueryContext *qctx);
     virtual ~Scheduler() = default;
 
     virtual folly::Future<Status> schedule() = 0;
 
-    static void analyzeLifetime(const PlanNode *node, bool inLoop = false);
+    void analyzeLifetime(const PlanNode *node, bool inLoop = false) const;
+
+protected:
+    void needMultipleVersionsForInputNodes(const std::string &var) const;
+
+    QueryContext *qctx_{nullptr};
 };
-}  // namespace graph
-}  // namespace nebula
-#endif  // SCHEDULER_SCHEDULER_H_
+
+}   // namespace graph
+}   // namespace nebula
+#endif   // SCHEDULER_SCHEDULER_H_

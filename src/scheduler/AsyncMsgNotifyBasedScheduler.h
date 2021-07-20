@@ -69,8 +69,6 @@ private:
     void notifyError(std::vector<folly::Promise<Status>>& promises, Status status) const;
 
     folly::Future<Status> execute(Executor *executor) const;
-
-    QueryContext *qctx_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

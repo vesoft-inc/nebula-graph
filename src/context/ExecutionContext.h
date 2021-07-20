@@ -60,7 +60,11 @@ public:
 
     void setValue(const std::string& name, Value&& val);
 
+    void appendValue(const std::string& name, Value&& val);
+
     void setResult(const std::string& name, Result&& result);
+
+    void appendResult(const std::string& name, Result&& result);
 
     void dropResult(const std::string& name);
 
