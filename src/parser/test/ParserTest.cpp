@@ -2796,21 +2796,14 @@ TEST_F(ParserTest, SessionTest) {
     {
         std::string query = "SHOW SESSIONS";
         auto result = parse(query);
-<<<<<<< HEAD
         ASSERT_TRUE(result.ok()) << result.status();
         ASSERT_EQ(result.value()->toString(), "SHOW SESSIONS");
-=======
-        ASSERT_TRUE(result.ok());
->>>>>>> supported to remove sessions
     }
     {
         std::string query = "SHOW SESSION 123";
         auto result = parse(query);
-<<<<<<< HEAD
         ASSERT_TRUE(result.ok()) << result.status();
         ASSERT_EQ(result.value()->toString(), "SHOW SESSION 123");
-=======
-        ASSERT_TRUE(result.ok());
     }
     {
         GQLParser parser;
@@ -2823,7 +2816,6 @@ TEST_F(ParserTest, SessionTest) {
         std::string query = "REMOVE SESSIONS 123,456";
         auto result = parse(query);
         ASSERT_TRUE(result.ok());
->>>>>>> supported to remove sessions
     }
 }
 

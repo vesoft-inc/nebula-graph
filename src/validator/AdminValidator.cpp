@@ -522,7 +522,6 @@ Status ShowSessionsValidator::toPlan() {
     return Status::OK();
 }
 
-<<<<<<< HEAD
 Status ShowQueriesValidator::validateImpl() {
     if (!inputs_.empty()) {
         return Status::SemanticError("Show queries sentence do not support input");
@@ -538,21 +537,6 @@ Status ShowQueriesValidator::validateImpl() {
     return Status::OK();
 }
 
-Status ShowQueriesValidator::toPlan() {
-    auto sentence = static_cast<ShowQueriesSentence*>(sentence_);
-    auto *node = ShowQueries::make(qctx_, nullptr, sentence->isAll());
-=======
-Status RemoveSessionsValidator::toPlan() {
-    auto sentence = static_cast<RemoveSessionsSentence*>(sentence_);
-    auto *node = RemoveSessions::make(
-            qctx_, nullptr, *sentence->getSessionIdList());
->>>>>>> supported to remove sessions
-    root_ = node;
-    tail_ = root_;
-    return Status::OK();
-}
-
-<<<<<<< HEAD
 Status KillQueryValidator::validateImpl() {
     auto sentence = static_cast<KillQuerySentence *>(sentence_);
     auto *sessionExpr = sentence->sessionId();
@@ -588,7 +572,24 @@ Status KillQueryValidator::toPlan() {
     tail_ = root_;
     return Status::OK();
 }
-=======
->>>>>>> supported to remove sessions
+
+Status ShowQueriesValidator::toPlan() {
+    auto sentence = static_cast<ShowQueriesSentence*>(sentence_);
+    auto *node = ShowQueries::make(qctx_, nullptr, sentence->isAll());
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+
+Status RemoveSessionsValidator::toPlan() {
+    auto sentence = static_cast<RemoveSessionsSentence*>(sentence_);
+    auto *node = RemoveSessions::make(
+            qctx_, nullptr, *sentence->getSessionIdList());
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

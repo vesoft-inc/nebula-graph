@@ -284,17 +284,14 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowSessions";
         case Kind::kUpdateSession:
             return "UpdateSession";
-<<<<<<< HEAD
+
         case Kind::kShowQueries:
             return "ShowQueries";
         case Kind::kKillQuery:
             return "KillQuery";
-            // no default so the compiler will warning when lack
-=======
         case Kind::kRemoveSessions:
             return "RemoveSessions";
         // no default so the compiler will warning when lack
->>>>>>> supported to remove sessions
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }

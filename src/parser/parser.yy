@@ -336,11 +336,11 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <index_field> index_field
 %type <index_field_list> index_field_list opt_index_field_list
 
-<<<<<<< HEAD
+
 %type <query_unique_identifier> query_unique_identifier
-=======
+
 %type <session_id_list> session_id_list
->>>>>>> supported to remove sessions
+
 
 %type <sentence> maintain_sentence
 %type <sentence> create_space_sentence describe_space_sentence drop_space_sentence
@@ -3338,7 +3338,7 @@ list_listener_sentence
     }
     ;
 
-<<<<<<< HEAD
+
 kill_query_sentence
     : KW_KILL KW_QUERY L_PAREN query_unique_identifier R_PAREN {
         $$ = new KillQuerySentence($4);
@@ -3364,7 +3364,9 @@ query_unique_identifier
     | KW_PLAN ASSIGN query_unique_identifier_value COMMA KW_SESSION ASSIGN query_unique_identifier_value {
         $$ = new QueryUniqueIdentifier($3, $7);
         $$->setSession();
-=======
+    }
+    ;
+
 remove_sessions_sentence
     : KW_REMOVE KW_SESSION legal_integer {
         $$ = new RemoveSessionsSentence($3);
@@ -3382,7 +3384,6 @@ session_id_list
     | session_id_list COMMA legal_integer {
         $$ = $1;
         $$->emplace_back($3);
->>>>>>> supported to remove sessions
     }
     ;
 

@@ -140,12 +140,8 @@ void GraphSessionManager::removeSession(SessionID id) {
         return;
     }
 
-<<<<<<< HEAD:src/session/GraphSessionManager.cpp
     iter->second->markAllQueryKilled();
-    auto resp = metaClient_->removeSession(id).get();
-=======
     auto resp = metaClient_->removeSessions({id}).get();
->>>>>>> supported to remove sessions:src/session/SessionManager.cpp
     if (!resp.ok()) {
         // it will delete by reclaim
         LOG(ERROR) << "Remove session `" << id << "' failed: " << resp.status();
@@ -182,13 +178,9 @@ void GraphSessionManager::reclaimExpiredSessions() {
             continue;
         }
         FLOG_INFO("ClientSession %ld has expired", iter->first);
-
-<<<<<<< HEAD:src/session/GraphSessionManager.cpp
         iter->second->markAllQueryKilled();
-        auto resp = metaClient_->removeSession(iter->first).get();
-=======
         auto resp = metaClient_->removeSessions({iter->first}).get();
->>>>>>> supported to remove sessions:src/session/SessionManager.cpp
+
         if (!resp.ok()) {
             // TODO: Handle cases where the delete client failed
             LOG(ERROR) << "Remove session `" << iter->first << "' failed: " << resp.status();
@@ -265,6 +257,7 @@ Status GraphSessionManager::init() {
         return Status::Error("Load sessions from meta failed.");
     }
     auto& sessions = *listSessionsRet.value().sessions_ref();
+    std::vector<SessionID> sessionIds;
     for (auto& session : sessions) {
         if (session.get_graph_addr() != myAddr_) {
             continue;
@@ -272,12 +265,12 @@ Status GraphSessionManager::init() {
         auto sessionId = session.get_session_id();
         auto idleSecs =
             (time::WallClock::fastNowInMicroSec() - session.get_update_time()) / 1000000;
-        VLOG(1) << "session_idle_timeout_secs: " << FLAGS_session_idle_timeout_secs
+        VLOG(2) << "session_idle_timeout_secs: " << FLAGS_session_idle_timeout_secs
             << " idleSecs: " << idleSecs;
         if (FLAGS_session_idle_timeout_secs > 0 && idleSecs > FLAGS_session_idle_timeout_secs) {
             // remove session if expired
-            VLOG(1) << "Remove session: " << sessionId;
-            metaClient_->removeSession(sessionId);
+            VLOG(2) << "Remove session: " << sessionId;
+            sessionIds.emplace_back(sessionId);
             continue;
         }
         session.queries_ref()->clear();
@@ -287,6 +280,13 @@ Status GraphSessionManager::init() {
             return Status::Error("Insert session to local cache failed.");
         }
         updateSessionInfo(sessionPtr.get());
+    }
+    if (!sessionIds.empty()) {
+        auto resp = metaClient_->removeSessions(sessionIds).get();
+        if (!resp.ok()) {
+            LOG(ERROR) << "Remove sessions failed: " << resp.status();
+            return resp.status();
+        }
     }
     return Status::OK();
 }

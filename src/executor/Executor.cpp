@@ -505,16 +505,16 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kUpdateSession:  {
             return pool->add(new UpdateSessionExecutor(node, qctx));
         }
-<<<<<<< HEAD
+
         case PlanNode::Kind::kShowQueries: {
             return pool->add(new ShowQueriesExecutor(node, qctx));
         }
         case PlanNode::Kind::kKillQuery: {
             return pool->add(new KillQueryExecutor(node, qctx));
-=======
+        }
+
         case PlanNode::Kind::kRemoveSessions:  {
             return pool->add(new RemoveSessionsExecutor(node, qctx));
->>>>>>> supported to remove sessions
         }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());

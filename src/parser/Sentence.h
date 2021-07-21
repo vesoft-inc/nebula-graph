@@ -130,12 +130,9 @@ public:
         kCreateFTIndex,
         kDropFTIndex,
         kShowSessions,
-<<<<<<< HEAD
         kShowQueries,
         kKillQuery,
-=======
         kRemoveSessions,
->>>>>>> supported to remove sessions
     };
 
     Kind kind() const {

@@ -171,13 +171,9 @@ public:
         kIngest,
         kShowSessions,
         kUpdateSession,
-<<<<<<< HEAD
-
         kShowQueries,
         kKillQuery,
-=======
         kRemoveSessions,
->>>>>>> supported to remove sessions
     };
 
     bool isQueryNode() const {

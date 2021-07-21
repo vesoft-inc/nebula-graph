@@ -1,8 +1,8 @@
 /* Copyright (c) 2018 vesoft inc. All rights reserved.
- *
- * This source code is licensed under Apache 2.0 License,
- * attached with Common Clause Condition 1.0, found in the LICENSES directory.
- */
+*
+* This source code is licensed under Apache 2.0 License,
+* attached with Common Clause Condition 1.0, found in the LICENSES directory.
+*/
 #ifndef PARSER_ADMINSENTENCES_H_
 #define PARSER_ADMINSENTENCES_H_
 
@@ -316,7 +316,7 @@ private:
 class CreateSpaceSentence final : public CreateSentence {
 public:
     CreateSpaceSentence(std::string* spaceName, bool ifNotExist)
-        : CreateSentence(ifNotExist) {
+            : CreateSentence(ifNotExist) {
         spaceName_.reset(spaceName);
         kind_ = Kind::kCreateSpace;
     }
@@ -476,7 +476,7 @@ protected:
 class ShowConfigsSentence final : public ConfigBaseSentence {
 public:
     explicit ShowConfigsSentence(ConfigRowItem* item)
-        : ConfigBaseSentence(Kind::kShowConfigs, item) {}
+            : ConfigBaseSentence(Kind::kShowConfigs, item) {}
 
     std::string toString() const override;
 };
@@ -484,7 +484,7 @@ public:
 class SetConfigSentence final : public ConfigBaseSentence {
 public:
     explicit SetConfigSentence(ConfigRowItem* item)
-        : ConfigBaseSentence(Kind::kSetConfig, item) {}
+            : ConfigBaseSentence(Kind::kSetConfig, item) {}
 
     std::string toString() const override;
 };
@@ -492,7 +492,7 @@ public:
 class GetConfigSentence final : public ConfigBaseSentence {
 public:
     explicit GetConfigSentence(ConfigRowItem* item)
-        : ConfigBaseSentence(Kind::kGetConfig, item) {}
+            : ConfigBaseSentence(Kind::kGetConfig, item) {}
 
     std::string toString() const override;
 };
@@ -625,7 +625,7 @@ class AdminJobSentence final : public Sentence {
 public:
     explicit AdminJobSentence(meta::cpp2::AdminJobOp op,
                               meta::cpp2::AdminCmd cmd = meta::cpp2::AdminCmd::UNKNOWN)
-        : op_(op), cmd_(cmd) {
+            : op_(op), cmd_(cmd) {
         kind_ = Kind::kAdminJob;
     }
 
@@ -733,7 +733,6 @@ private:
     bool        setSeesionId_{false};
 };
 
-<<<<<<< HEAD
 class ShowQueriesSentence final : public Sentence {
 public:
     explicit ShowQueriesSentence(bool isAll = false) {
@@ -754,7 +753,7 @@ private:
 class QueryUniqueIdentifier final {
 public:
     explicit QueryUniqueIdentifier(Expression* epId, Expression* sessionId)
-        : epId_(epId), sessionId_(sessionId) {}
+            : epId_(epId), sessionId_(sessionId) {}
 
     Expression* sessionId() const {
         return sessionId_;
@@ -791,7 +790,18 @@ public:
 
     Expression* epId() const {
         return identifier_->epId();
-=======
+    }
+
+    std::string toString() const override;
+
+private:
+    bool isSetSession() const {
+        return identifier_->isSetSession();
+    }
+
+    std::unique_ptr<QueryUniqueIdentifier> identifier_;
+};
+
 class RemoveSessionsSentence final : public Sentence {
 public:
     explicit RemoveSessionsSentence(SessionID sessionId) {
@@ -807,21 +817,12 @@ public:
 
     std::vector<SessionID>* getSessionIdList() const {
         return sessionIdList_.get();
->>>>>>> supported to remove sessions
     }
 
     std::string toString() const override;
 
 private:
-<<<<<<< HEAD
-    bool isSetSession() const {
-        return identifier_->isSetSession();
-    }
-
-    std::unique_ptr<QueryUniqueIdentifier> identifier_;
-=======
     std::unique_ptr<std::vector<SessionID>>   sessionIdList_;
->>>>>>> supported to remove sessions
 };
 }   // namespace nebula
 
