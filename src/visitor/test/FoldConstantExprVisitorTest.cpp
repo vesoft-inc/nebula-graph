@@ -108,6 +108,8 @@ TEST_F(FoldConstantExprVisitorTest, TestListExpr) {
     expr->accept(&visitor);
     ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
     ASSERT(visitor.canBeFolded());
+    // type should remain the same after folding
+    ASSERT_EQ(expr->kind(), Expression::Kind::kList);
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestSetExpr) {
@@ -121,6 +123,8 @@ TEST_F(FoldConstantExprVisitorTest, TestSetExpr) {
     expr->accept(&visitor);
     ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
     ASSERT(visitor.canBeFolded());
+    // type should remain the same after folding
+    ASSERT_EQ(expr->kind(), Expression::Kind::kSet);
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestMapExpr) {
@@ -135,6 +139,8 @@ TEST_F(FoldConstantExprVisitorTest, TestMapExpr) {
     expr->accept(&visitor);
     ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
     ASSERT(visitor.canBeFolded());
+    // type should remain the same after folding
+    ASSERT_EQ(expr->kind(), Expression::Kind::kMap);
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestCaseExpr) {

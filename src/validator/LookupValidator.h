@@ -39,13 +39,15 @@ private:
     Status prepareFilter();
 
     StatusOr<Expression*> checkFilter(Expression* expr);
-    StatusOr<Expression*> checkRelExpr(RelationalExpression* expr);
+    Status checkRelExpr(RelationalExpression* expr);
     StatusOr<std::string> checkTSExpr(Expression* expr);
-    StatusOr<Value> checkConstExpr(Expression* expr,
-                                   const std::string& prop,
-                                   const Expression::Kind kind);
+    StatusOr<Expression*> checkConstExpr(Expression* expr,
+                                         ObjectPool* pool,
+                                         const std::string& prop,
+                                         const Expression::Kind kind);
 
     StatusOr<Expression*> rewriteRelExpr(RelationalExpression* expr);
+    Expression* rewriteInExpr(const Expression* expr);
     Expression* reverseRelKind(RelationalExpression* expr);
 
     const LookupSentence* sentence() const;

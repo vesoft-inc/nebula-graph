@@ -75,7 +75,14 @@ public:
     // Clone and reduce unaryNot expression
     static Expression* reduceUnaryNotExpr(const Expression* expr);
 
+    // Rewrite IN expression into OR expression
+    // static Expression* rewriteInExpr(const Expression* expr, ObjectPool* pool);
+
     // Transform filter using multiple expression rewrite strategies
+    // 1. rewrite relational expressions containing arithmetic operands so that
+    //    all constants are on the right side of relExpr.
+    // 2. fold constant
+    // 3. reduce unary expression e.g. !(A and B) => !A or !B
     static StatusOr<Expression*> filterTransform(const Expression* expr);
 
     // Negate the given logical expr: (A && B) -> (!A || !B)

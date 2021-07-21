@@ -133,5 +133,6 @@ TEST_F(LookupValidatorTest, InvalidFilterExpression) {
         EXPECT_TRUE(checkResult(query, {}));
     }
 }
+
 }   // namespace graph
 }   // namespace nebula

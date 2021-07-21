@@ -136,7 +136,7 @@ void VidExtractVisitor::visit(ArithmeticExpression *expr) {
 
 void VidExtractVisitor::visit(RelationalExpression *expr) {
     if (expr->kind() == Expression::Kind::kRelIn) {
-        //    const auto *inExpr = static_cast<const RelationalExpression *>(expr);
+        // id(V) IN [List]
         if (expr->left()->kind() == Expression::Kind::kLabelAttribute) {
             const auto *labelExpr = static_cast<const LabelAttributeExpression *>(expr->left());
             const auto &label = labelExpr->left()->toString();
@@ -145,7 +145,7 @@ void VidExtractVisitor::visit(RelationalExpression *expr) {
             return;
         }
         if (expr->left()->kind() != Expression::Kind::kFunctionCall ||
-            expr->right()->kind() != Expression::Kind::kConstant) {
+            expr->right()->kind() != Expression::Kind::kList) {
             vidPattern_ = VidPattern{};
             return;
         }
@@ -155,17 +155,19 @@ void VidExtractVisitor::visit(RelationalExpression *expr) {
             vidPattern_ = VidPattern{};
             return;
         }
-        const auto *constExpr = static_cast<const ConstantExpression *>(expr->right());
-        if (constExpr->value().type() != Value::Type::LIST) {
-            vidPattern_ = VidPattern{};
-            return;
-        }
-        vidPattern_ = VidPattern{VidPattern::Special::kInUsed,
-                                 {{fCallExpr->args()->args().front()->toString(),
-                                   {VidPattern::Vids::Kind::kIn, constExpr->value().getList()}}}};
+        auto *listExpr = static_cast<ListExpression *>(expr->right());
+        // if (listExpr->value().type() != Value::Type::LIST) {
+        //     vidPattern_ = VidPattern{};
+        //     return;
+        // }
+        QueryExpressionContext ctx;
+        vidPattern_ =
+            VidPattern{VidPattern::Special::kInUsed,
+                       {{fCallExpr->args()->args().front()->toString(),
+                         {VidPattern::Vids::Kind::kIn, listExpr->eval(ctx(nullptr)).getList()}}}};
         return;
     } else if (expr->kind() == Expression::Kind::kRelEQ) {
-        //        const auto *eqExpr = static_cast<const RelationalExpression *>(expr);
+        // id(V) == vid
         if (expr->left()->kind() == Expression::Kind::kLabelAttribute) {
             const auto *labelExpr = static_cast<const LabelAttributeExpression *>(expr->left());
             const auto &label = labelExpr->left()->toString();
