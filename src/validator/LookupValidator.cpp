@@ -148,7 +148,6 @@ StatusOr<Expression*> LookupValidator::handleLogicalExprOperands(LogicalExpressi
 }
 
 StatusOr<Expression*> LookupValidator::checkFilter(Expression* expr) {
-    // TODO: Support IN expression push down
     if (expr->isRelExpr()) {
         auto relExpr = static_cast<RelationalExpression*>(expr);
         NG_RETURN_IF_ERROR(checkRelExpr(relExpr));
