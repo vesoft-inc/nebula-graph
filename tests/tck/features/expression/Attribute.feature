@@ -59,43 +59,43 @@ Feature: Attribute
       """
     Then the result should be, in any order:
       | not_exists_attr |
-      | NULL            |
+      | UNKNOWN_PROP    |
     When executing query:
       """
       RETURN time("02:59:40").not_exists_attr AS not_exists_attr
       """
     Then the result should be, in any order:
       | not_exists_attr |
-      | NULL            |
+      | UNKNOWN_PROP    |
     When executing query:
       """
       RETURN datetime("2021-07-19T02:59:40").not_exists_attr AS not_exists_attr
       """
     Then the result should be, in any order:
       | not_exists_attr |
-      | NULL            |
+      | UNKNOWN_PROP    |
     When executing query:
       """
       RETURN {k1 : 1, k2: true}.not_exists_attr AS not_exists_attr
       """
     Then the result should be, in any order:
       | not_exists_attr |
-      | NULL            |
+      | UNKNOWN_PROP    |
     When executing query:
       """
       MATCH (v) WHERE id(v) == 'Tim Duncan' RETURN v.not_exists_attr
       """
     Then the result should be, in any order:
       | v.not_exists_attr |
-      | NULL              |
+      | UNKNOWN_PROP      |
     When executing query:
       """
       MATCH (v)-[e:like]->() WHERE id(v) == 'Tim Duncan' RETURN e.not_exists_attr
       """
     Then the result should be, in any order:
       | e.not_exists_attr |
-      | NULL              |
-      | NULL              |
+      | UNKNOWN_PROP      |
+      | UNKNOWN_PROP      |
 
   Scenario: Invalid type
     When executing query:
