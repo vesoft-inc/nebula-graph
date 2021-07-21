@@ -220,7 +220,7 @@ PlanNode* GoPlanner::trackStartVid(PlanNode* left, PlanNode* right) {
  *     |          |
  *    Left      Project
  *                |
- *              GetVertices 
+ *              GetVertices
  *                |
  *               Dep
  */
@@ -330,7 +330,7 @@ PlanNode* GoPlanner::buildLastStepJoinPlan(PlanNode* gn, PlanNode* join) {
     auto* dep = extractSrcEdgePropsFromGN(gn, gn->outputVar());
     dep = goCtx_->joinDst ? buildJoinDstPlan(dep, dep) : dep;
 
-    PlanNode* left;
+    PlanNode* left = nullptr;
     if (goCtx_->joinInput && join != nullptr) {
         left = StartNode::make(goCtx_->qctx);
         left->setOutputVar(join->outputVar());
