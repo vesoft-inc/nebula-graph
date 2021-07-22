@@ -156,10 +156,6 @@ void VidExtractVisitor::visit(RelationalExpression *expr) {
             return;
         }
         auto *listExpr = static_cast<ListExpression *>(expr->right());
-        // if (listExpr->value().type() != Value::Type::LIST) {
-        //     vidPattern_ = VidPattern{};
-        //     return;
-        // }
         QueryExpressionContext ctx;
         vidPattern_ =
             VidPattern{VidPattern::Special::kInUsed,

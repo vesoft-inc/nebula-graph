@@ -131,19 +131,33 @@ Status LookupValidator::prepareFilter() {
 
 StatusOr<Expression*> LookupValidator::handleLogicalExprOperands(LogicalExpression* lExpr) {
     auto& operands = lExpr->operands();
+    bool needPullOrExpr = false;
+
     for (auto i = 0u; i < operands.size(); i++) {
         auto operand = lExpr->operand(i);
         if (operand->isLogicalExpr()) {
-            // Not allow different logical expression to use: A AND B OR C
+            // Not allowed to use different logical expressions: A AND B OR C
             return Status::SemanticError("Not supported filter: %s", lExpr->toString().c_str());
+        }
+
+        // If the operand is IN expressoin, it will be transformed to multiple OR expressions in the
+        // later process. To support push down for this senario, another pullOrs() is required A in
+        // [a, b] or B  ==rewrite inExpr==>  (A==a or A==b) or B  ==pullOrs==>  A==a or A==b or B
+        if (operand->kind() == Expression::Kind::kRelIn) {
+            needPullOrExpr = true;
         }
         auto ret = checkFilter(operand);
         NG_RETURN_IF_ERROR(ret);
+
         auto newOperand = ret.value();
         if (operand != newOperand) {
             lExpr->setOperand(i, newOperand);
         }
     }
+    if (needPullOrExpr) {
+        ExpressionUtils::pullOrs(lExpr);
+    }
+
     return lExpr;
 }
 
@@ -251,8 +265,7 @@ Expression* LookupValidator::rewriteInExpr(const Expression* expr) {
             break;
         }
         default:
-            // error
-            break;
+            LOG(FATAL) << "Invalid expression type " << containerExpr->kind();
     }
 
     // TODO: re-organize the operands for nested logical expr
