@@ -143,7 +143,8 @@ StatusOr<Expression*> LookupValidator::handleLogicalExprOperands(LogicalExpressi
         // If the operand is IN expressoin, it will be transformed to multiple OR expressions in the
         // later process. To support push down for this senario, another pullOrs() is required A in
         // [a, b] or B  ==rewrite inExpr==>  (A==a or A==b) or B  ==pullOrs==>  A==a or A==b or B
-        if (operand->kind() == Expression::Kind::kRelIn) {
+        if (lExpr->kind() == Expression::Kind::kLogicalOr &&
+            operand->kind() == Expression::Kind::kRelIn) {
             needPullOrExpr = true;
         }
         auto ret = checkFilter(operand);
@@ -268,9 +269,14 @@ Expression* LookupValidator::rewriteInExpr(const Expression* expr) {
             LOG(FATAL) << "Invalid expression type " << containerExpr->kind();
     }
 
-    // TODO: re-organize the operands for nested logical expr
+    auto operandSize = containerOperands.size();
+    // container has only 1 element, no need to transform to logical expression
+    if (operandSize == 1) {
+        return RelationalExpression::makeEQ(pool, inExpr->left(), containerOperands[0]);
+    }
+
     std::vector<Expression*> orExprOperands;
-    orExprOperands.reserve(containerOperands.size());
+    orExprOperands.reserve(operandSize);
     // A in [B, C, D]  =>  (A == B) or (A == C) or (A == D)
     for (auto* operand : containerOperands) {
         orExprOperands.emplace_back(RelationalExpression::makeEQ(pool, inExpr->left(), operand));
