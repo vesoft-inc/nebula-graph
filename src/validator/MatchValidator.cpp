@@ -62,11 +62,6 @@ Status MatchValidator::validateImpl() {
                 }
                 aliasesUsed = &matchClauseCtx->aliasesGenerated;
 
-                if (i == clauses.size() - 1) {
-                    retClauseCtx->yield->aliasesUsed = aliasesUsed;
-                    NG_RETURN_IF_ERROR(
-                        validateReturn(sentence->ret(), matchClauseCtx.get(), *retClauseCtx));
-                }
                 matchCtx_->clauses.emplace_back(std::move(matchClauseCtx));
 
                 break;
@@ -78,11 +73,7 @@ Status MatchValidator::validateImpl() {
                 NG_RETURN_IF_ERROR(validateUnwind(unwindClause, *unwindClauseCtx));
 
                 aliasesUsed = unwindClauseCtx->aliasesUsed;
-                if (i == clauses.size() - 1) {
-                    retClauseCtx->yield->aliasesUsed = aliasesUsed;
-                    NG_RETURN_IF_ERROR(
-                        validateReturn(sentence->ret(), unwindClauseCtx.get(), *retClauseCtx));
-                }
+
                 matchCtx_->clauses.emplace_back(std::move(unwindClauseCtx));
 
                 // TODO: delete prevYieldColumns
@@ -110,17 +101,16 @@ Status MatchValidator::validateImpl() {
                 aliasesUsed = &withClauseCtx->aliasesGenerated;
                 prevYieldColumns = const_cast<YieldColumns *>(withClauseCtx->yield->yieldColumns);
 
-                if (i == clauses.size() - 1) {
-                    retClauseCtx->yield->aliasesUsed = aliasesUsed;
-                    NG_RETURN_IF_ERROR(
-                        validateReturn(sentence->ret(), withClauseCtx.get(), *retClauseCtx));
-                }
                 matchCtx_->clauses.emplace_back(std::move(withClauseCtx));
 
                 break;
             }
         }
     }
+
+    retClauseCtx->yield->aliasesUsed = aliasesUsed;
+    NG_RETURN_IF_ERROR(
+        validateReturn(sentence->ret(), matchCtx_->clauses.back().get(), *retClauseCtx));
 
     NG_RETURN_IF_ERROR(buildOutputs(retClauseCtx->yield->yieldColumns));
     matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
