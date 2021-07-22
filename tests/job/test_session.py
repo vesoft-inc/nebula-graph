@@ -23,6 +23,17 @@ from nebula2.data.ResultSet import ResultSet
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 class TestSession(NebulaTestSuite):
+    def get_connection(self, ip, port):
+        try:
+            socket = TSocket.TSocket(ip, port)
+            transport = TTransport.TBufferedTransport(socket)
+            protocol = TBinaryProtocol.TBinaryProtocol(transport)
+            transport.open()
+            connection = GraphService.Client(protocol)
+        except Exception as ex:
+            assert False, 'Create connection to {}:{} failed'.format(ip, port)
+        return connection
+
     @classmethod
     def prepare(self):
         resp = self.execute('CREATE USER IF NOT EXISTS session_user WITH PASSWORD "123456"')
@@ -131,19 +142,8 @@ class TestSession(NebulaTestSuite):
         time.sleep(3)
 
     def test_the_same_id_to_different_graphd(self):
-        def get_connection(ip, port):
-            try:
-                socket = TSocket.TSocket(ip, port)
-                transport = TTransport.TBufferedTransport(socket)
-                protocol = TBinaryProtocol.TBinaryProtocol(transport)
-                transport.open()
-                connection = GraphService.Client(protocol)
-            except Exception as ex:
-                assert False, 'Create connection to {}:{} failed'.format(ip, port)
-            return connection
-
-        conn1 = get_connection(self.addr_host1, self.addr_port1)
-        conn2 = get_connection(self.addr_host2, self.addr_port2)
+        conn1 = self.get_connection(self.addr_host1, self.addr_port1)
+        conn2 = self.get_connection(self.addr_host2, self.addr_port2)
 
         resp = conn1.authenticate('root', 'nebula')
         assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
@@ -174,7 +174,7 @@ class TestSession(NebulaTestSuite):
         with concurrent.futures.ThreadPoolExecutor(3) as executor:
             for i in range(0, 3):
                 future = executor.submit(do_test,
-                                         get_connection(self.addr_host2, self.addr_port2),
+                                         self.get_connection(self.addr_host2, self.addr_port2),
                                          session_id,
                                          i)
                 test_jobs.append(future)
@@ -221,9 +221,6 @@ class TestSession(NebulaTestSuite):
         time.sleep(2)
         resp = conn.execute(session_id, 'SHOW HOSTS')
         assert resp.error_code == ttypes.ErrorCode.E_SESSION_INVALID, resp.error_msg
-<<<<<<< HEAD
-        assert resp.error_msg.find(b'Session not existed!') > 0
-=======
         assert resp.error_msg.find(b'Session does not exist')> 0
 
 
@@ -231,12 +228,30 @@ class TestSession(NebulaTestSuite):
         # remove nonexistent session id
         resp = self.execute('REMOVE SESSIONS 123')
         self.check_resp_failed(resp)
-        print(resp.error_msg())
         assert resp.error_msg() == 'Session does not exist!'
 
+        # get a new connection
+        conn = self.get_connection(self.addr_host1, self.addr_port1)
+        resp = conn.authenticate('root', 'nebula')
+        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
+        session_id = resp.session_id
+        resp = conn.execute(session_id, 'SHOW SPACES;')
+        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
+
+        # remove one session, the session will execute query failed after session_reclaim_interval_secs
+        resp = self.execute('REMOVE SESSION {}'.format(session_id))
+        self.check_resp_succeeded(resp)
+        resp = self.execute('SHOW SESSION session_id')
+        self.check_resp_failed(resp)
+        time.sleep(4)
+        # check the remove session can't send query
+        resp = conn.execute(session_id, 'SHOW SPACES;')
+        assert resp.error_code != ttypes.ErrorCode.SUCCEEDED
+        assert resp.error_msg.find(b'Session does not exist')
+
+        # remove multi sessions
         resp = self.execute('SHOW SESSIONS')
         self.check_resp_succeeded(resp)
-
         id_list = []
         for recode in resp:
             id_list.append(str(recode.get_value(0).as_int()))
@@ -245,4 +260,3 @@ class TestSession(NebulaTestSuite):
         resp = self.execute('SHOW SESSIONS')
         self.check_resp_succeeded(resp)
         assert resp.is_empty()
->>>>>>> supported to remove sessions

@@ -152,6 +152,7 @@ void GraphSessionManager::removeSession(SessionID id) {
 void GraphSessionManager::threadFunc() {
     reclaimExpiredSessions();
     updateSessionsToMeta();
+    removeSessions();
     scavenger_->addDelayTask(FLAGS_session_reclaim_interval_secs * 1000,
                              &GraphSessionManager::threadFunc,
                              this);
@@ -240,6 +241,29 @@ void GraphSessionManager::updateSessionsToMeta() {
                       .get();
     if (!result.ok()) {
         LOG(ERROR) << "Update sessions failed: " << result;
+    }
+}
+
+void GraphSessionManager::removeSessions() {
+    auto ret = metaClient_->listSessions().get();
+    if (!ret.ok()) {
+        LOG(ERROR) << "Load sessions from meta failed.";
+        return;
+    }
+    auto& sessions = *ret.value().sessions_ref();
+    auto it = activeSessions_.begin();
+    while (it != activeSessions_.end()) {
+        auto sessionId = it->second->getSession().get_session_id();
+        auto findIt = std::find_if(sessions.begin(), sessions.end(),
+                                   [sessionId](const auto &s) {
+                                       return s.get_session_id() == sessionId;
+                                   });
+        if (findIt == sessions.end()) {
+            VLOG(1) << "Remove the sesionId:" << sessionId << " from the cache.";
+            it = activeSessions_.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 

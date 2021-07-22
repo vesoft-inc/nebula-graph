@@ -71,6 +71,8 @@ private:
 
     void updateSessionsToMeta();
 
+    void removeSessions();
+
     void updateSessionInfo(ClientSession* session);
 };
 
