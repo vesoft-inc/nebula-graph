@@ -41,7 +41,7 @@ class PlanDiffer:
 
         name_col_idx = column_names.index(self.NAME)
         if not self._is_same_node(name, expect_node[name_col_idx]):
-            self._err_msg = f"{name} is not expected {expect_node[name_col_idx]}"
+            self._err_msg = f"{plan_node_desc} is not expected {expect_node}"
             return False
 
         if self._is_same_node(name, "Loop"):
@@ -139,7 +139,7 @@ class PlanDiffer:
             return dict(big, **small) == big
 
         return _is_subdict(extracted_expected_dict, extracted_resp_dict)
-    
+
     # resp: pair(key, jsonStr)
     def _convert_jsonStr_to_dict(self, resp, key_list):
         resp_json_str = ''
@@ -194,7 +194,7 @@ class PlanDiffer:
         if self.OP_INFO not in column_names:
             self._err_msg = "Plan node operator info column is missing in expectde plan"
             return False
-        
+
         id_idx_dict = {}
         # Check node id existence
         for i in range(len(rows)):
