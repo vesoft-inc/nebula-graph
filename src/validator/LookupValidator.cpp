@@ -214,7 +214,6 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     }
 
     // fold constant expression
-    auto pool = qctx_->objPool();
     auto foldRes = ExpressionUtils::foldConstantExpr(expr);
     NG_RETURN_IF_ERROR(foldRes);
     expr = static_cast<RelationalExpression*>(foldRes.value());
@@ -223,7 +222,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
     // Check schema and value type
     std::string prop = la->right()->value().getStr();
     auto relExprType = expr->kind();
-    auto c = checkConstExpr(expr->right(), pool, prop, relExprType);
+    auto c = checkConstExpr(expr->right(), prop, relExprType);
     NG_RETURN_IF_ERROR(c);
     expr->setRight(std::move(c).value());
 
@@ -288,9 +287,9 @@ Expression* LookupValidator::rewriteInExpr(const Expression* expr) {
 }
 
 StatusOr<Expression*> LookupValidator::checkConstExpr(Expression* expr,
-                                                      ObjectPool* pool,
                                                       const std::string& prop,
                                                       const Expression::Kind kind) {
+    auto* pool = expr->getObjPool();
     if (!evaluableExpr(expr)) {
         return Status::SemanticError("'%s' is not an evaluable expression.",
                                      expr->toString().c_str());
@@ -309,7 +308,7 @@ StatusOr<Expression*> LookupValidator::checkConstExpr(Expression* expr,
     // comparisons.
     // Allow different numeric types to compare
     if (graph::SchemaUtil::propTypeToValueType(type) == Value::Type::FLOAT && v.isInt()) {
-        return ConstantExpression::make(expr->getObjPool(), v.toFloat());
+        return ConstantExpression::make(pool, v.toFloat());
     } else if (graph::SchemaUtil::propTypeToValueType(type) == Value::Type::INT && v.isFloat()) {
         // col1 < 10.5 range: [min, 11), col1 < 10 range: [min, 10)
         double f = v.getFloat();

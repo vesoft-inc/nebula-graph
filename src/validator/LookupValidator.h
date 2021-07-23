@@ -42,11 +42,11 @@ private:
     Status checkRelExpr(RelationalExpression* expr);
     StatusOr<std::string> checkTSExpr(Expression* expr);
     StatusOr<Expression*> checkConstExpr(Expression* expr,
-                                         ObjectPool* pool,
                                          const std::string& prop,
                                          const Expression::Kind kind);
 
     StatusOr<Expression*> rewriteRelExpr(RelationalExpression* expr);
+    // Rewrite IN expression into OR expression or relEQ expression
     Expression* rewriteInExpr(const Expression* expr);
     Expression* reverseRelKind(RelationalExpression* expr);
 
