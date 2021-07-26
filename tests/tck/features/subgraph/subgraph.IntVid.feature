@@ -723,7 +723,7 @@ Feature: Integer Vid subgraph
       | <[vertex2]>      | <[edge2]> |
       | <[vertex3]>      | <[edge3]> |
       | <[vertex4]>      | <[edge4]> |
-      | <[vertex5]>      | <[edge5]>        |
+      | <[vertex5]>      | <[edge5]> |
 
   Scenario: Integer Vid over end
     When executing query:
@@ -961,4 +961,4 @@ Feature: Integer Vid subgraph
       | <[vertex2]>      | <[edge2]> |
       | <[vertex3]>      | <[edge3]> |
       | <[vertex4]>      | <[edge4]> |
-      | <[vertex5]>      | <[edge5]>        |
+      | <[vertex5]>      | <[edge5]> |

@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-
 Feature: subgraph
 
   Background:
@@ -962,4 +961,4 @@ Feature: subgraph
       | <[vertex2]>      | <[edge2]> |
       | <[vertex3]>      | <[edge3]> |
       | <[vertex4]>      | <[edge4]> |
-      | <[vertex5]>      | <[edge5]>        |
+      | <[vertex5]>      | <[edge5]> |
