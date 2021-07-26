@@ -24,6 +24,7 @@ Feature: Insert string vid of vertex and edge
       CREATE TAG IF NOT EXISTS employee(name int);
       CREATE TAG IF NOT EXISTS interest(name string);
       CREATE TAG IF NOT EXISTS school(name string, create_time timestamp);
+      CREATE TAG IF NOT EXISTS ` good person`(`_name` string, `0 age` int);
       CREATE EDGE IF NOT EXISTS schoolmate(likeness int, nickname string);
       CREATE EDGE IF NOT EXISTS schoolmateWithDefault(likeness int DEFAULT 80);
       CREATE EDGE IF NOT EXISTS study(start_time timestamp, end_time timestamp);
@@ -63,6 +64,11 @@ Feature: Insert string vid of vertex and edge
     When executing query:
       """
       INSERT VERTEX person, interest VALUES "Tom":("Tom", 18, "basketball");
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      INSERT VERTEX ` good person`(`_name`, `0 age`) VALUES "Ye":("Ye", 18);
       """
     Then the execution should be successful
     When executing query:

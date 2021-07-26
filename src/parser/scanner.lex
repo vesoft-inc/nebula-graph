@@ -37,6 +37,8 @@ IS_EMPTY                    (IS{blanks}EMPTY)
 IS_NOT_EMPTY                (IS{blanks}NOT{blanks}EMPTY)
 
 LABEL                       ([a-zA-Z][_a-zA-Z0-9]*)
+/* extended label */
+ELABEL                      ([_a-zA-Z0-9 ]+)
 DEC                         ([0-9])
 EXP                         ([eE][-+]?[0-9]+)
 HEX                         ([0-9a-fA-F])
@@ -315,7 +317,7 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                                 }
                                 return TokenType::LABEL;
                             }
-\`{LABEL}\`                 {
+\`{ELABEL}\`                 {
                                 yylval->strval = new std::string(yytext + 1, yyleng - 2);
                                 if (yylval->strval->size() > MAX_STRING) {
                                     auto error = "Out of range of the LABEL length, "

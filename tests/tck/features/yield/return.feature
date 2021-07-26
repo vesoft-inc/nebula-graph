@@ -22,6 +22,13 @@ Feature: Return
     Then the result should be, in any order:
       | (1+1) | "1+1" | (INT)3.14 | (STRING)(1+1) | (STRING)true |
       | 2     | "1+1" | 3         | "2"           | "true"       |
+    When executing query:
+      """
+      RETURN {abc:123, `Tony Parker`:19, `123 _d`:20}["Tony Parker"]
+      """
+    Then the result should be, in any order:
+      | {abc:123,Tony Parker:19,123 _d:20}["Tony Parker"] |
+      | 19                                                |
 
   Scenario: hash call
     When executing query:

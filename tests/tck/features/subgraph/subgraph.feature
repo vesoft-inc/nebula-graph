@@ -131,6 +131,14 @@ Feature: subgraph
       | _vertices        | _edges    |
       | [("Tim Duncan")] | <[edge1]> |
       | <[vertex2]>      | <[edge2]> |
+    When executing query:
+      """
+      GET SUBGRAPH FROM 'Tim Duncan' | WITH $-.`_vertices` AS a RETURN size(a)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | size(a) |
+      | 1       |
+      | 11      |
 
   Scenario: two steps
     When executing query:
