@@ -35,6 +35,7 @@ private:
 
 private:
     std::unordered_set<EdgeType> edgeTypes_;
+    std::unordered_set<EdgeType> inEdgeTypes_;
     bool withProp_{false};
 };
 

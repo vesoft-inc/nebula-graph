@@ -26,7 +26,7 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
     auto vars = dc->vars();
     switch (dc->kind()) {
         case DataCollect::DCKind::kSubgraph: {
-            NG_RETURN_IF_ERROR(collectSubgraph(vars));
+            NG_RETURN_IF_ERROR(collectSubgraph(vars, dc->inEdgeTypes()));
             break;
         }
         case DataCollect::DCKind::kRowBasedMove: {
@@ -61,12 +61,10 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
     return finish(builder.finish());
 }
 
-Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
+Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars,
+        const std::unordered_set<EdgeType>& inEdgeTypes) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
-    // the subgraph not need duplicate vertices or edges, so dedup here directly
-    std::unordered_set<Value> uniqueVids;
-    std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdges;
     for (auto i = vars.begin(); i != vars.end(); ++i) {
         const auto& hist = ectx_->getHistory(*i);
         for (auto j = hist.begin(); j != hist.end(); ++j) {
@@ -79,28 +77,17 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                 msg << "Iterator should be kind of GetNeighborIter, but was: " << iter->kind();
                 return Status::Error(msg.str());
             }
-            List vertices;
-            List edges;
             auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-            auto originVertices = gnIter->getVertices();
-            for (auto& v : originVertices.values) {
-                if (!v.isVertex()) {
+            auto vertices = gnIter->getVertices();
+            List edges;
+            edges.reserve(vertices.size() * 2);
+            for (; gnIter->valid(); gnIter->next()) {
+                auto type = gnIter->getEdgeProp("*", kType);
+                if (type < 0 && type.isInt() &&
+                    inEdgeTypes.find(type.getInt()) == inEdgeTypes.end()) {
                     continue;
                 }
-                if (uniqueVids.emplace(v.getVertex().vid).second) {
-                    vertices.emplace_back(std::move(v));
-                }
-            }
-            auto originEdges = gnIter->getEdges();
-            for (auto& edge : originEdges.values) {
-                if (!edge.isEdge()) {
-                    continue;
-                }
-                const auto& e = edge.getEdge();
-                auto edgeKey = std::make_tuple(e.src, e.type, e.ranking, e.dst);
-                if (uniqueEdges.emplace(std::move(edgeKey)).second) {
-                    edges.emplace_back(std::move(edge));
-                }
+                edges.values.emplace_back(gnIter->getEdge());
             }
             ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
         }

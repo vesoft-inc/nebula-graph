@@ -45,6 +45,7 @@ Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
         auto space = vctx_->whichSpace();
         auto edges = in->edges();
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
+        inEdgeTypes_.reserve(edges.size());
         for (auto* e : edges) {
             if (e->alias() != nullptr) {
                 return Status::SemanticError("Get Subgraph not support rename edge name.");
@@ -55,6 +56,7 @@ Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
 
             auto v = -et.value();
             edgeTypes_.emplace(v);
+            inEdgeTypes_.emplace(v);
         }
     }
 
@@ -183,6 +185,7 @@ Status GetSubgraphValidator::toPlan() {
     auto* loop = Loop::make(qctx_, loopDep, subgraph, loopCondition);
 
     auto* dc = DataCollect::make(qctx_, DataCollect::DCKind::kSubgraph);
+    dc->setInEdgeTypes(inEdgeTypes_);
     dc->addDep(loop);
     dc->setInputVars({gn->outputVar(), oneMoreStepOutput});
     dc->setColNames({kVertices, kEdges});

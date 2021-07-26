@@ -969,6 +969,10 @@ public:
         }
     }
 
+    void setInEdgeTypes(std::unordered_set<EdgeType> inEdgeTypes) {
+        inEdgeTypes_ = std::move(inEdgeTypes);
+    }
+
     DCKind kind() const {
         return kind_;
     }
@@ -989,6 +993,10 @@ public:
         return distinct_;
     }
 
+    const std::unordered_set<EdgeType>& inEdgeTypes() const {
+        return inEdgeTypes_;
+    }
+
     PlanNode* clone() const override;
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
@@ -1004,6 +1012,7 @@ private:
     // using for m to n steps
     StepClause      step_;
     bool            distinct_{false};
+    std::unordered_set<EdgeType> inEdgeTypes_;
 };
 
 class Join : public SingleDependencyNode {
