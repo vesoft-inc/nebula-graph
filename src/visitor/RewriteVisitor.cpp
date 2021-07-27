@@ -120,6 +120,22 @@ void RewriteVisitor::visit(MapExpression *expr) {
     }
 }
 
+void RewriteVisitor::visit(MapProjectionExpression *expr) {
+    if (!care(expr->kind())) {
+        return;
+    }
+
+    auto &items = expr->items();
+    for (auto &pair : items) {
+        auto &item = pair.second;
+        if (matcher_(item)) {
+            const_cast<Expression* &>(item) = rewriter_(item);
+        } else {
+            item->accept(this);
+        }
+    }
+}
+
 void RewriteVisitor::visit(CaseExpression *expr) {
     if (!care(expr->kind())) {
         return;

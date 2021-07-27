@@ -348,6 +348,11 @@ void VidExtractVisitor::visit(MapExpression *expr) {
     vidPattern_ = VidPattern{};
 }
 
+void VidExtractVisitor::visit(MapProjectionExpression *expr) {
+    UNUSED(expr);
+    vidPattern_ = VidPattern{};
+}
+
 // property Expression
 void VidExtractVisitor::visit(TagPropertyExpression *expr) {
     UNUSED(expr);

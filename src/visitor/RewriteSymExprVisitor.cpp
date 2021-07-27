@@ -147,6 +147,16 @@ void RewriteSymExprVisitor::visit(MapExpression *expr) {
     }
 }
 
+void RewriteSymExprVisitor::visit(MapProjectionExpression *expr) {
+    const auto &items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i].second->accept(this);
+        if (expr_) {
+            expr->setItem(i, {items[i].first, std::move(expr_)});
+        }
+    }
+}
+
 // property Expression
 void RewriteSymExprVisitor::visit(TagPropertyExpression *expr) {
     UNUSED(expr);

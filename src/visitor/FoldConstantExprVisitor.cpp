@@ -209,6 +209,27 @@ void FoldConstantExprVisitor::visit(MapExpression *expr) {
     canBeFolded_ = canBeFolded;
 }
 
+void FoldConstantExprVisitor::visit(MapProjectionExpression *expr) {
+    auto &items = expr->items();
+    bool canBeFolded = true;
+    for (size_t i = 0; i < items.size(); ++i) {
+        auto &pair = items[i];
+        auto item = const_cast<Expression *>(pair.second);
+        if (isConstant(item)) {
+            continue;
+        }
+        item->accept(this);
+        if (canBeFolded_) {
+            auto val = fold(item);
+            if (!ok()) return;
+            expr->setItem(i, std::make_pair(pair.first, std::move(val)));
+        } else {
+            canBeFolded = false;
+        }
+    }
+    canBeFolded_ = canBeFolded;
+}
+
 // case Expression
 void FoldConstantExprVisitor::visit(CaseExpression *expr) {
     bool canBeFolded = true;

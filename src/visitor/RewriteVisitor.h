@@ -62,6 +62,7 @@ private:
     void visit(ListExpression*) override;
     void visit(SetExpression*) override;
     void visit(MapExpression*) override;
+    void visit(MapProjectionExpression *expr) override;
     void visit(CaseExpression *) override;
     void visit(ReduceExpression *) override;
     void visit(PredicateExpression *) override;

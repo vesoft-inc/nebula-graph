@@ -451,6 +451,10 @@ void DeduceTypeVisitor::visit(MapExpression *) {
     type_ = Value::Type::MAP;
 }
 
+void DeduceTypeVisitor::visit(MapProjectionExpression *) {
+    type_ = Value::Type::MAP;
+}
+
 void DeduceTypeVisitor::visit(TagPropertyExpression *expr) {
     visitVertexPropertyExpr(expr);
 }

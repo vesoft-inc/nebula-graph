@@ -169,5 +169,34 @@ void ParserUtil::rewriteReduce(QueryContext *qctx,
     reduce->setMapping(newMapping);
 }
 
+// static
+void ParserUtil::rewriteMapProjection(QueryContext *qctx,
+                                      MapProjectionExpression *mapProj) {
+    auto *pool = qctx->objPool();
+    auto *newItems = MapItemList::make(pool);
+    // map_variable {.prop, v, key:val, .*} => {prop: map_variable.prop, v:v, key:val ...}
+    // .* means projects all key-value pairs from the map_variable value
+    for (auto &item : mapProj->items()) {
+        auto& k = item.first;
+        auto* v = item.second;
+        DCHECK(!k.empty());
+        if (k[0] == '.') {  // .prop, .*
+            DCHECK(v == nullptr);
+            auto *label = LabelExpression::make(pool, mapProj->mapVarName());
+            auto propName = k.substr(1);
+            auto *attr = ConstantExpression::make(pool, propName);
+            auto *la = LabelAttributeExpression::make(pool, label, attr);
+            newItems->add(propName, la);
+        } else if (v != nullptr) {  // key:val
+            newItems->add(k, v);
+        } else {  // v
+            auto *label = LabelExpression::make(pool, k);
+            newItems->add(k, label);
+        }
+    }
+    mapProj->setItems(newItems->get());
+}
+
+
 }   // namespace graph
 }   // namespace nebula

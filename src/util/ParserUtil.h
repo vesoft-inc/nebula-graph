@@ -32,6 +32,8 @@ public:
                               ReduceExpression *reduce,
                               const std::string &oldAccName,
                               const std::string &oldVarName);
+
+    static void rewriteMapProjection(QueryContext *qctx, MapProjectionExpression *mapProj);
 };
 
 }   // namespace graph

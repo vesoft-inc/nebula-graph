@@ -100,6 +100,16 @@ void ExprVisitorImpl::visit(MapExpression *expr) {
     }
 }
 
+void ExprVisitorImpl::visit(MapProjectionExpression *expr) {
+    DCHECK(ok()) << expr->toString();
+    for (auto &pair : expr->items()) {
+        pair.second->accept(this);
+        if (!ok()) {
+            break;
+        }
+    }
+}
+
 // case expression
 void ExprVisitorImpl::visit(CaseExpression *expr) {
     DCHECK(ok()) << expr->toString();

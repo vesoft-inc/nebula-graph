@@ -61,6 +61,15 @@ void FindVisitor::visit(MapExpression* expr) {
     }
 }
 
+void FindVisitor::visit(MapProjectionExpression* expr) {
+    findInCurrentExpr(expr);
+    if (!needFindAll_ && found_) return;
+    for (const auto& pair : expr->items()) {
+        pair.second->accept(this);
+        if (!needFindAll_ && found_) return;
+    }
+}
+
 void FindVisitor::visit(CaseExpression* expr) {
     findInCurrentExpr(expr);
     if (!needFindAll_ && found_) return;

@@ -51,6 +51,7 @@ public:
     void visit(ListExpression *expr) override;
     void visit(SetExpression *expr) override;
     void visit(MapExpression *expr) override;
+    void visit(MapProjectionExpression *expr) override;
     // property Expression
     void visit(TagPropertyExpression *expr) override;
     void visit(EdgePropertyExpression *expr) override;

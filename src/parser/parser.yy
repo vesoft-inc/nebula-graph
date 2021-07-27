@@ -126,6 +126,7 @@ static constexpr size_t kCommentLengthLimit = 256;
     nebula::BothInOutClause                *both_in_out_clause;
     ExpressionList                         *expression_list;
     MapItemList                            *map_item_list;
+    MapItem                                *map_item;
     MatchPath                              *match_path;
     MatchNode                              *match_node;
     MatchNodeLabel                         *match_node_label;
@@ -228,6 +229,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <expr> list_expression
 %type <expr> set_expression
 %type <expr> map_expression
+%type <expr> map_projection_expression
 %type <expr> container_expression
 %type <expr> subscript_expression
 %type <expr> subscript_range_expression
@@ -292,6 +294,9 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <both_in_out_clause> both_in_out_clause
 %type <expression_list> expression_list
 %type <map_item_list> map_item_list
+%type <map_item> map_projection_item
+%type <map_item_list> map_projection_item_list
+%type <map_item_list> opt_map_projection_item_list
 %type <case_list> when_then_list
 %type <expr> case_condition
 %type <expr> case_default
@@ -1136,6 +1141,9 @@ container_expression
     | map_expression {
         $$ = $1;
     }
+    | map_projection_expression {
+        $$ = $1;
+    }
     ;
 
 list_expression
@@ -1177,6 +1185,55 @@ map_item_list
         $$ = $1;
         $$->add(*$3, $5);
         delete $3;
+    }
+    ;
+
+map_projection_expression
+    : name_label L_BRACE opt_map_projection_item_list R_BRACE {
+        auto* mapProj = MapProjectionExpression::make(qctx->objPool(), *$1, $3);
+        nebula::graph::ParserUtil::rewriteMapProjection(qctx, mapProj);
+        $$ = mapProj;
+        delete $1;
+    }
+    ;
+
+opt_map_projection_item_list
+    : %empty {
+        $$ = nullptr;
+    }
+    | map_projection_item_list {
+        $$ = $1;
+    }
+    ;
+
+map_projection_item_list
+    : map_projection_item {
+        $$ = MapItemList::make(qctx->objPool());
+        $$->add(*$1);
+        delete $1;
+    }
+    | map_projection_item_list COMMA map_projection_item {
+        $$ = $1;
+        $$->add(*$3);
+        delete $3;
+    }
+    ;
+
+map_projection_item
+    : DOT name_label {
+        $$ = new MapItem("." + *$2, nullptr);
+        delete $2;
+    }
+    | name_label COLON expression {
+        $$ = new MapItem(*$1, $3);
+        delete $1;
+    }
+    | name_label {
+        $$ = new MapItem(*$1, nullptr);
+        delete $1;
+    }
+    | DOT STAR {
+        $$ = new MapItem(".*", nullptr);
     }
     ;
 
