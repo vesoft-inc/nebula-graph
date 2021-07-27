@@ -83,11 +83,17 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
             edges.reserve(vertices.size() * 2);
             for (; gnIter->valid(); gnIter->next()) {
                 auto type = gnIter->getEdgeProp("*", kType);
-                if (type < 0 && type.isInt() &&
-                    inEdgeTypes.find(type.getInt()) == inEdgeTypes.end()) {
+                if (!type.isInt()) {
                     continue;
                 }
-                edges.values.emplace_back(gnIter->getEdge());
+                if (type < 0 && inEdgeTypes.find(type.getInt()) == inEdgeTypes.end()) {
+                    continue;
+                }
+                auto e = gnIter->getEdge();
+                if (!e.isEdge()) {
+                    continue;
+                }
+                edges.values.emplace_back(std::move(e));
             }
             ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
         }
