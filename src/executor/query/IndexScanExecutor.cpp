@@ -5,6 +5,7 @@
  */
 
 #include "executor/query/IndexScanExecutor.h"
+
 #include <algorithm>
 
 #include "planner/plan/PlanNode.h"
