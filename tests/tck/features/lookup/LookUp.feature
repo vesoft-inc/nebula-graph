@@ -974,3 +974,4 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON player WHERE player.name == 'Tim'
       """
     Then an ExecutionError should be raised at runtime: There is no index to use at runtime
+    Then drop the used space
