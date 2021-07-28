@@ -17,7 +17,21 @@ Feature: Attribute
       | 7     |
     When executing query:
       """
+      RETURN date("2021-07-19").MoNth AS month
+      """
+    Then the result should be, in any order:
+      | month |
+      | 7     |
+    When executing query:
+      """
       RETURN time("02:59:40").minute AS minute
+      """
+    Then the result should be, in any order:
+      | minute |
+      | 59     |
+    When executing query:
+      """
+      RETURN time("02:59:40").MinUte AS minute
       """
     Then the result should be, in any order:
       | minute |
@@ -31,11 +45,25 @@ Feature: Attribute
       | 59     |
     When executing query:
       """
+      RETURN datetime("2021-07-19T02:59:40").mInutE AS minute
+      """
+    Then the result should be, in any order:
+      | minute |
+      | 59     |
+    When executing query:
+      """
       RETURN {k1 : 1, k2: true}.k1 AS k
       """
     Then the result should be, in any order:
       | k |
       | 1 |
+    When executing query:
+      """
+      RETURN {k1 : 1, k2: true}.K1 AS k
+      """
+    Then the result should be, in any order:
+      | k            |
+      | UNKNOWN_PROP |
     When executing query:
       """
       MATCH (v) WHERE id(v) == 'Tim Duncan' RETURN v.name
@@ -45,12 +73,27 @@ Feature: Attribute
       | "Tim Duncan" |
     When executing query:
       """
+      MATCH (v) WHERE id(v) == 'Tim Duncan' RETURN v.Name
+      """
+    Then the result should be, in any order:
+      | v.Name       |
+      | UNKNOWN_PROP |
+    When executing query:
+      """
       MATCH (v)-[e:like]->() WHERE id(v) == 'Tim Duncan' RETURN e.likeness
       """
     Then the result should be, in any order:
       | e.likeness |
       | 95         |
       | 95         |
+    When executing query:
+      """
+      MATCH (v)-[e:like]->() WHERE id(v) == 'Tim Duncan' RETURN e.Likeness
+      """
+    Then the result should be, in any order:
+      | e.Likeness   |
+      | UNKNOWN_PROP |
+      | UNKNOWN_PROP |
 
   Scenario: Not exists attribute
     When executing query:
