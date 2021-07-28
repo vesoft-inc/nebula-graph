@@ -1,6 +1,6 @@
 Feature: LookUpTest_Vid_Int
 
-  Scenario: LookupTest IntVid VertexIndexHint
+  Background:
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9        |
@@ -8,6 +8,8 @@ Feature: LookUpTest_Vid_Int
       | vid_type       | int64    |
       | charset        | utf8     |
       | collate        | utf8_bin |
+
+  Scenario: LookupTest IntVid VertexIndexHint
     And having executed:
       """
       CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
@@ -45,13 +47,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid EdgeIndexHint
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     And having executed:
       """
       CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
@@ -86,13 +81,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid VertexConditionScan
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     And having executed:
       """
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
@@ -244,13 +232,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid EdgeConditionScan
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     And having executed:
       """
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
@@ -395,13 +376,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid FunctionExprTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     And having executed:
       """
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
@@ -532,13 +506,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid YieldClauseTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       CREATE TAG student(number int, age int)
@@ -590,13 +557,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid OptimizerTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       CREATE TAG t1(c1 int, c2 int, c3 int, c4 int, c5 int)
@@ -681,13 +641,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid OptimizerWithStringFieldTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       CREATE TAG t1_str(c1 int, c2 int, c3 string, c4 string)
@@ -762,13 +715,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid StringFieldTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       CREATE TAG tag_with_str(c1 int, c2 string, c3 string)
@@ -848,13 +794,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid ConditionTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       create tag identity (BIRTHDAY int, NATION string, BIRTHPLACE_CITY string)
@@ -896,11 +835,12 @@ Feature: LookUpTest_Vid_Int
     And wait 6 seconds
     When executing query:
       """
-      INSERT VERTEX player(name, age) VALUES 'Tim':('Tim', 20);
+      INSERT VERTEX player(name, age) VALUES hash('Tim'):('Tim', 20);
       """
     Then the execution should be successful
     When executing query:
       """
       LOOKUP ON player WHERE player.name == 'Tim'
       """
-    Then an Error should be raised at runtime: There is no index to use at runtime
+    Then an ExecutionError should be raised at runtime: There is no index to use at runtime
+    Then drop the used space

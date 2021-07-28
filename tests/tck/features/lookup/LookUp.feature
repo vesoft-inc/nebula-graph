@@ -973,4 +973,4 @@ Feature: LookUpTest_Vid_String
       """
       LOOKUP ON player WHERE player.name == 'Tim'
       """
-    Then an Error should be raised at runtime: There is no index to use at runtime
+    Then an ExecutionError should be raised at runtime: There is no index to use at runtime
