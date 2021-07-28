@@ -887,3 +887,20 @@ Feature: LookUpTest_Vid_Int
     Then the result should be, in any order:
       | VertexID |
     Then drop the used space
+
+  Scenario: LookupTest no index to use at runtime
+    Given having executed:
+      """
+      CREATE TAG player(name string, age int);
+      """
+    And wait 6 seconds
+    When executing query:
+      """
+      INSERT VERTEX player(name, age) VALUES 'Tim':('Tim', 20);
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.name == 'Tim'
+      """
+    Then an Error should be raised at runtime: There is no index to use at runtime
