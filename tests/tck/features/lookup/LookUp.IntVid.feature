@@ -10,7 +10,7 @@ Feature: LookUpTest_Vid_Int
       | collate        | utf8_bin |
 
   Scenario: LookupTest IntVid VertexIndexHint
-    And having executed:
+    Given having executed:
       """
       CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
@@ -47,7 +47,7 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid EdgeIndexHint
-    And having executed:
+    Given having executed:
       """
       CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
@@ -81,7 +81,7 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid VertexConditionScan
-    And having executed:
+    Given having executed:
       """
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
@@ -232,7 +232,7 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid EdgeConditionScan
-    And having executed:
+    Given having executed:
       """
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
       CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
@@ -376,7 +376,7 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid FunctionExprTest
-    And having executed:
+    Given having executed:
       """
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
