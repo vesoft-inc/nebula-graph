@@ -582,9 +582,9 @@ folly::Future<Status> Executor::error(Status status) const {
 void Executor::drop() {
     for (const auto &inputVar : node()->inputVars()) {
         if (inputVar != nullptr) {
-            // Make sure use the variable happened-before de-increment count
+            // Make sure use the variable happened-before decrement count
             if (inputVar->userCount.fetch_sub(1, std::memory_order_release) == 1) {
-                // Make sure drop happened-after count de-increment
+                // Make sure drop happened-after count decrement
                 CHECK_EQ(inputVar->userCount.load(std::memory_order_acquire), 0);
                 ectx_->dropResult(inputVar->name);
                 VLOG(1) << "Drop variable " << node()->outputVar();
