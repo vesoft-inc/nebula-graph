@@ -78,7 +78,7 @@ StatusOr<OptRule::TransformResult> CollapseProjectRule::transform(
     }
 
     // 3. rewrite YieldColumns
-    auto matcher = [&rewriteMap](const Expression* e) -> bool {
+    auto matcher = [&rewriteMap](const Expression *e) -> bool {
         if (e->kind() != Expression::Kind::kVarProperty &&
             e->kind() != Expression::Kind::kInputProperty) {
             return false;
