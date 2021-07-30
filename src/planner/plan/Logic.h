@@ -22,7 +22,9 @@ public:
 
 private:
     explicit StartNode(QueryContext* qctx)
-        : PlanNode(qctx, Kind::kStart) {}
+        : PlanNode(qctx, Kind::kStart) {
+        inputVars_.emplace_back(nullptr);
+    }
 
     void cloneMembers(const StartNode&);
 };

@@ -2,6 +2,7 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
+@push_down_join
 Feature: Push Filter down LeftJoin rule
 
   Background:
@@ -61,10 +62,9 @@ Feature: Push Filter down LeftJoin rule
       | 7  | Project      | 10           |               |
       | 10 | Filter       | 9            |               |
       | 9  | LeftJoin     | 12,4         |               |
-      | 12 | Project      | 11           |               |
-      | 11 | Filter       | 1            |               |
-      | 1  | GetNeighbors | 0            |               |
+      | 12 | Project      | 13           |               |
+      | 13  | GetNeighbors | 0            |               |
       | 0  | Start        |              |               |
       | 4  | Project      | 3            |               |
       | 3  | GetVertices  | 2            |               |
-      | 2  | Project      | 1            |               |
+      | 2  | Project      | 13            |               |

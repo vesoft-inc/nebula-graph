@@ -44,17 +44,44 @@ folly::Future<Status> AsyncMsgNotifyBasedScheduler::doSchedule(Executor* root) c
         queue2.push(exe);
 
         std::vector<Receiver> receivers;
-        for (auto* dep : exe->depends()) {
-            auto notVisited = visited.emplace(dep).second;
-            if (notVisited) {
-                queue.push(dep);
+        if (exe->node()->kind() == PlanNode::Kind::kStart) {
+            // if the leaf node bypass a var, we should check the implicit dependencies.
+            auto nodeOutputVar = exe->node()->outputVar();
+            const auto& writtenBy = qctx_->symTable()->getVar(nodeOutputVar)->writtenBy;
+            auto refCount = qctx_->symTable()->getVar(nodeOutputVar)->userCount.load();
+            VLOG(1) << "var: " << nodeOutputVar
+                << "refCount: " << refCount
+                << "writtenBy: " << writtenBy.size()
+                << " if Exist this node: "
+                    << (writtenBy.find(const_cast<PlanNode*>(exe->node())) != writtenBy.end());
+            if (writtenBy.size() == 2 &&
+                writtenBy.find(const_cast<PlanNode*>(exe->node())) != writtenBy.end()) {
+                for (auto& node : writtenBy) {
+                    if (exe->node() == node) {
+                        continue;
+                    }
+                    VLOG(1) << "register notifier to: " << node->id();
+                    Notifier p;
+                    receivers.emplace_back(p.getFuture());
+                    auto& notifiers = notifierMap[node->id()];
+                    notifiers.emplace_back(std::move(p));
+                }
             }
-            Notifier p;
-            receivers.emplace_back(p.getFuture());
-            auto& notifiers = notifierMap[dep->id()];
-            notifiers.emplace_back(std::move(p));
+        } else {
+            for (auto* dep : exe->depends()) {
+                auto notVisited = visited.emplace(dep).second;
+                if (notVisited) {
+                    queue.push(dep);
+                }
+                Notifier p;
+                receivers.emplace_back(p.getFuture());
+                auto& notifiers = notifierMap[dep->id()];
+                notifiers.emplace_back(std::move(p));
+            }
         }
-        receiverMap.emplace(exe->id(), std::move(receivers));
+        auto& receiversHist = receiverMap[exe->id()];
+        receiversHist.insert(receiversHist.end(), std::make_move_iterator(receivers.begin()),
+                std::make_move_iterator(receivers.end()));
     }
 
     while (!queue2.empty()) {
@@ -93,7 +120,10 @@ void AsyncMsgNotifyBasedScheduler::scheduleExecutor(
             break;
         }
         default: {
-            if (exe->depends().empty()) {
+            VLOG(1) << "node: " << exe->node()->kind()
+                    << "exe: " << exe->node()->outputVar()
+                    << " receivers: " << receivers.size();
+            if (exe->depends().empty() && receivers.empty()) {
                 runLeafExecutor(exe, runner, std::move(notifiers));
             } else {
                 runExecutor(std::move(receivers), exe, runner, std::move(notifiers));

@@ -57,7 +57,7 @@ private:
 
     PlanNode* trackStartVid(PlanNode* left, PlanNode* right);
 
-    PlanNode* buildJoinDstPlan(PlanNode* dep, PlanNode* left);
+    PlanNode* buildJoinDstPlan(PlanNode* left);
 
     PlanNode* buildJoinInputPlan(PlanNode* dep);
 
