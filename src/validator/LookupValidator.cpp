@@ -131,22 +131,12 @@ Status LookupValidator::prepareFilter() {
 
 StatusOr<Expression*> LookupValidator::handleLogicalExprOperands(LogicalExpression* lExpr) {
     auto& operands = lExpr->operands();
-    bool needPullOrExpr = false;
-
     for (auto i = 0u; i < operands.size(); i++) {
         auto operand = lExpr->operand(i);
-        if (operand->isLogicalExpr()) {
-            // Not allowed to use different logical expressions: A AND B OR C
-            return Status::SemanticError("Not supported filter: %s", lExpr->toString().c_str());
-        }
-
-        // If the operand is IN expressoin, it will be transformed to multiple OR expressions in the
-        // later process. To support push down for this senario, another pullOrs() is required A in
-        // [a, b] or B  ==rewrite inExpr==>  (A==a or A==b) or B  ==pullOrs==>  A==a or A==b or B
-        if (lExpr->kind() == Expression::Kind::kLogicalOr &&
-            operand->kind() == Expression::Kind::kRelIn) {
-            needPullOrExpr = true;
-        }
+        // if (operand->isLogicalExpr()) {
+        //     // Not allowed to use different logical expressions: A AND B OR C
+        //     return Status::SemanticError("Not supported filter: %s", lExpr->toString().c_str());
+        // }
         auto ret = checkFilter(operand);
         NG_RETURN_IF_ERROR(ret);
 
@@ -154,9 +144,6 @@ StatusOr<Expression*> LookupValidator::handleLogicalExprOperands(LogicalExpressi
         if (operand != newOperand) {
             lExpr->setOperand(i, newOperand);
         }
-    }
-    if (needPullOrExpr) {
-        ExpressionUtils::pullOrs(lExpr);
     }
 
     return lExpr;
@@ -231,59 +218,7 @@ StatusOr<Expression*> LookupValidator::rewriteRelExpr(RelationalExpression* expr
                                        : ExpressionUtils::rewriteLabelAttr2TagProp(la);
     expr->setLeft(propExpr);
 
-    // rewrite in expr if exists
-    if (expr->kind() == Expression::Kind::kRelIn) {
-        return rewriteInExpr(expr);
-    }
-
     return expr;
-}
-
-Expression* LookupValidator::rewriteInExpr(const Expression* expr) {
-    DCHECK(expr->kind() == Expression::Kind::kRelIn);
-    auto pool = expr->getObjPool();
-    auto inExpr = static_cast<RelationalExpression*>(expr->clone());
-    auto containerExpr = inExpr->right();
-    DCHECK(containerExpr->isContainerExpr());
-
-    std::vector<Expression*> containerOperands;
-    switch (containerExpr->kind()) {
-        case Expression::Kind::kList:
-            containerOperands = static_cast<ListExpression*>(containerExpr)->get();
-            break;
-        case Expression::Kind::kSet: {
-            containerOperands = static_cast<SetExpression*>(containerExpr)->get();
-            break;
-        }
-        case Expression::Kind::kMap: {
-            auto mapItems = static_cast<MapExpression*>(containerExpr)->get();
-            // iterate map and add key into containerOperands
-            for (auto& item : mapItems) {
-                containerOperands.emplace_back(
-                    ConstantExpression::make(pool, std::move(item.first)));
-            }
-            break;
-        }
-        default:
-            LOG(FATAL) << "Invalid expression type " << containerExpr->kind();
-    }
-
-    auto operandSize = containerOperands.size();
-    // container has only 1 element, no need to transform to logical expression
-    if (operandSize == 1) {
-        return RelationalExpression::makeEQ(pool, inExpr->left(), containerOperands[0]);
-    }
-
-    std::vector<Expression*> orExprOperands;
-    orExprOperands.reserve(operandSize);
-    // A in [B, C, D]  =>  (A == B) or (A == C) or (A == D)
-    for (auto* operand : containerOperands) {
-        orExprOperands.emplace_back(RelationalExpression::makeEQ(pool, inExpr->left(), operand));
-    }
-
-    auto orExpr = LogicalExpression::makeOr(pool);
-    orExpr->setOperands(orExprOperands);
-    return orExpr;
 }
 
 StatusOr<Expression*> LookupValidator::checkConstExpr(Expression* expr,

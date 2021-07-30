@@ -46,8 +46,6 @@ private:
                                          const Expression::Kind kind);
 
     StatusOr<Expression*> rewriteRelExpr(RelationalExpression* expr);
-    // Rewrite IN expression into OR expression or relEQ expression
-    Expression* rewriteInExpr(const Expression* expr);
     Expression* reverseRelKind(RelationalExpression* expr);
 
     const LookupSentence* sentence() const;

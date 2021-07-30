@@ -69,6 +69,14 @@ public:
     static Expression* rewriteRelExprHelper(const Expression* expr,
                                             Expression*& relRightOperandExpr);
 
+    // Rewrite IN expression into OR expression or relEQ expression
+    static Expression* rewriteInExpr(const Expression* expr);
+
+    // Return the operands of container expressions
+    // For list and set, return the operands
+    // For map, return the keys
+    static std::vector<Expression*> getContainerExprOperands(const Expression* expr);
+
     // Clone and fold constant expression
     static StatusOr<Expression*> foldConstantExpr(const Expression* expr);
 

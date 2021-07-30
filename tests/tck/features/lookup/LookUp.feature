@@ -77,7 +77,6 @@ Feature: LookUpTest_Vid_String
       """
     Then a SemanticError should be raised at runtime:
     Then drop the used space
-
   Scenario: LookupTest VertexConditionScan
     Given having executed:
       """
