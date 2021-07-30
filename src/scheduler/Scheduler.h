@@ -21,7 +21,7 @@ public:
 
     virtual folly::Future<Status> schedule() = 0;
 
-    static void analyzeLifetime(const PlanNode *node, bool inLoop = false);
+    static void analyzeLifetime(const PlanNode *node, std::size_t loopLayers = 0);
 };
 }  // namespace graph
 }  // namespace nebula
