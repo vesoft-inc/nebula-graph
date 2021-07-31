@@ -36,7 +36,7 @@ public:
         return rewriter_;
     }
 
-private:
+public:
     explicit RewriteVisitor(Matcher matcher,
                             Rewriter rewriter)
         : matcher_(std::move(matcher)),
