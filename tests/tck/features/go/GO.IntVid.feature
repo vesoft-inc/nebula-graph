@@ -1679,7 +1679,8 @@ Feature: IntegerVid Go  Sentence
     When executing query:
       """
       LOOKUP ON player WHERE player.age == 40 YIELD player.name AS name |
-      GO 1 TO 2 STEPS FROM hash($-.name) OVER like REVERSELY YIELD like._dst AS dst, $$.player.name AS name
+      YIELD hash($-.name) AS name |
+      GO 1 TO 2 STEPS FROM $-.name OVER like REVERSELY YIELD like._dst AS dst, $$.player.name AS name
       """
     Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
       | dst                  | name                 |
