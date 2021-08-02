@@ -43,7 +43,6 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
     DCHECK_EQ(projNode->kind(), PlanNode::Kind::kProject);
     const auto* oldProjNode = static_cast<const graph::Project*>(projNode);
     const auto* condition = oldFilterNode->condition();
-    auto objPool = octx->qctx()->objPool();
 
     auto projColNames = oldProjNode->colNames();
     auto projColumns = oldProjNode->columns()->columns();
@@ -84,8 +83,8 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
         }
         return true;
     };
-    std::unique_ptr<Expression> filterPicked;
-    std::unique_ptr<Expression> filterUnpicked;
+    Expression* filterPicked = nullptr;
+    Expression* filterUnpicked = nullptr;
     graph::ExpressionUtils::splitFilter(condition, picker, &filterPicked, &filterUnpicked);
 
     if (!filterPicked) {
@@ -102,17 +101,16 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
     auto rewriter = [&rewriteMap](const Expression* e) -> Expression* {
         DCHECK(graph::ExpressionUtils::isPropertyExpr(e));
         auto& propName = static_cast<const PropertyExpression*>(e)->prop();
-        return rewriteMap[propName]->clone().release();
+        return rewriteMap[propName]->clone();
     };
     auto* newFilterPicked = rewriteMap.empty()
-                                ? filterPicked.release()
+                                ? filterPicked
                                 : graph::RewriteVisitor::transform(
-                                      filterPicked.get(), std::move(matcher), std::move(rewriter));
+                                      filterPicked, std::move(matcher), std::move(rewriter));
 
     // produce new Filter node below
-    auto* newBelowFilterNode = graph::Filter::make(octx->qctx(),
-                                                   const_cast<graph::PlanNode*>(oldProjNode->dep()),
-                                                   objPool->add(newFilterPicked));
+    auto* newBelowFilterNode = graph::Filter::make(
+        octx->qctx(), const_cast<graph::PlanNode*>(oldProjNode->dep()), newFilterPicked);
     newBelowFilterNode->setInputVar(oldProjNode->inputVar());
     auto newBelowFilterGroup = OptGroup::create(octx);
     auto newFilterGroupNode = newBelowFilterGroup->makeGroupNode(newBelowFilterNode);
@@ -128,8 +126,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownProjectRule::transform(
     result.eraseAll = true;
     if (filterUnpicked) {
         // produce new Filter node above
-        auto* newAboveFilterNode =
-            graph::Filter::make(octx->qctx(), newProjNode, objPool->add(filterUnpicked.release()));
+        auto* newAboveFilterNode = graph::Filter::make(octx->qctx(), newProjNode, filterUnpicked);
         newAboveFilterNode->setOutputVar(oldFilterNode->outputVar());
         auto newAboveFilterGroupNode =
             OptGroupNode::create(octx, newAboveFilterNode, filterGroupNode->group());

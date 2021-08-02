@@ -32,8 +32,6 @@ class TestSession(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        time.sleep(3)
-
         resp = self.execute('SHOW HOSTS GRAPH')
         self.check_resp_succeeded(resp)
         assert not resp.is_empty()
@@ -43,8 +41,16 @@ class TestSession(NebulaTestSuite):
         self.addr_host2 = resp.row_values(1)[0].as_string()
         self.addr_port2 = resp.row_values(1)[1].as_int()
 
+        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 1')
+        self.check_resp_succeeded(resp)
+        time.sleep(3)
+
     @classmethod
     def cleanup(self):
+        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 2')
+        self.check_resp_succeeded(resp)
+        time.sleep(3)
+
         session = self.client_pool.get_session('root', 'nebula')
         resp = session.execute('DROP USER session_user')
         self.check_resp_succeeded(resp)
@@ -112,19 +118,15 @@ class TestSession(NebulaTestSuite):
         # 5: test expired session
         resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 5')
         self.check_resp_succeeded(resp)
-        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 1')
-        self.check_resp_succeeded(resp)
         time.sleep(3)
-        resp = self.execute('SHOW SPACES;')
-        self.check_resp_succeeded(resp)
-        time.sleep(3)
-        resp = self.execute('SHOW SESSION {}'.format(session_id))
-        time.sleep(3)
+        # to wait for session expires
+        for i in range(3):
+            resp = self.execute('SHOW SPACES;')
+            self.check_resp_succeeded(resp)
+            time.sleep(3)
         resp = self.execute('SHOW SESSION {}'.format(session_id))
         self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
         resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 0')
-        self.check_resp_succeeded(resp)
-        resp = self.execute('UPDATE CONFIGS graph:session_reclaim_interval_secs = 10')
         self.check_resp_succeeded(resp)
         time.sleep(3)
 
@@ -147,9 +149,15 @@ class TestSession(NebulaTestSuite):
         assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
         session_id = resp.session_id
 
-        resp = conn1.execute(session_id, 'CREATE SPACE IF NOT EXISTS aSpace(partition_num=1);USE aSpace;')
+        resp = conn1.execute(session_id, 'CREATE SPACE IF NOT EXISTS aSpace(partition_num=1, vid_type=FIXED_STRING(8));USE aSpace;')
+        self.check_resp_succeeded(ResultSet(resp, 0))
+        # time::WallClock::fastNowInMicroSec() is not syncronous in different process,
+        # so we sleep 3 seconds here and charge session
+        time.sleep(3)
+        resp = conn1.execute(session_id, 'USE aSpace;')
         self.check_resp_succeeded(ResultSet(resp, 0))
         time.sleep(3)
+        # We actually not allowed share sessions, this only for testing the scenario of transfer sessions.
         resp = conn1.execute(session_id, 'CREATE TAG IF NOT EXISTS a();')
         self.check_resp_succeeded(ResultSet(resp, 0))
         resp = conn2.execute(session_id, 'CREATE TAG IF NOT EXISTS b();')
@@ -204,7 +212,8 @@ class TestSession(NebulaTestSuite):
         try:
             conn = Connection()
             conn.open(self.addr_host1, self.addr_port1, 3000)
-            session_id = conn.authenticate(self.user, self.password)
+            auth_result = conn.authenticate(self.user, self.password)
+            session_id = auth_result.get_session_id()
             conn.signout(session_id)
         except Exception as e:
             assert False, e.message
@@ -213,4 +222,3 @@ class TestSession(NebulaTestSuite):
         resp = conn.execute(session_id, 'SHOW HOSTS')
         assert resp.error_code == ttypes.ErrorCode.E_SESSION_INVALID, resp.error_msg
         assert resp.error_msg.find(b'Session not existed!') > 0
-

@@ -6,6 +6,8 @@
 
 #include "scheduler/AsyncMsgNotifyBasedScheduler.h"
 
+DECLARE_bool(enable_lifetime_optimize);
+
 namespace nebula {
 namespace graph {
 AsyncMsgNotifyBasedScheduler::AsyncMsgNotifyBasedScheduler(QueryContext* qctx) : Scheduler() {
@@ -13,6 +15,12 @@ AsyncMsgNotifyBasedScheduler::AsyncMsgNotifyBasedScheduler(QueryContext* qctx) :
 }
 
 folly::Future<Status> AsyncMsgNotifyBasedScheduler::schedule() {
+    if (FLAGS_enable_lifetime_optimize) {
+        // special for root
+        qctx_->plan()->root()->outputVarPtr()->userCount.store(std::numeric_limits<uint64_t>::max(),
+                                                               std::memory_order_relaxed);
+        analyzeLifetime(qctx_->plan()->root());
+    }
     auto executor = Executor::create(qctx_->plan()->root(), qctx_);
     return doSchedule(executor);
 }
@@ -113,7 +121,8 @@ void AsyncMsgNotifyBasedScheduler::runSelect(std::vector<folly::Future<Status>>&
                 .thenTry(
                     [select, pros = std::move(pros), this](auto&& selectTry) mutable {
                         if (selectTry.hasException()) {
-                            return notifyError(pros, Status::Error(selectTry.exception().what()));
+                            return notifyError(pros, Status::Error(
+                                                        selectTry.exception().what()));
                         }
                         auto selectStatus = std::move(selectTry).value();
                         if (!selectStatus.ok()) {
@@ -137,7 +146,8 @@ void AsyncMsgNotifyBasedScheduler::runSelect(std::vector<folly::Future<Status>>&
                             .thenTry([pros = std::move(pros), this](auto&& bodyTry) mutable {
                                 if (bodyTry.hasException()) {
                                     return notifyError(pros,
-                                                       Status::Error(bodyTry.exception().what()));
+                                                       Status::Error(
+                                                           bodyTry.exception().what()));
                                 }
                                 auto bodyStatus = std::move(bodyTry).value();
                                 if (!bodyStatus.ok()) {

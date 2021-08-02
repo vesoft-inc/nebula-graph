@@ -329,14 +329,26 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
 void DeduceTypeVisitor::visit(AttributeExpression *expr) {
     expr->left()->accept(this);
     if (!ok()) return;
-    // TODO: Time, DateTime, Date
-    if (type_ != Value::Type::MAP && type_ != Value::Type::VERTEX && type_ != Value::Type::EDGE &&
-        !isSuperiorType(type_)) {
-        std::stringstream ss;
-        ss << "`" << expr->toString() << "', expected Map, Vertex or Edge but was " << type_ << ": "
-           << expr->left()->toString();
-        status_ = Status::SemanticError(ss.str());
-        return;
+    switch (type_) {
+        case Value::Type::MAP:
+        case Value::Type::VERTEX:
+        case Value::Type::EDGE:
+        case Value::Type::DATE:
+        case Value::Type::TIME:
+        case Value::Type::DATETIME:
+            // nothing
+            break;
+        default: {
+            if (!isSuperiorType(type_)) {
+                std::stringstream ss;
+                ss << "`" << expr->toString() <<
+                    "', expected type with attribute like Date, Time, DateTime, "
+                    "Map, Vertex or Edge but was " <<
+                    type_ << ": " << expr->left()->toString();
+                status_ = Status::SemanticError(ss.str());
+                return;
+            }
+        }
     }
 
     expr->right()->accept(this);
@@ -556,6 +568,7 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         if (!ok()) return;
     }
 
+    std::unordered_set<Value::Type> types;
     for (const auto &whenThen : expr->cases()) {
         whenThen.when->accept(this);
         if (!ok()) return;
@@ -567,10 +580,14 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         }
         whenThen.then->accept(this);
         if (!ok()) return;
+        types.emplace(type_);
     }
 
-    // Will not deduce the actual value type returned by case expression.
-    type_ = Value::Type::__EMPTY__;
+    if (types.size() == 1) {
+        type_ = *types.begin();
+    } else {
+        type_ = Value::Type::__EMPTY__;
+    }
 }
 
 void DeduceTypeVisitor::visit(PredicateExpression *expr) {
@@ -675,8 +692,9 @@ void DeduceTypeVisitor::visit(SubscriptRangeExpression *expr) {
         if (!ok()) {
             return;
         }
-        if (type_ != Value::Type::INT) {
+        if (type_ != Value::Type::INT && type_ != Value::Type::NULLVALUE) {
             status_ = Status::SemanticError("Expect integer type for subscript range bound.");
+            return;
         }
     }
 
@@ -685,8 +703,9 @@ void DeduceTypeVisitor::visit(SubscriptRangeExpression *expr) {
         if (!ok()) {
             return;
         }
-        if (type_ != Value::Type::INT) {
+        if (type_ != Value::Type::INT && type_ != Value::Type::NULLVALUE) {
             status_ = Status::SemanticError("Expect integer type for subscript range bound.");
+            return;
         }
     }
     type_ = Value::Type::LIST;

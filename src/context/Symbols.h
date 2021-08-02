@@ -12,6 +12,7 @@
 
 #include "common/base/ObjectPool.h"
 #include "common/datatypes/Value.h"
+#include "common/base/StatusOr.h"
 
 namespace nebula {
 namespace graph {
@@ -45,6 +46,9 @@ struct Variable {
 
     std::unordered_set<PlanNode*> readBy;
     std::unordered_set<PlanNode*> writtenBy;
+
+    // the count of use the variable
+    std::atomic<uint64_t>         userCount;
 };
 
 class SymbolTable final {

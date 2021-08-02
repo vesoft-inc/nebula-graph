@@ -8,6 +8,7 @@
 
 #include <folly/String.h>
 #include <folly/executors/InlineExecutor.h>
+#include <atomic>
 
 #include "common/base/Memory.h"
 #include "common/base/ObjectPool.h"
@@ -46,6 +47,8 @@
 #include "executor/admin/SwitchSpaceExecutor.h"
 #include "executor/admin/UpdateUserExecutor.h"
 #include "executor/admin/ZoneExecutor.h"
+#include "executor/admin/ShowQueriesExecutor.h"
+#include "executor/admin/KillQueryExecutor.h"
 #include "executor/algo/BFSShortestPathExecutor.h"
 #include "executor/algo/CartesianProductExecutor.h"
 #include "executor/algo/ConjunctPathExecutor.h"
@@ -95,6 +98,8 @@
 #include "util/ScopedTimer.h"
 
 using folly::stringPrintf;
+
+DEFINE_bool(enable_lifetime_optimize, true, "Does enable the lifetime optimize.");
 
 namespace nebula {
 namespace graph {
@@ -177,7 +182,13 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kUnwind: {
             return pool->add(new UnwindExecutor(node, qctx));
         }
-        case PlanNode::Kind::kIndexScan: {
+        case PlanNode::Kind::kIndexScan:
+        case PlanNode::Kind::kEdgeIndexFullScan:
+        case PlanNode::Kind::kEdgeIndexPrefixScan:
+        case PlanNode::Kind::kEdgeIndexRangeScan:
+        case PlanNode::Kind::kTagIndexFullScan:
+        case PlanNode::Kind::kTagIndexPrefixScan:
+        case PlanNode::Kind::kTagIndexRangeScan: {
             return pool->add(new IndexScanExecutor(node, qctx));
         }
         case PlanNode::Kind::kStart: {
@@ -495,6 +506,12 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kUpdateSession:  {
             return pool->add(new UpdateSessionExecutor(node, qctx));
         }
+        case PlanNode::Kind::kShowQueries: {
+            return pool->add(new ShowQueriesExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kKillQuery: {
+            return pool->add(new KillQueryExecutor(node, qctx));
+        }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
             break;
@@ -519,6 +536,12 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 Executor::~Executor() {}
 
 Status Executor::open() {
+    if (qctx_->isKilled()) {
+        VLOG(1) << "Execution is being killed. session: " << qctx()->rctx()->session()->id()
+            << "ep: " << qctx()->plan()->id()
+            << "query: " << qctx()->rctx()->query();
+        return Status::Error("Execution had been killed");
+    }
     auto status = MemInfo::make();
     NG_RETURN_IF_ERROR(status);
     auto mem = std::move(status).value();
@@ -553,12 +576,34 @@ folly::Future<Status> Executor::start(Status status) const {
 }
 
 folly::Future<Status> Executor::error(Status status) const {
-    return folly::makeFuture<Status>(ExecutionError(std::move(status))).via(runner());
+    return folly::makeFuture<Status>(std::move(status)).via(runner());
+}
+
+void Executor::drop() {
+    for (const auto &inputVar : node()->inputVars()) {
+        if (inputVar != nullptr) {
+            // Make sure use the variable happened-before decrement count
+            if (inputVar->userCount.fetch_sub(1, std::memory_order_release) == 1) {
+                // Make sure drop happened-after count decrement
+                CHECK_EQ(inputVar->userCount.load(std::memory_order_acquire), 0);
+                ectx_->dropResult(inputVar->name);
+                VLOG(1) << "Drop variable " << node()->outputVar();
+            }
+        }
+    }
 }
 
 Status Executor::finish(Result &&result) {
-    numRows_ = result.size();
-    ectx_->setResult(node()->outputVar(), std::move(result));
+    if (!FLAGS_enable_lifetime_optimize ||
+        node()->outputVarPtr()->userCount.load(std::memory_order_relaxed) != 0) {
+        numRows_ = result.size();
+        ectx_->setResult(node()->outputVar(), std::move(result));
+    } else {
+        VLOG(1) << "Drop variable " << node()->outputVar();
+    }
+    if (FLAGS_enable_lifetime_optimize) {
+        drop();
+    }
     return Status::OK();
 }
 

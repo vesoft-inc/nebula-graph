@@ -1,6 +1,6 @@
 Feature: LookUpTest_Vid_Int
 
-  Scenario: LookupTest IntVid SimpleVertex
+  Background:
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9        |
@@ -8,106 +8,9 @@ Feature: LookUpTest_Vid_Int
       | vid_type       | int64    |
       | charset        | utf8     |
       | collate        | utf8_bin |
-    And having executed:
-      """
-      CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
-      CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
-      CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
-      """
-    And wait 6 seconds
-    When try to execute query:
-      """
-      INSERT VERTEX lookup_tag_1(col1, col2, col3) VALUES 200:(200, 200, 200),201:(201, 201, 201), 202:(202, 202, 202);
-      """
-    Then the execution should be successful
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_1 WHERE col1 == 200;
-      """
-    Then a SemanticError should be raised at runtime:
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 300
-      """
-    Then the result should be, in any order:
-      | VertexID |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200
-      """
-    Then the result should be, in any order:
-      | VertexID |
-      | 200      |
-    When executing query:
-      """
-      LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 200
-      YIELD lookup_tag_1.col1, lookup_tag_1.col2, lookup_tag_1.col3
-      """
-    Then the result should be, in any order:
-      | VertexID | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
-      | 200      | 200               | 200               | 200               |
-    Then drop the used space
-
-  Scenario: LookupTest IntVid SimpleEdge
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
-    And having executed:
-      """
-      CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
-      CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
-      CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
-      """
-    And wait 6 seconds
-    When try to execute query:
-      """
-      INSERT EDGE
-        lookup_edge_1(col1, col2, col3)
-      VALUES
-        200 -> 201@0:(201, 201, 201),
-        200 -> 202@0:(202, 202, 202)
-      """
-    Then the execution should be successful
-    When executing query:
-      """
-      LOOKUP ON lookup_edge_1 WHERE col1 == 201
-      """
-    Then a SemanticError should be raised at runtime:
-    When executing query:
-      """
-      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 300
-      """
-    Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-    When executing query:
-      """
-      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201
-      """
-    Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking |
-      | 200    | 201    | 0       |
-    When executing query:
-      """
-      LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 201 YIELD lookup_edge_1.col1, lookup_edge_1.col2, lookup_edge_1.col3
-      """
-    Then the result should be, in any order:
-      | SrcVID | DstVID | Ranking | lookup_edge_1.col1 | lookup_edge_1.col2 | lookup_edge_1.col3 |
-      | 200    | 201    | 0       | 201                | 201                | 201                |
-    Then drop the used space
 
   Scenario: LookupTest IntVid VertexIndexHint
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
-    And having executed:
+    Given having executed:
       """
       CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
@@ -139,18 +42,12 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col1 == true
       """
-    Then a ExecutionError should be raised at runtime:
+    Then the result should be, in any order:
+      | VertexID |
     Then drop the used space
 
   Scenario: LookupTest IntVid EdgeIndexHint
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
-    And having executed:
+    Given having executed:
       """
       CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
@@ -184,14 +81,7 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid VertexConditionScan
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
-    And having executed:
+    Given having executed:
       """
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
@@ -342,14 +232,7 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid EdgeConditionScan
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
-    And having executed:
+    Given having executed:
       """
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
       CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
@@ -493,14 +376,7 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid FunctionExprTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
-    And having executed:
+    Given having executed:
       """
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
@@ -630,13 +506,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid YieldClauseTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       CREATE TAG student(number int, age int)
@@ -688,13 +557,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid OptimizerTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       CREATE TAG t1(c1 int, c2 int, c3 int, c4 int, c5 int)
@@ -760,12 +622,12 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP on t1 WHERE t1.c4 > 1
       """
-    Then a ExecutionError should be raised at runtime: IndexNotFound: No valid index found
+    Then the execution should be successful
     When executing query:
       """
       LOOKUP on t1 WHERE t1.c2 > 1 and t1.c3 > 1
       """
-    Then a ExecutionError should be raised at runtime: IndexNotFound: No valid index found
+    Then the execution should be successful
     When executing query:
       """
       LOOKUP ON t1 where t1.c2 > 1 and t1.c1 != 1
@@ -779,13 +641,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid OptimizerWithStringFieldTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       CREATE TAG t1_str(c1 int, c2 int, c3 string, c4 string)
@@ -860,13 +715,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid StringFieldTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       CREATE TAG tag_with_str(c1 int, c2 string, c3 string)
@@ -946,13 +794,6 @@ Feature: LookUpTest_Vid_Int
     Then drop the used space
 
   Scenario: LookupTest IntVid ConditionTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9        |
-      | replica_factor | 1        |
-      | vid_type       | int64    |
-      | charset        | utf8     |
-      | collate        | utf8_bin |
     When executing query:
       """
       create tag identity (BIRTHDAY int, NATION string, BIRTHPLACE_CITY string)
@@ -984,4 +825,22 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | VertexID |
+    Then drop the used space
+
+  Scenario: LookupTest no index to use at runtime
+    Given having executed:
+      """
+      CREATE TAG player(name string, age int);
+      """
+    And wait 6 seconds
+    When executing query:
+      """
+      INSERT VERTEX player(name, age) VALUES hash('Tim'):('Tim', 20);
+      """
+    Then the execution should be successful
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.name == 'Tim'
+      """
+    Then an ExecutionError should be raised at runtime: There is no index to use at runtime
     Then drop the used space

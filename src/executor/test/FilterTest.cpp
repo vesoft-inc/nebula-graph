@@ -25,7 +25,7 @@ public:
 #define FILTER_RESUTL_CHECK(inputName, outputName, sentence, expected)                             \
     do {                                                                                           \
         qctx_->symTable()->newVariable(outputName);                                                \
-        auto yieldSentence = getYieldSentence(sentence);                                           \
+        auto yieldSentence = getYieldSentence(sentence, qctx_.get());                              \
         auto columns = yieldSentence->columns();                                                   \
         for (auto& col : columns) {                                                                \
             col->setExpr(ExpressionUtils::rewriteLabelAttr2EdgeProp(col->expr()));                 \

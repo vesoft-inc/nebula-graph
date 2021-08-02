@@ -13,29 +13,35 @@ Feature: Push Filter down LeftJoin rule
       LOOKUP ON player WHERE player.name=='Tim Duncan'
       | YIELD $-.VertexID AS vid
       |  GO FROM $-.vid OVER like BIDIRECT
-      WHERE any(x in split($^.player.name, ' ') WHERE x contains 'Ti')
-      YIELD $^.player.name, like._dst AS vid
-      | GO FROM $-.vid OVER like BIDIRECT WHERE any(x in split($^.player.name, ' ') WHERE x contains 'Ti')
-      YIELD $^.player.name
+      WHERE any(x in split($$.player.name, ' ') WHERE x contains 'Ti')
+      YIELD $$.player.name, like._dst AS vid
+      | GO FROM $-.vid OVER like BIDIRECT WHERE any(x in split($$.player.name, ' ') WHERE x contains 'Ti')
+      YIELD $$.player.name
       """
     Then the result should be, in any order:
-      | $^.player.name   |
-      | "Tiago Splitter" |
+      | $$.player.name |
+      | "Tim Duncan"   |
     And the execution plan should be:
-      | id | name         | dependencies | operator info |
-      | 16 | Project      | 26           |               |
-      | 26 | LeftJoin     | 25           |               |
-      | 25 | Filter       | 13           |               |
-      | 13 | Project      | 22           |               |
-      | 22 | GetNeighbors | 9            |               |
-      | 9  | Project      | 24           |               |
-      | 24 | LeftJoin     | 23           |               |
-      | 23 | Filter       | 6            |               |
-      | 6  | Project      | 21           |               |
-      | 21 | GetNeighbors | 2            |               |
-      | 2  | Project      | 17           |               |
-      | 17 | IndexScan    | 0            |               |
-      | 0  | Start        |              |               |
+      | id | name               | dependencies | operator info |
+      | 24 | Project            | 23           |               |
+      | 23 | Filter             | 22           |               |
+      | 22 | InnerJoin          | 21           |               |
+      | 21 | LeftJoin           | 20           |               |
+      | 20 | Project            | 19           |               |
+      | 19 | GetVertices        | 18           |               |
+      | 18 | Project            | 31           |               |
+      | 31 | GetNeighbors       | 14           |               |
+      | 14 | Project            | 13           |               |
+      | 13 | Filter             | 12           |               |
+      | 12 | InnerJoin          | 11           |               |
+      | 11 | LeftJoin           | 10           |               |
+      | 10 | Project            | 9            |               |
+      | 9  | GetVertices        | 8            |               |
+      | 8  | Project            | 30           |               |
+      | 30 | GetNeighbors       | 27           |               |
+      | 27 | Project            | 25           |               |
+      | 25 | TagIndexPrefixScan | 0            |               |
+      | 0  | Start              |              |               |
     When profiling query:
       """
       GO FROM "Tony Parker" OVER like

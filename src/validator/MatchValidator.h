@@ -16,7 +16,7 @@
 namespace nebula {
 
 class MatchStepRange;
-
+class ObjectPool;
 namespace graph {
 class MatchValidator final : public TraversalValidator {
 public:
@@ -40,7 +40,9 @@ private:
 
     Status validateStepRange(const MatchStepRange *range) const;
 
-    Status validateWith(const WithClause *with, WithClauseContext &withClauseCtx) const;
+    Status validateWith(const WithClause *with,
+                        const CypherClauseContextBase *cypherClauseCtx,
+                        WithClauseContext &withClauseCtx) const;
 
     Status validateUnwind(const UnwindClause *unwind, UnwindClauseContext &unwindClauseCtx) const;
 
@@ -56,14 +58,14 @@ private:
 
     Status validateYield(YieldClauseContext &yieldCtx) const;
 
+    Status includeExisting(const CypherClauseContextBase *cypherClauseCtx,
+                           YieldColumns *columns) const;
+
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map,
                                         const std::string &label = "") const;
-    StatusOr<Expression*> makeSubFilterWithoutSave(const std::string &alias,
-                                                   const MapExpression *map,
-                                                   const std::string &label = "") const;
 
-    static Expression* andConnect(Expression *left, Expression *right);
+    static Expression* andConnect(ObjectPool* pool, Expression *left, Expression *right);
 
     template <typename T>
     T* saveObject(T *obj) const {

@@ -16,7 +16,8 @@ namespace graph {
 
 class GroupByValidator final : public Validator {
 public:
-    GroupByValidator(Sentence *sentence, QueryContext *context) : Validator(sentence, context) {}
+    GroupByValidator(Sentence *sentence, QueryContext *context)
+        : Validator(sentence, context) {}
 
     Status validateImpl() override;
 
@@ -30,19 +31,15 @@ private:
     Status groupClauseSemanticCheck();
 
 private:
-    std::vector<Expression *> yieldCols_;
-
-    // key: alias, value: input name
-    std::unordered_map<std::string, YieldColumn *> aliases_;
-
-    bool needGenProject_{false};
-    std::vector<std::string> outputColumnNames_;
-
-    // used to generate Project node when there is an internally nested aggregateExpression
-    YieldColumns *projCols_;
-
     std::vector<Expression *> groupKeys_;
     std::vector<Expression *> groupItems_;
+
+    std::vector<std::string> aggOutputColNames_;
+    bool needGenProject_{false};
+    // used to generate Project node when there is an internally nested aggregateExpression
+    YieldColumns *projCols_;
+    // just for groupClauseSemanticCheck
+    std::vector<Expression *> yieldCols_;
 };
 
 }   // namespace graph
