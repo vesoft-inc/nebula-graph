@@ -272,6 +272,14 @@ public:
         return cost_;
     }
 
+    void setLoopLayers(std::size_t c) {
+        loopLayers_ = c;
+    }
+
+    std::size_t loopLayers() const {
+        return loopLayers_;
+    }
+
 protected:
     PlanNode(QueryContext* qctx, Kind kind);
 
@@ -294,6 +302,8 @@ protected:
     std::vector<const PlanNode*>             dependencies_;
     std::vector<Variable*>                   inputVars_;
     std::vector<Variable*>                   outputVars_;
+    // nested loop layers of current node
+    std::size_t loopLayers_{0};
 };
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);

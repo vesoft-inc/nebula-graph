@@ -120,14 +120,6 @@ public:
 
     PlanNode* clone() const override;
 
-    void incLoopLayers(std::size_t inc) {
-        loopLayers_ += inc;
-    }
-
-    std::size_t loopLayers() const {
-        return loopLayers_;
-    }
-
 private:
     Loop(QueryContext* qctx, PlanNode* input, PlanNode* body, Expression* condition)
         : BinarySelect(qctx, Kind::kLoop, input, condition), body_(body) {}
@@ -136,8 +128,6 @@ private:
 
 private:
     PlanNode* body_{nullptr};
-    // nested loop layers of current Loop
-    std::size_t loopLayers_{1};
 };
 
 /**

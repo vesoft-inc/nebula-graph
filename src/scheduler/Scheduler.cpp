@@ -33,6 +33,8 @@ namespace graph {
                 inputVar->userCount.fetch_add(1, std::memory_order_relaxed);
             }
         }
+        auto* currentMutNode = const_cast<PlanNode*>(currentNode);
+        currentMutNode->setLoopLayers(currentLoopLayers);
         stack.pop();
 
         for (auto dep : currentNode->dependencies()) {
@@ -53,7 +55,7 @@ namespace graph {
                 // used by scheduler
                 loop->outputVarPtr()->userCount.store(std::numeric_limits<uint64_t>::max(),
                                                       std::memory_order_relaxed);
-                loop->incLoopLayers(currentLoopLayers);
+                loop->setLoopLayers(currentLoopLayers + 1);
                 stack.push(std::make_tuple(loop->body(), loop->loopLayers()));
                 break;
             }

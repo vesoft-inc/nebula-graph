@@ -593,6 +593,10 @@ void Executor::drop() {
         }
         return;
     }
+    if (node()->loopLayers() != 0) {
+        // The lifetime of loop body is managed by Loop node
+        return;
+    }
 
     if (node()->kind() == PlanNode::Kind::kSelect) {
         // Release the branch don't execute
