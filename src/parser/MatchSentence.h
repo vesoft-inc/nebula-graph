@@ -214,9 +214,9 @@ private:
 };
 
 
-class MatchPath final {
+class PatternPart final {
 public:
-    explicit MatchPath(MatchNode *node) {
+    explicit PatternPart(MatchNode *node) {
         nodes_.emplace_back(node);
     }
 
@@ -261,6 +261,21 @@ private:
     std::vector<std::unique_ptr<MatchEdge>>         edges_;
 };
 
+class Pattern final {
+public:
+    Pattern() = default;
+
+    void add(PatternPart* p) {
+        pattern_.emplace_back(p);
+    }
+
+    std::vector<std::unique_ptr<PatternPart>>& pattern() {
+        return pattern_;
+    }
+
+private:
+    std::vector<std::unique_ptr<PatternPart>> pattern_;
+};
 class MatchReturnItems final {
 public:
     explicit MatchReturnItems(bool includeExisting, YieldColumns* columns = nullptr)
@@ -370,18 +385,18 @@ private:
 
 class MatchClause final : public ReadingClause {
 public:
-    MatchClause(MatchPath *path, WhereClause *where, bool optional)
+    MatchClause(PatternPart *path, WhereClause *where, bool optional)
         : ReadingClause(Kind::kMatch) {
         path_.reset(path);
         where_.reset(where);
         isOptional_ = optional;
     }
 
-    MatchPath* path() {
+    PatternPart* path() {
         return path_.get();
     }
 
-    const MatchPath* path() const {
+    const PatternPart* path() const {
         return path_.get();
     }
 
@@ -401,7 +416,7 @@ public:
 
 private:
     bool                                isOptional_{false};
-    std::unique_ptr<MatchPath>          path_;
+    std::unique_ptr<PatternPart>          path_;
     std::unique_ptr<WhereClause>        where_;
 };
 

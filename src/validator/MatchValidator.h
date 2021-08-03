@@ -27,7 +27,7 @@ private:
 
     AstContext* getAstContext() override;
 
-    Status validatePath(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
+    Status validatePath(const PatternPart *path, MatchClauseContext &matchClauseCtx) const;
 
     Status validateFilter(const Expression *filter, WhereClauseContext &whereClauseCtx) const;
 
@@ -72,15 +72,15 @@ private:
         return qctx_->objPool()->add(obj);
     }
 
-    Status buildNodeInfo(const MatchPath *path,
+    Status buildNodeInfo(const PatternPart *path,
                          std::vector<NodeInfo> &edgeInfos,
                          std::unordered_map<std::string, AliasType> &aliases) const;
 
-    Status buildEdgeInfo(const MatchPath *path,
+    Status buildEdgeInfo(const PatternPart *path,
                          std::vector<EdgeInfo> &nodeInfos,
                          std::unordered_map<std::string, AliasType> &aliases) const;
 
-    Status buildPathExpr(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
+    Status buildPathExpr(const PatternPart *path, MatchClauseContext &matchClauseCtx) const;
 
     Status combineAliases(std::unordered_map<std::string, AliasType> &curAliases,
                           const std::unordered_map<std::string, AliasType> &lastAliases) const;

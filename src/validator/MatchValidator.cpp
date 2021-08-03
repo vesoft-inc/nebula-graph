@@ -117,7 +117,7 @@ Status MatchValidator::validateImpl() {
     return Status::OK();
 }
 
-Status MatchValidator::validatePath(const MatchPath *path,
+Status MatchValidator::validatePath(const PatternPart *path,
                                     MatchClauseContext &matchClauseCtx) const {
     NG_RETURN_IF_ERROR(
         buildNodeInfo(path, matchClauseCtx.nodeInfos, matchClauseCtx.aliasesGenerated));
@@ -127,7 +127,7 @@ Status MatchValidator::validatePath(const MatchPath *path,
     return Status::OK();
 }
 
-Status MatchValidator::buildPathExpr(const MatchPath *path,
+Status MatchValidator::buildPathExpr(const PatternPart *path,
                                      MatchClauseContext &matchClauseCtx) const {
     auto *pathAlias = path->alias();
     if (pathAlias == nullptr) {
@@ -151,7 +151,7 @@ Status MatchValidator::buildPathExpr(const MatchPath *path,
     return Status::OK();
 }
 
-Status MatchValidator::buildNodeInfo(const MatchPath *path,
+Status MatchValidator::buildNodeInfo(const PatternPart *path,
                                      std::vector<NodeInfo> &nodeInfos,
                                      std::unordered_map<std::string, AliasType> &aliases) const {
     auto *sm = qctx_->schemaMng();
@@ -207,7 +207,7 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
     return Status::OK();
 }
 
-Status MatchValidator::buildEdgeInfo(const MatchPath *path,
+Status MatchValidator::buildEdgeInfo(const PatternPart *path,
                                      std::vector<EdgeInfo> &edgeInfos,
                                      std::unordered_map<std::string, AliasType> &aliases) const {
     auto *sm = qctx_->schemaMng();

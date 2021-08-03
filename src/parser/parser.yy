@@ -126,7 +126,8 @@ static constexpr size_t kCommentLengthLimit = 256;
     nebula::BothInOutClause                *both_in_out_clause;
     ExpressionList                         *expression_list;
     MapItemList                            *map_item_list;
-    MatchPath                              *match_path;
+    PatternPart                              *pattern_part;
+    Pattern                                *pattern;
     MatchNode                              *match_node;
     MatchNodeLabel                         *match_node_label;
     MatchNodeLabelList                     *match_node_label_list;
@@ -296,8 +297,9 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <expr> case_condition
 %type <expr> case_default
 
-%type <match_path> match_path_pattern
-%type <match_path> match_path
+%type <pattern_part> match_path_pattern
+%type <pattern_part> pattern_part
+%type <pattern> pattern
 %type <match_node> match_node
 %type <match_node_label> match_node_label
 %type <match_node_label_list> match_node_label_list
@@ -1416,22 +1418,26 @@ with_clause
     ;
 
 match_clause
-    : KW_MATCH match_path where_clause {
+    : KW_MATCH pattern where_clause {
+        auto* pattern1 = $2->pattern().front().release(); 
         if ($3 && graph::ExpressionUtils::findAny($3->filter(),{Expression::Kind::kAggregate})) {
             delete($2);
             delete($3);
+            delete(pattern1);
             throw nebula::GraphParser::syntax_error(@3, "Invalid use of aggregating function in this context.");
         } else {
-            $$ = new MatchClause($2, $3, false/*optinal*/);
+            $$ = new MatchClause(pattern1, $3, false/*optinal*/);
         }
     }
-    | KW_OPTIONAL KW_MATCH match_path where_clause {
+    | KW_OPTIONAL KW_MATCH pattern where_clause {
+        auto* pattern1 = $3->pattern().front().release(); 
         if ($4 && graph::ExpressionUtils::findAny($4->filter(),{Expression::Kind::kAggregate})) {
             delete($3);
             delete($4);
+            delete(pattern1);
             throw nebula::GraphParser::syntax_error(@4, "Invalid use of aggregating function in this context.");
         } else {
-            $$ = new MatchClause($3, $4, true);
+            $$ = new MatchClause(pattern1, $4, true);
         }
     }
     ;
@@ -1492,7 +1498,7 @@ match_sentence
 
 match_path_pattern
     : match_node {
-        $$ = new MatchPath($1);
+        $$ = new PatternPart($1);
     }
     | match_path_pattern match_edge match_node {
         $$ = $1;
@@ -1500,13 +1506,24 @@ match_path_pattern
     }
     ;
 
-match_path
+pattern_part
     : match_path_pattern {
         $$ = $1;
     }
     | name_label ASSIGN match_path_pattern {
         $$ = $3;
         $$->setAlias($1);
+    }
+    ;
+
+pattern
+    : pattern_part {
+        $$ = new Pattern();
+        $$->add($1);
+    }
+    | pattern COMMA pattern_part {
+        $$ = $1;
+        $1->add($3);
     }
     ;
 

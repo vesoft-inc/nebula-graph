@@ -155,7 +155,7 @@ std::string MatchNode::toString() const {
     return buf;
 }
 
-std::string MatchPath::toString() const {
+std::string PatternPart::toString() const {
     std::string buf;
     buf.reserve(256);
 
