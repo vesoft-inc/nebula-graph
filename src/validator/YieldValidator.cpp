@@ -27,7 +27,7 @@ Status YieldValidator::validateImpl() {
     }
 
     auto yield = static_cast<YieldSentence *>(sentence_);
-    if (yield->hasAgg()) {
+    if (yield->yield()->yields()->hasAgg()) {
         NG_RETURN_IF_ERROR(makeImplicitGroupByValidator());
     }
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
@@ -50,12 +50,6 @@ Status YieldValidator::validateImpl() {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
-    if (!groupByValidator_ && exprProps_.inputProps().empty()
-        && exprProps_.varProps().empty() && inputVarName_.empty()) {
-        // generate constant expression result into querycontext
-        genConstantExprValues();
-    }
-
     if (!exprProps_.varProps().empty() && !userDefinedVarNameList_.empty()) {
         // TODO: Support Multiple userDefinedVars
         if (userDefinedVarNameList_.size() != 1) {
@@ -70,7 +64,6 @@ Status YieldValidator::validateImpl() {
 Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     columns_->addColumn(column);
 
-    auto* pool = qctx()->objPool();
     auto colExpr = column->expr();
     DCHECK(colExpr != nullptr);
 
@@ -83,26 +76,12 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
 
     auto name = column->name();
     // Constant expression folding must be after type deduction
-    auto foldedExpr = ExpressionUtils::foldConstantExpr(pool, expr);
+    auto foldedExpr = ExpressionUtils::foldConstantExpr(expr);
     NG_RETURN_IF_ERROR(foldedExpr);
     auto foldedExprCopy = std::move(foldedExpr).value()->clone();
     column->setExpr(foldedExprCopy);
     outputs_.emplace_back(name, type);
     return Status::OK();
-}
-
-void YieldValidator::genConstantExprValues() {
-    constantExprVar_ = vctx_->anonVarGen()->getVar();
-    DataSet ds;
-    ds.colNames = getOutColNames();
-    QueryExpressionContext ctx;
-    Row row;
-    for (auto &column : columns_->columns()) {
-        row.values.emplace_back(Expression::eval(column->expr(), ctx(nullptr)));
-    }
-    ds.emplace_back(std::move(row));
-    qctx_->ectx()->setResult(constantExprVar_,
-                             ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
 Status YieldValidator::makeImplicitGroupByValidator() {
@@ -178,8 +157,7 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
     }
     if (filter != nullptr) {
         NG_RETURN_IF_ERROR(deduceProps(filter, exprProps_));
-        auto pool = qctx_->objPool();
-        auto foldRes = ExpressionUtils::foldConstantExpr(pool, filter);
+        auto foldRes = ExpressionUtils::foldConstantExpr(filter);
         NG_RETURN_IF_ERROR(foldRes);
         filterCondition_ = foldRes.value();
     }
@@ -194,8 +172,10 @@ Status YieldValidator::toPlan() {
     if (!userDefinedVarName_.empty()) {
         inputVar = userDefinedVarName_;
         colNames = qctx_->symTable()->getVar(inputVar)->colNames;
-    } else if (!constantExprVar_.empty()) {
-        inputVar = constantExprVar_;
+    } else if (exprProps_.inputProps().empty()
+        && exprProps_.varProps().empty() && inputVarName_.empty()) {
+        // generate constant expression result into querycontext
+        inputVar = vctx_->anonVarGen()->getVar();
     } else {
         std::transform(
             inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &col) { return col.name; });
