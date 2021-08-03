@@ -266,15 +266,17 @@ public:
     Pattern() = default;
 
     void add(PatternPart* p) {
-        pattern_.emplace_back(p);
+        patternParts_.emplace_back(p);
     }
 
-    std::vector<std::unique_ptr<PatternPart>>& pattern() {
-        return pattern_;
+    std::vector<std::unique_ptr<PatternPart>>& patternParts() {
+        return patternParts_;
     }
+
+    std::string toString() const;
 
 private:
-    std::vector<std::unique_ptr<PatternPart>> pattern_;
+    std::vector<std::unique_ptr<PatternPart>> patternParts_;
 };
 class MatchReturnItems final {
 public:
@@ -385,19 +387,19 @@ private:
 
 class MatchClause final : public ReadingClause {
 public:
-    MatchClause(PatternPart *path, WhereClause *where, bool optional)
+    MatchClause(Pattern *pattern, WhereClause *where, bool optional)
         : ReadingClause(Kind::kMatch) {
-        path_.reset(path);
+        pattern_.reset(pattern);
         where_.reset(where);
         isOptional_ = optional;
     }
 
-    PatternPart* path() {
-        return path_.get();
+    Pattern* pattern() {
+        return pattern_.get();
     }
 
-    const PatternPart* path() const {
-        return path_.get();
+    const Pattern* pattern() const {
+        return pattern_.get();
     }
 
     WhereClause* where() {
@@ -416,7 +418,7 @@ public:
 
 private:
     bool                                isOptional_{false};
-    std::unique_ptr<PatternPart>          path_;
+    std::unique_ptr<Pattern>            pattern_;
     std::unique_ptr<WhereClause>        where_;
 };
 

@@ -47,7 +47,13 @@ Status MatchValidator::validateImpl() {
 
                 auto matchClauseCtx = getContext<MatchClauseContext>();
                 matchClauseCtx->aliasesUsed = aliasesUsed;
-                NG_RETURN_IF_ERROR(validatePath(matchClause->path(), *matchClauseCtx));
+                auto& pattern = matchClause->pattern()->patternParts();
+                auto size = pattern.size();
+                DCHECK_GT(size, 0);
+                if (size > 1) {
+                    return Status::SemanticError("Multiple patterns not supported yet.");
+                }
+                NG_RETURN_IF_ERROR(validatePath(pattern.front().get(), *matchClauseCtx));
                 if (matchClause->where() != nullptr) {
                     auto whereClauseCtx = getContext<WhereClauseContext>();
                     whereClauseCtx->aliasesUsed = &matchClauseCtx->aliasesGenerated;

@@ -17,14 +17,13 @@ std::string MatchClause::toString() const {
     }
 
     buf += "MATCH ";
-    buf += path_->toString();
+    buf += pattern_->toString();
     if (where_ != nullptr) {
         buf += " ";
         buf += where_->toString();
     }
     return buf;
 }
-
 
 std::string UnwindClause::toString() const {
     std::string buf;
@@ -37,7 +36,6 @@ std::string UnwindClause::toString() const {
 
     return buf;
 }
-
 
 std::string WithClause::toString() const {
     std::string buf;
@@ -76,7 +74,6 @@ std::string WithClause::toString() const {
 
     return buf;
 }
-
 
 std::string MatchEdge::toString() const {
     std::string buf;
@@ -135,7 +132,6 @@ std::string MatchEdge::toString() const {
     return buf;
 }
 
-
 std::string MatchNode::toString() const {
     std::string buf;
     buf.reserve(64);
@@ -168,6 +164,21 @@ std::string PatternPart::toString() const {
     for (auto i = 0u; i < edges_.size(); i++) {
         buf += edge(i)->toString();
         buf += node(i + 1)->toString();
+    }
+
+    return buf;
+}
+
+std::string Pattern::toString() const {
+    std::string buf;
+    buf.reserve(256);
+
+    auto size = patternParts_.size();
+    for (auto i = 0u; i < size; ++i) {
+        buf += patternParts_[i]->toString();
+        if (i < (size - 1)) {
+            buf += ",";
+        }
     }
 
     return buf;
