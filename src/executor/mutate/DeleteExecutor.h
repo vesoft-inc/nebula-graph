@@ -23,6 +23,17 @@ private:
     folly::Future<Status> deleteVertices();
 };
 
+class DeleteTagsExecutor final : public StorageAccessExecutor {
+public:
+    DeleteTagsExecutor(const PlanNode *node, QueryContext *qctx)
+        : StorageAccessExecutor("DeleteTagsExecutor", node, qctx) {}
+
+    folly::Future<Status> execute() override;
+
+private:
+    folly::Future<Status> deleteTags();
+};
+
 class DeleteEdgesExecutor final : public StorageAccessExecutor {
 public:
     DeleteEdgesExecutor(const PlanNode *node, QueryContext *qctx)

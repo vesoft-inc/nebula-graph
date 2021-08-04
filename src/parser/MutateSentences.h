@@ -520,6 +520,38 @@ private:
     std::unique_ptr<VerticesClause> vertices_;
 };
 
+class DeleteTagsSentence final : public Sentence {
+public:
+    DeleteTagsSentence(VertexIDList *vidList, NameLabelList *labelList) {
+        kind_ = Kind::kDeleteTags;
+        vertices_.reset(new VerticesClause(vidList));
+        tags_.reset(labelList);
+    }
+
+    explicit DeleteTagsSentence(VertexIDList *vidList) {
+        kind_ = Kind::kDeleteTags;
+        vertices_.reset(new VerticesClause(vidList));
+        tags_ = std::make_unique<NameLabelList>();
+    }
+
+    const VerticesClause* vertices() const {
+        return vertices_.get();
+    }
+
+    const NameLabelList* tags() const {
+        return tags_.get();
+    }
+
+    bool isAllTag() {
+        return tags_->empty();
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<VerticesClause>     vertices_;
+    std::unique_ptr<NameLabelList>      tags_;
+};
 
 class DeleteEdgesSentence final : public Sentence {
 public:

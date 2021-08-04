@@ -398,6 +398,59 @@ Status DeleteVerticesValidator::toPlan() {
     return Status::OK();
 }
 
+Status DeleteTagsValidator::validateImpl() {
+    auto sentence = static_cast<DeleteTagsSentence*>(sentence_);
+    spaceId_ = vctx_->whichSpace().id;
+
+    auto vIds = sentence->vertices()->vidList();
+    for (auto vId : vIds) {
+        auto idStatus = SchemaUtil::toVertexID(vId, vidType_);
+        NG_RETURN_IF_ERROR(idStatus);
+        vertices_.emplace_back(std::move(idStatus).value());
+    }
+
+    if (!sentence->isAllTag()) {
+        auto tags = sentence->tags()->labels();
+        for (const auto &tag : tags) {
+            auto tagStatus = qctx_->schemaMng()->toTagID(space_.id, *tag);
+            NG_RETURN_IF_ERROR(tagStatus);
+            auto tagId = tagStatus.value();
+            tagIds_.emplace_back(tagId);
+        }
+    } else {
+        const auto allTagsResult = qctx_->schemaMng()->getAllLatestVerTagSchema(space_.id);
+        NG_RETURN_IF_ERROR(allTagsResult);
+        const auto allTags = std::move(allTagsResult).value();
+        for (const auto &tag : allTags) {
+            tagIds_.emplace_back(tag.first);
+        }
+    }
+    return Status::OK();
+}
+
+std::string DeleteTagsValidator::buildVIds() {
+    auto input = vctx_->anonVarGen()->getVar();
+    DataSet ds;
+    ds.colNames.emplace_back(kVid);
+    for (auto& vid : vertices_) {
+        Row row;
+        row.values.emplace_back(vid);
+        ds.rows.emplace_back(std::move(row));
+    }
+    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
+    return input;
+}
+
+Status DeleteTagsValidator::toPlan() {
+    auto vIdVar = buildVIds();
+    auto* dedupNode = Dedup::make(qctx_, nullptr);
+    dedupNode->setInputVar(vIdVar);
+    auto* dtNode = DeleteTags::make(qctx_, dedupNode, spaceId_, tagIds_);
+    root_ = dtNode;
+    tail_ = dedupNode;
+    return Status::OK();
+}
+
 Status DeleteEdgesValidator::validateImpl() {
     auto sentence = static_cast<DeleteEdgesSentence*>(sentence_);
     auto spaceId = vctx_->whichSpace().id;

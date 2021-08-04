@@ -81,6 +81,7 @@ public:
         kShowTSClients,
         kShowFTIndexes,
         kDeleteVertices,
+        kDeleteTags,
         kDeleteEdges,
         kLookup,
         kCreateSpace,

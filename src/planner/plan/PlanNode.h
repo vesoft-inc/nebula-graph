@@ -130,6 +130,7 @@ public:
 
         // Update/Delete
         kDeleteVertices,
+        kDeleteTags,
         kDeleteEdges,
         kUpdateVertex,
         kUpdateEdge,
