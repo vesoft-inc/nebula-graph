@@ -534,6 +534,18 @@ public:
         tags_ = std::make_unique<NameLabelList>();
     }
 
+    DeleteTagsSentence(Expression *ref, NameLabelList *labelList) {
+        kind_ = Kind::kDeleteTags;
+        vertices_.reset(new VerticesClause(ref));
+        tags_.reset(labelList);
+    }
+
+    explicit DeleteTagsSentence(Expression *ref) {
+        kind_ = Kind::kDeleteTags;
+        vertices_.reset(new VerticesClause(ref));
+        tags_ = std::make_unique<NameLabelList>();
+    }
+
     const VerticesClause* vertices() const {
         return vertices_.get();
     }

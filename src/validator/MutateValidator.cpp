@@ -402,11 +402,23 @@ Status DeleteTagsValidator::validateImpl() {
     auto sentence = static_cast<DeleteTagsSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
 
-    auto vIds = sentence->vertices()->vidList();
-    for (auto vId : vIds) {
-        auto idStatus = SchemaUtil::toVertexID(vId, vidType_);
-        NG_RETURN_IF_ERROR(idStatus);
-        vertices_.emplace_back(std::move(idStatus).value());
+    if (sentence->vertices()->isRef()) {
+        vidRef_ = sentence->vertices()->ref();
+        auto type = deduceExprType(vidRef_);
+        NG_RETURN_IF_ERROR(type);
+        if (type.value() != vidType_) {
+            std::stringstream ss;
+            ss << "The vid `" << vidRef_->toString() << "' should be type of `" << vidType_
+               << "', but was`" << type.value() << "'";
+            return Status::SemanticError(ss.str());
+        }
+    } else {
+        auto vIds = sentence->vertices()->vidList();
+        for (auto vId : vIds) {
+            auto idStatus = SchemaUtil::toVertexID(vId, vidType_);
+            NG_RETURN_IF_ERROR(idStatus);
+            vertices_.emplace_back(std::move(idStatus).value());
+        }
     }
 
     if (!sentence->isAllTag()) {
@@ -438,14 +450,24 @@ std::string DeleteTagsValidator::buildVIds() {
         ds.rows.emplace_back(std::move(row));
     }
     qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
+    auto *pool = qctx_->objPool();
+    auto *vIds = VariablePropertyExpression::make(pool, input, kVid);
+    vidRef_ = vIds;
     return input;
 }
 
 Status DeleteTagsValidator::toPlan() {
-    auto vIdVar = buildVIds();
+    std::string vIdVar;
+    if (!vertices_.empty() && vidRef_ == nullptr) {
+        vIdVar = buildVIds();
+    } else if (vidRef_ != nullptr && vidRef_->kind() == Expression::Kind::kVarProperty) {
+        vIdVar = static_cast<PropertyExpression*>(vidRef_)->sym();
+    } else if (vidRef_ != nullptr && vidRef_->kind() == Expression::Kind::kInputProperty) {
+        vIdVar = inputVarName_;
+    }
     auto* dedupNode = Dedup::make(qctx_, nullptr);
     dedupNode->setInputVar(vIdVar);
-    auto* dtNode = DeleteTags::make(qctx_, dedupNode, spaceId_, tagIds_);
+    auto* dtNode = DeleteTags::make(qctx_, dedupNode, spaceId_, vidRef_, tagIds_);
     root_ = dtNode;
     tail_ = dedupNode;
     return Status::OK();

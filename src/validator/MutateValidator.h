@@ -104,7 +104,10 @@ private:
 
 private:
     GraphSpaceID                                  spaceId_{-1};
+    // From ConstantExpression
     std::vector<Value>                            vertices_;
+    // From InputPropertyExpression or InputPropertyExpression
+    Expression*                                   vidRef_{nullptr};
     std::vector<TagID>                            tagIds_;
 };
 

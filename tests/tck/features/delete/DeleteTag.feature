@@ -221,3 +221,67 @@ Feature: Delete string vid of tag
       """
     Then the result should be, in any order:
       | VertexID     |
+
+  Scenario: delete string vid from pipe
+    Given an empty graph
+    And load "nba" csv data to a new space
+    # before delete tag
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER serve YIELD serve._dst as id
+      """
+    Then the result should be, in any order:
+      | id         |
+      | "Spurs"    |
+    When executing query:
+      """
+      FETCH PROP ON team "Spurs" YIELD team.name
+      """
+    Then the result should be, in any order:
+      | VertexID | team.name  |
+      | "Spurs"  | "Spurs"    |
+    # delete one tag
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER serve YIELD serve._dst as id | DELETE TAG $-.id team
+      """
+    Then the execution should be successful
+    # after delete tag
+    When executing query:
+      """
+      FETCH PROP ON team "Spurs" YIELD team.name
+      """
+    Then the result should be, in any order:
+      | VertexID | team.name  |
+
+  Scenario: delete string vid from var
+    Given an empty graph
+    And load "nba" csv data to a new space
+    # before delete tag
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER serve YIELD serve._dst as id
+      """
+    Then the result should be, in any order:
+      | id         |
+      | "Spurs"    |
+    When executing query:
+      """
+      FETCH PROP ON team "Spurs" YIELD team.name
+      """
+    Then the result should be, in any order:
+      | VertexID | team.name  |
+      | "Spurs"  | "Spurs"    |
+    # delete one tag
+    When executing query:
+      """
+      $var = GO FROM "Tim Duncan" OVER serve YIELD serve._dst as id; DELETE TAG $var.id team
+      """
+    Then the execution should be successful
+    # after delete tag
+    When executing query:
+      """
+      FETCH PROP ON team "Spurs" YIELD team.name
+      """
+    Then the result should be, in any order:
+      | VertexID | team.name  |

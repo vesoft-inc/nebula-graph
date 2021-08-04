@@ -80,6 +80,8 @@ folly::Future<Status> DeleteTagsExecutor::execute() {
 folly::Future<Status> DeleteTagsExecutor::deleteTags() {
     auto *dtNode = asNode<DeleteTags>(node());
     const auto& spaceInfo = qctx()->rctx()->session()->space();
+    auto vidRef = dtNode->getVidRef();
+    DCHECK(vidRef != nullptr);
     auto inputVar = dtNode->inputVar();
     DCHECK(!inputVar.empty());
     auto& inputResult = ectx_->getResult(inputVar);
@@ -92,13 +94,17 @@ folly::Future<Status> DeleteTagsExecutor::deleteTags() {
     for (; iter->valid(); iter->next()) {
         storage::cpp2::DelTags delTag;
         DCHECK(!iter->row()->empty());
-        const auto& vId = (*iter->row())[0];
-        if (!SchemaUtil::isValidVid(vId, *spaceInfo.spaceDesc.vid_type_ref())) {
+        auto val = Expression::eval(vidRef, ctx(iter.get()));
+        if (val.isNull() || val.empty()) {
+            VLOG(3) << "NULL or EMPTY vid";
+            continue;
+        }
+        if (!SchemaUtil::isValidVid(val, *spaceInfo.spaceDesc.vid_type_ref())) {
             std::stringstream ss;
-            ss << "Wrong vid type `" << vId.type() << "', value `" << vId.toString() << "'";
+            ss << "Wrong vid type `" << val.type() << "', value `" << val.toString() << "'";
             return Status::Error(ss.str());
         }
-        delTag.set_id(vId);
+        delTag.set_id(val);
         delTag.set_tags(dtNode->tagIds());
         delTags.emplace_back(std::move(delTag));
     }

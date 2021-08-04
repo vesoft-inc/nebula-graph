@@ -2816,6 +2816,14 @@ delete_tag_sentence
         auto sentence = new DeleteTagsSentence($3);
         $$ = sentence;
     }
+    | KW_DELETE KW_TAG vid_ref_expression name_label_list {
+        auto sentence = new DeleteTagsSentence($3, $4);
+        $$ = sentence;
+    }
+    | KW_DELETE KW_TAG vid_ref_expression STAR {
+        auto sentence = new DeleteTagsSentence($3);
+        $$ = sentence;
+    }
     ;
 
 download_sentence
