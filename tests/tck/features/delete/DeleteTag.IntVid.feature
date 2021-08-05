@@ -32,7 +32,7 @@ Feature: Delete int vid of tag
     # delete one tag
     When executing query:
       """
-      DELETE TAG hash("Tim Duncan") player;
+      DELETE TAG player FROM hash("Tim Duncan");
       """
     Then the execution should be successful
     # after delete tag
@@ -84,7 +84,7 @@ Feature: Delete int vid of tag
     # delete one tag
     When executing query:
       """
-      DELETE TAG hash("Tim Duncan") player, bachelor;
+      DELETE TAG player, bachelor FROM hash("Tim Duncan");
       """
     Then the execution should be successful
     # after delete tag
@@ -135,7 +135,7 @@ Feature: Delete int vid of tag
     # delete one tag
     When executing query:
       """
-      DELETE TAG hash("Tim Duncan") *;
+      DELETE TAG * FROM hash("Tim Duncan");
       """
     Then the execution should be successful
     # after delete tag
@@ -193,7 +193,7 @@ Feature: Delete int vid of tag
     # delete one tag
     When executing query:
       """
-      DELETE TAG hash("Tim Duncan"), hash("Tony Parker") player;
+      DELETE TAG player FROM hash("Tim Duncan"), hash("Tony Parker");
       """
     Then the execution should be successful
     # after delete tag
@@ -243,7 +243,7 @@ Feature: Delete int vid of tag
     # delete one tag
     When executing query:
       """
-      GO FROM hash("Tim Duncan") OVER serve YIELD serve._dst as id | DELETE TAG $-.id team
+      GO FROM hash("Tim Duncan") OVER serve YIELD serve._dst as id | DELETE TAG team FROM $-.id
       """
     Then the execution should be successful
     # after delete tag
@@ -275,7 +275,7 @@ Feature: Delete int vid of tag
     # delete one tag
     When executing query:
       """
-      $var = GO FROM hash("Tim Duncan") OVER serve YIELD serve._dst as id; DELETE TAG $var.id team
+      $var = GO FROM hash("Tim Duncan") OVER serve YIELD serve._dst as id; DELETE TAG team FROM $var.id
       """
     Then the execution should be successful
     # after delete tag
