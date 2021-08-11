@@ -313,6 +313,9 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     if (!valid()) {
         return Value::kNullValue;
     }
+    if (noEdge_) {
+        return Value::kEmpty;
+    }
 
     auto& currentEdge = currentEdgeName();
     if (edge != "*" &&
@@ -387,6 +390,9 @@ List GetNeighborsIter::getVertices() {
 Value GetNeighborsIter::getEdge() const {
     if (!valid()) {
         return Value::kNullValue;
+    }
+    if (noEdge_) {
+        return Value::kEmpty;
     }
 
     Edge edge;
