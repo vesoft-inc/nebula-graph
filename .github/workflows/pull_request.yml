@@ -91,8 +91,11 @@ jobs:
                   -DCMAKE_CXX_COMPILER=$TOOLSET_DIR/bin/g++ \
                   -DCMAKE_C_COMPILER=$TOOLSET_DIR/bin/gcc \
                   -DCMAKE_BUILD_TYPE=Release \
+                  -DNEBULA_COMMON_REPO_TAG=${{ steps.tag.outputs.tag }} \
+                  -DNEBULA_STORAGE_REPO_TAG=${{ steps.tag.outputs.tag }} \
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
+                  -DENABLE_MODULE_FORCE_CHECKOUT=off \
                   -B build
               echo "::set-output name=j::10"
               ;;
@@ -102,8 +105,11 @@ jobs:
                   -DCMAKE_CXX_COMPILER=$TOOLSET_DIR/bin/g++ \
                   -DCMAKE_C_COMPILER=$TOOLSET_DIR/bin/gcc \
                   -DCMAKE_BUILD_TYPE=Debug \
+                  -DNEBULA_COMMON_REPO_TAG=${{ steps.tag.outputs.tag }} \
+                  -DNEBULA_STORAGE_REPO_TAG=${{ steps.tag.outputs.tag }} \
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
+                  -DENABLE_MODULE_FORCE_CHECKOUT=off \
                   -B build
               echo "::set-output name=j::10"
               ;;
@@ -115,9 +121,12 @@ jobs:
                 -DCMAKE_CXX_COMPILER=$TOOLSET_DIR/bin/clang++ \
                 -DCMAKE_C_COMPILER=$TOOLSET_DIR/bin/clang \
                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DNEBULA_COMMON_REPO_TAG=${{ steps.tag.outputs.tag }} \
+                -DNEBULA_STORAGE_REPO_TAG=${{ steps.tag.outputs.tag }} \
                 -DENABLE_ASAN=on \
                 -DENABLE_TESTING=on \
                 -DENABLE_BUILD_STORAGE=on \
+                -DENABLE_MODULE_FORCE_CHECKOUT=off \
                 -B build
             echo "::set-output name=j::6"
             ;;
