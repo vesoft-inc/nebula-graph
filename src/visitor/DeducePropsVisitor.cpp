@@ -142,7 +142,9 @@ void DeducePropsVisitor::visit(InputPropertyExpression *expr) {
 
 void DeducePropsVisitor::visit(VariablePropertyExpression *expr) {
     exprProps_->insertVarProp(expr->sym(), expr->prop());
-    userDefinedVarNameList_->emplace(expr->sym());
+    if (expr->sym()[0] != '_') {
+        userDefinedVarNameList_->emplace(expr->sym());
+    }
 }
 
 void DeducePropsVisitor::visit(DestPropertyExpression *expr) {

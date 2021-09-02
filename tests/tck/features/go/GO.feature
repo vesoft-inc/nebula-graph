@@ -1821,3 +1821,39 @@ Feature: Go Sentence
       """
     Then the result should be, in any order, with relax comparison:
       | like._dst |
+
+  Scenario: with no existed tag
+    When executing query:
+      """
+      GO FROM 'Tony Parker' OVER like YIELD $$.player.name, $^.team.name
+      """
+    Then the result should be, in any order, with relax comparison:
+      | $$.player.name      | $^.team.name |
+      | "LaMarcus Aldridge" | EMPTY        |
+      | "Manu Ginobili"     | EMPTY        |
+      | "Tim Duncan"        | EMPTY        |
+
+  Scenario: go from vertices looked up by index
+    When executing query:
+      """
+      LOOKUP ON player WHERE player.age == 40 YIELD player.name AS name |
+      GO 1 TO 2 STEPS FROM $-.name OVER like REVERSELY YIELD like._dst AS dst, $$.player.name AS name
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst                  | name                 |
+      | "Jason Kidd"         | "Jason Kidd"         |
+      | "Luka Doncic"        | "Luka Doncic"        |
+      | "Steve Nash"         | "Steve Nash"         |
+      | "Paul Gasol"         | "Paul Gasol"         |
+      | "Tracy McGrady"      | "Tracy McGrady"      |
+      | "Kristaps Porzingis" | "Kristaps Porzingis" |
+      | "Dirk Nowitzki"      | "Dirk Nowitzki"      |
+      | "Steve Nash"         | "Steve Nash"         |
+      | "Vince Carter"       | "Vince Carter"       |
+      | "Marc Gasol"         | "Marc Gasol"         |
+      | "Amar'e Stoudemire"  | "Amar'e Stoudemire"  |
+      | "Dirk Nowitzki"      | "Dirk Nowitzki"      |
+      | "Jason Kidd"         | "Jason Kidd"         |
+      | "Grant Hill"         | "Grant Hill"         |
+      | "Vince Carter"       | "Vince Carter"       |
+      | "Yao Ming"           | "Yao Ming"           |

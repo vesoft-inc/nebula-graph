@@ -7,7 +7,7 @@ Feature: Test yield var
   Background:
     Given a graph with space named "nba"
 
-  Scenario: yield constant after pipe
+  Scenario: yield variable
     When executing query:
       """
       $var = GO FROM "Tim Duncan" OVER *; YIELD $var[0][0] as var00;

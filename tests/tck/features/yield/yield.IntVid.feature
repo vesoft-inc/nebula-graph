@@ -288,7 +288,7 @@ Feature: Yield Sentence
       """
       $var = GO FROM hash("Boris Diaw") OVER serve YIELD $^.player.name AS name, serve.start_year AS start, $$.team.name AS team;YIELD $var.team WHERE $var1.start > 2005
       """
-    Then a SemanticError should be raised at runtime: Only one variable allowed to use.
+    Then a SemanticError should be raised at runtime: Multiple variables not supported yet.
     When executing query:
       """
       $var = GO FROM hash("Boris Diaw") OVER serve YIELD $^.player.name AS name, serve.start_year AS start, $$.team.name AS team;YIELD $var.abc
@@ -422,12 +422,13 @@ Feature: Yield Sentence
     Then the result should be, in any order:
       | 1 |
       | 1 |
+      | 1 |
+      | 1 |
     When executing query:
       """
       GO FROM hash("Nobody") OVER like | YIELD 1
       """
     Then the result should be, in any order:
-      | 1 |
       | 1 |
     When executing query:
       """

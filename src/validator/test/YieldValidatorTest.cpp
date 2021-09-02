@@ -435,7 +435,7 @@ TEST_F(YieldValidatorTest, Error) {
         auto query = var + "YIELD $var.name WHERE $var1.start > 2005";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Only one variable allowed to use.");
+                  "SemanticError: Multiple variables not supported yet.");
     }
     {
         // Reference a non-existed prop is meaningless.
@@ -452,13 +452,13 @@ TEST_F(YieldValidatorTest, Error) {
         auto query = var + "YIELD $$.person.name";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Only support input and variable in yield sentence.");
+                  "SemanticError: Not support vertex/edge property expression in yield sentence.");
     }
     {
         auto query = var + "YIELD $^.person.name";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Only support input and variable in yield sentence.");
+                  "SemanticError: Not support vertex/edge property expression in yield sentence.");
     }
     {
         auto query = var + "YIELD like.start";
