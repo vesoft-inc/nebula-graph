@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/vesoft-inc/nebula/raw/master/docs/logo.png"/>
+  <img src="https://raw.githubusercontent.com/vesoft-inc/nebula/v1-head/docs/logo.png"/>
   <br> English | <a href="README-CN.md">中文</a>
   <br>A distributed, scalable, lightning-fast graph database<br>
 </p>
@@ -32,6 +32,8 @@ Compared with other graph database solutions, **Nebula Graph** has the following
 ## Notice of Release
 
 The Nebula Graph team is glad to announce the Nebula Graph 2.0.0 GA. This is a brand new start with several important updates, and more of them are on the way. Welcome to join us.
+
+After v2.5.0, we use [Nebula repo](https://github.com/vesoft-inc/nebula).
 
 <!--
 To use the stable release, see [Nebula Graph 1.0](https://github.com/vesoft-inc/nebula).
