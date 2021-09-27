@@ -97,7 +97,8 @@ StatusOr<TransformResult> OptimizeTagIndexScanByFilterRule::transform(
 
     IndexQueryContext ictx;
     bool isPrefixScan = false;
-    if (!OptimizerUtils::findOptimalIndex(filter->condition(), indexItems, &isPrefixScan, &ictx)) {
+    if (!OptimizerUtils::findOptimalIndex(filter->condition(), indexItems,
+                                          &isPrefixScan, &ictx, scan->returnColumns())) {
         return TransformResult::noTransform();
     }
 
