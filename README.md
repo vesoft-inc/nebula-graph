@@ -16,6 +16,11 @@
   <br>
 </p>
 
+### This is an archived repo for v2.5 only, from 2.6.0 +, NebulaGraph switched back to 
+https://github.com/vesoft-inc/nebula
+
+<br />
+
 # What is Nebula Graph?
 
 **Nebula Graph** is an open-source graph database capable of hosting super large scale graphs with dozens of billions of vertices (nodes) and trillions of edges, with milliseconds of latency.
